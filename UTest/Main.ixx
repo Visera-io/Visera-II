@@ -14,8 +14,10 @@ export int main(int argc, char *argv[])
     //auto k = Memory::MallocNow(2, 64);
     //Memory::Free(k, 0);
 
-    FName Name{"LJYC"};
+    FName Name{EName::None};
     std::cout << FName::FetchNameString(Name);
-
+    FJSON Json;
+    Json.Set("Name", "LJYC");
+    std::cout << Json.Get("Name");
     return EXIT_SUCCESS;
 }
