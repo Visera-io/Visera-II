@@ -11,9 +11,11 @@ export int main(int argc, char *argv[])
 
     UInt64 Value = CityHash64("Hello");
     std::cout << Value << "\n";
-    auto k = Memory::Malloc(2, 0);
-    Memory::Free(k, 0);
+    //auto k = Memory::MallocNow(2, 64);
+    //Memory::Free(k, 0);
 
-    OS::Sleep(100);
+    FName Name{"LJYC"};
+    std::cout << FName::FetchNameString(Name);
+
     return EXIT_SUCCESS;
 }

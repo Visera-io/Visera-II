@@ -3,6 +3,7 @@ module;
 export module Visera.Core.OS;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.Core.OS.Memory;
+export import Visera.Core.OS.Mutex;
 
 export namespace Visera
 {

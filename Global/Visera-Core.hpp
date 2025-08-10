@@ -80,9 +80,32 @@ namespace Visera
     using FStringView   = std::string_view;
 
     using FByte         = UInt8;
+    using FANSIChar	    = char;
+    using FWideChar     = wchar_t;
 
     constexpr Bool True  = true;
     constexpr Bool False = false;
+
+    template<typename T>
+    using TVector   = std::vector<T>;
+
+    template<typename T, size_t Length>
+    using TArray    = std::array<T, Length>;
+
+    template<typename T>
+    using TList     = std::list<T>;
+
+    template<typename T>
+    using TSet      = std::unordered_set<T>;
+
+    template<typename Key, typename Value>
+    using THashMap  = std::unordered_map<Key, Value>;
+
+    template<typename T1, typename T2>
+    using TPair     = std::pair<T1, T2>;
+
+    template <typename... Args>
+    using TTuple = std::tuple<Args...>;
 
     namespace Concepts
     {

@@ -93,7 +93,7 @@ export namespace Visera
             void* ReallocatedMemory = nullptr;
             if (I_NewAlignment)
             {
-    #if defined(VE_ON_WINDOWS_SYSTEM)
+    #if defined(VISERA_ON_WINDOWS_SYSTEM)
                 ReallocatedMemory = I_aligned_realloc(I_Memory, I_NewSize, I_NewAlignment);
     #else
                 ReallocatedMemory = Malloc(I_NewSize, I_NewAlignment);
@@ -122,7 +122,7 @@ export namespace Visera
             if (I_Alignment)
             {
                 VISERA_ASSERT(IsPowerOfTwo(I_Alignment));
-    #if defined(VE_ON_WINDOWS_SYSTEM)
+    #if defined(VISERA_ON_WINDOWS_SYSTEM)
                 I_aligned_free(I_Memory);
     #else
                 std::free(I_Memory); // Safe
@@ -135,9 +135,9 @@ export namespace Visera
         Prefetch(const void* I_Memory, UInt32 I_Offset/* = 0*/)
         {
             //Copied from Unreal Engine!
-    #if defined(VE_ON_X86_CPU)
+    #if defined(VISERA_ON_X86_CPU)
             I_mm_prefetch(static_cast<const char*>(I_Memory) + I_Offset, I_MM_HINT_T0);
-    #elif defined(VE_ON_ARM_CPU)
+    #elif defined(VISERA_ON_ARM_CPU)
     #	if defined(_MSC_VER)
             I__prefetch(static_cast<const char*>(I_Memory) + I_Offset);
     #	else
@@ -157,7 +157,7 @@ export namespace Visera
                         ||
                         (IsPowerOfTwo(I_Alignment)
                         && (I_Size % I_Alignment == 0))
-    #if defined(VE_ON_APPLE_SYSTEM)
+    #if defined(VISERA_ON_APPLE_SYSTEM)
                         && (I_Alignment % sizeof(void*) == 0)
     #endif
             );
