@@ -1,0 +1,29 @@
+{
+    "Spdlog" : 
+    {
+        "Version" : "1.15.3",
+        "Dependencies" : 
+        [
+
+        ],
+        "URL" : "https://github.com/gabime/spdlog"
+    },
+    "NlohmannJSON" : 
+    {
+        "Version" : "1.15.3",
+        "Dependencies" : 
+        [
+
+        ],
+        "URL" : "https://github.com/nlohmann/json"
+    },
+    "Eigen" : 
+    {
+        "Version" : "3.4.0",
+        "Dependencies" : 
+        [
+
+        ],
+        "URL" : "https://gitlab.com/libeigen/eigen/-/releases/3.4.0"
+    }
+}
