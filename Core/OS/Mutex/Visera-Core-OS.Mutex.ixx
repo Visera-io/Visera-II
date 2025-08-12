@@ -1,9 +1,21 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.OS.Mutex;
+#define VISERA_MODULE_NAME "Core.OS.Mutex"
 
 export namespace Visera
 {
+    class FMutex
+    {
+    public:
+        Bool TryToLock() { return Handle.try_lock(); }
+        void Lock()		 { Handle.lock(); }
+        void Unlock()	 { Handle.unlock(); }
+
+    private:
+        std::mutex Handle;
+    };
+
     class FRWLock
     {
     public:

@@ -59,9 +59,9 @@ export namespace Visera
             void* AllocatedMemory = nullptr;
             if (I_Alignment)
             {
-    #if (VE_IS_WINDOWS_SYSTEM)
+    #if defined(VISERA_ON_WINDOWS_SYSTEM)
                 AllocatedMemory = I_aligned_malloc(I_Size, I_Alignment);
-    #elif (VE_IS_APPLE_SYSTEM)
+    #elif defined(VISERA_ON_APPLE_SYSTEM)
                 posix_memalign(&AllocatedMemory, I_Alignment, I_Size);
     #else
                 AllocatedMemory = std::aligned_alloc(I_Alignment, 8);
