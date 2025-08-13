@@ -111,6 +111,9 @@ namespace Visera
     {
         template<typename T> concept
         Integeral = std::integral<T> || std::unsigned_integral<T>;
+
+        template<typename T> concept
+        FloatingPoint = std::floating_point<T>;
     }
 
     template<Concepts::Integeral T>
