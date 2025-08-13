@@ -6,26 +6,28 @@ import Visera.Core.Math.Arithmetic;
 
 export namespace Visera
 {
-    template<Concepts::FloatingPoint T = Float>
-    class FRadian
+    template<Concepts::FloatingPoint T>
+    class TRadian
     {
     public:
-        T GetValue() { return Value; }
+        static const inline
+        TRadian PI { 3.14159265358979323846264338327950288 };
+        T GetValue() const { return Value; }
 
-        constexpr FRadian(T Value) : Value{ Value } {};
-        explicit  FRadian() = default;
-        FRadian&   operator=(T   NewValue)      { Value = NewValue; return *this; }
-        FRadian&   operator=(FRadian NewRadian) { Value = NewRadian.Value; return *this; }
+        explicit constexpr TRadian(T Value) : Value{ Value } {};
+        explicit  TRadian() = default;
+        TRadian&   operator=(T   NewValue)      { Value = NewValue; return *this; }
+        TRadian&   operator=(TRadian NewRadian) { Value = NewRadian.Value; return *this; }
 
-        operator Float() const { return Value; }
+        TRadian operator*(T  I_Multiplicand)	const { return TRadian(Value * I_Multiplicand); };
+        TRadian operator/(T  I_Divisor)		    const { return TRadian(Value / I_Divisor); };
 
-        FRadian operator*(T  I_Multiplicand)	const { return FRadian(Value * I_Multiplicand); };
-        FRadian operator/(T  I_Divisor)		    const { return FRadian(Value / I_Divisor); };
+        explicit constexpr operator T() const { return static_cast<T>(Value); }
 
-        bool   operator==(FRadian I_Rival)	const { return Math::IsEqual(  Value, I_Rival.Value);}
-        bool   operator!=(FRadian I_Rival)	const { return !Math::IsEqual( Value, I_Rival.Value);}
-        bool   operator<(FRadian  I_Rival)	const { return Value < I_Rival.Value;}
-        bool   operator>(FRadian  I_Rival)	const { return Value > I_Rival.Value;}
+        bool   operator==(TRadian I_Rival)	const { return Math::IsEqual(  Value, I_Rival.Value);}
+        bool   operator!=(TRadian I_Rival)	const { return !Math::IsEqual( Value, I_Rival.Value);}
+        bool   operator<(TRadian  I_Rival)	const { return Value < I_Rival.Value;}
+        bool   operator>(TRadian  I_Rival)	const { return Value > I_Rival.Value;}
 
     private:
         T Value = 0.0;

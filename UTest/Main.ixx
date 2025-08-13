@@ -17,6 +17,9 @@ export int main(int argc, char *argv[])
     Memory::Prefetch(nullptr);
 
     FVector2F v{1.0, 2.0};
+    FRadian Radian{3};
+    auto Pi = FRadian::PI;
+    std::cout << FDegree::PI.GetValue();
 
     std::cout << FName::FetchNameString(Name);
     FJSON Json;
