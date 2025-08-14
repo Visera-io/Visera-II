@@ -19,11 +19,18 @@ export int main(int argc, char *argv[])
     FVector2F v{1.0, 2.0};
     FRadian Radian{3};
     auto Pi = FRadian::PI;
-    std::cout << FDegree::PI.GetValue();
+    std::cout << FDegree::PI.GetValue() << '\n';
 
     std::cout << FName::FetchNameString(Name);
     FJSON Json;
     Json.Set("Name", "LJYC");
-    std::cout << Json.Get("Name");
+    std::cout << Json.Get("Name") << '\n';
+
+
+    std::cout << Math::Area(
+        {2,0,0},
+        {0,2,0},
+        {0,0,0}
+        ) << '\n';
     return EXIT_SUCCESS;
 }
