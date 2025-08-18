@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Types.Color;
 #define VISERA_MODULE_NAME "Core.Types.Color"
-export import Visera.Core.Types.Color.Common;
+export import :Common;
 
 export namespace Visera
 {
@@ -15,6 +15,17 @@ export namespace Visera
             struct { Float R, G, B, A; };
             Float RGBA[4];
         };
+        static const FLinearColor White;
+        static const FLinearColor Gray;
+        static const FLinearColor Black;
+        static const FLinearColor Transparent;
+        static const FLinearColor Red;
+        static const FLinearColor Green;
+        static const FLinearColor Blue;
+        static const FLinearColor Yellow;
+
+        [[nodiscard]] auto
+        ToString()   const -> FString { return std::format("({},{},{},{})", R, G, B, A); }
 
         FLinearColor() : R{ 0 }, G{ 0 }, B{ 0 }, A{ 0 } {}
         constexpr
@@ -23,7 +34,7 @@ export namespace Visera
 
         static FLinearColor
         FromPow22Color(const FColor& I_Color);
-        
+
         /** Static lookup table used for FColor -> FLinearColor conversion. sRGB */
         static const Float LUT_sRGBToLinear[256];
         /** Static lookup table used for FColor -> FLinearColor conversion. Pow(2.2) */
@@ -36,11 +47,27 @@ export namespace Visera
         // Variables.
 #if defined(VISERA_ON_LITTLE_ENDIAN_PLATFORM)
         union { struct { UInt8 B, G, R, A; }; UInt32 Bits{0}; };
-#else // VISERA_ON_LITTLE_ENDIAN
+#else
         union { struct { UInt8 A, R, G, B; }; UInt32 Bits{0}; };
 #endif
+        static const FColor White;
+        static const FColor Black;
+        static const FColor Transparent;
+        static const FColor Red;
+        static const FColor Green;
+        static const FColor Blue;
+        static const FColor Yellow;
+        static const FColor Cyan;
+        static const FColor Magenta;
+        static const FColor Orange;
+        static const FColor Purple;
+        static const FColor Turquoise;
+        static const FColor Silver;
+        static const FColor Emerald;
 
-        // Constructors.
+        [[nodiscard]] auto
+        ToString()   const -> FString { return std::format("({},{},{},{})", R, G, B, A); }
+
         FColor() : R{ 0 }, G{ 0 }, B{ 0 }, A{ 0 } {};
         constexpr FColor(UInt8 I_Red, UInt8 I_Green, UInt8 I_Blue, UInt8 I_Alpha = 255)
             // put these into the body for proper ordering with INTEL vs non-INTEL_BYTE_ORDER
@@ -165,6 +192,30 @@ export namespace Visera
         0.921581853023715f, 0.930110855104312f, 0.938685725169219f, 0.947306533426946f, 0.955973349925421f,
         0.964686244552961f, 0.973445287039244f, 0.982250546956257f, 0.991102093719252f, 1.0f
     };
+
+    const FLinearColor FLinearColor::White      (1.f,1.f,1.f);
+    const FLinearColor FLinearColor::Gray       (0.5f,0.5f,0.5f);
+    const FLinearColor FLinearColor::Black      (0,0,0);
+    const FLinearColor FLinearColor::Transparent(0,0,0,0);
+    const FLinearColor FLinearColor::Red        (1.f,0,0);
+    const FLinearColor FLinearColor::Green      (0,1.f,0);
+    const FLinearColor FLinearColor::Blue       (0,0,1.f);
+    const FLinearColor FLinearColor::Yellow     (1.f,1.f,0);
+
+    const FColor FColor::White          (255,255,255);
+    const FColor FColor::Black          (0,0,0);
+    const FColor FColor::Transparent    (0, 0, 0, 0);
+    const FColor FColor::Red            (255,0,0);
+    const FColor FColor::Green          (0,255,0);
+    const FColor FColor::Blue           (0,0,255);
+    const FColor FColor::Yellow         (255,255,0);
+    const FColor FColor::Cyan           (0,255,255);
+    const FColor FColor::Magenta        (255,0,255);
+    const FColor FColor::Orange         (243, 156, 18);
+    const FColor FColor::Purple         (169, 7, 228);
+    const FColor FColor::Turquoise      (26, 188, 156);
+    const FColor FColor::Silver         (189, 195, 199);
+    const FColor FColor::Emerald        (46, 204, 113);
 }
 
 namespace std

@@ -4,6 +4,7 @@ export module Visera.Core.Math.Trigonometry;
 #define VISERAI_MODULEI_NAME "Core.Math.Trigonometry"
 export import Visera.Core.Math.Trigonometry.Degree;
 export import Visera.Core.Math.Trigonometry.Radian;
+       import Visera.Core.Math.Constants;
 
 export namespace Visera
 {
@@ -13,9 +14,9 @@ export namespace Visera
     namespace Math
     {
         FRadian constexpr
-        DegreeToRadian(FDegree I_Degree) { return FRadian{Float((I_Degree / 180.0f) * FRadian::PI.GetValue()) }; }
+        DegreeToRadian(FDegree I_Degree) { return FRadian{Float((I_Degree / 180.0f) * Math::PI) }; }
         FDegree constexpr
-        RadianToDegree(FRadian I_Radian) { return FDegree{Float((I_Radian / FRadian::PI.GetValue()) * 180.0f) }; }
+        RadianToDegree(FRadian I_Radian) { return FDegree{Float((I_Radian / Math::PI) * 180.0f) }; }
 
         Float inline Tan(FRadian I_Radian)
         {

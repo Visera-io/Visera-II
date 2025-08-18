@@ -10,8 +10,6 @@ export namespace Visera
     class TRadian
     {
     public:
-        static const inline
-        TRadian PI { 3.14159265358979323846264338327950288 };
         T GetValue() const { return Value; }
 
         explicit constexpr TRadian(T Value) : Value{ Value } {};

@@ -10,8 +10,6 @@ export namespace Visera
     class TDegree
     {
     public:
-        static const inline
-        TDegree PI { 180.0 };
         T GetValue() const { return Value; }
 
         explicit  constexpr TDegree(T I_Value) : Value{ I_Value } {};

@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
-export module Visera.Core.Types.Color.Common;
-#define VISERA_MODULE_NAME "Core.Types.Color.Common"
+export module Visera.Core.Types.Color:Common;
+#define VISERA_MODULE_NAME "Core.Types.Color:Common"
 
 export namespace Visera
 {
