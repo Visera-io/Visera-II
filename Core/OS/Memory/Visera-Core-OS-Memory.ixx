@@ -7,6 +7,7 @@ module;
 #endif
 export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS.Memory"
+import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -71,10 +72,9 @@ export namespace Visera
 
             if (!AllocatedMemory)
             {
-                VISERA_WIP
-                //VE_LOG_ERROR("Failed to allocate memory!"
-                //            "(size: {}, alignment: {})",
-                //          I_Size, I_Alignment);
+                LOG_ERROR("Failed to allocate memory!"
+                            "(size: {}, alignment: {})",
+                          I_Size, I_Alignment);
             }
             return AllocatedMemory;
         }
@@ -105,11 +105,10 @@ export namespace Visera
 
             if (!ReallocatedMemory)
             {
-                VISERA_WIP
-                //VE_LOG_ERROR("Failed to re-allocate memory! "
-                //    "(memory:{}, from [{},{}] to [{}, {}]).",
-                //      (Address)(I_Memory),
-                //      I_OldSize, I_OldAlignment, I_NewSize, I_NewAlignment);
+                LOG_ERROR("Failed to re-allocate memory! "
+                    "(memory:{}, from [{},{}] to [{}, {}]).",
+                      (void*)(I_Memory),
+                      I_OldSize, I_OldAlignment, I_NewSize, I_NewAlignment);
             }
             return ReallocatedMemory;
         }

@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Name.NamePool:NameEntryTable;
-#define VE_MODULE_NAME "NamePool:NameEntryTable"
+#define VISERA_MODULE_NAME "Core.Name.NamePool:NameEntryTable"
 import :Common;
 
 import Visera.Core.OS.Memory;
@@ -92,8 +92,7 @@ export namespace Visera
     {
 		if (CurrentSectionCursor >= MaxSections)
 		{
-			VISERA_WIP
-			//VE_LOG_FATAL("Exceeded the maximum MemoryBlocks{}!", UInt32(MaxSections));
+			LOG_FATAL("Exceeded the maximum MemoryBlocks{}!", UInt32(MaxSections));
 		}
 			
 		if (CurrentSectionCursor >= 0)
@@ -116,9 +115,8 @@ export namespace Visera
 		NewSection.Data = (FByte*)Memory::MallocNow(SectionByteSize, NameEntryAlignment);
 		if(!NewSection.Data)
 		{
-			VISERA_WIP
-			//VE_LOG_FATAL("Failed to allocate memory! (func:{}, line:{})",
-            //            I__FUNCTION__, I__LINE__);
+			LOG_FATAL("Failed to allocate memory! (func:{}, line:{})",
+				      __FUNCTION__, __LINE__);
 		}
 		NewSection.CurrentByteCursor = 0;
     }

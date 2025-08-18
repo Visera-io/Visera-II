@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Name.NamePool:NameTokenTable;
-#define VE_MODULE_NAME "NamePool:NameTokenTable"
+#define VISERA_MODULE_NAME "Core.Name.NamePool:NameTokenTable"
 import :Common;
 import :NameEntryTable;
 
@@ -67,15 +67,15 @@ export namespace Visera
 #elif defined(VISERA_ON_APPLE_SYSTEM)
         constexpr UInt32 TokenAlignment = ((alignof(FNameToken) / sizeof(void*)) + 1) * sizeof(void*);
 #else
-        VISERA_WIP
+        VISERA_WIP;
+        static_assert(false);
 #endif
 
         Tokens   = (FNameToken*)Memory::MallocNow(InitSectionSize, TokenAlignment);
         if(!Tokens)
         {
-            VISERA_WIP
-            // VE_LOG_ERROR("Failed to allocate memory! (func:{}, line:{})",
-            //             __FUNCTION__, __LINE__);
+            LOG_ERROR("Failed to allocate memory! (func:{}, line:{})",
+                      __FUNCTION__, __LINE__);
         }
         Capacity = InitNameTokens;
         UseCount = 0;
@@ -148,9 +148,8 @@ export namespace Visera
         I_Section.Tokens    = (FNameToken*)Memory::MallocNow(I_Section.Capacity * sizeof(FNameToken), alignof(FNameToken));
         if(!I_Section.Tokens)
         {
-            VISERA_WIP
-            //VE_LOG_FATAL("Failed to allocate memory! (func:{}, line:{})",
-             //           __FUNCTION__, __LINE__);
+            LOG_FATAL("Failed to allocate memory! (func:{}, line:{})",
+                      __FUNCTION__, __LINE__);
         }
 
         // Rehashing

@@ -23,7 +23,7 @@ export namespace Visera
 
         static FLinearColor
         FromPow22Color(const FColor& I_Color);
-
+        
         /** Static lookup table used for FColor -> FLinearColor conversion. sRGB */
         static const Float LUT_sRGBToLinear[256];
         /** Static lookup table used for FColor -> FLinearColor conversion. Pow(2.2) */

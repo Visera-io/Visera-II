@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Name.NamePool;
-#define VE_MODULE_NAME "NamePool"
+#define VISERA_MODULE_NAME "Core.Name.NamePool"
 import :Common;
 import :NameTokenTable;
 import :NameEntryTable;
@@ -60,13 +60,12 @@ export namespace Visera
         auto [Number, NameLength] = ParseName(_CopiedName.data(), _CopiedName.size());
         if (Number < 0)
         {
-            VISERA_WIP
-            //VE_LOG_FATAL("Bad Name! -- Naming Convention:([#Name][_#Number]?).");
+            LOG_FATAL("Bad Name! -- Naming Convention:([#Name][_#Number]?).");
         }
 
         FStringView PureName{ _CopiedName.data(), NameLength};
         FNameHash  NameHash{ PureName };
-        
+
         FNameEntryHandle NameEntryHandle = NameTokenTable.Insert(PureName, NameHash);
 
         return { NameEntryHandle.Value, Number };
@@ -94,12 +93,12 @@ export namespace Visera
         //Count Digits
         while(It >= _Name && IsDigit(*It)) { ++Digits; --It; }
         //Convert Case
-        while (It >= _Name) { *It = std::tolower(static_cast<unsigned char>(*It)); --It; }       
-            
+        while (It >= _Name) { *It = std::tolower(static_cast<unsigned char>(*It)); --It; }
+
         if (Digits)
         {
             UInt32 FirstDigitCursor = _Length - Digits;
-                
+
             if (/*Valid Digit Length*/      (Digits < _Length) &&
                 /*Valid Naming Convention*/ (_Name[FirstDigitCursor - 1] == '_') &&
                 /*Valid Digit Count*/       (Digits <= MaxNameDigitCount))
@@ -127,8 +126,7 @@ export namespace Visera
         case EPreservedName::Main:
             return "main";
         default:
-            VISERA_WIP
-            //VE_LOG_FATAL("Unexpected EPreservedName!");
+            LOG_FATAL("Unexpected EPreservedName!");
         }
         return "";
     }
