@@ -7,30 +7,8 @@ using namespace Visera;
 
 export int main(int argc, char *argv[])
 {
-    std::cout << "Hello World!\n";
+    FColor Color{1,2,3,4};
+    auto LC = FLinearColor::FromPow22Color(Color);
 
-    UInt64 Value = CityHash64("Hello");
-    std::cout << Value << "\n";
-    //auto k = Memory::MallocNow(2, 64);
-    //Memory::Free(k, 0);
-    FName Name{EName::None};
-    Memory::Prefetch(nullptr);
-
-    FVector2F v{1.0, 2.0};
-    FRadian Radian{3};
-    auto Pi = FRadian::PI;
-    std::cout << FDegree::PI.GetValue() << '\n';
-
-    std::cout << FName::FetchNameString(Name);
-    FJSON Json;
-    Json.Set("Name", "LJYC");
-    std::cout << Json.Get("Name") << '\n';
-
-
-    std::cout << Math::Area(
-        {2,0,0},
-        {0,2,0},
-        {0,0,0}
-        ) << '\n';
     return EXIT_SUCCESS;
 }

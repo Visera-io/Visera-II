@@ -6,7 +6,7 @@ import Visera.Core.Name.NamePool;
 
 export namespace Visera
 {
-    using EName = EName;
+    using EName = EPreservedName;
 
     /* Case-Ignored FString */
     class FName

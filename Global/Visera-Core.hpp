@@ -18,11 +18,18 @@
 #define VISERA_ON_ARM_CPU
 #endif
 
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    #define VISERA_ON_LITTLE_ENDIAN_PLATFORM
+#elif defined(_WIN32)
+    // Windows is always little-endian (on supported CPUs)
+    #define VISERA_ON_LITTLE_ENDIAN_PLATFORM
+#endif
+
 #if defined(_MSC_VER)
 #define VISERA_ON_MSVC_COMPILER
 #endif
 
-#if VISERA_IS_MSVC_COMPILER
+#if defined(VISERA_ON_MSVC_COMPILER)
 #define VISERA_NO_OPERATION __noop
 #else
 #define VISERA_NO_OPERATION (void)(0)
@@ -87,10 +94,7 @@ namespace Visera
     constexpr Bool False = false;
 
     template<typename T>
-    using TVector   = std::vector<T>;
-
-    template<typename T, size_t Length>
-    using TArray    = std::array<T, Length>;
+    using TArray   = std::vector<T>;
 
     template<typename T>
     using TList     = std::list<T>;

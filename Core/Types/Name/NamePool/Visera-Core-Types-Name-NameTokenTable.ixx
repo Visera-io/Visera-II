@@ -55,7 +55,7 @@ export namespace Visera
 		};
 
         FNameEntryTable* const LinkedNameEntryTable;
-		TArray<FNameTokenTableSection, MaxNameTokenTableSections> Sections;
+	    FNameTokenTableSection Sections[MaxNameTokenTableSections];
         void GrowAndRehash(FNameTokenTableSection& I_Section);
 	};
 

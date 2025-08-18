@@ -46,7 +46,7 @@ export namespace Visera
 		};
 		mutable FRWLock RWLock;
 		Int32 CurrentSectionCursor = -1;
-		TArray<FNameEntryTableSection, MaxSections> Sections;
+		FNameEntryTableSection Sections[MaxSections];
 
 		void AllocateNewSection();
 

@@ -11,13 +11,11 @@ import Visera.Core.Log;
 
 export namespace Visera
 {
-    enum class EName : UInt32
-	{
-		None = 0, //MUST be registered at first for assuring FNameEntryID == 0 && Number == 0
+    enum class EPreservedName : UInt32
+    {
+        None = 0, //MUST be registered at first for assuring FNameEntryID == 0 && Number == 0
         Main,     // For Shaders' entry point
-
-		MaxReservedName,
-	};
+    };
 
     class FNamePool
     {
@@ -31,9 +29,9 @@ export namespace Visera
         GetInstance() -> FNamePool& { static FNamePool Instance{}; return Instance; }
 
         auto Register(FString _CopiedName)  -> TTuple<UInt32, UInt32>; //[Handle_, Number_]
-        auto Register(EName _PreservedName) -> TTuple<UInt32, UInt32> { return { PreservedNameTable[_PreservedName], 0 }; }
+        auto Register(EPreservedName _PreservedName) -> TTuple<UInt32, UInt32> { return { PreservedNameTable[_PreservedName], 0 }; }
         auto FetchNameString(UInt32 _NameHandle /*NameEntryHandle*/) const->FStringView;
-        auto FetchNameString(EName _PreservedName) const -> FStringView;
+        auto FetchNameString(EPreservedName _PreservedName) const -> FStringView;
 
     private:
         FNamePool();
@@ -42,7 +40,7 @@ export namespace Visera
     private:
         FNameEntryTable NameEntryTable;
         FNameTokenTable NameTokenTable{ &NameEntryTable };
-        THashMap<EName, UInt32> PreservedNameTable;
+        THashMap<EPreservedName, UInt32> PreservedNameTable;
 
         //[Number(<0 means invalid), NameLength]
         auto ParseName(const char* _Name, UInt32 _Length) const -> TTuple<Int32, UInt32>;
@@ -51,9 +49,9 @@ export namespace Visera
     FNamePool::
     FNamePool()
     {
-        // Pre-Register ENames (Do NOT use FString Literal here -- Read-Only Segment Fault!)
-        /*None*/ { auto [Handle_, _] = Register("none"); PreservedNameTable[EName::None] = Handle_; VISERA_ASSERT(Handle_ == 0); }
-        /*Main*/ { auto [Handle_, _] = Register("main"); PreservedNameTable[EName::Main] = Handle_; }
+        // Pre-Register EPreservedNames (Do NOT use FString Literal here -- Read-Only Segment Fault!)
+        /*None*/ { auto [Handle_, _] = Register("none"); PreservedNameTable[EPreservedName::None] = Handle_; VISERA_ASSERT(Handle_ == 0); }
+        /*Main*/ { auto [Handle_, _] = Register("main"); PreservedNameTable[EPreservedName::Main] = Handle_; }
     }
 
     TTuple<UInt32, UInt32> FNamePool::
@@ -120,17 +118,17 @@ export namespace Visera
     }
 
     FStringView FNamePool::
-    FetchNameString(EName I_PreservedName) const
+    FetchNameString(EPreservedName I_PreservedName) const
     {
         switch (I_PreservedName)
         {
-        case EName::None:
+        case EPreservedName::None:
             return "none";
-        case EName::Main:
+        case EPreservedName::Main:
             return "main";
         default:
             VISERA_WIP
-            //VE_LOG_FATAL("Unexpected EName!");
+            //VE_LOG_FATAL("Unexpected EPreservedName!");
         }
         return "";
     }

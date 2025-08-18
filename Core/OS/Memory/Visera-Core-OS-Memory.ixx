@@ -60,7 +60,7 @@ export namespace Visera
             if (I_Alignment)
             {
     #if defined(VISERA_ON_WINDOWS_SYSTEM)
-                AllocatedMemory = I_aligned_malloc(I_Size, I_Alignment);
+                AllocatedMemory = _aligned_malloc(I_Size, I_Alignment);
     #elif defined(VISERA_ON_APPLE_SYSTEM)
                 posix_memalign(&AllocatedMemory, I_Alignment, I_Size);
     #else
@@ -94,7 +94,7 @@ export namespace Visera
             if (I_NewAlignment)
             {
     #if defined(VISERA_ON_WINDOWS_SYSTEM)
-                ReallocatedMemory = I_aligned_realloc(I_Memory, I_NewSize, I_NewAlignment);
+                ReallocatedMemory = _aligned_realloc(I_Memory, I_NewSize, I_NewAlignment);
     #else
                 ReallocatedMemory = Malloc(I_NewSize, I_NewAlignment);
                 Memcpy(ReallocatedMemory, I_Memory, std::min(I_OldSize, I_NewSize));
@@ -123,7 +123,7 @@ export namespace Visera
             {
                 VISERA_ASSERT(IsPowerOfTwo(I_Alignment));
     #if defined(VISERA_ON_WINDOWS_SYSTEM)
-                I_aligned_free(I_Memory);
+                _aligned_free(I_Memory);
     #else
                 std::free(I_Memory); // Safe
     #endif
@@ -136,10 +136,10 @@ export namespace Visera
         {
             //Copied from Unreal Engine!
     #if defined(VISERA_ON_X86_CPU)
-            I_mm_prefetch(static_cast<const char*>(I_Memory) + I_Offset, I_MM_HINT_T0);
+            _mm_prefetch(static_cast<const char*>(I_Memory) + I_Offset, _MM_HINT_T0);
     #elif defined(VISERA_ON_ARM_CPU)
     #	if defined(_MSC_VER)
-            I__prefetch(static_cast<const char*>(I_Memory) + I_Offset);
+            _prefetch(static_cast<const char*>(I_Memory) + I_Offset);
     #	else
             VISERA_WIP
             //__asm__ I__volatile__("prfm pldl1keep, [%[ptr]]\n" ::[ptr] "r"(Ptr) : );
