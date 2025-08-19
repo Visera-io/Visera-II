@@ -29,6 +29,9 @@ link_eigen(${VISERA_CORE})
 include(install_zlib)
 link_zlib(${VISERA_CORE})
 
+include(install_libpng)
+link_libpng(${VISERA_CORE})
+
 #
 #
 #

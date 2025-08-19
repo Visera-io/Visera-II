@@ -5,5 +5,8 @@ export module Visera.Core.Exceptions;
 
 export namespace Visera
 {
+    namespace Exceptions
+    {
 
+    }
 }
