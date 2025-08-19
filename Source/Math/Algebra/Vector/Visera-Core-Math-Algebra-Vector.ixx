@@ -45,3 +45,69 @@ export namespace Visera
 	}
 
 }
+
+template <>
+struct fmt::formatter<Visera::FVector2F>
+{
+	// Parse format specifiers (if any)
+	constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+	{
+		return I_Context.begin();  // No custom formatting yet
+	}
+
+	// Corrected format function with const-correctness
+	template <typename FormatContext>
+	auto format(const Visera::FVector2F& I_Vec2F, FormatContext& I_Context) const
+	-> decltype(I_Context.out())
+	{
+		return fmt::format_to(
+			I_Context.out(),
+			"[{}, {}]^T",
+			I_Vec2F[0], I_Vec2F[1]
+		);
+	}
+};
+
+template <>
+struct fmt::formatter<Visera::FVector3F>
+{
+	// Parse format specifiers (if any)
+	constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+	{
+		return I_Context.begin();  // No custom formatting yet
+	}
+
+	// Corrected format function with const-correctness
+	template <typename FormatContext>
+	auto format(const Visera::FVector3F& I_Vec3F, FormatContext& I_Context) const
+	-> decltype(I_Context.out())
+	{
+		return fmt::format_to(
+			I_Context.out(),
+			"[{}, {}, {}]^T",
+			I_Vec3F[0], I_Vec3F[1], I_Vec3F[2]
+		);
+	}
+};
+
+template <>
+struct fmt::formatter<Visera::FVector4F>
+{
+	// Parse format specifiers (if any)
+	constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+	{
+		return I_Context.begin();  // No custom formatting yet
+	}
+
+	// Corrected format function with const-correctness
+	template <typename FormatContext>
+	auto format(const Visera::FVector4F& I_Vec4F, FormatContext& I_Context) const
+	-> decltype(I_Context.out())
+	{
+		return fmt::format_to(
+			I_Context.out(),
+			"[{}, {}, {}, {}]^T",
+			I_Vec4F[0], I_Vec4F[1], I_Vec4F[2], I_Vec4F[3]
+		);
+	}
+};

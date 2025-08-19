@@ -35,7 +35,6 @@
 #define VISERA_NO_OPERATION (void)(0)
 #endif
 
-
 //      [       Level      ]   [Print in Console] [Sink in Files] [Text Color] [Background Color] [Additional Information]
 #define VISERA_LOG_LEVEL_TRACE 0 //|   Conditional  | | Conditional | |   Grey   | |                | |                      |
 #define VISERA_LOG_LEVEL_DEBUG 1 //|   Conditional  | |     Yes     | |   Blue   | |                | |                      |
@@ -120,6 +119,7 @@
 	#endif
 #endif
 
+#define TEXT(I_Text) u8##I_Text
 
 // << STD Modules >>
 #include <cassert>
@@ -154,6 +154,9 @@
 #include <unordered_set>
 #include <variant>
 #include <type_traits>
+
+// << Formatter >>
+#include <spdlog/fmt/fmt.h>
 
 namespace Visera
 {
@@ -213,7 +216,7 @@ namespace Visera
     template<typename T>
     using TSharedPtr   = std::shared_ptr<T>;
     template<typename T, typename... Args>
-    inline TSharedPtr<T>
+    TSharedPtr<T>
     MakeShared(Args &&...args) { return std::make_shared<T>(std::forward<Args>(args)...); }
 
     template<typename T>
@@ -222,7 +225,7 @@ namespace Visera
     template<typename T>
     using TUniquePtr   = std::unique_ptr<T>;
     template<typename T, typename... Args>
-    inline TUniquePtr<T>
+    TUniquePtr<T>
     MakeUnique(Args &&...args) { return std::make_unique<T>(std::forward<Args>(args)...); }
 
 }

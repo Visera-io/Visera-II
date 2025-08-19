@@ -16,9 +16,8 @@ export namespace Visera
         FetchNameString(EName I_Name) 		 -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name); }
         static inline auto
         FetchNameString(const FName& I_Name)  -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name.Handle); }
-    public:
+
         auto GetName()	         const -> FStringView { return FNamePool::GetInstance().FetchNameString(Handle); }
-        auto GetNameWithNumber() const -> FString	  { return std::format("{}_{}", GetName(), Number); }
         auto GetHandle() const -> UInt32 { return Handle; }
         auto GetNumber() const -> UInt32 { return Number; }
         auto GetIdentifier() const -> UInt64 { return (UInt64(Handle) << 32) | Number; }
@@ -50,3 +49,25 @@ namespace std
         { return static_cast<std::size_t>(I_Name.GetIdentifier()); }
     };
 }
+
+template <>
+struct fmt::formatter<Visera::FName>
+{
+    // Parse format specifiers (if any)
+    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+    {
+        return I_Context.begin();  // No custom formatting yet
+    }
+
+    // Corrected format function with const-correctness
+    template <typename FormatContext>
+    auto format(const Visera::FName& I_Name, FormatContext& I_Context) const
+    -> decltype(I_Context.out())
+    {
+        return fmt::format_to(
+            I_Context.out(),
+            "{}({})",
+            I_Name.GetName(), I_Name.GetNumber()
+        );
+    }
+};
