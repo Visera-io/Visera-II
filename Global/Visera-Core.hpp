@@ -45,7 +45,6 @@
 #define VISERA_LOG_LEVEL_FATAL 5 //|      Yes       | |     Yes     | |   Red    | |       Red      | |     SRuntimeError    |
 
 #define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_DEBUG
-//enum ELogCategory { Console, Display };
 
 #if defined(VISERA_ON_MSVC_COMPILER)
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY

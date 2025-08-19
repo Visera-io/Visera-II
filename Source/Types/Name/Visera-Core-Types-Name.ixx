@@ -17,8 +17,8 @@ export namespace Visera
         static inline auto
         FetchNameString(const FName& I_Name)  -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name.Handle); }
     public:
-        auto GetName()	 const -> FStringView	{ return FNamePool::GetInstance().FetchNameString(Handle); }
-        //auto GetNameWithNumber() const -> FString	 { return Text("{}_{}", GetName(), Number); }
+        auto GetName()	         const -> FStringView { return FNamePool::GetInstance().FetchNameString(Handle); }
+        auto GetNameWithNumber() const -> FString	  { return std::format("{}_{}", GetName(), Number); }
         auto GetHandle() const -> UInt32 { return Handle; }
         auto GetNumber() const -> UInt32 { return Number; }
         auto GetIdentifier() const -> UInt64 { return (UInt64(Handle) << 32) | Number; }

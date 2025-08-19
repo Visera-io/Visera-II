@@ -50,19 +50,7 @@ if (CMAKE_GENERATOR MATCHES "Visual Studio")
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
-#[Building]
-add_compile_definitions(NOMINMAX)
+#[Install]
+include("Scripts/install.cmake")
 
-file(GLOB_RECURSE VISERA_CORE_MODULES "${CMAKE_CURRENT_SOURCE_DIR}/Core/*.ixx")
-
-add_executable(${VISERA_CORE})
-target_include_directories(${VISERA_CORE}
-                           PUBLIC
-                           "${CMAKE_CURRENT_SOURCE_DIR}/Global")
-target_sources(${VISERA_CORE}
-               PUBLIC
-               FILE_SET "visera_core_modules" TYPE CXX_MODULES
-               FILES ${VISERA_CORE_MODULES} "UTest/Main.ixx")
-
-set(VISERA_CORE_EXTERNAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/External")
-add_subdirectory(${VISERA_CORE_EXTERNAL_PATH})
+add_subdirectory(UTests)

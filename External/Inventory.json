@@ -25,5 +25,14 @@
 
         ],
         "URL" : "https://gitlab.com/libeigen/eigen/-/releases/3.4.0"
+    },
+    "ZLib" : 
+    {
+        "Version" : "1.3.1",
+        "Dependencies" : 
+        [
+
+        ],
+        "URL" : "https://github.com/madler/zlib"
     }
 }

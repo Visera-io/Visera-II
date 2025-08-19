@@ -33,7 +33,7 @@ export namespace Visera
         : R{ I_Red }, G{ I_Green }, B{ I_Blue }, A{ I_Alpha } { }
 
         static FLinearColor
-        FromPow22Color(const FColor& I_Color);
+        FromPow22Color(FColor I_Color);
 
         /** Static lookup table used for FColor -> FLinearColor conversion. sRGB */
         static const Float LUT_sRGBToLinear[256];
@@ -82,7 +82,7 @@ export namespace Visera
     };
 
     FLinearColor FLinearColor::
-    FromPow22Color(const FColor& I_Color)
+    FromPow22Color(FColor I_Color)
     {
         FLinearColor LinearColor{};
         LinearColor.R = LUT_Pow22over255[I_Color.R];
