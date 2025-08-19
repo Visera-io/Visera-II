@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Trigonometry.Degree;
-#define VISERA_MODULE_NAME "Core.Math.Trigonometry.Degree"
+#define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic;
 
 export namespace Visera
@@ -31,3 +31,25 @@ export namespace Visera
     };
 
 }
+
+template <Visera::Concepts::FloatingPoint T>
+struct fmt::formatter<Visera::TDegree<T>>
+{
+    // Parse format specifiers (if any)
+    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+    {
+        return I_Context.begin();  // No custom formatting yet
+    }
+
+    // Corrected format function with const-correctness
+    template <typename FormatContext>
+    auto format(const Visera::TDegree<T>& I_Degree, FormatContext& I_Context) const
+    -> decltype(I_Context.out())
+    {
+        return fmt::format_to(
+            I_Context.out(),
+            "{}°",
+            I_Degree.GetValue()
+        );
+    }
+};

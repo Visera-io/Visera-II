@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Name.NamePool:NameTokenTable;
-#define VISERA_MODULE_NAME "Core.Name.NamePool:NameTokenTable"
+#define VISERA_MODULE_NAME "Core.Types"
 import :Common;
 import :NameEntryTable;
 

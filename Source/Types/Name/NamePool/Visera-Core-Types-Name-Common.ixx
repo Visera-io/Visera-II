@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Name.NamePool:Common;
-#define VISERA_MODULE_NAME "Core.Name.NamePool:Common"
+#define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Hash;
 
 export namespace Visera

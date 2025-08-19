@@ -6,7 +6,7 @@ module;
 #include <arm_acle.h>
 #endif
 export module Visera.Core.OS.Memory;
-#define VISERA_MODULE_NAME "Core.OS.Memory"
+#define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.Log;
 
 export namespace Visera

@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 #include <Eigen/Dense>
 export module Visera.Core.Math.Algebra.Vector;
-#define VISERA_MODULE_NAME "Core.Math.Algebra.Vector"
+#define VISERA_MODULE_NAME "Core.Math"
 
 export namespace Visera
 {

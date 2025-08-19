@@ -7,6 +7,7 @@ export import Visera.Core.Exceptions;
 export import Visera.Core.Hash;
 export import Visera.Core.Log;
 export import Visera.Core.Math;
+export import Visera.Core.Media;
 export import Visera.Core.OS;
 export import Visera.Core.Types;
 

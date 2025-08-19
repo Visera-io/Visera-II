@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Types.Color;
-#define VISERA_MODULE_NAME "Core.Types.Color"
+#define VISERA_MODULE_NAME "Core.Types"
 export import :Common;
 
 export namespace Visera
@@ -229,3 +229,47 @@ namespace std
         }
     };
 }
+
+template <>
+struct fmt::formatter<Visera::FColor>
+{
+    // Parse format specifiers (if any)
+    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+    {
+        return I_Context.begin();  // No custom formatting yet
+    }
+
+    // Corrected format function with const-correctness
+    template <typename FormatContext>
+    auto format(const Visera::FColor& I_Color, FormatContext& I_Context) const
+    -> decltype(I_Context.out())
+    {
+        return fmt::format_to(
+            I_Context.out(),
+            "[R:{}, G:{}, B:{}, A:{}]",
+            I_Color.R, I_Color.G, I_Color.B, I_Color.A
+        );
+    }
+};
+
+template <>
+struct fmt::formatter<Visera::FLinearColor>
+{
+    // Parse format specifiers (if any)
+    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+    {
+        return I_Context.begin();  // No custom formatting yet
+    }
+
+    // Corrected format function with const-correctness
+    template <typename FormatContext>
+    auto format(const Visera::FLinearColor& I_Color, FormatContext& I_Context) const
+    -> decltype(I_Context.out())
+    {
+        return fmt::format_to(
+            I_Context.out(),
+            "[R:{}, G:{}, B:{}, A:{}]",
+            I_Color.R, I_Color.G, I_Color.B, I_Color.A
+        );
+    }
+};

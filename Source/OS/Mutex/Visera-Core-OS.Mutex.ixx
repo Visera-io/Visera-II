@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.OS.Mutex;
-#define VISERA_MODULE_NAME "Core.OS.Mutex"
+#define VISERA_MODULE_NAME "Core.OS"
 
 export namespace Visera
 {

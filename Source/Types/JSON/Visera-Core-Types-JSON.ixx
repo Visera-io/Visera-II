@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 #include <nlohmann/json.hpp>
 export module Visera.Core.Types.JSON;
-#define VISERA_MODULE_NAME "Core.Types.JSON"
+#define VISERA_MODULE_NAME "Core.Types"
 
 export namespace Visera
 {

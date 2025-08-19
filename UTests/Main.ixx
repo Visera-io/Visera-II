@@ -1,7 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#include <zlib.h>
-
 export module Visera.UTests.Main;
 #define VISERA_MODULE_NAME "UTests.Main"
 import Visera.Core;
@@ -12,10 +10,9 @@ export int main(int argc, char *argv[])
 {
     FColor Color{1,2,3,4};
     auto LC = FLinearColor::FromPow22Color(Color);
-    LOG_INFO("{}", Color.ToString());
+    LOG_INFO("{}", Color);
 
-    LOG_INFO("Zlib Version: {}", zlibVersion());
-    LOG_WARN("{}", Float(Math::PI));
+    LOG_WARN("{}", FRadian{3.14});
 
     auto Text = TEXT("你好世界");
     std::cout << (const char*)(Text);

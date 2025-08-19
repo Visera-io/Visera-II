@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Constants;
-#define VISERA_MODULE_NAME "Core.Math.Constants"
+#define VISERA_MODULE_NAME "Core.Math"
 
 export namespace Visera
 {

@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Name.NamePool:NameEntryTable;
-#define VISERA_MODULE_NAME "Core.Name.NamePool:NameEntryTable"
+#define VISERA_MODULE_NAME "Core.Types"
 import :Common;
 
 import Visera.Core.OS.Memory;
