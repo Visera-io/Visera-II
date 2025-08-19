@@ -9,8 +9,8 @@ using namespace Visera;
 export int main(int argc, char *argv[])
 {
     FPNGImageWrapper PNG;
-    PNG.Parse("D:\\VSpace\\Visera-Core\\cmake-build-debug-visual-studio\\Debug\\"
-              "test_image.png");
+    PNG.Parse("test_image.png");
+    LOG_INFO("{}", PNG.GetBitDepth());
 
     return EXIT_SUCCESS;
 }

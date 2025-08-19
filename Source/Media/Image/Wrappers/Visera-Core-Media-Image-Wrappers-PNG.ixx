@@ -121,7 +121,7 @@ export namespace Visera
     Preprocessing()
     {
         auto ColorType = png_get_color_type(Handle, Info);
-        auto BitDepth  = png_get_bit_depth(Handle, Info);
+        BitDepth  = png_get_bit_depth(Handle, Info);
         // Force to be 8bits (enough for human's visual perception)
         if (ColorType == PNG_COLOR_TYPE_PALETTE)
         {
