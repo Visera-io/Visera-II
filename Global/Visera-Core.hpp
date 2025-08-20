@@ -119,7 +119,7 @@
 	#endif
 #endif
 
-#define TEXT(I_Text) u8##I_Text
+#define TEXT(I_Text) FText{u8##I_Text}
 
 // << STD Modules >>
 #include <cassert>
@@ -211,7 +211,6 @@ namespace Visera
 
     template<Concepts::Integeral T>
     Bool IsPowerOfTwo(T I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
-
 
     template<typename T>
     using TSharedPtr   = std::shared_ptr<T>;

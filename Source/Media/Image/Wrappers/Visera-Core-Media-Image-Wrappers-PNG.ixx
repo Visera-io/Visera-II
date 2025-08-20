@@ -40,6 +40,7 @@ export namespace Visera
         EColorFormat ColorFormat = EColorFormat::Invalid;
         Int64  Width    = 0;
         Int64  Height   = 0;
+        UInt8  Channels = 0;
         UInt8  BitDepth = 0;
         Int32  SRGBIntent{-1};
         Double Gamma     {1.0};
@@ -153,6 +154,9 @@ export namespace Visera
         png_read_update_info(Handle, Info); // Once you update the data, you MUST call "png_read_update_info"
 
         BitDepth = 8;
+        Width    = png_get_image_width(Handle,  Info);
+        Height   = png_get_image_height(Handle, Info);
+        Channels = png_get_channels(Handle,     Info);
     }
 
     void FPNGImageWrapper::
