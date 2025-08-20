@@ -3,8 +3,6 @@ module;
 export module Visera.Core.Types.Name;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Name.NamePool;
-import Visera.Core.Types.Text;
-
 export namespace Visera
 {
     using EName = EPreservedName;
@@ -27,8 +25,6 @@ export namespace Visera
 
         FName() = default;
         FName(FStringView I_Name)					{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(FString(I_Name)); Handle = Handle_; Number = Number_;   }
-        FName(const FText& I_Name)					{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(FString(I_Name)); Handle = Handle_; Number = Number_; }
-        FName(FText&&      I_Name)					{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(I_Name.GetData()); Handle = Handle_; Number = Number_; }
         FName(EName I_PreservedName)				{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(I_PreservedName); Handle = Handle_; Number = Number_; }
         FName(const FName& I_Another)			    = default;
         FName(FName&& I_Another)					= default;
