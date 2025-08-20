@@ -15,6 +15,8 @@ export namespace Visera
     public:
         // static inline auto
         // ToUTF8(FWideStringView I_String)    -> FString;
+        auto inline
+        GetData() -> FString& { return Data; }
 
         //auto ToString() const -> StringView { return Data; }
         explicit operator FString()		const	{ return Data; }

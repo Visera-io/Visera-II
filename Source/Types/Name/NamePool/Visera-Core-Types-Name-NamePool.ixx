@@ -28,10 +28,11 @@ export namespace Visera
         static inline auto
         GetInstance() -> FNamePool& { static FNamePool Instance{}; return Instance; }
 
-        auto Register(FString _CopiedName)  -> TTuple<UInt32, UInt32>; //[Handle_, Number_]
-        auto Register(EPreservedName _PreservedName) -> TTuple<UInt32, UInt32> { return { PreservedNameTable[_PreservedName], 0 }; }
-        auto FetchNameString(UInt32 _NameHandle /*NameEntryHandle*/) const->FStringView;
-        auto FetchNameString(EPreservedName _PreservedName) const -> FStringView;
+        auto Register(FString&    I_Name)  -> TTuple<UInt32, UInt32>; //[Handle_, Number_]
+        auto Register(FStringView I_Name)  -> TTuple<UInt32, UInt32>; //[Handle_, Number_]
+        auto Register(EPreservedName I_PreservedName) -> TTuple<UInt32, UInt32> { return { PreservedNameTable[I_PreservedName], 0 }; }
+        auto FetchNameString(UInt32 I_NameHandle /*NameEntryHandle*/) const->FStringView;
+        auto FetchNameString(EPreservedName I_PreservedName) const -> FStringView;
 
     private:
         FNamePool();
@@ -55,15 +56,16 @@ export namespace Visera
     }
 
     TTuple<UInt32, UInt32> FNamePool::
-    Register(FString _CopiedName)
+    Register(FString& I_Name)
     {
-        auto [Number, NameLength] = ParseName(_CopiedName.data(), _CopiedName.size());
+        auto [Number, NameLength] = ParseName(I_Name.data(), I_Name.size());
         if (Number < 0)
         {
-            LOG_FATAL("Bad Name! -- Naming Convention:([#Name][_#Number]?).");
+            LOG_ERROR("Bad Name ({})! -- Naming Convention:([#Name][_#Number]?).", I_Name);
+            return {0, 0};
         }
 
-        FStringView PureName{ _CopiedName.data(), NameLength};
+        FStringView PureName{ I_Name.data(), NameLength};
         FNameHash  NameHash{ PureName };
 
         FNameEntryHandle NameEntryHandle = NameTokenTable.Insert(PureName, NameHash);
@@ -71,11 +73,18 @@ export namespace Visera
         return { NameEntryHandle.Value, Number };
     }
 
+    TTuple<UInt32, UInt32> FNamePool::
+    Register(FStringView I_Name)
+    {
+        FString CopiedName{I_Name};
+        return Register(CopiedName);
+    }
+
     FStringView FNamePool::
-    FetchNameString(UInt32 _NameHandle /*NameEntryHandle*/) const
+    FetchNameString(UInt32 I_NameHandle /*NameEntryHandle*/) const
     {
         FNameEntryHandle NameEntryHandle;
-        NameEntryHandle.Value = _NameHandle;
+        NameEntryHandle.Value = I_NameHandle;
         VISERA_ASSERT(NameEntryHandle.GetSectionIndex()  < FNameEntryTable::MaxSections &&
                       NameEntryHandle.GetSectionOffset() < FNameEntryTable::MaxSectionOffset);
         auto& R = NameEntryTable.LookUp(NameEntryHandle);
@@ -117,9 +126,9 @@ export namespace Visera
     }
 
     FStringView FNamePool::
-    FetchNameString(EPreservedName I_PreservedName) const
+    FetchNameString(EPreservedName II_PreservedName) const
     {
-        switch (I_PreservedName)
+        switch (II_PreservedName)
         {
         case EPreservedName::None:
             return "none";
