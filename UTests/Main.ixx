@@ -10,7 +10,7 @@ export int main(int argc, char *argv[])
 {
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
-    LOG_INFO("{}", FName("s"));
+    LOG_INFO("{}", FName(TEXT("sdwdw_0").GetData()));
 
     return EXIT_SUCCESS;
 }

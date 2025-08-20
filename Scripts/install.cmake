@@ -54,6 +54,9 @@ link_zlib(${VISERA_CORE})
 include(install_libpng)
 link_libpng(${VISERA_CORE})
 
+include(install_stb)
+link_stb(${VISERA_CORE})
+
 #
 #
 #
