@@ -7,5 +7,14 @@
 
         ],
         "URL" : "https://github.com/glfw/glfw"
+    },
+    "VMA" :
+    {
+        "Version" : "3.3.0",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator"
     }
 }

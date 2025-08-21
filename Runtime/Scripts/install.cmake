@@ -45,8 +45,11 @@ target_link_libraries(${VISERA_RUNTIME} PRIVATE Visera::Core)
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
-include(install_glfw)
+include(install_glfw) #[TODO]: Editor/Studio
 link_glfw(${VISERA_RUNTIME})
+
+include(install_vma)
+link_vma(${VISERA_RUNTIME})
 
 #
 #
