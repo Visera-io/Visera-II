@@ -150,10 +150,9 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <unordered_set>
 #include <variant>
 #include <type_traits>
+#include <ankerl/unordered_dense.h>
 
 // << Formatter >>
 #include <spdlog/fmt/fmt.h>
@@ -189,10 +188,10 @@ namespace Visera
     using TList     = std::list<T>;
 
     template<typename T>
-    using TSet      = std::unordered_set<T>;
+    using TSet      = ankerl::unordered_dense::set<T>;
 
     template<typename Key, typename Value>
-    using THashMap  = std::unordered_map<Key, Value>;
+    using THashMap  = ankerl::unordered_dense::map<Key, Value>;
 
     template<typename T1, typename T2>
     using TPair     = std::pair<T1, T2>;
