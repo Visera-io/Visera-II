@@ -191,7 +191,7 @@ namespace Visera
     using TSet      = ankerl::unordered_dense::set<T>;
 
     template<typename Key, typename Value>
-    using THashMap  = ankerl::unordered_dense::map<Key, Value>;
+    using TMap  = ankerl::unordered_dense::map<Key, Value>;
 
     template<typename T1, typename T2>
     using TPair     = std::pair<T1, T2>;

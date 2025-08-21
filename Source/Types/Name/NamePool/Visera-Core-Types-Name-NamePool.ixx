@@ -41,7 +41,7 @@ export namespace Visera
     private:
         FNameEntryTable NameEntryTable;
         FNameTokenTable NameTokenTable{ &NameEntryTable };
-        THashMap<EPreservedName, UInt32> PreservedNameTable;
+        TMap<EPreservedName, UInt32> PreservedNameTable;
 
         //[Number(<0 means invalid), NameLength]
         auto ParseName(const char* _Name, UInt32 _Length) const -> TTuple<Int32, UInt32>;

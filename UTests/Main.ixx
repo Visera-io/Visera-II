@@ -14,9 +14,11 @@ export int main(int argc, char *argv[])
     //PNG.Parse("test_image.png");
 
     LOG_INFO("{}", FName(TEXT("sdwdw_0").GetData()));
-    THashMap<FName, int> Map;
+    TMap<FName, int> Map;
     auto TestName= FName{"s_0"};
     Map[TestName] = 1;
+    TSet<FName> TestSet;
+    TestSet.insert(TestName);
 
     LOG_INFO("{}", Map[TestName]);
 
