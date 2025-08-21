@@ -31,4 +31,5 @@ endif()
 #[Install]
 include("Scripts/install.cmake")
 
+add_subdirectory(Runtime)
 add_subdirectory(UTests)

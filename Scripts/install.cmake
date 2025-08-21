@@ -1,4 +1,4 @@
-message(STATUS "Installing Visera Core...")
+message(STATUS "\nInstalling Visera Core...")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(CMAKE_CXX_SCAN_FOR_MODULES ON)
@@ -32,6 +32,7 @@ set(VISERA_CORE_GLOBAL_DIR   "${VISERA_CORE_ROOT_DIR}/Global")
 set(VISERA_CORE_SCRIPTS_DIR  "${VISERA_CORE_ROOT_DIR}/Scripts")
 
 add_library(${VISERA_CORE})
+add_library(Visera::Core ALIAS ${VISERA_CORE})
 
 #
 # << Install External Packages >>

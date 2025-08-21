@@ -81,4 +81,4 @@ export namespace Visera
 		TUniquePtr<spdlog::logger> Logger;
 	};
 
-} // namespace VE
+}

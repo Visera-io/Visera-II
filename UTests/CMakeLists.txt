@@ -13,14 +13,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_CORE}>")
 
 add_executable(${VISERA_CORE_UTESTS})
 
-target_link_libraries(${VISERA_CORE_UTESTS}
-                      PRIVATE
-                      ${VISERA_CORE})
-
-file(GLOB_RECURSE VISERA_CORE_UTESTS_MODULES
-                  "${CMAKE_CURRENT_SOURCE_DIR}/*.ixx")
+#file(GLOB_RECURSE VISERA_CORE_UTESTS_MODULES
+#                  "${CMAKE_CURRENT_SOURCE_DIR}/*.ixx")
 
 target_sources(${VISERA_CORE_UTESTS}
         PUBLIC
         FILE_SET "visera_core_utests_modules" TYPE CXX_MODULES
-        FILES ${VISERA_CORE_UTESTS_MODULES})
+        FILES Main.ixx)
+
+target_link_libraries(${VISERA_CORE_UTESTS}
+                      PRIVATE
+                      Visera::Core
+                      Visera::Runtime)

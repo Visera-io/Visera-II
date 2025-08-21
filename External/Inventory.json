@@ -43,5 +43,14 @@
             "ZLib"
         ],
         "URL" : "https://github.com/pnggroup/libpng"
+    },
+    "STB" :
+    {
+        "Version" : "Date >= 2025.5.1",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/nothings/stb"
     }
 }
