@@ -9,7 +9,10 @@ export namespace Visera
     class VObject
     {
     public:
-        VObject() { LOG_DEBUG("{}", typeid(this).name()); }
+        VObject()
+        {
+            LOG_DEBUG("{}", typeid(this).name());
+        }
         virtual ~VObject() {};
     };
 }

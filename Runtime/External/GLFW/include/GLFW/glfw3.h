@@ -30,7 +30,7 @@
 #define _glfw3_h_
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 
@@ -6540,7 +6540,7 @@ GLFWAPI VkResult glfwCreateWindowSurface(VkInstance instance, GLFWwindow* window
 
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #endif /* _glfw3_h_ */
