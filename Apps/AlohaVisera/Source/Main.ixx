@@ -6,7 +6,6 @@ import Visera.Core;
 import Visera.Core.Media.Image.Wrappers;
 import Visera.Runtime;
 import Visera.Engine;
-
 using namespace Visera;
 
 export int main(int argc, char *argv[])
@@ -14,17 +13,7 @@ export int main(int argc, char *argv[])
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
 
-    LOG_INFO("{}", FName(TEXT("sdwdw_0").GetData()));
-    TMap<FName, int> Map;
-    auto TestName= FName{"s_0"};
-    Map[TestName] = 1;
-    TSet<FName> TestSet;
-    TestSet.insert(TestName);
-
-    LOG_INFO("{}", Map[TestName]);
-
-    LOG_INFO("?");
-    VWindow Window{};
+    LOG_INFO("{}", GEngine->GetWindow()->GetTitle());
 
     return EXIT_SUCCESS;
 }

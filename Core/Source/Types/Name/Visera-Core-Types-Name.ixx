@@ -12,11 +12,9 @@ export namespace Visera
     {
     public:
         static inline auto
-        FetchNameString(EName I_Name) 		 -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name); }
-        static inline auto
         FetchNameString(const FName& I_Name)  -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name.Handle); }
 
-        auto GetName()	         const -> FStringView { return FNamePool::GetInstance().FetchNameString(Handle); }
+        auto GetName()	 const -> FStringView { return FNamePool::GetInstance().FetchNameString(Handle); }
         auto GetHandle() const -> UInt32 { return Handle; }
         auto GetNumber() const -> UInt32 { return Number; }
         auto GetIdentifier() const -> UInt64 { return (UInt64(Handle) << 32) | Number; }

@@ -11,6 +11,9 @@ export namespace Visera
     class VISERA_ENGINE_API VWindow : public VObject
     {
     public:
+        [[nodiscard]] const FText&
+        GetTitle() const { return Title;}
+
         VWindow() : VObject() {}
 
     private:
