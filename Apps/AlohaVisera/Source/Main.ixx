@@ -1,5 +1,5 @@
 module;
-#include <Visera-Core.hpp>
+#include "../Global/Visera.hpp"
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
