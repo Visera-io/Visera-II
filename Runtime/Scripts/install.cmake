@@ -1,13 +1,16 @@
 message(STATUS "\nInstalling Visera Runtime...")
 
-set(VISERA_RUNTIME_ROOT_DIR     ${PROJECT_SOURCE_DIR})
-set(VISERA_RUNTIME_SOURCE_DIR   "${VISERA_RUNTIME_ROOT_DIR}/Source")
-set(VISERA_RUNTIME_EXTERNAL_DIR "${VISERA_RUNTIME_ROOT_DIR}/External")
-set(VISERA_RUNTIME_GLOBAL_DIR   "${VISERA_RUNTIME_ROOT_DIR}/Global")
-set(VISERA_RUNTIME_SCRIPTS_DIR  "${VISERA_RUNTIME_ROOT_DIR}/Scripts")
+set(VISERA_RUNTIME_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
+set(VISERA_RUNTIME_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
+set(VISERA_RUNTIME_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
+set(VISERA_RUNTIME_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
 add_library(${VISERA_RUNTIME})
 add_library(Visera::Runtime ALIAS ${VISERA_RUNTIME})
+
+if(${VISERA_APP})
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
+endif()
 
 if(NOT TARGET Visera::Core)
     message(FATAL_ERROR "Visera-Core is not installed!")
@@ -20,7 +23,7 @@ target_link_libraries(${VISERA_RUNTIME} PRIVATE Visera::Core)
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
-include(install_glfw) #[TODO]: Editor/Studio
+include(install_glfw)
 link_glfw(${VISERA_RUNTIME})
 
 include(install_vma)

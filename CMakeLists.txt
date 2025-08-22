@@ -12,8 +12,6 @@ set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_CORE}>")
-
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 #    set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 #    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmodules")
@@ -40,8 +38,9 @@ else()
     add_compile_options     (/utf-8)
 endif()
 
-add_subdirectory(Core)
-add_subdirectory(Runtime)
-add_subdirectory(Engine)
-add_subdirectory(Studio)
-add_subdirectory(Apps/AlohaVisera)
+add_subdirectory("${PROJECT_SOURCE_DIR}/Core")
+add_subdirectory("${PROJECT_SOURCE_DIR}/Runtime")
+add_subdirectory("${PROJECT_SOURCE_DIR}/Engine")
+add_subdirectory("${PROJECT_SOURCE_DIR}/Studio")
+
+add_subdirectory(Apps/${VISERA_APP})

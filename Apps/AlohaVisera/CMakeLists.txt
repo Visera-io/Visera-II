@@ -1,6 +1,8 @@
-set(VISERA_APP "AlohaVisera")
-project("${VISERA_APP} (${VISERA_CORE_VERSION})"
-        VERSION         "${VISERA_CORE_VERSION}"
+if(NOT ${VISERA_APP})
+
+endif()
+project("${VISERA_APP} (${VISERA_APP_VERSION})"
+        VERSION         "${VISERA_APP_VERSION}"
         HOMEPAGE_URL    "www.visera.io"
         LANGUAGES       CXX
 )
@@ -9,8 +11,6 @@ message("Installing ${PROJECT_NAME}")
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
-
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_CORE}>")
 
 add_executable(${VISERA_APP})
 
