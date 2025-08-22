@@ -35,7 +35,7 @@ export namespace Visera
 		LowerBound() { return std::numeric_limits<T>::min(); }
 
 		template<Concepts::Arithmetical NumT> constexpr void
-		Clamp(NumT* IO_Value, std::pair<NumT, NumT> I_Range)
+		Clamp(TMutable<NumT> IO_Value, std::pair<NumT, NumT> I_Range)
 		{
 			if (I_Range.first  > *IO_Value) { *IO_Value = I_Range.first;  return; }
 			if (I_Range.second < *IO_Value) { *IO_Value = I_Range.second; return; }

@@ -191,8 +191,36 @@ namespace Visera
     constexpr Bool True  = true;
     constexpr Bool False = false;
 
+	namespace Concepts
+	{
+		template<typename T> concept
+		Integeral     = std::integral<T> || std::unsigned_integral<T>;
+
+		template<typename T> concept
+		FloatingPoint = std::floating_point<T>;
+
+		template<typename T> concept
+		Constant      = std::is_const_v<T>;
+
+		template<typename T> concept
+		Mutable = requires
+		{
+			requires !std::is_const_v<std::remove_reference_t<T>>;
+			requires !std::is_const_v<std::remove_pointer_t<T>>;
+		};
+	}
+
     template<typename T>
     using TArray    = std::vector<T>;
+
+	template <typename T>
+	using TArrayView= std::span<const T>;
+
+	template <typename T, size_t Extent>
+	using TSpan     = std::span<T, Extent>;
+
+	template <Concepts::Mutable T>
+	using TMutable  = T*;
 
     template<typename T>
     using TList     = std::list<T>;
@@ -208,15 +236,6 @@ namespace Visera
 
     template <typename... Args>
     using TTuple    = std::tuple<Args...>;
-
-    namespace Concepts
-    {
-        template<typename T> concept
-        Integeral = std::integral<T> || std::unsigned_integral<T>;
-
-        template<typename T> concept
-        FloatingPoint = std::floating_point<T>;
-    }
 
     template<Concepts::Integeral T>
     Bool IsPowerOfTwo(T I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
