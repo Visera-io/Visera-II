@@ -34,5 +34,14 @@
             "Vulkan"
         ],
         "URL" : "https://github.com/zeux/volk"
+    },
+    "Slang" :
+    {
+        "Version" : "Depends on VulkanSDK",
+        "Dependencies" :
+        [
+            "Vulkan"
+        ],
+        "URL" : "https://github.com/shader-slang/slang"
     }
 }

@@ -46,6 +46,9 @@ link_vulkan(${VISERA_RUNTIME})
 include(install_volk)
 link_volk(${VISERA_RUNTIME})
 
+include(install_slang)
+link_slang(${VISERA_RUNTIME})
+
 #
 #
 #
