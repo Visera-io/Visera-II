@@ -38,6 +38,9 @@ target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Runtime)
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_STUDIO_SCRIPTS_DIR})
 
+include(install_imgui)
+link_imgui(${VISERA_STUDIO})
+
 #
 #
 #

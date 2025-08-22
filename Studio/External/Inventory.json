@@ -1,0 +1,12 @@
+{
+    "ImGui" :
+    {
+        "Version" : "v1.92.2b-docking",
+        "Dependencies" : 
+        [
+            "Volk",
+            "GLFW"
+        ],
+        "URL" : "https://github.com/ocornut/imgui"
+    }
+}
