@@ -8,9 +8,10 @@ import Visera.Runtime;
 import Visera.Engine;
 using namespace Visera;
 
-void Foo(TMutable<Float> I_Val)
+void Foo(TMutable<TSpan<int, 2>> I_Val)
 {
-    I_Val = 0;
+    auto& view = *I_Val;
+    view[0] = 2232323;
 }
 
 export int main(int argc, char *argv[])
@@ -18,16 +19,14 @@ export int main(int argc, char *argv[])
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
 
-    TArray<UInt32> arr{1,2,3,4};
-    TArrayView<UInt32> arrView{arr};
+    TArray<int> arr{1,2,3,4};
+    TArrayView<int> arrView{arr};
 
-    LOG_INFO("{}", arrView[1]);
+    TArray<int> nums { 1,2};
+    TSpan<int, 2> numsSpan{nums};
+    Foo(&numsSpan);
 
-    Float Val = 2.0;
-    Foo(&Val);
-    Float* const pV = &Val;
-    *pV = 3;
-    LOG_INFO("{}", Val);
+    LOG_INFO("{}", numsSpan[0]);
 
     return EXIT_SUCCESS;
 }
