@@ -1,7 +1,7 @@
 #pragma once
-#include <Visera-Engine.hpp>
-#if defined(VISERA_ENGINE_API)
-#undef VISERA_ENGINE_API
+#include <Visera-Runtime.hpp>
+#if defined(VISERA_RUNTIME_API)
+#undef VISERA_RUNTIME_API
 #endif
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)

@@ -10,9 +10,14 @@ export namespace Visera
     class VISERA_ENGINE_API VObject
     {
     public:
-        VObject() : Name{ EName::Object }
+        [[nodiscard]] virtual FStringView
+        GetDebugName() const { return "unknown"; };
+
+        VObject()
+        :
+        Name{ EName::Object }
         {
-            LOG_DEBUG("{}", Name);
+
         }
         virtual ~VObject() {};
 

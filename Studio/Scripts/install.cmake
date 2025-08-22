@@ -32,11 +32,6 @@ if(NOT TARGET Visera::Runtime)
 endif()
 target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Runtime)
 
-if(NOT TARGET Visera::Engine)
-    message(FATAL_ERROR "Visera-Engine is not installed!")
-endif()
-target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Engine)
-
 #
 # << Install External Packages >>
 #

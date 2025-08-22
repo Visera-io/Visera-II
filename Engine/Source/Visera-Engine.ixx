@@ -12,11 +12,11 @@ namespace Visera
     class VISERA_ENGINE_API VEngine final : public VObject
     {
     public:
-        [[nodiscard]] inline auto
-        GetWindow() const -> const TUniquePtr<VWindow>& { return Window; }
+        [[nodiscard]] virtual FStringView
+        GetDebugName() const override { return "visera engine"; };
 
     private:
-        TUniquePtr<VWindow> Window;
+
 
     public:
         VEngine();
@@ -28,7 +28,7 @@ namespace Visera
     VEngine::
     VEngine()
     {
-        Window = MakeUnique<VWindow>();
+
     }
 
 

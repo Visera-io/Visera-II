@@ -13,7 +13,5 @@ export int main(int argc, char *argv[])
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
 
-    LOG_INFO("{}", GEngine->GetWindow()->GetTitle());
-
     return EXIT_SUCCESS;
 }

@@ -1,25 +1,22 @@
 module;
-#include <Visera-Engine.hpp>
+#include <Visera-Runtime.hpp>
 #include <GLFW/glfw3.h>
-export module Visera.Engine.Platform.Window;
-#define VISERA_MODULE_NAME "Engine.Platform"
-import Visera.Engine.Object;
+export module Visera.Runtime.Window;
+#define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Core.Types.Text;
 
 export namespace Visera
 {
-    class VISERA_ENGINE_API VWindow : public VObject
+
+    class VISERA_RUNTIME_API FWindow
     {
     public:
         [[nodiscard]] const FText&
         GetTitle() const { return Title;}
 
-        VWindow() : VObject() {}
-
     private:
         FText       Title  = TEXT("Visera");
         GLFWwindow* Handle = nullptr;
     };
-
 
 }
