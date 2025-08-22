@@ -10,7 +10,7 @@ export module Visera.Core.Types.Text;
 export namespace Visera
 {
     /* UTF8 Encoded String (Compiler & Project Level Setted) */
-    class FText
+    class VISERA_CORE_API FText
     {
     public:
         // static inline auto

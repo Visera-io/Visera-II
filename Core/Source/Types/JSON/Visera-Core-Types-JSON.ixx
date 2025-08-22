@@ -6,7 +6,7 @@ export module Visera.Core.Types.JSON;
 
 export namespace Visera
 {
-    class FJSON
+    class VISERA_CORE_API FJSON
     {
     public:
         using Json = nlohmann::json;

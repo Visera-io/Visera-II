@@ -5,12 +5,22 @@ set(VISERA_ENGINE_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_ENGINE_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
 set(VISERA_ENGINE_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
-add_library(${VISERA_ENGINE})
+add_library(${VISERA_ENGINE} SHARED)
 add_library(Visera::Engine ALIAS ${VISERA_ENGINE})
+add_compile_definitions(Visera::Engine VISERA_ENGINE_BUILD_SHARED)
 
-if(${VISERA_APP})
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
-endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
+add_custom_command(
+        TARGET Visera::Engine
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:Visera::Engine>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
+        COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Engine>>,
+        copy_if_different
+        $<TARGET_PDB_FILE:Visera::Engine>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
+)
 
 if(NOT TARGET Visera::Core)
     message(FATAL_ERROR "Visera-Core is not installed!")

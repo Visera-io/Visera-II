@@ -1,12 +1,17 @@
-if(NOT ${VISERA_APP})
-
+if(NOT VISERA_APP)
+    message(FATAL_ERROR "Empty App Name!")
 endif()
-project("${VISERA_APP} (${VISERA_APP_VERSION})"
+
+if(NOT VISERA_APP_VERSION)
+    set(VISERA_APP_NAME "${VISERA_APP} (Sandbox)")
+endif()
+
+project("${VISERA_APP_NAME}"
         VERSION         "${VISERA_APP_VERSION}"
         HOMEPAGE_URL    "www.visera.io"
         LANGUAGES       CXX
 )
-message("Installing ${PROJECT_NAME}")
+message(STATUS "Installing ${PROJECT_NAME}")
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
@@ -18,9 +23,9 @@ file(GLOB_RECURSE VISERA_APP_MODULES
                   "${CMAKE_CURRENT_SOURCE_DIR}/*.ixx")
 
 target_sources(${VISERA_APP}
-        PUBLIC
-        FILE_SET "visera_app_modules" TYPE CXX_MODULES
-        FILES ${VISERA_APP_MODULES})
+               PUBLIC
+               FILE_SET "visera_app_modules" TYPE CXX_MODULES
+               FILES ${VISERA_APP_MODULES})
 
 target_link_libraries(${VISERA_APP}
                       PRIVATE

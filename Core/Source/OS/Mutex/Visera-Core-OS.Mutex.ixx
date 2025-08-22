@@ -5,7 +5,7 @@ export module Visera.Core.OS.Mutex;
 
 export namespace Visera
 {
-    class FMutex
+    class VISERA_CORE_API FMutex
     {
     public:
         Bool TryToLock() { return Handle.try_lock(); }
@@ -16,7 +16,7 @@ export namespace Visera
         std::mutex Handle;
     };
 
-    class FRWLock
+    class VISERA_CORE_API FRWLock
     {
     public:
         Bool TryToRead()    const { return Handle.try_lock_shared(); }

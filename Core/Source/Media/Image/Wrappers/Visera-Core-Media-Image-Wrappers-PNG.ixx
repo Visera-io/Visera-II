@@ -8,7 +8,7 @@ import :Interface;
 
 export namespace Visera
 {
-    class FPNGImageWrapper : public IImageWrapper
+    class VISERA_CORE_API FPNGImageWrapper : public IImageWrapper
     {
     public:
         virtual auto

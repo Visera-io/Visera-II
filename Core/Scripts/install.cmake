@@ -1,20 +1,26 @@
 message(STATUS "\nInstalling Visera Core...")
 
-if (CMAKE_GENERATOR MATCHES "Visual Studio")
-    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-endif()
-
 set(VISERA_CORE_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
 set(VISERA_CORE_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_CORE_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
 set(VISERA_CORE_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
-add_library(${VISERA_CORE})
+add_library(${VISERA_CORE} SHARED)
 add_library(Visera::Core ALIAS ${VISERA_CORE})
+add_compile_definitions(Visera::Core VISERA_CORE_BUILD_SHARED)
 
-if(VISERA_APP)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
-endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
+add_custom_command(
+        TARGET Visera::Core
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:Visera::Core>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
+        COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Core>>,
+        copy_if_different
+        $<TARGET_PDB_FILE:Visera::Core>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
+)
 
 #
 # << Install External Packages >>

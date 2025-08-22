@@ -8,7 +8,7 @@ export namespace Visera
     using EName = EPreservedName;
 
     /* Case-Ignored FString */
-    class FName
+    class VISERA_CORE_API FName
     {
     public:
         static inline auto

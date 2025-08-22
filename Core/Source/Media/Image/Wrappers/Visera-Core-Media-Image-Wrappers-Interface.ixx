@@ -6,7 +6,7 @@ export import Visera.Core.Media.Image.Common;
 
 export namespace Visera
 {
-    class IImageWrapper
+    class VISERA_CORE_API IImageWrapper
     {
     public:
         virtual auto

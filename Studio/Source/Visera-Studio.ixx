@@ -5,5 +5,8 @@ export module Visera.Studio;
 
 export namespace Visera
 {
+    class VISERA_STUDIO_API FStudio
+    {
 
+    };
 }

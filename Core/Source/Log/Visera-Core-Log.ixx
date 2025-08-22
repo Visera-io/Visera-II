@@ -9,7 +9,7 @@ export module Visera.Core.Log;
 export namespace Visera
 {
 
-	class GLog
+	class VISERA_CORE_API GLog
 	{
 	public:
 		static inline GLog&

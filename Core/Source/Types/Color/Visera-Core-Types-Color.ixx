@@ -8,7 +8,7 @@ export namespace Visera
 {
     class FColor;
 
-    struct FLinearColor
+    struct VISERA_CORE_API FLinearColor
     {
         union
         {
@@ -41,7 +41,7 @@ export namespace Visera
         static const Float LUT_Pow22over255[256];
     };
 
-    struct FColor
+    struct VISERA_CORE_API FColor
     {
     public:
         // Variables.

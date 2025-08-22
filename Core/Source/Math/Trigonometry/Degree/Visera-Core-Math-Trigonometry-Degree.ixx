@@ -49,7 +49,6 @@ struct fmt::formatter<Visera::TDegree<T>>
         return fmt::format_to(
             I_Context.out(),
             "{}°",
-            I_Degree.GetValue()
-        );
+            I_Degree.GetValue());
     }
 };

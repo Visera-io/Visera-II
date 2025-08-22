@@ -16,8 +16,6 @@ set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_CORE}>")
-
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
     message(FATAL_ERROR
       "\n"

@@ -1,5 +1,5 @@
 module;
-#include <Visera-Runtime.hpp>
+#include <Visera-Engine.hpp>
 #include <GLFW/glfw3.h>
 export module Visera.Engine.Platform.Window;
 #define VISERA_MODULE_NAME "Engine.Platform"
@@ -8,7 +8,7 @@ import Visera.Core.Types.Text;
 
 export namespace Visera
 {
-    class VWindow : public VObject
+    class VISERA_ENGINE_API VWindow : public VObject
     {
     public:
         VWindow() : VObject() {}

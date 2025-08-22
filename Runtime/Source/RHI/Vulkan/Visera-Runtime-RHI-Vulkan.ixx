@@ -5,5 +5,8 @@ export module Visera.Runtime.RHI.Vulkan;
 
 export namespace Visera
 {
+    class VISERA_RUNTIME_API FVulkan
+    {
 
+    };
 }

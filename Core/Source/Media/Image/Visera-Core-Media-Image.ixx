@@ -8,7 +8,7 @@ export import Visera.Core.Media.Image.UTils;
 
 export namespace Visera
 {
-    class FImage
+    class VISERA_CORE_API FImage
     {
     public:
 
