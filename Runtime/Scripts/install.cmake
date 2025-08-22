@@ -29,6 +29,12 @@ link_glfw(${VISERA_RUNTIME})
 include(install_vma)
 link_vma(${VISERA_RUNTIME})
 
+include(install_vulkan)
+link_vulkan(${VISERA_RUNTIME})
+
+include(install_volk)
+link_volk(${VISERA_RUNTIME})
+
 #
 #
 #
