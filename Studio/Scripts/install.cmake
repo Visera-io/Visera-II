@@ -7,7 +7,7 @@ set(VISERA_STUDIO_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
 add_library(${VISERA_STUDIO} SHARED)
 add_library(Visera::Studio ALIAS ${VISERA_STUDIO})
-add_compile_definitions(Visera::Studio VISERA_STUDIO_BUILD_SHARED)
+target_compile_definitions(${VISERA_STUDIO} PRIVATE VISERA_STUDIO_BUILD_SHARED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
 add_custom_command(
@@ -15,12 +15,16 @@ add_custom_command(
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:Visera::Studio>
-        $<TARGET_FILE_DIR:${VISERA_APP}>
-        COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Studio>>,
-        copy_if_different
-        $<TARGET_PDB_FILE:Visera::Studio>
-        $<TARGET_FILE_DIR:${VISERA_APP}>
-)
+        $<TARGET_FILE_DIR:${VISERA_APP}>)
+if(MSVC)
+    add_custom_command(
+            TARGET Visera::Engine
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Studio>>,
+            copy_if_different
+            $<TARGET_PDB_FILE:Visera::Studio>
+            $<TARGET_FILE_DIR:${VISERA_APP}>)
+endif()
 
 if(NOT TARGET Visera::Core)
     message(FATAL_ERROR "Visera-Core is not installed!")

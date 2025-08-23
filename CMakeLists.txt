@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.21.0 FATAL_ERROR)
 
+SET(VISERA_VERSION_MAJOR 1)
+SET(VISERA_VERSION_MINOR 0)
+SET(VISERA_VERSION_PATCH 0)
+SET(VISERA_VERSION "${VISERA_VERSION_MAJOR}.${VISERA_VERSION_MINOR}.${VISERA_VERSION_PATCH}")
+
 set(VISERA "Visera")
-project("${VISERA} (${VISERA_CORE_VERSION})"
-        VERSION         "${VISERA_CORE_VERSION}"
+project("${VISERA} (${VISERA_VERSION})"
+        VERSION         "${VISERA_VERSION}"
         HOMEPAGE_URL    "www.visera.io"
         LANGUAGES       CXX
 )
@@ -14,8 +19,8 @@ set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 #    set(CMAKE_CXX_SCAN_FOR_MODULES ON)
-#    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmodules")
-#    #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fmodules")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmodules")
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fmodules")
 #
 #    set(CLANG_MODULE_CACHE "${CMAKE_BINARY_DIR}/clang-modcache")
 #    add_compile_options(
