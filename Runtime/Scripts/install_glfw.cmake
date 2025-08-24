@@ -6,7 +6,6 @@ macro(link_glfw in_target)
     message(STATUS "\nLinking GLFW (glfw)")
     
     if(NOT TARGET glfw)
-        option(GLFW_BUILD_COCOA "" OFF)
         option(GLFW_BUILD_DOCS  "" OFF)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/GLFW)
     endif()

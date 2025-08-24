@@ -19,7 +19,7 @@ add_custom_command(
         $<TARGET_FILE_DIR:${VISERA_APP}>)
 if(MSVC)
     add_custom_command(
-            TARGET Visera::Engine
+            TARGET Visera::Runtime
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Runtime>>,
             copy_if_different

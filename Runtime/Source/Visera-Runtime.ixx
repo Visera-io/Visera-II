@@ -10,8 +10,18 @@ namespace Visera
 {
     class VISERA_RUNTIME_API FRuntime
     {
-
+    public:
+        [[nodiscard]] inline FString
+        GetStatues() const
+        {
+            return fmt::format(
+                        "[Runtime Statues]\n"
+                "GWindow: {}",
+                    GWindow == nullptr
+                );
+        }
     };
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FRuntime> GRuntime = MakeUnique<FRuntime>();
+    export inline VISERA_RUNTIME_API TUniquePtr<FRuntime>
+    GRuntime = MakeUnique<FRuntime>();
 }

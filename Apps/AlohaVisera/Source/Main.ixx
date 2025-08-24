@@ -1,5 +1,5 @@
 module;
-#include "../Global/Visera.hpp"
+#include <Visera.hpp>
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
@@ -19,14 +19,16 @@ export int main(int argc, char *argv[])
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
 
-    TArray<int> arr{1,2,3,4};
-    TArrayView<int> arrView{arr};
+    LOG_INFO("Hello {}", FName{"Visera"});
+    LOG_INFO("{}", GRuntime->GetStatues());
 
-    TArray<int> nums { 1,2};
-    TSpan<int, 2> numsSpan{nums};
-    Foo(&numsSpan);
+    GWindow->Bootstrap();
+    while (!GWindow->ShouldClose())
+    {
+        GWindow->PollEvents(); // You MUST call this function on MacOS.
 
-    LOG_INFO("{}", numsSpan[0]);
+    }
+    GWindow->Terminate();
 
     return EXIT_SUCCESS;
 }
