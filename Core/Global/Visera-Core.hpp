@@ -208,6 +208,13 @@ namespace Visera
 			requires !std::is_const_v<std::remove_reference_t<T>>;
 			requires !std::is_const_v<std::remove_pointer_t<T>>;
 		};
+
+		template<typename T> concept
+	    Clock = requires
+		{
+			requires std::is_class_v<std::chrono::system_clock>;
+			requires std::is_class_v<std::chrono::high_resolution_clock>;
+		};
 	}
 
     template<typename T>

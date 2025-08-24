@@ -18,9 +18,10 @@ export int main(int argc, char *argv[])
 {
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
-
+    FHiResClock Clock{};
     GWindow->Bootstrap();
     GRHI->Bootstrap();
+    LOG_INFO("{}ms", Clock.Elapsed().Milliseconds());
 
     LOG_INFO("Hello {}", FName{"Visera"});
 
@@ -33,6 +34,7 @@ export int main(int argc, char *argv[])
     // }
     //GRHI->Terminate();
     //GWindow->Terminate();
+
 
     return EXIT_SUCCESS;
 }
