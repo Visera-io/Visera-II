@@ -35,6 +35,11 @@ export int main(int argc, char *argv[])
     //GRHI->Terminate();
     //GWindow->Terminate();
 
+    ParallelFor(0, 1000, [](UInt32 i)
+    {
+        LOG_INFO("Hi {}", i);
+    });
+
 
     return EXIT_SUCCESS;
 }

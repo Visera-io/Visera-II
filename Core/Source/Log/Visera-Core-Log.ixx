@@ -67,8 +67,8 @@ export namespace Visera
 			Logger = MakeUnique<spdlog::logger>("System Log", Sinks.begin(), Sinks.end());
 
 			Logger->set_level(spdlog::level::level_enum(VISERA_LOG_SYSTEM_VERBOSITY));
-			//Logger->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%L] [T:%t] %v%$");
-			Logger->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%L] %v%$");
+			Logger->set_pattern("%^[%L] [%Y-%m-%d %H:%M:%S.%e] [T:%t] %v%$");
+			//Logger->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%L] %v%$");
 		}
 		virtual ~GLog() noexcept
 		{
