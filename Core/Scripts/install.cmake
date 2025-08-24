@@ -52,6 +52,9 @@ link_stb(${VISERA_CORE})
 include(install_ankerl)
 link_ankerl(${VISERA_CORE})
 
+include(install_onetbb)
+link_onetbb(${VISERA_CORE})
+
 #
 #
 #
