@@ -19,16 +19,20 @@ export int main(int argc, char *argv[])
     FPNGImageWrapper PNG;
     //PNG.Parse("test_image.png");
 
-    LOG_INFO("Hello {}", FName{"Visera"});
-    LOG_INFO("{}", GRuntime->GetStatues());
-
     GWindow->Bootstrap();
-    while (!GWindow->ShouldClose())
-    {
-        GWindow->PollEvents(); // You MUST call this function on MacOS.
+    GRHI->Bootstrap();
 
-    }
-    GWindow->Terminate();
+    LOG_INFO("Hello {}", FName{"Visera"});
+
+    // GWindow->Bootstrap();
+    // while (!GWindow->ShouldClose())
+    // {
+    //     GWindow->PollEvents(); // You MUST call this function on MacOS.
+    //
+    //
+    // }
+    //GRHI->Terminate();
+    //GWindow->Terminate();
 
     return EXIT_SUCCESS;
 }

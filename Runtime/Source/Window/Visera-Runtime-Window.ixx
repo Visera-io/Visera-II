@@ -11,6 +11,7 @@ namespace Visera
 
     class VISERA_RUNTIME_API FWindow
     {
+        enum EStatues { Disabled, Bootstrapped, Terminated  };
     public:
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor() { return glfwGetPrimaryMonitor(); }
@@ -24,11 +25,18 @@ namespace Visera
 
         [[nodiscard]] const FText&
         GetTitle() const { return Title; }
+        void inline
+        SetTitle(const FText& I_Title) { Title = I_Title; }
 
         void inline
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) { glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
         void inline
         SetPosition(Int32 I_X, Int32 I_Y) const { glfwSetWindowPos(Handle, I_X, I_Y); }
+
+        [[nodiscard]] inline Bool
+        IsBootstrapped() const { return Statue == EStatues::Bootstrapped; }
+        [[nodiscard]] inline Bool
+        IsTerminated() const { return Statue == EStatues::Terminated; }
 
         void inline
         Bootstrap();
@@ -41,6 +49,8 @@ namespace Visera
         Int32       Width{0},     Height{0};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};
+
+        mutable EStatues Statue = EStatues::Disabled;
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FWindow>
@@ -49,6 +59,7 @@ namespace Visera
     void FWindow::
     Bootstrap()
     {
+        LOG_DEBUG("Bootstrapping Window");
         //Init GLFW
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -94,13 +105,19 @@ namespace Visera
 
         LOG_DEBUG("Created a new window (title:{}, extent:[{},{}], scales:[{},{}])",
             Title, Width, Height, ScaleX, ScaleY);
+
+        Statue = EStatues::Bootstrapped;
     }
 
     void FWindow::
     Terminate()
     {
+        LOG_DEBUG("Terminating Window");
         glfwDestroyWindow(Handle);
         glfwTerminate();
+        Handle = nullptr;
+
+        Statue = EStatues::Terminated;
     }
 
 }
