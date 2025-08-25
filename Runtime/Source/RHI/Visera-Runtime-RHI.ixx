@@ -100,7 +100,7 @@ namespace Visera
 #endif
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        this->AddInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)
+        this->AddInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif()
 
         if (GWindow->IsBootstrapped())

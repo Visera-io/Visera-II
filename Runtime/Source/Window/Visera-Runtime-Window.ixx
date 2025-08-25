@@ -60,8 +60,8 @@ namespace Visera
     {
         Initialize();
 
-        if (!bInitialized)
-        { LOG_FATAL("MUST call GWindow->Initialize() at first!"); return; }
+        //if (!bInitialized)
+        //{ LOG_FATAL("MUST call GWindow->Initialize() at first!"); return; }
 
         LOG_DEBUG("Bootstrapping Window.");
 

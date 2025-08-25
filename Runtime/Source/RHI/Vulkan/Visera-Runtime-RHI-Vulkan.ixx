@@ -83,7 +83,11 @@ namespace Visera
         auto CreateInfo = vk::InstanceCreateInfo{}
             .setPApplicationInfo(&AppInfo)
             .setEnabledExtensionCount(InstanceExtensions.size())
-            .setPpEnabledExtensionNames(InstanceExtensions.data());
+            .setPpEnabledExtensionNames(InstanceExtensions.data())
+#if defined(VISERA_ON_APPLE_SYSTEM)
+            .setFlags(vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR)
+#endif()
+        ;
 
         Instance = FInstance(Context, CreateInfo);
     }
