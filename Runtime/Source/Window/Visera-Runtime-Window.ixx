@@ -9,14 +9,13 @@ import Visera.Core.Log;
 namespace Visera
 {
 
-    class VISERA_RUNTIME_API FWindow
+    class VISERA_RUNTIME_API FWindow : public IGlobalSingleton
     {
-        enum EStatues { Disabled, Bootstrapped, Terminated  };
     public:
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor();
-        [[nodiscard]] static const GLFWvidmode*
-        GetPrimaryMonitorVideoMode() { return glfwGetVideoMode(GetPrimaryMonitor()); }
+        [[nodiscard]] const GLFWwindow*
+        GetHandle() const { return Handle; }
 
         [[nodiscard]] inline Bool
         ShouldClose() const { return glfwWindowShouldClose(Handle); }
@@ -33,15 +32,12 @@ namespace Visera
         void inline
         SetPosition(Int32 I_X, Int32 I_Y) const { glfwSetWindowPos(Handle, I_X, I_Y); }
 
-        [[nodiscard]] inline Bool
-        IsBootstrapped() const { return Statue == EStatues::Bootstrapped; }
-        [[nodiscard]] inline Bool
-        IsTerminated() const { return Statue == EStatues::Terminated; }
 
+        FWindow() : IGlobalSingleton("Window") {}
         void inline
-        Bootstrap();
+        Bootstrap() override;
         void inline
-        Terminate();
+        Terminate() override;
 
     private:
         FText       Title  = TEXT("Visera");
@@ -49,8 +45,6 @@ namespace Visera
         Int32       Width{0},     Height{0};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};
-
-        mutable EStatues Statue = EStatues::Disabled;
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FWindow>
@@ -59,7 +53,7 @@ namespace Visera
     void FWindow::
     Bootstrap()
     {
-        LOG_DEBUG("Bootstrapping Window");
+        LOG_DEBUG("Bootstrapping Window.");
 
         glfwSetErrorCallback([](Int32 I_Error, const char* I_Description)
         { LOG_ERROR("GLFW Error {}: {}", I_Error, I_Description); });
@@ -82,9 +76,6 @@ namespace Visera
             nullptr);
         if (!Handle)
         { return LOG_FATAL("Failed to create the window!"); }
-
-        if (!glfwVulkanSupported())
-        { LOG_ERROR("Vulkan is NOT Supported!"); }
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
         //SetPosition(400, 200);
@@ -114,7 +105,7 @@ namespace Visera
     void FWindow::
     Terminate()
     {
-        LOG_DEBUG("Terminating Window");
+        LOG_DEBUG("Terminating Window.");
         glfwDestroyWindow(Handle);
         glfwTerminate();
         Handle = nullptr;

@@ -1,36 +1,44 @@
 module;
 #include <Visera-Runtime.hpp>
+#include <vulkan/vulkan.hpp>
+#include <GLFW/glfw3.h>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
 import Visera.Runtime.RHI.Volk;
 import Visera.Runtime.RHI.VMA;
+import Visera.Runtime.Window;
 import Visera.Core.Log;
 
 namespace Visera
 {
-    class VISERA_RUNTIME_API FRHI
+    class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
     {
-        enum EStatues { Disabled, Bootstrapped, Terminated  };
     public:
+        inline FRHI*
+        AddInstanceExtension(const char* I_Extension) { InstanceExtensions.push_back(I_Extension); return this; };
+        inline FRHI*
+        AddDeviceExtension(const char* I_Extension)   { DeviceExtensions.push_back(I_Extension); return this;  };
 
     private:
-        TUniquePtr<FVolk>   Volk;
+        TArray<const char*> InstanceExtensions;
+        TArray<const char*> DeviceExtensions;
+
         TUniquePtr<FVulkan> Vulkan;
 
     public:
-        [[nodiscard]] inline Bool
-        IsBootstrapped() const { return Statue == EStatues::Bootstrapped; }
-        [[nodiscard]] inline Bool
-        IsTerminated() const   { return Statue == EStatues::Terminated; }
-
+        FRHI() : IGlobalSingleton("RHI") {}
+        ~FRHI() override;
         void inline
-        Bootstrap();
+        Bootstrap() override;
         void inline
-        Terminate();
+        Terminate() override;
 
     private:
-        mutable EStatues Statue = EStatues::Disabled;
+        void inline
+        CollectInstanceExtensions();
+        void inline
+        CollectDeviceExtensions();
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FRHI>
@@ -39,11 +47,17 @@ namespace Visera
     void FRHI::
     Bootstrap()
     {
-        LOG_DEBUG("Bootstrapping RHI");
+        LOG_DEBUG("Bootstrapping RHI.");
+
         try
         {
-            Volk   = MakeUnique<FVolk>();
-            Vulkan = MakeUnique<FVulkan>();
+            GVolk->Bootstrap();
+
+            CollectInstanceExtensions();
+            CollectDeviceExtensions();
+
+            Vulkan = MakeUnique<FVulkan>(InstanceExtensions, DeviceExtensions);
+            GVolk->Load(Vulkan->GetInstance());
         }
         catch (const SRuntimeError& Error)
         {
@@ -56,11 +70,57 @@ namespace Visera
     void FRHI::
     Terminate()
     {
-        LOG_DEBUG("Terminating RHI");
+        LOG_DEBUG("Terminating RHI.");
         Vulkan.reset();
-        Volk.reset();
 
+        GVolk->Terminate();
         Statue = EStatues::Terminated;
+    }
+
+    FRHI::
+    ~FRHI()
+    {
+        if (IsBootstrapped())
+        {
+            std::cerr << "[FATAL] RHI must be terminated properly!\n";
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    void FRHI::
+    CollectInstanceExtensions()
+    {
+#if defined(VISERA_DEBUG_MODE)
+        // Debug Extensions
+        this->AddInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
+            ->AddInstanceExtension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+#else
+        // Release Extensions
+#endif
+
+#if defined(VISERA_ON_APPLE_SYSTEM)
+        this->AddInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)
+#endif()
+
+        if (GWindow->IsBootstrapped())
+        {
+            if (!glfwVulkanSupported())
+            { throw SRuntimeError("The Window does NOT support Vulkan!"); }
+
+            UInt32 WindowExtensionCount = 0;
+            auto WindowExtensions = glfwGetRequiredInstanceExtensions(&WindowExtensionCount);
+
+            for (UInt32 Idx = 0; Idx < WindowExtensionCount; ++Idx)
+            {
+                this->AddInstanceExtension(WindowExtensions[Idx]);
+            }
+        }
+    }
+
+    void FRHI::
+    CollectDeviceExtensions()
+    {
+
     }
 
 }
