@@ -8,17 +8,22 @@ import Visera.Core.Log;
 
 namespace Visera
 {
-
     class VISERA_RUNTIME_API FWindow : public IGlobalSingleton
     {
+        Bool bInitialized = False;
     public:
+        void inline
+        Initialize() { if (!glfwInit()) { return LOG_FATAL("Failed to initialize GLFW!"); }; bInitialized = True; };
+
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor();
-        [[nodiscard]] const GLFWwindow*
+        [[nodiscard]] GLFWwindow*
         GetHandle() const { return Handle; }
 
         [[nodiscard]] inline Bool
         ShouldClose() const { return glfwWindowShouldClose(Handle); }
+        inline void
+        WaitEvents() const { glfwWaitEvents(); }
         inline void
         PollEvents() const { glfwPollEvents(); }
 
@@ -32,8 +37,8 @@ namespace Visera
         void inline
         SetPosition(Int32 I_X, Int32 I_Y) const { glfwSetWindowPos(Handle, I_X, I_Y); }
 
-
         FWindow() : IGlobalSingleton("Window") {}
+
         void inline
         Bootstrap() override;
         void inline
@@ -53,14 +58,18 @@ namespace Visera
     void FWindow::
     Bootstrap()
     {
+        Initialize();
+
+        if (!bInitialized)
+        { LOG_FATAL("MUST call GWindow->Initialize() at first!"); return; }
+
         LOG_DEBUG("Bootstrapping Window.");
 
+        //Init GLFW
+        Initialize();
+        //{ LOG_FATAL("Failed to initialize GLFW!"); return; }
         glfwSetErrorCallback([](Int32 I_Error, const char* I_Description)
         { LOG_ERROR("GLFW Error {}: {}", I_Error, I_Description); });
-
-        //Init GLFW
-        if (!glfwInit())
-        { return LOG_FATAL("Failed to initialize GLFW!"); }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE,	GLFW_FALSE);
@@ -75,14 +84,13 @@ namespace Visera
             nullptr,
             nullptr);
         if (!Handle)
-        { return LOG_FATAL("Failed to create the window!"); }
+        { LOG_FATAL("Failed to create the window!"); return; }
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
         //SetPosition(400, 200);
 #else
 
 #endif
-
         glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
 
         if (bMaximized)

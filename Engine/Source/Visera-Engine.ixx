@@ -5,31 +5,52 @@ export module Visera.Engine;
 import Visera.Engine.Object;
 import Visera.Engine.Platform;
 import Visera.Engine.Render;
+import Visera.Runtime;
 import Visera.Core.Log;
 
 namespace Visera
 {
-    class VISERA_ENGINE_API VEngine final : public VObject
+    class VISERA_ENGINE_API FEngine : public IGlobalSingleton
     {
     public:
-        [[nodiscard]] virtual FStringView
-        GetDebugName() const override { return "visera engine"; };
+        void Bootstrap() override
+        {
+            LOG_DEBUG("Bootstrapping Engine.");
+            GWindow->Initialize();
 
-    private:
+            GWindow->Bootstrap();
+            GRHI->Bootstrap();
 
+            Statue = EStatues::Bootstrapped;
+        }
 
-    public:
-        VEngine();
+        void Run()
+        {
+            VISERA_ASSERT(IsBootstrapped());
+
+            while (!GWindow->ShouldClose())
+            {
+                GWindow->PollEvents();
+                //GWindow->PollEvents(); // You MUST call this function on MacOS.
+
+            }
+        }
+
+        void Terminate() override
+        {
+            LOG_DEBUG("Terminating Engine.");
+
+            GRHI->Terminate();
+            GWindow->Terminate();
+
+            Statue = EStatues::Terminated;
+        }
+
+        FEngine() : IGlobalSingleton("Engine") {};
     };
 
     export inline VISERA_ENGINE_API
-    TUniquePtr<VEngine> GEngine = MakeUnique<VEngine>();
-
-    VEngine::
-    VEngine()
-    {
-
-    }
+    TUniquePtr<FEngine> GEngine = MakeUnique<FEngine>();
 
 
 }

@@ -1,5 +1,6 @@
 module;
 #include <Visera.hpp>
+#include <GLFW/glfw3.h>
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
@@ -10,23 +11,15 @@ using namespace Visera;
 
 export int main(int argc, char *argv[])
 {
-    FPNGImageWrapper PNG;
-    //PNG.Parse("test_image.png");
+    // FPNGImageWrapper PNG;
+    // //PNG.Parse("test_image.png");
     FHiResClock Clock{};
-    GWindow->Bootstrap();
-    GRHI->Bootstrap();
-    LOG_INFO("{}ms", Clock.Elapsed().Milliseconds());
 
-    while (!GWindow->ShouldClose())
+    GEngine->Bootstrap();
     {
-
-        static UInt64 CFrame{ 0 };
-        //LOG_INFO("Frame {}.", ++CFrame);
-        GWindow->PollEvents(); // You MUST call this function on MacOS.
-
+        GEngine->Run();
     }
-    GRHI->Terminate();
-    //GWindow->Terminate();
+    GEngine->Terminate();
 
     return EXIT_SUCCESS;
 }

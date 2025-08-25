@@ -12,6 +12,11 @@ namespace Visera
     class VISERA_RUNTIME_API FRuntime
     {
     public:
+        FRuntime()
+        {
+
+        }
+
         ~FRuntime()
         {
             std::cout << fmt::format("[Runtime] Finalizing Runtime (running time: {}s)\n", Timer.Elapsed().Seconds());
