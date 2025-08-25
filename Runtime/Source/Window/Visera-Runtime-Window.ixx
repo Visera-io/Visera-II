@@ -14,7 +14,7 @@ namespace Visera
         enum EStatues { Disabled, Bootstrapped, Terminated  };
     public:
         [[nodiscard]] static GLFWmonitor*
-        GetPrimaryMonitor() { return glfwGetPrimaryMonitor(); }
+        GetPrimaryMonitor();
         [[nodiscard]] static const GLFWvidmode*
         GetPrimaryMonitorVideoMode() { return glfwGetVideoMode(GetPrimaryMonitor()); }
 
@@ -60,8 +60,14 @@ namespace Visera
     Bootstrap()
     {
         LOG_DEBUG("Bootstrapping Window");
+
+        glfwSetErrorCallback([](Int32 I_Error, const char* I_Description)
+        { LOG_ERROR("GLFW Error {}: {}", I_Error, I_Description); });
+
         //Init GLFW
-        glfwInit();
+        if (!glfwInit())
+        { return LOG_FATAL("Failed to initialize GLFW!"); }
+
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE,	GLFW_FALSE);
 
@@ -75,19 +81,15 @@ namespace Visera
             nullptr,
             nullptr);
         if (!Handle)
-        { LOG_FATAL("Failed to create the window!"); }
+        { return LOG_FATAL("Failed to create the window!"); }
 
         if (!glfwVulkanSupported())
-        { LOG_WARN("Vulkan is NOT Supported!"); }
+        { LOG_ERROR("Vulkan is NOT Supported!"); }
 
-        // Set Window Position
-        const GLFWvidmode* VidMode = GetPrimaryMonitorVideoMode();
 #if defined(VISERA_ON_APPLE_SYSTEM)
         //SetPosition(400, 200);
 #else
-        SetPosition(
-            (VidMode->width    -   Width ) >> 1,	// Mid
-            (VidMode->height   -   Height) >> 1);	// Mid
+
 #endif
 
         glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
@@ -118,6 +120,28 @@ namespace Visera
         Handle = nullptr;
 
         Statue = EStatues::Terminated;
+    }
+
+    GLFWmonitor* FWindow::
+    GetPrimaryMonitor()
+    {
+        auto PrimaryMonitor = glfwGetPrimaryMonitor();
+        if (!PrimaryMonitor)
+        {
+            LOG_ERROR("Failed to get the primary monitor!");
+            // Try to get any available monitor
+            Int32 Count{0};
+            GLFWmonitor** Monitors = glfwGetMonitors(&Count);
+            if (Monitors && Count > 0)
+            {
+                for (Int32 i = 0; i < Count; i++)
+                {
+                    LOG_INFO("Monitor[{}]: {}", i, glfwGetMonitorName(Monitors[i]));
+                }
+            }
+            else { LOG_ERROR("No monitors found!"); }
+        }
+        return PrimaryMonitor;
     }
 
 }

@@ -6,7 +6,7 @@ export module Visera.Core.OS.Time.Duration;
 export namespace Visera
 {
     template<Concepts::Clock T>
-    class TDuration
+    class VISERA_CORE_API TDuration
     {
     public:
         auto Nanoseconds()  const { return std::chrono::duration_cast<std::chrono::nanoseconds>(Value).count(); }

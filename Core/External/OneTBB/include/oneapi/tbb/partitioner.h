@@ -378,7 +378,7 @@ struct linear_affinity_mode : proportional_mode<Partition> {
     }
 };
 
-static bool is_stolen_task(const execution_data& ed) {
+inline bool is_stolen_task(const execution_data& ed) {
     return execution_slot(ed) != original_slot(ed);
 }
 

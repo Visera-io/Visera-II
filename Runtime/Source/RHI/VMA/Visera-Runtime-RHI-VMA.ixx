@@ -5,5 +5,10 @@ export module Visera.Runtime.RHI.VMA;
 
 export namespace Visera
 {
-
+    class VISERA_RUNTIME_API FVulkanMemoryAllocator
+    {
+    public:
+        FVulkanMemoryAllocator();
+        ~FVulkanMemoryAllocator();
+    };
 }

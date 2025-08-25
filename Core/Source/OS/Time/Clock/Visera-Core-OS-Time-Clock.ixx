@@ -12,7 +12,7 @@ import Visera.Core.OS.Time.Duration;
 namespace Visera
 {
     template<Concepts::Clock T>
-    class TClock
+    class VISERA_CORE_API TClock
     {
     public:
         static inline

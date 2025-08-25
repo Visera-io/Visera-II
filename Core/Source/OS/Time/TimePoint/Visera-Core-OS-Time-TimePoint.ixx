@@ -7,7 +7,7 @@ import Visera.Core.OS.Time.Duration;
 export namespace Visera
 {
     template<Concepts::Clock T>
-    class TTimePoint
+    class VISERA_CORE_API TTimePoint
     {
     public:
         TTimePoint() = default;
@@ -18,7 +18,7 @@ export namespace Visera
     };
 
     template<>
-    class TTimePoint<std::chrono::high_resolution_clock>
+    class VISERA_CORE_API TTimePoint<std::chrono::high_resolution_clock>
     {
     public:
         TTimePoint() = default;
@@ -35,7 +35,7 @@ export namespace Visera
     };
 
     template<>
-    class TTimePoint<std::chrono::system_clock>
+    class VISERA_CORE_API TTimePoint<std::chrono::system_clock>
     {
     public:
         //[TODO] Time Zone issues.

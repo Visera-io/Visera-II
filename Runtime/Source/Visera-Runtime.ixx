@@ -20,6 +20,6 @@ namespace Visera
         }
     };
 
-    inline VISERA_RUNTIME_API TUniquePtr<FRuntime>
+    export inline VISERA_RUNTIME_API TUniquePtr<FRuntime>
     GRuntime = MakeUnique<FRuntime>();
 }

@@ -4,6 +4,7 @@ export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
 import Visera.Runtime.RHI.Volk;
+import Visera.Runtime.RHI.VMA;
 import Visera.Core.Log;
 
 namespace Visera

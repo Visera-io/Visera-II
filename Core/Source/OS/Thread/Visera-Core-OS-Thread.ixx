@@ -1,6 +1,6 @@
 module;
 #include <Visera-Core.hpp>
-#include <oneapi/tbb.h>
+#include <oneapi/tbb/parallel_for.h>
 export module Visera.Core.OS.Thread;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.Core.OS.Thread.TaskGroup;
@@ -11,7 +11,7 @@ export namespace Visera
     VISERA_CORE_API void inline
     Sleep(UInt32 I_MilliSeconds) { std::this_thread::sleep_for(std::chrono::milliseconds(I_MilliSeconds)); }
 
-    template <typename Fn> VISERA_CORE_API void
+    template <typename Fn> requires std::invocable<Fn&, UInt32> void
     ParallelFor(UInt32 I_Begin, UInt32 I_End, Fn&& I_Function)
     {
         tbb::parallel_for(I_Begin, I_End, std::forward<Fn>(I_Function));

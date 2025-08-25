@@ -25,20 +25,20 @@ export int main(int argc, char *argv[])
 
     LOG_INFO("Hello {}", FName{"Visera"});
 
-    // GWindow->Bootstrap();
-    // while (!GWindow->ShouldClose())
-    // {
-    //     GWindow->PollEvents(); // You MUST call this function on MacOS.
-    //
-    //
-    // }
-    //GRHI->Terminate();
-    //GWindow->Terminate();
+    while (!GWindow->ShouldClose())
+    {
+        GWindow->PollEvents(); // You MUST call this function on MacOS.
+
+
+    }
+    GRHI->Terminate();
+    GWindow->Terminate();
 
     ParallelFor(0, 1000, [](UInt32 i)
     {
-        LOG_INFO("Hi {}", i);
-    });
+       LOG_INFO("Hi {}", i);
+    }
+    );
 
 
     return EXIT_SUCCESS;

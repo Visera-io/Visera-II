@@ -24,13 +24,14 @@ macro(link_zlib in_target)
             message("Installing zlib on an untested platform!")
         endif()
     endif()
-    
+
+    target_link_libraries(${in_target} PUBLIC ZLIB::ZLIB)
+
     add_custom_command(
         TARGET ${in_target}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:ZLIB::ZLIB>
-        $<TARGET_FILE_DIR:${in_target}>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
     )
-    target_link_libraries(${in_target} PUBLIC ZLIB::ZLIB)
 endmacro()

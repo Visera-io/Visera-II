@@ -8,7 +8,7 @@ export module Visera.Runtime.RHI.Volk;
 
 export namespace Visera
 {
-    class FVolk
+    class VISERA_RUNTIME_API FVolk
     {
     public:
         void inline

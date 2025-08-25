@@ -9,7 +9,6 @@ macro(link_onetbb in_target)
         set(BUILD_SHARED_LIBS ON)
         add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/OneTBB)
     endif()
-    
     target_link_libraries(${in_target} PUBLIC TBB::tbb)
 
     add_custom_command(
@@ -17,6 +16,6 @@ macro(link_onetbb in_target)
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:TBB::tbb>
-            $<TARGET_FILE_DIR:${in_target}>
+            $<TARGET_FILE_DIR:${VISERA_APP}>
     )
 endmacro()
