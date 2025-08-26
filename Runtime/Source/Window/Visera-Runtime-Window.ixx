@@ -58,12 +58,10 @@ namespace Visera
     void FWindow::
     Bootstrap()
     {
-        Initialize();
-
-        //if (!bInitialized)
-        //{ LOG_FATAL("MUST call GWindow->Initialize() at first!"); return; }
-
         LOG_DEBUG("Bootstrapping Window.");
+
+        if (!bInitialized)
+        { LOG_WARN("If the window is not responding call GWindow->Initialize() at first!"); }
 
         //Init GLFW
         Initialize();

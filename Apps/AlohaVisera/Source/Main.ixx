@@ -17,7 +17,7 @@ export int main(int argc, char *argv[])
 
     GEngine->Bootstrap();
     {
-        GEngine->Run();
+        //GEngine->Run();
     }
     GEngine->Terminate();
 

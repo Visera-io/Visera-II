@@ -16,7 +16,7 @@ namespace Visera
         void Bootstrap() override
         {
             LOG_DEBUG("Bootstrapping Engine.");
-            //GWindow->Initialize();
+            GWindow->Initialize();
 
             GWindow->Bootstrap();
             GRHI->Bootstrap();
