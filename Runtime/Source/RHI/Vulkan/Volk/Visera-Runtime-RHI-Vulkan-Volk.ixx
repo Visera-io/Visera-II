@@ -3,7 +3,7 @@ module;
 #define VOLK_IMPLEMENTATION
 #include <volk.h>
 #include <vulkan/vulkan.hpp>
-export module Visera.Runtime.RHI.Volk;
+export module Visera.Runtime.RHI.Vulkan.Volk;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
@@ -36,6 +36,8 @@ namespace Visera
     void FVolk::
     Bootstrap()
     {
+        if (IsBootstrapped()) { return; }
+
         LOG_DEBUG("Bootstrapping Vulkan Loader.");
 
         if (volkInitialize() != VK_SUCCESS)
@@ -48,6 +50,8 @@ namespace Visera
     void FVolk::
     Terminate()
     {
+        if (!IsBootstrapped()) { return; }
+
         LOG_DEBUG("Terminating Vulkan Loader.");
 
         if (!bLoadedInstance)

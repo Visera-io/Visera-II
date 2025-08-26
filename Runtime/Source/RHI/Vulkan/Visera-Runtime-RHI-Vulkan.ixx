@@ -5,8 +5,9 @@ module;
 #include <GLFW/glfw3.h>
 export module Visera.Runtime.RHI.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Core.Log;
+import Visera.Runtime.RHI.Vulkan.Volk;
 import Visera.Runtime.Window;
+import Visera.Core.Log;
 
 namespace Visera
 {
@@ -44,6 +45,8 @@ namespace Visera
         CreateInstance();
         void inline
         CreateDebugMessenger();
+        void inline
+        PickPhysicalDevice();
         void inline
         CreateDevice();
 
@@ -94,15 +97,22 @@ namespace Visera
     FVulkan::
     FVulkan()
     {
+        GVolk->Bootstrap();
+
         CreateInstance();
+        GVolk->Load(Instance);
+
         CreateDebugMessenger();
+
+        PickPhysicalDevice();
         CreateDevice();
+        //GVolk->Load(Device);
     }
 
     FVulkan::
     ~FVulkan()
     {
-
+        GVolk->Terminate();
     }
 
     void FVulkan::
@@ -185,8 +195,26 @@ namespace Visera
     }
 
     void FVulkan::
+    PickPhysicalDevice()
+    {
+        VISERA_ASSERT(Instance != nullptr);
+
+        auto GPUCandidates = Instance.enumeratePhysicalDevices();
+        if (GPUCandidates.empty())
+        { throw SRuntimeError("failed to find GPUs with Vulkan support!"); }
+
+        for (const auto& GPUCandidate : GPUCandidates)
+        {
+            GPU = FPhysicalDevice(GPUCandidate);
+            break;
+        }
+    }
+
+    void FVulkan::
     CreateDevice()
     {
+        VISERA_ASSERT(Instance != nullptr);
+
         CollectDeviceLayersAndExtensions();
 
         auto CreateInfo = vk::DeviceCreateInfo{};
