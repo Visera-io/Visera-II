@@ -227,6 +227,7 @@ namespace Visera
 #if defined(VISERA_DEBUG_MODE)
         // Debug Layers
         this->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
+            ->AddInstanceLayer("VK_LAYER_KHRONOS_synchronization2")
         ;
         // Debug Extensions
         this->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
@@ -259,7 +260,15 @@ namespace Visera
     {
         if (GWindow->IsBootstrapped())
         {
-
+            //VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         }
+#if defined(VISERA_ON_APPLE_SYSTEM)
+        "VK_KHR_portability_subset",
+#endif
+        //VK_EXT_descriptor_indexing
+        //VK_KHR_synchronization2
+        //VK_KHR_dynamic_rendering
+        //VK_KHR_MAINTENANCE1_EXTENSION_NAME
+
     }
 }
