@@ -5,7 +5,7 @@
 
 #if (!NDEBUG)
 #define VISERA_DEBUG_MODE
-#endif()
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
 #define VISERA_ON_WINDOWS_SYSTEM

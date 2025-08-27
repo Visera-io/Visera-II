@@ -154,7 +154,7 @@ namespace Visera
         auto Flags = vk::InstanceCreateFlags{};
 #if defined(VISERA_ON_APPLE_SYSTEM)
         Flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
-#endif()
+#endif
 
         auto CreateInfo = vk::InstanceCreateInfo{}
             .setPApplicationInfo(&AppInfo)
@@ -191,7 +191,7 @@ namespace Visera
                             )
             .setPfnUserCallback(DebugCallback);
         DebugMessenger = Instance.createDebugUtilsMessengerEXT(CreateInfo);
-#endif()
+#endif
     }
 
     void FVulkan::
@@ -237,7 +237,7 @@ namespace Visera
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
         this->AddInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-#endif()
+#endif
 
         if (GWindow->IsBootstrapped())
         {
