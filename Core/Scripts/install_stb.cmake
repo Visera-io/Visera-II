@@ -1,5 +1,5 @@
 if(NOT VISERA_CORE_EXTERNAL_DIR)
-    message(FATAL_ERROR "please include 'install.cmake' before installing any package.")
+    message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
 endif()
 
 macro(link_stb in_target)
