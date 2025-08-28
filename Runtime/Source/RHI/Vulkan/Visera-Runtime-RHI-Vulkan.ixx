@@ -29,6 +29,7 @@ namespace Visera
         ~FVulkan();
 
     private:
+        vk::ApplicationInfo AppInfo;
         FContext        Context;
         FInstance       Instance        {nullptr};
         FDebugMessenger DebugMessenger  {nullptr};
@@ -97,6 +98,13 @@ namespace Visera
     FVulkan::
     FVulkan()
     {
+        AppInfo = vk::ApplicationInfo{}
+                .setPApplicationName    ("Visera")
+                .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
+                .setPEngineName         ("Visera")
+                .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
+                .setApiVersion          (vk::ApiVersion14);
+
         GVolk->Bootstrap();
 
         CollectInstanceLayersAndExtensions();
@@ -108,7 +116,7 @@ namespace Visera
         CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
         CreateDevice();
-        //GVolk->Load(Device);
+        GVolk->Load(Device);
     }
 
     FVulkan::
@@ -120,13 +128,6 @@ namespace Visera
     void FVulkan::
     CreateInstance()
     {
-        auto AppInfo = vk::ApplicationInfo{}
-            .setPApplicationName    ("Visera")
-            .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
-            .setPEngineName         ("Visera")
-            .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
-            .setApiVersion          (vk::ApiVersion14);
-
         // Check Layers
         const auto LayerProperties = Context.enumerateInstanceLayerProperties();
         for (const auto& Layer : InstanceLayers)
@@ -200,7 +201,12 @@ namespace Visera
        [&](auto const & GPUCandidate)
             {
                 auto QueueFamilies = GPUCandidate.getQueueFamilyProperties();
-                Bool bSuitable = GPUCandidate.getProperties().apiVersion >= VK_API_VERSION_1_3;
+                auto GPUInfo = GPUCandidate.getProperties();
+                LOG_DEBUG("Checking {}", GPUInfo.deviceName);
+                Bool bSuitable = GPUInfo.apiVersion >= AppInfo.apiVersion;
+                if (!bSuitable) { return False; }
+                LOG_DEBUG("API Version Passed");
+
                 const auto QueueFamilyPropertiesIter =
                         std::ranges::find_if(QueueFamilies,
                     [](const vk::QueueFamilyProperties& qfp )
@@ -208,25 +214,26 @@ namespace Visera
                             return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags>(0);
                         } );
 
-                bSuitable = bSuitable && (QueueFamilyPropertiesIter != QueueFamilies.end());
+                bSuitable = (QueueFamilyPropertiesIter != QueueFamilies.end());
+                if (!bSuitable) { return False; }
+                LOG_DEBUG("Queue Requirements Passed");
+
                 auto Extensions = GPUCandidate.enumerateDeviceExtensionProperties( );
-                Bool bFound = False;
                 for (auto const & RequiredExtension : DeviceExtensions)
                 {
                     auto ExtensionIter =
                         std::ranges::find_if(Extensions,
                     [RequiredExtension](auto const & Extension)
-                        {return strcmp(Extension.extensionName, RequiredExtension) == 0;}
-                        );
-                    bFound |= (ExtensionIter != Extensions.end());
+                        {return strcmp(Extension.extensionName, RequiredExtension) == 0;});
+                    bSuitable &= (ExtensionIter != Extensions.end());
                 }
-                bSuitable |= bFound;
 
-                if (bSuitable) { GPU = GPUCandidate; }
+                if (bSuitable) { GPU = GPUCandidate; LOG_DEBUG("Extension Passed"); }
+
                 return bSuitable;
         });
         if (SelectedGPU == GPUCandidates.end())
-        { throw SRuntimeError("failed to find a suitable GPU!"); }
+        { throw SRuntimeError("Failed to find a suitable GPU!"); }
 
         LOG_INFO("Selected GPU: {}", GPU.getProperties().deviceName.data());
     }

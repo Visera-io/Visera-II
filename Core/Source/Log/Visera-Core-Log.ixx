@@ -46,7 +46,8 @@ export namespace Visera
 		Fatal(spdlog::format_string_t<Args...> Formatter, Args &&...Arguments)
 		{
 			Logger->critical(Formatter, std::forward<Args>(Arguments)...);
-			//throw SRuntimeError("A Fatal Error was triggered.");
+			Logger->flush();
+			std::abort();
 		}
 
 		GLog() noexcept

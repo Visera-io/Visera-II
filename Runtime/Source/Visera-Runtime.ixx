@@ -14,6 +14,7 @@ namespace Visera
 {
     class VISERA_RUNTIME_API FRuntime
     {
+        static FRuntime Runtime;
     public:
         FRuntime()
         {
@@ -25,6 +26,8 @@ namespace Visera
 
         ~FRuntime()
         {
+            if (GWindow->IsBootstrapped()) { GWindow->Terminate(); }
+            if (GRHI->IsBootstrapped())    { GRHI->Terminate(); }
             std::cout << fmt::format("[Runtime] Finalizing Runtime (running time: {}s)\n", Timer.Elapsed().Seconds());
         }
 
@@ -32,6 +35,6 @@ namespace Visera
         FHiResClock Timer{};
     };
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FRuntime>
-    GRuntime = MakeUnique<FRuntime>();
+    FRuntime FRuntime::Runtime{};
+
 }
