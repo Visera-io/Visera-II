@@ -103,7 +103,7 @@ namespace Visera
                 .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
                 .setPEngineName         ("Visera")
                 .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
-                .setApiVersion          (vk::ApiVersion14);
+                .setApiVersion          (vk::ApiVersion13);
 
         GVolk->Bootstrap();
 
@@ -116,7 +116,7 @@ namespace Visera
         CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
         CreateDevice();
-        GVolk->Load(Device);
+        //GVolk->Load(Device);
     }
 
     FVulkan::
