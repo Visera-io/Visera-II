@@ -202,7 +202,7 @@ namespace Visera
             {
                 auto QueueFamilies = GPUCandidate.getQueueFamilyProperties();
                 auto GPUInfo = GPUCandidate.getProperties();
-                LOG_DEBUG("Checking {}", GPUInfo.deviceName);
+                LOG_DEBUG("Checking {}", GPUInfo.deviceName.data());
                 Bool bSuitable = GPUInfo.apiVersion >= AppInfo.apiVersion;
                 if (!bSuitable) { return False; }
                 LOG_DEBUG("API Version Passed");
