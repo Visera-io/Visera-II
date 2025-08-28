@@ -1,5 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+#include <Windows.h>
+#endif
 export module Visera.Runtime;
 #define VISERA_MODULE_NAME "Runtime"
 export import Visera.Runtime.Graphics;
@@ -14,7 +17,10 @@ namespace Visera
     public:
         FRuntime()
         {
-
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+            SetConsoleOutputCP(65001); // Set console output code page to UTF-8
+            SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
+#endif
         }
 
         ~FRuntime()

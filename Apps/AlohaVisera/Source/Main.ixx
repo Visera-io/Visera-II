@@ -1,6 +1,5 @@
 module;
 #include <Visera.hpp>
-#include <GLFW/glfw3.h>
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;

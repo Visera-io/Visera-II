@@ -99,11 +99,13 @@ namespace Visera
     {
         GVolk->Bootstrap();
 
+        CollectInstanceLayersAndExtensions();
         CreateInstance();
         GVolk->Load(Instance);
 
         CreateDebugMessenger();
 
+        CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
         CreateDevice();
         //GVolk->Load(Device);
@@ -118,8 +120,6 @@ namespace Visera
     void FVulkan::
     CreateInstance()
     {
-        CollectInstanceLayersAndExtensions();
-
         auto AppInfo = vk::ApplicationInfo{}
             .setPApplicationName    ("Visera")
             .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
@@ -157,12 +157,12 @@ namespace Visera
 #endif
 
         auto CreateInfo = vk::InstanceCreateInfo{}
-            .setPApplicationInfo(&AppInfo)
-            .setEnabledLayerCount(InstanceLayers.size())
-            .setPpEnabledLayerNames(InstanceLayers.data())
-            .setEnabledExtensionCount(InstanceExtensions.size())
-            .setPpEnabledExtensionNames(InstanceExtensions.data())
-            .setFlags(Flags)
+            .setPApplicationInfo        (&AppInfo)
+            .setEnabledLayerCount       (InstanceLayers.size())
+            .setPpEnabledLayerNames     (InstanceLayers.data())
+            .setEnabledExtensionCount   (InstanceExtensions.size())
+            .setPpEnabledExtensionNames (InstanceExtensions.data())
+            .setFlags                   (Flags)
         ;
 
         Instance = FInstance(Context, CreateInfo);
@@ -172,14 +172,6 @@ namespace Visera
     CreateDebugMessenger()
     {
 #if defined(VISERA_DEBUG_MODE)
-        vk::DebugUtilsMessageSeverityFlagsEXT SeverityFlags
-        {
-
-        };
-        vk::DebugUtilsMessageTypeFlagsEXT MessageTypeFlags
-        {
-
-        };
         auto CreateInfo = vk::DebugUtilsMessengerCreateInfoEXT{}
             .setMessageSeverity(//vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose    |
                                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning  |
@@ -201,21 +193,48 @@ namespace Visera
 
         auto GPUCandidates = Instance.enumeratePhysicalDevices();
         if (GPUCandidates.empty())
-        { throw SRuntimeError("failed to find GPUs with Vulkan support!"); }
+        { throw SRuntimeError("Failed to find GPUs with Vulkan support!"); }
 
-        for (const auto& GPUCandidate : GPUCandidates)
-        {
-            GPU = FPhysicalDevice(GPUCandidate);
-            break;
-        }
+        const auto SelectedGPU =
+            std::ranges::find_if(GPUCandidates,
+       [&](auto const & GPUCandidate)
+            {
+                auto QueueFamilies = GPUCandidate.getQueueFamilyProperties();
+                Bool bSuitable = GPUCandidate.getProperties().apiVersion >= VK_API_VERSION_1_3;
+                const auto QueueFamilyPropertiesIter =
+                        std::ranges::find_if(QueueFamilies,
+                    [](const vk::QueueFamilyProperties& qfp )
+                        {
+                            return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags>(0);
+                        } );
+
+                bSuitable = bSuitable && (QueueFamilyPropertiesIter != QueueFamilies.end());
+                auto Extensions = GPUCandidate.enumerateDeviceExtensionProperties( );
+                Bool bFound = False;
+                for (auto const & RequiredExtension : DeviceExtensions)
+                {
+                    auto ExtensionIter =
+                        std::ranges::find_if(Extensions,
+                    [RequiredExtension](auto const & Extension)
+                        {return strcmp(Extension.extensionName, RequiredExtension) == 0;}
+                        );
+                    bFound |= (ExtensionIter != Extensions.end());
+                }
+                bSuitable |= bFound;
+
+                if (bSuitable) { GPU = GPUCandidate; }
+                return bSuitable;
+        });
+        if (SelectedGPU == GPUCandidates.end())
+        { throw SRuntimeError("failed to find a suitable GPU!"); }
+
+        LOG_INFO("Selected GPU: {}", GPU.getProperties().deviceName.data());
     }
 
     void FVulkan::
     CreateDevice()
     {
-        VISERA_ASSERT(Instance != nullptr);
-
-        CollectDeviceLayersAndExtensions();
+        VISERA_ASSERT(GPU != nullptr);
 
         auto CreateInfo = vk::DeviceCreateInfo{};
     }
@@ -224,21 +243,28 @@ namespace Visera
     void FVulkan::
     CollectInstanceLayersAndExtensions()
     {
+        // Layers
+        this
 #if defined(VISERA_DEBUG_MODE)
-        // Debug Layers
-        this->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
+            ->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
             ->AddInstanceLayer("VK_LAYER_KHRONOS_synchronization2")
         ;
-        // Debug Extensions
-        this->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
-        ;
 #else
-        // Release Extensions
-#endif
 
-#if defined(VISERA_ON_APPLE_SYSTEM)
-        this->AddInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
+        ;
+
+        // Extensions
+        this
+#if defined(VISERA_DEBUG_MODE)
+            ->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
+#else
+
+#endif
+#if defined(VISERA_ON_APPLE_SYSTEM)
+            ->AddInstanceExtension(vk::KHRPortabilityEnumerationExtensionName)
+#endif
+        ;
 
         if (GWindow->IsBootstrapped())
         {
@@ -258,17 +284,15 @@ namespace Visera
     void FVulkan::
     CollectDeviceLayersAndExtensions()
     {
-        if (GWindow->IsBootstrapped())
-        {
-            //VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        }
+        this->AddDeviceExtension(vk::EXTDescriptorIndexingExtensionName)
+            ->AddDeviceExtension(vk::KHRSynchronization2ExtensionName)
+            ->AddDeviceExtension(vk::KHRDynamicRenderingExtensionName)
+            ->AddDeviceExtension(vk::KHRMaintenance1ExtensionName)
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        "VK_KHR_portability_subset",
+            ->AddDeviceExtension("VK_KHR_portability_subset")
 #endif
-        //VK_EXT_descriptor_indexing
-        //VK_KHR_synchronization2
-        //VK_KHR_dynamic_rendering
-        //VK_KHR_MAINTENANCE1_EXTENSION_NAME
-
+        ;
+        if (GWindow->IsBootstrapped())
+        { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
     }
 }
