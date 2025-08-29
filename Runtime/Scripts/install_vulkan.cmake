@@ -45,7 +45,8 @@ macro(link_vulkan in_target)
                         message(FATAL_ERROR "MoltenVK runtime version must be >= 1.3.0 (found ${MOLTENVK_VERSION})")
                     endif()
                 endif()
-            endif()
+            endif(APPLE)
+
         endif()
     endif()
 

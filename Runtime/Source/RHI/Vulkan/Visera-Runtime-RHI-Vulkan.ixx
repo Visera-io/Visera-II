@@ -1,5 +1,6 @@
 module;
 #include <Visera-Runtime.hpp>
+#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan_raii.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -20,11 +21,12 @@ namespace Visera
         using FSurface        = vk::raii::SurfaceKHR;
         using FPhysicalDevice = vk::raii::PhysicalDevice;
         using FDevice         = vk::raii::Device;
+        using FQueue          = vk::raii::Queue;
 
         [[nodiscard]] inline const FInstance&
         GetInstance() const { return Instance; }
         [[nodiscard]] inline const FDevice&
-        GetDevice()   const { return Device; }
+        GetDevice()   const { return Device.Handle; }
 
         FVulkan();
         ~FVulkan();
@@ -39,13 +41,19 @@ namespace Visera
 
         struct
         {
-            FPhysicalDevice PhysicalDevice {nullptr};
+            FPhysicalDevice Handle {nullptr};
             TSet<UInt32> GraphicsQueueFamilies{};
             TSet<UInt32> PresentQueueFamilies {};
             TSet<UInt32> ComputeQueueFamilies {};
             TSet<UInt32> TransferQueueFamilies{};
         }GPU;
-        FDevice         Device          {nullptr};
+
+        struct
+        {
+            FDevice Handle          {nullptr};
+            FQueue  GraphicsQueue   {nullptr};
+        }Device;
+
 
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
@@ -131,7 +139,7 @@ namespace Visera
         CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
         CreateDevice();
-        //GVolk->Load(Device);
+        GVolk->Load(Device.Handle);
     }
 
     FVulkan::
@@ -258,6 +266,11 @@ namespace Visera
                     { GPU.PresentQueueFamilies.insert(Idx); }
                 }
             }
+            bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
+                        !GPU.ComputeQueueFamilies.empty()  &&
+                        !GPU.TransferQueueFamilies.empty();
+            if (GWindow->IsBootstrapped()) { bSuitable &= !GPU.PresentQueueFamilies.empty(); }
+
             if (!bSuitable) { return False; }
 
             LOG_DEBUG("Checking Extension supporting...");
@@ -272,20 +285,20 @@ namespace Visera
             }
 
             if (bSuitable)
-            { GPU.PhysicalDevice = PhysicalDeviceCandidate; }
+            { GPU.Handle = PhysicalDeviceCandidate; }
             return bSuitable;
         });
 
         if (SelectedPhysicalDevice == PhysicalDeviceCandidates.end())
         { throw SRuntimeError("Failed to find a suitable PhysicalDevice!"); }
 
-        LOG_INFO("Selected PhysicalDevice: {}", GPU.PhysicalDevice.getProperties().deviceName.data());
+        LOG_INFO("Selected PhysicalDevice: {}", GPU.Handle.getProperties().deviceName.data());
     }
 
     void FVulkan::
     CreateDevice()
     {
-        VISERA_ASSERT(GPU.PhysicalDevice != nullptr);
+        VISERA_ASSERT(GPU.Handle != nullptr);
 
         FString Buffer;
         for (auto& GQueue : GPU.GraphicsQueueFamilies) {
@@ -308,7 +321,34 @@ namespace Visera
         }
         LOG_INFO("Transfer QFs {}", Buffer);
         Buffer.clear();
-        auto CreateInfo = vk::DeviceCreateInfo{};
+
+        const Float Priority = 0.0f;
+        auto DeviceQueueCreateInfo = vk::DeviceQueueCreateInfo{}
+            .setQueueFamilyIndex(*GPU.GraphicsQueueFamilies.begin())
+            .setQueueCount(1)
+            .setQueuePriorities({Priority});
+
+        // Create a chain of feature structures
+        vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+        FeatureChain =
+        {
+            {},                               // vk::PhysicalDeviceFeatures2 (empty for now)
+            {.dynamicRendering = true },      // Enable dynamic rendering from Vulkan 1.3
+            {.extendedDynamicState = true }   // Enable extended dynamic state from the extension
+        };
+
+        vk::DeviceCreateInfo CreateInfo
+        {
+            .pNext                      = &FeatureChain.get<vk::PhysicalDeviceFeatures2>(),
+            .queueCreateInfoCount       = 1,
+            .pQueueCreateInfos          = &DeviceQueueCreateInfo,
+            .enabledExtensionCount      = static_cast<uint32_t>(DeviceExtensions.size()),
+            .ppEnabledExtensionNames    = DeviceExtensions.data()
+        };
+
+        Device.Handle = FDevice{GPU.Handle, CreateInfo};
+
+        Device.GraphicsQueue = FQueue{Device.Handle, *GPU.GraphicsQueueFamilies.begin(), 0};
     }
 
 
