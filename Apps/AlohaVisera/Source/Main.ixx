@@ -16,6 +16,7 @@ export int main(int argc, char *argv[])
 
     GEngine->Bootstrap();
     {
+        auto k = GRHI->GetAPI()->GetDevice().getDispatcher();
         GEngine->Run();
     }
     GEngine->Terminate();

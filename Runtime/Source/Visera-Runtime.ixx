@@ -5,9 +5,9 @@ module;
 #endif
 export module Visera.Runtime;
 #define VISERA_MODULE_NAME "Runtime"
-export import Visera.Runtime.Graphics;
 export import Visera.Runtime.RHI;
 export import Visera.Runtime.Window;
+export import Visera.Runtime.Events;
        import Visera.Core.OS.Time;
 
 namespace Visera

@@ -17,6 +17,7 @@ namespace Visera
         using FContext        = vk::raii::Context;
         using FInstance       = vk::raii::Instance;
         using FDebugMessenger = vk::raii::DebugUtilsMessengerEXT;
+        using FSurface        = vk::raii::SurfaceKHR;
         using FPhysicalDevice = vk::raii::PhysicalDevice;
         using FDevice         = vk::raii::Device;
 
@@ -33,7 +34,17 @@ namespace Visera
         FContext        Context;
         FInstance       Instance        {nullptr};
         FDebugMessenger DebugMessenger  {nullptr};
-        FPhysicalDevice GPU             {nullptr};
+
+        FSurface        Surface         {nullptr};
+
+        struct
+        {
+            FPhysicalDevice PhysicalDevice {nullptr};
+            TSet<UInt32> GraphicsQueueFamilies{};
+            TSet<UInt32> PresentQueueFamilies {};
+            TSet<UInt32> ComputeQueueFamilies {};
+            TSet<UInt32> TransferQueueFamilies{};
+        }GPU;
         FDevice         Device          {nullptr};
 
         TArray<const char*> InstanceLayers;
@@ -46,6 +57,8 @@ namespace Visera
         CreateInstance();
         void inline
         CreateDebugMessenger();
+        void inline
+        CreateSurface();
         void inline
         PickPhysicalDevice();
         void inline
@@ -112,6 +125,8 @@ namespace Visera
         GVolk->Load(Instance);
 
         CreateDebugMessenger();
+
+        CreateSurface();
 
         CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
@@ -188,61 +203,111 @@ namespace Visera
     }
 
     void FVulkan::
+    CreateSurface()
+    {
+        if (!GWindow->IsBootstrapped())
+        { return LOG_DEBUG("Skipped creating VkSurfaceKHR because the GWindow is NOT bootstrapped."); }
+
+        VkSurfaceKHR SurfaceHandle;
+
+        if(glfwCreateWindowSurface(
+            *Instance,
+            GWindow->GetHandle(),
+            nullptr,
+            &SurfaceHandle) != VK_SUCCESS)
+        { LOG_FATAL("Failed to create Vulkan Surface!"); }
+
+        Surface = FSurface(Instance, SurfaceHandle);
+    }
+
+    void FVulkan::
     PickPhysicalDevice()
     {
         VISERA_ASSERT(Instance != nullptr);
 
-        auto GPUCandidates = Instance.enumeratePhysicalDevices();
-        if (GPUCandidates.empty())
-        { throw SRuntimeError("Failed to find GPUs with Vulkan support!"); }
+        auto PhysicalDeviceCandidates = Instance.enumeratePhysicalDevices();
+        if (PhysicalDeviceCandidates.empty())
+        { throw SRuntimeError("Failed to find PhysicalDevices with Vulkan support!"); }
 
-        const auto SelectedGPU =
-            std::ranges::find_if(GPUCandidates,
-       [&](auto const & GPUCandidate)
+        const auto SelectedPhysicalDevice = std::ranges::
+        find_if(PhysicalDeviceCandidates, [&](auto const & PhysicalDeviceCandidate)
+        {
+            auto PhysicalDeviceInfo = PhysicalDeviceCandidate.getProperties();
+            LOG_DEBUG("Current PhysicalDevice candidate: {}.", PhysicalDeviceInfo.deviceName.data());
+
+            LOG_DEBUG("Checking Vulkan API Version...");
+            Bool bSuitable = PhysicalDeviceInfo.apiVersion >= AppInfo.apiVersion;
+            if (!bSuitable) { return False; }
+
+            LOG_DEBUG("Checking Queue Families...");
+            auto QueueFamilies = PhysicalDeviceCandidate.getQueueFamilyProperties();
+
+            for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
             {
-                auto QueueFamilies = GPUCandidate.getQueueFamilyProperties();
-                auto GPUInfo = GPUCandidate.getProperties();
-                LOG_DEBUG("Checking {}", GPUInfo.deviceName.data());
-                Bool bSuitable = GPUInfo.apiVersion >= AppInfo.apiVersion;
-                if (!bSuitable) { return False; }
-                LOG_DEBUG("API Version Passed");
-
-                const auto QueueFamilyPropertiesIter =
-                        std::ranges::find_if(QueueFamilies,
-                    [](const vk::QueueFamilyProperties& qfp )
-                        {
-                            return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags>(0);
-                        } );
-
-                bSuitable = (QueueFamilyPropertiesIter != QueueFamilies.end());
-                if (!bSuitable) { return False; }
-                LOG_DEBUG("Queue Requirements Passed");
-
-                auto Extensions = GPUCandidate.enumerateDeviceExtensionProperties( );
-                for (auto const & RequiredExtension : DeviceExtensions)
+                auto& QueueFamily = QueueFamilies[Idx];
+                if (vk::QueueFlagBits::eGraphics & QueueFamily.queueFlags)
+                { GPU.GraphicsQueueFamilies.insert(Idx); }
+                if (vk::QueueFlagBits::eCompute & QueueFamily.queueFlags)
+                { GPU.ComputeQueueFamilies.insert(Idx); }
+                if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
+                { GPU.TransferQueueFamilies.insert(Idx); }
+                if (GWindow->IsBootstrapped())
                 {
-                    auto ExtensionIter =
-                        std::ranges::find_if(Extensions,
-                    [RequiredExtension](auto const & Extension)
-                        {return strcmp(Extension.extensionName, RequiredExtension) == 0;});
-                    bSuitable &= (ExtensionIter != Extensions.end());
+                    VISERA_ASSERT(Surface != nullptr);
+                    if (PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface))
+                    { GPU.PresentQueueFamilies.insert(Idx); }
                 }
+            }
+            if (!bSuitable) { return False; }
 
-                if (bSuitable) { GPU = GPUCandidate; LOG_DEBUG("Extension Passed"); }
+            LOG_DEBUG("Checking Extension supporting...");
+            auto Extensions = PhysicalDeviceCandidate.enumerateDeviceExtensionProperties( );
+            for (auto const & RequiredExtension : DeviceExtensions)
+            {
+                auto ExtensionIter =
+                    std::ranges::find_if(Extensions,
+                [RequiredExtension](auto const & Extension)
+                    {return strcmp(Extension.extensionName, RequiredExtension) == 0;});
+                bSuitable &= (ExtensionIter != Extensions.end());
+            }
 
-                return bSuitable;
+            if (bSuitable)
+            { GPU.PhysicalDevice = PhysicalDeviceCandidate; }
+            return bSuitable;
         });
-        if (SelectedGPU == GPUCandidates.end())
-        { throw SRuntimeError("Failed to find a suitable GPU!"); }
 
-        LOG_INFO("Selected GPU: {}", GPU.getProperties().deviceName.data());
+        if (SelectedPhysicalDevice == PhysicalDeviceCandidates.end())
+        { throw SRuntimeError("Failed to find a suitable PhysicalDevice!"); }
+
+        LOG_INFO("Selected PhysicalDevice: {}", GPU.PhysicalDevice.getProperties().deviceName.data());
     }
 
     void FVulkan::
     CreateDevice()
     {
-        VISERA_ASSERT(GPU != nullptr);
+        VISERA_ASSERT(GPU.PhysicalDevice != nullptr);
 
+        FString Buffer;
+        for (auto& GQueue : GPU.GraphicsQueueFamilies) {
+                Buffer += std::format("{} ", GQueue);
+        }
+        LOG_INFO("Graphics QFs {}", Buffer);
+        Buffer.clear();
+        for (auto& GQueue : GPU.ComputeQueueFamilies) {
+            Buffer += std::format("{} ", GQueue);
+        }
+        LOG_INFO("Compute QFs {}", Buffer);
+        Buffer.clear();
+        for (auto& GQueue : GPU.PresentQueueFamilies) {
+            Buffer += std::format("{} ", GQueue);
+        }
+        LOG_INFO("Present QFs {}", Buffer);
+        Buffer.clear();
+        for (auto& GQueue : GPU.TransferQueueFamilies) {
+            Buffer += std::format("{} ", GQueue);
+        }
+        LOG_INFO("Transfer QFs {}", Buffer);
+        Buffer.clear();
         auto CreateInfo = vk::DeviceCreateInfo{};
     }
 
