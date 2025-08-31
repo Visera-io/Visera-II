@@ -1,6 +1,6 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
@@ -12,6 +12,17 @@ namespace Visera
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
     {
     public:
+        using EFormat        = vk::Format;
+
+        [[nodiscard]] inline auto
+        GetSurfaceCapabilities() const { return Vulkan->GPU.Handle.getSurfaceCapabilitiesKHR(Vulkan->Surface); };
+
+        [[nodiscard]] inline auto
+        GetSurfaceFormats() const { return Vulkan->GPU.Handle.getSurfaceFormatsKHR(Vulkan->Surface); };
+
+        [[nodiscard]] inline auto
+        GetPresentModes() const { return Vulkan->GPU.Handle.getSurfacePresentModesKHR(Vulkan->Surface); };
+
         [[nodiscard]] inline const TUniquePtr<FVulkan>&
         GetAPI() const { return Vulkan; };
 

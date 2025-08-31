@@ -1,8 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <slang/slang.h>
-export module Visera.Runtime.Graphics.Shader.Slang;
-#define VISERA_MODULE_NAME "Runtime.Graphics"
+export module Visera.Runtime.GFX.Shader.Slang;
+#define VISERA_MODULE_NAME "Runtime.GFX"
 
 export namespace Visera
 {

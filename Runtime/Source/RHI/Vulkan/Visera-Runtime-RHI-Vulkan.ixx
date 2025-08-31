@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan_raii.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -23,15 +22,6 @@ namespace Visera
         using FDevice         = vk::raii::Device;
         using FQueue          = vk::raii::Queue;
 
-        [[nodiscard]] inline const FInstance&
-        GetInstance() const { return Instance; }
-        [[nodiscard]] inline const FDevice&
-        GetDevice()   const { return Device.Handle; }
-
-        FVulkan();
-        ~FVulkan();
-
-    private:
         vk::ApplicationInfo AppInfo;
         FContext        Context;
         FInstance       Instance        {nullptr};
@@ -54,7 +44,10 @@ namespace Visera
             FQueue  GraphicsQueue   {nullptr};
         }Device;
 
+        FVulkan();
+        ~FVulkan();
 
+    private:
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
         TArray<const char*> DeviceLayers;
@@ -180,7 +173,7 @@ namespace Visera
         Flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
 #endif
 
-        auto CreateInfo = vk::InstanceCreateInfo{}
+        const auto CreateInfo = vk::InstanceCreateInfo{}
             .setPApplicationInfo        (&AppInfo)
             .setEnabledLayerCount       (InstanceLayers.size())
             .setPpEnabledLayerNames     (InstanceLayers.data())
@@ -300,53 +293,31 @@ namespace Visera
     {
         VISERA_ASSERT(GPU.Handle != nullptr);
 
-        FString Buffer;
-        for (auto& GQueue : GPU.GraphicsQueueFamilies) {
-                Buffer += std::format("{} ", GQueue);
-        }
-        LOG_INFO("Graphics QFs {}", Buffer);
-        Buffer.clear();
-        for (auto& GQueue : GPU.ComputeQueueFamilies) {
-            Buffer += std::format("{} ", GQueue);
-        }
-        LOG_INFO("Compute QFs {}", Buffer);
-        Buffer.clear();
-        for (auto& GQueue : GPU.PresentQueueFamilies) {
-            Buffer += std::format("{} ", GQueue);
-        }
-        LOG_INFO("Present QFs {}", Buffer);
-        Buffer.clear();
-        for (auto& GQueue : GPU.TransferQueueFamilies) {
-            Buffer += std::format("{} ", GQueue);
-        }
-        LOG_INFO("Transfer QFs {}", Buffer);
-        Buffer.clear();
-
-        const Float Priority = 0.0f;
+        constexpr Float Priority = 0.0f;
         auto DeviceQueueCreateInfo = vk::DeviceQueueCreateInfo{}
             .setQueueFamilyIndex(*GPU.GraphicsQueueFamilies.begin())
             .setQueueCount(1)
             .setQueuePriorities({Priority});
 
-        // Create a chain of feature structures
-        vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
-        FeatureChain =
-        {
-            {},                               // vk::PhysicalDeviceFeatures2 (empty for now)
-            {.dynamicRendering = true },      // Enable dynamic rendering from Vulkan 1.3
-            {.extendedDynamicState = true }   // Enable extended dynamic state from the extension
-        };
+        // First build each feature struct explicitly
+        auto Feature1 = vk::PhysicalDeviceFeatures2{};
 
-        vk::DeviceCreateInfo CreateInfo
-        {
-            .pNext                      = &FeatureChain.get<vk::PhysicalDeviceFeatures2>(),
-            .queueCreateInfoCount       = 1,
-            .pQueueCreateInfos          = &DeviceQueueCreateInfo,
-            .enabledExtensionCount      = static_cast<uint32_t>(DeviceExtensions.size()),
-            .ppEnabledExtensionNames    = DeviceExtensions.data()
-        };
+        auto Feature2 =  vk::PhysicalDeviceVulkan13Features{};
+        Feature2.dynamicRendering     = VK_TRUE;
 
-        Device.Handle = FDevice{GPU.Handle, CreateInfo};
+        auto Feature3 = vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT{};
+        Feature3.extendedDynamicState = VK_TRUE;
+
+        vk::StructureChain FeatureChain(Feature1, Feature2, Feature3);
+
+        const auto CreateInfo = vk::DeviceCreateInfo{}
+            .setPNext                   (&FeatureChain.get<vk::PhysicalDeviceFeatures2>())
+            .setQueueCreateInfoCount    (1)
+            .setPQueueCreateInfos       (&DeviceQueueCreateInfo)
+            .setEnabledExtensionCount   (DeviceExtensions.size())
+            .setPpEnabledExtensionNames (DeviceExtensions.data())
+        ;
+        Device.Handle        = FDevice{GPU.Handle, CreateInfo};
 
         Device.GraphicsQueue = FQueue{Device.Handle, *GPU.GraphicsQueueFamilies.begin(), 0};
     }
