@@ -2,7 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.GFX;
 #define VISERA_MODULE_NAME "Runtime.GFX"
-export import Visera.Runtime.GFX.Shader;
+export import Visera.Runtime.GFX.Shaders;
        import Visera.Runtime.GFX.SwapChain;
        import Visera.Runtime.RHI;
 
