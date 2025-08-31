@@ -27,8 +27,8 @@ namespace Visera
         GetAPI() const { return Vulkan; };
 
     private:
-
-        TUniquePtr<FVulkan> Vulkan;
+        TUniquePtr<FVulkan>                Vulkan;
+        TUniquePtr<FVulkanMemoryAllocator> VMA;
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -50,7 +50,10 @@ namespace Visera
 
         try
         {
+            LOG_DEBUG("Initializing Vulkan.");
             Vulkan = MakeUnique<FVulkan>();
+            LOG_DEBUG("Initializing VMA.");
+            VMA    = MakeUnique<FVulkanMemoryAllocator>(Vulkan);
         }
         catch (const SRuntimeError& Error)
         {
