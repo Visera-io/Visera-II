@@ -13,7 +13,7 @@ namespace Visera
         Bool bInitialized = False;
     public:
         void inline
-        Initialize() { if (!glfwInit()) { return LOG_FATAL("Failed to initialize GLFW!"); }; bInitialized = True; };
+        Initialize() { if (!glfwInit()) { LOG_FATAL("Failed to initialize GLFW!"); return; }; bInitialized = True; };
 
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor();

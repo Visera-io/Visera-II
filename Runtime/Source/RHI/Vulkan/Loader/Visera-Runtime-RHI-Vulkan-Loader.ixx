@@ -3,13 +3,13 @@ module;
 #define VOLK_IMPLEMENTATION
 #include <volk.h>
 #include <vulkan/vulkan.hpp>
-export module Visera.Runtime.RHI.Vulkan.Volk;
+export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
 namespace Visera
 {
-    class VISERA_RUNTIME_API FVolk : public IGlobalSingleton
+    class VISERA_RUNTIME_API FVulkanLoader : public IGlobalSingleton
     {
     public:
         void inline
@@ -22,18 +22,18 @@ namespace Visera
         void inline
         Terminate() override;
 
-        FVolk() : IGlobalSingleton("Vulkan Loader") {}
-        ~FVolk() override;
+        FVulkanLoader() : IGlobalSingleton("VMA") {}
+        ~FVulkanLoader() override;
 
     private:
         mutable UInt8 bLoadedInstance : 1 = False;
         mutable UInt8 bLoadedDevice   : 1 = False;
     };
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FVolk>
-    GVolk = MakeUnique<FVolk>();
+    export inline VISERA_RUNTIME_API TUniquePtr<FVulkanLoader>
+    GVulkanLoader = MakeUnique<FVulkanLoader>();
 
-    void FVolk::
+    void FVulkanLoader::
     Bootstrap()
     {
         if (IsBootstrapped()) { return; }
@@ -47,7 +47,7 @@ namespace Visera
         Statue = EStatues::Bootstrapped;
     }
 
-    void FVolk::
+    void FVulkanLoader::
     Terminate()
     {
         if (!IsBootstrapped()) { return; }
@@ -63,7 +63,7 @@ namespace Visera
         Statue = EStatues::Terminated;
     }
 
-    void FVolk::
+    void FVulkanLoader::
     Load(const vk::Instance& I_Instance) const
     {
         VISERA_ASSERT(I_Instance != nullptr);
@@ -71,7 +71,7 @@ namespace Visera
         bLoadedInstance = True;
     }
 
-    void FVolk::
+    void FVulkanLoader::
     Load(const vk::Device& I_Device) const
     {
         VISERA_ASSERT(I_Device != nullptr);
@@ -79,8 +79,8 @@ namespace Visera
         bLoadedDevice = True;
     }
 
-    FVolk::
-    ~FVolk()
+    FVulkanLoader::
+    ~FVulkanLoader()
     {
 
     }

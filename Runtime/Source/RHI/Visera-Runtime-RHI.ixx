@@ -4,31 +4,20 @@ module;
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
-import Visera.Runtime.RHI.VMA;
 import Visera.Core.Log;
 
 namespace Visera
 {
+    export namespace RHI
+    {
+
+    }
+
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
     {
     public:
-        using EFormat        = vk::Format;
-
-        [[nodiscard]] inline auto
-        GetSurfaceCapabilities() const { return Vulkan->GPU.Handle.getSurfaceCapabilitiesKHR(Vulkan->Surface); };
-
-        [[nodiscard]] inline auto
-        GetSurfaceFormats() const { return Vulkan->GPU.Handle.getSurfaceFormatsKHR(Vulkan->Surface); };
-
-        [[nodiscard]] inline auto
-        GetPresentModes() const { return Vulkan->GPU.Handle.getSurfacePresentModesKHR(Vulkan->Surface); };
-
-        [[nodiscard]] inline const TUniquePtr<FVulkan>&
-        GetAPI() const { return Vulkan; };
-
-    private:
-        TUniquePtr<FVulkan>                Vulkan;
-        TUniquePtr<FVulkanMemoryAllocator> VMA;
+        [[nodiscard]] inline const auto&
+        GetDriver()   const { return GVulkan; };
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -50,10 +39,7 @@ namespace Visera
 
         try
         {
-            LOG_DEBUG("Initializing Vulkan.");
-            Vulkan = MakeUnique<FVulkan>();
-            LOG_DEBUG("Initializing VMA.");
-            VMA    = MakeUnique<FVulkanMemoryAllocator>(Vulkan);
+            GVulkan->Bootstrap();
         }
         catch (const SRuntimeError& Error)
         {
@@ -67,8 +53,7 @@ namespace Visera
     Terminate()
     {
         LOG_DEBUG("Terminating RHI.");
-        Vulkan.reset();
-
+        GVulkan->Terminate();
         Statue = EStatues::Terminated;
     }
 

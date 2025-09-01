@@ -3,7 +3,6 @@ module;
 export module Visera.Runtime.GFX;
 #define VISERA_MODULE_NAME "Runtime.GFX"
 export import Visera.Runtime.GFX.Shaders;
-       import Visera.Runtime.GFX.SwapChain;
        import Visera.Runtime.RHI;
 
 namespace Visera
@@ -12,9 +11,6 @@ namespace Visera
     {
     public:
 
-
-    private:
-        TUniquePtr<FSwapChain> SwapChain;
 
     public:
         FGFX() : IGlobalSingleton{"GFX"}{}

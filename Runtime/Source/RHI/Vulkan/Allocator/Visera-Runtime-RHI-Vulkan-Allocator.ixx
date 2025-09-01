@@ -2,33 +2,41 @@ module;
 #include <Visera-Runtime.hpp>
 #define VK_NO_PROTOTYPES
 #include <volk.h>
+#include <vulkan/vulkan_raii.hpp>
 #define VMA_IMPLEMENTATION
 #if defined(VISERA_ON_APPLE_SYSTEM)
 #include <vk_mem_alloc.h>
 #else
 #include <vma/vk_mem_alloc.h>
 #endif
-export module Visera.Runtime.RHI.VMA;
+export module Visera.Runtime.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
-import Visera.Runtime.RHI.Vulkan;
 
-export namespace Visera
+namespace Visera
 {
-    class VISERA_RUNTIME_API FVulkanMemoryAllocator
+    export class VISERA_RUNTIME_API FVulkanAllocator
     {
     public:
-        FVulkanMemoryAllocator() = delete;
-        FVulkanMemoryAllocator(const TUniquePtr<FVulkan>& I_Vulkan);
-        ~FVulkanMemoryAllocator() = default;
+        FVulkanAllocator() = delete;
+        FVulkanAllocator(UInt32             I_APIVersion,
+                         vk::Instance       I_Instance,
+                         vk::PhysicalDevice I_GPU,
+                         vk::Device         I_Device);
+        ~FVulkanAllocator() = default;
 
     private:
         VmaAllocator	Handle{ nullptr };
     };
 
-    FVulkanMemoryAllocator::
-    FVulkanMemoryAllocator(const TUniquePtr<FVulkan>& I_Vulkan)
+    FVulkanAllocator::
+    FVulkanAllocator(UInt32             I_APIVersion,
+                     vk::Instance       I_Instance,
+                     vk::PhysicalDevice I_GPU,
+                     vk::Device         I_Device)
     {
+        LOG_DEBUG("Creating a Vulkan Allocator.")
+
         const VmaVulkanFunctions VulkanFunctions
         {
             .vkGetInstanceProcAddr               = vkGetInstanceProcAddr,
@@ -39,11 +47,11 @@ export namespace Visera
 
         const VmaAllocatorCreateInfo CreateInfo
         {
-            .physicalDevice     = *I_Vulkan->GPU.Handle,
-            .device             = *I_Vulkan->Device.Handle,
+            .physicalDevice     = I_GPU,
+            .device             = I_Device,
             .pVulkanFunctions   = &VulkanFunctions,
-            .instance           = *I_Vulkan->Instance,
-            .vulkanApiVersion   = I_Vulkan->AppInfo.apiVersion,
+            .instance           = I_Instance,
+            .vulkanApiVersion   = I_APIVersion,
         };
         if (vmaCreateAllocator(&CreateInfo, &Handle) != VK_SUCCESS)
         { LOG_FATAL("Failed to create the Vulkan Memory Allocator!"); }
