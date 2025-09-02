@@ -22,6 +22,7 @@ export namespace Visera
         explicit operator FString()		const	{ return Data; }
         explicit operator const char*()	const	{ return Data.data(); }
         explicit FText(const char8_t* I_Text) : Data{ reinterpret_cast<const char *>(I_Text) } {}
+        explicit FText(std::u8string_view I_Text) : Data{ reinterpret_cast<const char *>(I_Text.data()) } {}
     private:
         FString Data;
     };

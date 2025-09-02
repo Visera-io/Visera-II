@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Types.Path;
 #define VISERA_MODULE_NAME "Core.Types"
-import Visera.Core.Types.Text;
+export import Visera.Core.Types.Text;
 
 export namespace Visera
 {

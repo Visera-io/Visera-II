@@ -16,7 +16,12 @@ export int main(int argc, char *argv[])
 
     FPath PathA{TEXT("Assets")};
     FPath PathB{TEXT("Shaders")};
-    LOG_INFO("{}", PathA/PathB);
+
+    FFileSystem VFS{};
+    VFS.CreateDirectory(PathA);
+    VFS.DeleteDirectory(PathB);
+
+    LOG_INFO("{}", VFS.GetRoot());
 
     GEngine->Bootstrap();
     {
