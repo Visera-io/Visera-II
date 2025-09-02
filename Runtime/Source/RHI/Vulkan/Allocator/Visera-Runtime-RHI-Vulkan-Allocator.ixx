@@ -4,11 +4,7 @@ module;
 #include <volk.h>
 #include <vulkan/vulkan_raii.hpp>
 #define VMA_IMPLEMENTATION
-#if defined(VISERA_ON_APPLE_SYSTEM)
 #include <vk_mem_alloc.h>
-#else
-#include <vma/vk_mem_alloc.h>
-#endif
 export module Visera.Runtime.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;

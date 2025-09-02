@@ -32,6 +32,10 @@ namespace Visera
         void inline
         SetTitle(const FText& I_Title) { Title = I_Title; }
 
+        [[nodiscard]] inline UInt32
+        GetWidth() const { return Width; }
+        [[nodiscard]] inline UInt32
+        GetHeight() const { return Height; }
         void inline
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) { glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
         void inline

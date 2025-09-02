@@ -3,8 +3,9 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Vulkan;
-import Visera.Core.Log;
+export import Visera.Runtime.RHI.Driver;
+       import Visera.Runtime.RHI.Vulkan;
+       import Visera.Core.Log;
 
 namespace Visera
 {
@@ -16,8 +17,13 @@ namespace Visera
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
     {
     public:
-        [[nodiscard]] inline const auto&
-        GetDriver()   const { return GVulkan; };
+        void
+        BeginFrame()  const { GetDriver()->BeginFrame(); };
+        void
+        EndFrame()    const { GetDriver()->EndFrame(); };
+
+        [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
+        GetDriver()   const { return RHI::GVulkan; };
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -39,7 +45,7 @@ namespace Visera
 
         try
         {
-            GVulkan->Bootstrap();
+            RHI::GVulkan->Bootstrap();
         }
         catch (const SRuntimeError& Error)
         {
@@ -53,7 +59,8 @@ namespace Visera
     Terminate()
     {
         LOG_DEBUG("Terminating RHI.");
-        GVulkan->Terminate();
+        RHI::GVulkan->Terminate();
+
         Statue = EStatues::Terminated;
     }
 

@@ -44,6 +44,7 @@ namespace Visera
         {
             throw SRuntimeError("Failed to initialize the Volk!");
         }
+
         Statue = EStatues::Bootstrapped;
     }
 
@@ -60,6 +61,7 @@ namespace Visera
         { LOG_WARN("Forgot to load VkDevice?"); }
 
         volkFinalize();
+
         Statue = EStatues::Terminated;
     }
 

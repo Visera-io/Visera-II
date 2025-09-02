@@ -10,40 +10,33 @@ namespace Visera
     class FGFX : public IGlobalSingleton
     {
     public:
-
-
-    public:
         FGFX() : IGlobalSingleton{"GFX"}{}
         ~FGFX() override;
 
-        void inline
-        Bootstrap() override;
-        void inline
-        Terminate() override;
+        void Bootstrap() override;
+        void Terminate() override;
     };
 
+    // Legacy global for backward compatibility
     export inline VISERA_RUNTIME_API TUniquePtr<FGFX>
     GGFX = MakeUnique<FGFX>();
 
-    void FGFX::
-    Bootstrap()
+    void FGFX::Bootstrap()
     {
-        if (!GRHI->IsBootstrapped())
-        { throw SRuntimeError("Failed to bootstrap GFX because RHI is not bootstrapped but GFX depends on it!"); }
-
-
+        Statue = EStatues::Bootstrapped;
     }
 
-    void FGFX::
-    Terminate()
+    void FGFX::Terminate()
     {
-
+        Statue = EStatues::Terminated;
     }
 
-    FGFX::
-    ~FGFX()
+    FGFX::~FGFX()
     {
-
+        if (IsBootstrapped())
+        {
+            //LOG_WARN("GFX destroyed without proper termination!");
+        }
     }
 
 }

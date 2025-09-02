@@ -16,6 +16,13 @@ export int main(int argc, char *argv[])
 
     GEngine->Bootstrap();
     {
+        auto& V = GRHI->GetDriver();
+        if (V->GetType() == RHI::EDriverType::Vulkan)
+        {
+            LOG_INFO("Vulkan");
+        }
+        else LOG_WARN("??");
+
         GEngine->Run();
     }
     GEngine->Terminate();

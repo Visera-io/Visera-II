@@ -5,36 +5,29 @@ module;
 #include <GLFW/glfw3.h>
 export module Visera.Runtime.RHI.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.Driver;
 import Visera.Runtime.RHI.Vulkan.Loader;
 import Visera.Runtime.RHI.Vulkan.Allocator;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
+import Visera.Core.Math.Arithmetic;
 
-namespace Visera
+namespace Visera::RHI
 {
-    class VISERA_RUNTIME_API FVulkan : IGlobalSingleton
+    class VISERA_RUNTIME_API FVulkan : public IDriver
     {
     public:
-        using FContext        = vk::raii::Context;
-        using FInstance       = vk::raii::Instance;
-        using FDebugMessenger = vk::raii::DebugUtilsMessengerEXT;
-        using FSurface        = vk::raii::SurfaceKHR;
-        using FPhysicalDevice = vk::raii::PhysicalDevice;
-        using FDevice         = vk::raii::Device;
-        using FQueue          = vk::raii::Queue;
-        using FSwapChain      = vk::raii::SwapchainKHR;
+        vk::ApplicationInfo              AppInfo;
+        vk::raii::Context                Context;
 
-        vk::ApplicationInfo AppInfo;
-        FContext        Context;
+        vk::raii::Instance               Instance        {nullptr};
+        vk::raii::DebugUtilsMessengerEXT DebugMessenger  {nullptr};
 
-        FInstance       Instance        {nullptr};
-        FDebugMessenger DebugMessenger  {nullptr};
-
-        FSurface        Surface         {nullptr};
+        vk::raii::SurfaceKHR             Surface         {nullptr};
 
         struct
         {
-            FPhysicalDevice Context {nullptr};
+            vk::raii::PhysicalDevice Context {nullptr};
             TSet<UInt32> GraphicsQueueFamilies{};
             TSet<UInt32> PresentQueueFamilies {};
             TSet<UInt32> ComputeQueueFamilies {};
@@ -43,22 +36,22 @@ namespace Visera
 
         struct
         {
-            FDevice Context         {nullptr};
-            FQueue  GraphicsQueue   {nullptr};
+            vk::raii::Device Context         {nullptr};
+            vk::raii::Queue  GraphicsQueue   {nullptr};
         }Device;
 
         TUniquePtr<FVulkanAllocator>Allocator;
 
         struct
         {
-            FSwapChain              Context     {nullptr};
+            vk::raii::SwapchainKHR  Context     {nullptr};
             vk::Extent2D            Extent      {0U, 0U};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eTransferDst};
-            vk::Format              ImageFormat {};
-            vk::ColorSpaceKHR       ColorSpace  {};
+            vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
+            vk::ColorSpaceKHR       ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                  MinimalImageCount{3};
-            vk::PresentModeKHR      PresentMode {};
-            vk::SharingMode         SharingMode {};
+            vk::PresentModeKHR      PresentMode {vk::PresentModeKHR::eFifo};
+            vk::SharingMode         SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                          bClipped       {True};
         }SwapChain;
@@ -68,6 +61,18 @@ namespace Visera
         TArray<const char*> InstanceExtensions;
         TArray<const char*> DeviceLayers;
         TArray<const char*> DeviceExtensions;
+
+    public:
+        void
+        BeginFrame() override {};
+        void
+        EndFrame()   override {};
+        void
+        Present()    override {};
+        inline void*
+        GetNativeInstance() override { return *Instance;       };
+        inline void*
+        GetNativeDevice()   override { return *Device.Context; };
 
     private:
         void CreateInstance();
@@ -99,19 +104,19 @@ namespace Visera
         {
             if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose)
             {
-                //LOG_INFO("\n{}", I_CallbackData->pMessage);
+                //LOG_INFO("{}", I_CallbackData->pMessage);
             }
             else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
             {
-                LOG_DEBUG("\n{}", I_CallbackData->pMessage);
+                LOG_DEBUG("{}", I_CallbackData->pMessage);
             }
             else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
             {
-                LOG_WARN("\n{}", I_CallbackData->pMessage);
+                LOG_WARN("{}", I_CallbackData->pMessage);
             }
             else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
             {
-                LOG_ERROR("\n{}", I_CallbackData->pMessage);
+                LOG_ERROR("{}", I_CallbackData->pMessage);
             }
             else
             {
@@ -121,13 +126,13 @@ namespace Visera
         }
 
     public:
-        FVulkan() : IGlobalSingleton{"Vulkan"} {};
+        FVulkan() : IDriver{EDriverType::Vulkan} {};
         ~FVulkan() override;
         void Bootstrap() override;
         void Terminate() override;
     };
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FVulkan>
+    export inline VISERA_RUNTIME_API TUniquePtr<IDriver>
     GVulkan = MakeUnique<FVulkan>();
 
     void FVulkan::
@@ -185,13 +190,45 @@ namespace Visera
         {
             CreateSwapChain();
         }
+
+        Statue = EStatues::Bootstrapped;
     }
     void FVulkan::
     Terminate()
     {
         LOG_DEBUG("Terminating Vulkan.");
+        Device.Context.waitIdle();
+
+        if (GWindow->IsBootstrapped())
+        {
+            SwapChain.Context.clear();
+        }
+
+        // Device
+        {
+            Device.Context.clear();
+        }
+
+        // Allocator
+        {
+            Allocator.reset();
+        }
+
+        // Surface
+        if (GWindow->IsBootstrapped())
+        {
+            Surface.clear();
+        }
+
+        // Instance
+        {
+            DebugMessenger.clear();
+            Instance.clear();
+        }
 
         GVulkanLoader->Terminate();
+
+        Statue = EStatues::Terminated;
     }
 
     FVulkan::
@@ -242,7 +279,7 @@ namespace Visera
             .setFlags                   (Flags)
         ;
 
-        Instance = FInstance(Context, CreateInfo);
+        Instance = vk::raii::Instance(Context, CreateInfo);
     }
 
     void FVulkan::
@@ -275,7 +312,7 @@ namespace Visera
             &SurfaceHandle) != VK_SUCCESS)
         { LOG_FATAL("Failed to create Vulkan Surface!"); }
 
-        Surface = FSurface(Instance, SurfaceHandle);
+        Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
     }
 
     void FVulkan::
@@ -374,9 +411,9 @@ namespace Visera
             .setEnabledExtensionCount   (DeviceExtensions.size())
             .setPpEnabledExtensionNames (DeviceExtensions.data())
         ;
-        Device.Context        = FDevice{GPU.Context, CreateInfo};
+        Device.Context       = vk::raii::Device{GPU.Context, CreateInfo};
 
-        Device.GraphicsQueue = FQueue{Device.Context, *GPU.GraphicsQueueFamilies.begin(), 0};
+        Device.GraphicsQueue = vk::raii::Queue{Device.Context, *GPU.GraphicsQueueFamilies.begin(), 0};
     }
 
 
@@ -426,12 +463,56 @@ namespace Visera
     {
         VISERA_ASSERT(Surface != nullptr);
 
-        const auto SurfaceCapabilities = GPU.Context.getSurfaceCapabilitiesKHR(Surface);
-        const auto SurfaceFormats      = GPU.Context.getSurfaceFormatsKHR(Surface);
-        const auto PresentModes        = GPU.Context.getSurfacePresentModesKHR(Surface);
+        // Check Present Mode
+        {
+            Bool bFoundRequiredPresentMode {False};
+            for (const auto PresentModes= GPU.Context.getSurfacePresentModesKHR(Surface);
+                 const auto& PresentMode : PresentModes)
+            {
+                if (PresentMode == SwapChain.PresentMode)
+                { bFoundRequiredPresentMode = True; break; }
+            }
+            if (!bFoundRequiredPresentMode)
+            { throw SRuntimeError("Failed to find required present mode for swapchain!"); }
+        }
 
-        SwapChain.MinimalImageCount = SurfaceCapabilities.minImageCount > SwapChain.MinimalImageCount?
-                                      SurfaceCapabilities.minImageCount : SwapChain.MinimalImageCount;
+        // Check Image Format and Color Space
+        {
+            Bool bFoundRequiredFormatAndColorSpace {False};
+            for (const auto AvailableFormats = GPU.Context.getSurfaceFormatsKHR(Surface);
+                 const auto& AvailableFormat : AvailableFormats)
+            {
+                if (AvailableFormat.format     == SwapChain.ImageFormat &&
+                    AvailableFormat.colorSpace == SwapChain.ColorSpace)
+                { bFoundRequiredFormatAndColorSpace = True; break; }
+            }
+            if (!bFoundRequiredFormatAndColorSpace)
+            { throw SRuntimeError("Failed to find required format and color space for swapchain images!"); }
+
+        }
+
+        const auto SurfaceCapabilities = GPU.Context.getSurfaceCapabilitiesKHR(Surface);
+        // Swap Chain Image Extent
+        {
+            if (SurfaceCapabilities.currentExtent.width != Math::UpperBound<UInt32>())
+            {
+                SwapChain.Extent = SurfaceCapabilities.currentExtent;
+            }
+            else
+            {
+                SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
+
+                Math::Clamp(&SwapChain.Extent.width,
+                            SurfaceCapabilities.minImageExtent.width,
+                            SurfaceCapabilities.maxImageExtent.width);
+                Math::Clamp(&SwapChain.Extent.height,
+                            SurfaceCapabilities.minImageExtent.height,
+                            SurfaceCapabilities.maxImageExtent.height);
+            }
+        }
+
+        SwapChain.MinimalImageCount = Math::Max(SurfaceCapabilities.minImageCount,
+                                                SwapChain.MinimalImageCount);
 
         const auto CreateInfo =  vk::SwapchainCreateInfoKHR{}
             .setSurface         (Surface)
@@ -441,12 +522,17 @@ namespace Visera
             .setImageExtent     (SwapChain.Extent)
             .setImageUsage      (SwapChain.ImageUsage)
             .setImageSharingMode(SwapChain.SharingMode)
+            .setImageArrayLayers(1U)
             .setPreTransform    (SurfaceCapabilities.currentTransform)
             .setCompositeAlpha  (SwapChain.CompositeAlpha)
             .setPresentMode     (SwapChain.PresentMode)
             .setClipped         (SwapChain.bClipped);
 
-        SwapChain.Context = FSwapChain(Device.Context, CreateInfo);
+        SwapChain.Context = vk::raii::SwapchainKHR(Device.Context, CreateInfo);
+
+        LOG_DEBUG("Created a SwapChain (extent:[{},{}]).",
+                   SwapChain.Extent.width, SwapChain.Extent.height);
+
         //swapChainImages = SwapChain.Context.getImages();
     }
 
