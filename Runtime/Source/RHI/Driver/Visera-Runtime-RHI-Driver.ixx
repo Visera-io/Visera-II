@@ -27,9 +27,9 @@ namespace Visera::RHI
         virtual void
         Present()    = 0;
 
-        virtual inline void*
+        virtual void*
         GetNativeInstance() = 0;
-        virtual inline void*
+        virtual void*
         GetNativeDevice()   = 0;
 
         explicit IDriver(EDriverType I_DriverType)
