@@ -5,7 +5,11 @@ export module Visera.Core.OS.FileSystem;
 
 export namespace Visera
 {
+    class FFileSystem
+    {
+    public:
 
-    
+    private:
 
+    };
 }

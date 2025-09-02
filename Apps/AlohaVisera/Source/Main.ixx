@@ -14,14 +14,13 @@ export int main(int argc, char *argv[])
     // //PNG.Parse("test_image.png");
     FHiResClock Clock{};
 
+    FPath PathA{TEXT("Assets")};
+    FPath PathB{TEXT("Shaders")};
+    LOG_INFO("{}", PathA/PathB);
+
     GEngine->Bootstrap();
     {
-        auto& V = GRHI->GetDriver();
-        if (V->GetType() == RHI::EDriverType::Vulkan)
-        {
-            LOG_INFO("Vulkan");
-        }
-        else LOG_WARN("??");
+
 
         GEngine->Run();
     }

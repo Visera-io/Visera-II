@@ -8,7 +8,6 @@ export namespace Visera
 {
     class VISERA_RUNTIME_API FSlangShader
     {
-    private:
-        SlangBool B{};
+
     };
 }
