@@ -9,6 +9,10 @@ export namespace Visera
     class VISERA_CORE_API FPath
     {
     public:
+        [[nodiscard]] static inline FPath
+        CurrentPath() { return FPath{FText(std::filesystem::current_path().u8string())}; }
+
+    public:
         [[nodiscard]] inline const auto&
         GetNativePath() const { return Data; }
 

@@ -15,11 +15,17 @@ export int main(int argc, char *argv[])
     FHiResClock Clock{};
 
     FPath PathA{TEXT("Assets")};
-    FPath PathB{TEXT("Shaders")};
+    FPath PathB{TEXT("Assets")};
 
-    FFileSystem VFS{};
-    VFS.CreateDirectory(PathA);
-    VFS.DeleteDirectory(PathB);
+    FFileSystem VFS{ FPath::CurrentPath() };
+    if (VFS.CreateDirectory(PathA))
+    {
+
+    }
+    if (VFS.DeleteDirectory(PathB))
+    {
+
+    }
 
     LOG_INFO("{}", VFS.GetRoot());
 
