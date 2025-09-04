@@ -49,7 +49,7 @@ namespace std
     struct hash<Visera::FPath>
     {
         std::size_t operator()(const Visera::FPath& I_Path) const noexcept
-        { return Visera::CityHash64(I_Path.GetNativePath().c_str()); }
+        {  return std::hash<std::filesystem::path>{}(I_Path.GetNativePath()); }
     };
 }
 

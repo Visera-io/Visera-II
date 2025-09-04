@@ -10,6 +10,7 @@ export import Visera.Runtime.Window;
 export import Visera.Runtime.Events;
 export import Visera.Runtime.GFX;
 export import Visera.Runtime.RHI;
+       import Visera.Core.Log;
        import Visera.Core.OS.Time;
 
 namespace Visera
@@ -24,11 +25,14 @@ namespace Visera
             SetConsoleOutputCP(65001); // Set console output code page to UTF-8
             SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
 #endif
+
+            GLog->Bootstrap();
         }
 
         ~FRuntime()
         {
-            std::cout << fmt::format("[Runtime] Finalizing Runtime (running time: {}s)\n", Timer.Elapsed().Seconds());
+            GLog->Terminate();
+            LOG_INFO("Finalizing Runtime (running time: {}s)", Timer.Elapsed().Seconds());
         }
 
     private:

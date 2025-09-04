@@ -61,73 +61,73 @@
 
 #if defined(VISERA_ON_MSVC_COMPILER)
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define VISERA_LOG_TRACE(I_Fmt, ...) GLog::GetInstance().Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
 	#else
-	#define VISERA_LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
+	#define LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_DEBUG(I_Fmt, ...) GLog::GetInstance().Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
 	#else
 	#define LOG_DEBUG(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_INFO >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_INFO(I_Fmt, ...) GLog::GetInstance().Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
 	#else
 	#define LOG_INFO(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_WARN >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_WARN(I_Fmt, ...) GLog::GetInstance().Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
 	#else
 	#define LOG_WARN(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_ERROR >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_ERROR(I_Fmt, ...) GLog::GetInstance().Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
 	#else
 	#define LOG_ERROR(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_FATAL >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_FATAL(I_Fmt, ...) GLog::GetInstance().Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
 	#else
 	#define LOG_FATAL(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 #else
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define VISERA_LOG_TRACE(I_Fmt, ...) GLog::GetInstance().Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define VISERA_LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
 	#else
 	#define VISERA_LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_DEBUG(I_Fmt, ...) GLog::GetInstance().Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
 	#else
 	#define LOG_DEBUG(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_INFO >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_INFO(I_Fmt, ...) GLog::GetInstance().Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
 	#else
 	#define LOG_INFO(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_WARN >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_WARN(I_Fmt, ...) GLog::GetInstance().Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
 	#else
 	#define LOG_WARN(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_ERROR >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_ERROR(I_Fmt, ...) GLog::GetInstance().Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
 	#else
 	#define LOG_ERROR(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_FATAL >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_FATAL(I_Fmt, ...) GLog::GetInstance().Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
 	#else
 	#define LOG_FATAL(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
@@ -266,4 +266,36 @@ namespace Visera
     TUniquePtr<T>
     MakeUnique(Args &&...args) { return std::make_unique<T>(std::forward<Args>(args)...); }
 
+	class VISERA_CORE_API IGlobalSingleton
+    {
+    public:
+    	enum EStatues { Disabled, Bootstrapped, Terminated  };
+
+    	[[nodiscard]] FStringView
+		GetDebugName() const { return Name; }
+
+    	virtual void inline
+		Bootstrap() = 0;
+    	virtual void inline
+		Terminate() = 0;
+
+    	[[nodiscard]] inline Bool
+		IsBootstrapped() const { return Statue == EStatues::Bootstrapped; }
+    	[[nodiscard]] inline Bool
+		IsTerminated() const   { return Statue == EStatues::Terminated; }
+
+    	IGlobalSingleton() = delete;
+    	explicit IGlobalSingleton(const char* I_Name) : Name(I_Name) {}
+    	virtual ~IGlobalSingleton()
+    	{
+    		if (IsBootstrapped())
+    		{
+    			std::cerr << "[WARNING] " << Name << " was NOT terminated properly!\n";
+    		}
+    	}
+
+    protected:
+    	const char* Name;
+    	mutable EStatues Statue = EStatues::Disabled;
+    };
 }
