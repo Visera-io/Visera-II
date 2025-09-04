@@ -97,8 +97,7 @@ namespace Visera
 #else
 			localtime_r(&Time, &LocalTime);
 #endif
-
-			auto ThreadID = std::this_thread::get_id()._Get_underlying_id();
+			auto ThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
 			auto Message = fmt::format(I_Fmt, std::forward<Args>(I_Args)...);
 
 			fmt::println(I_Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
