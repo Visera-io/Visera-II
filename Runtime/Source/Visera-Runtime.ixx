@@ -27,8 +27,6 @@ namespace Visera
 
         ~FRuntime()
         {
-            if (GWindow->IsBootstrapped()) { GWindow->Terminate(); }
-            if (GRHI->IsBootstrapped())    { GRHI->Terminate(); }
             std::cout << fmt::format("[Runtime] Finalizing Runtime (running time: {}s)\n", Timer.Elapsed().Seconds());
         }
 

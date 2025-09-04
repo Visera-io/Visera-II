@@ -45,8 +45,12 @@ namespace Visera::RHI
         struct
         {
             vk::raii::SwapchainKHR  Context     {nullptr};
+            vk::raii::SwapchainKHR  OldContext  {nullptr};
             vk::Extent2D            Extent      {0U, 0U};
-            vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eTransferDst};
+            TArray<vk::Image>           Images      {}; // SwapChain manage Images so do NOT use RAII here.
+            TArray<vk::raii::ImageView> ImageViews  {};
+            vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
+                                                 vk::ImageUsageFlagBits::eTransferDst};
             vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
             vk::ColorSpaceKHR       ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                  MinimalImageCount{3};
@@ -201,6 +205,7 @@ namespace Visera::RHI
 
         if (GWindow->IsBootstrapped())
         {
+            SwapChain.ImageViews.clear();
             SwapChain.Context.clear();
         }
 
@@ -533,7 +538,30 @@ namespace Visera::RHI
         LOG_DEBUG("Created a SwapChain (extent:[{},{}]).",
                    SwapChain.Extent.width, SwapChain.Extent.height);
 
-        //swapChainImages = SwapChain.Context.getImages();
+        SwapChain.Images = SwapChain.Context.getImages();
+        constexpr auto ImageSubresourceRage = vk::ImageSubresourceRange{}
+            .setAspectMask(vk::ImageAspectFlagBits::eColor)
+            .setBaseMipLevel(0)
+            .setLevelCount(1)
+            .setBaseArrayLayer(0)
+            .setLayerCount(1);
+        constexpr auto ComponentSwizzle = vk::ComponentMapping{}
+            .setR(vk::ComponentSwizzle::eIdentity)
+            .setG(vk::ComponentSwizzle::eIdentity)
+            .setB(vk::ComponentSwizzle::eIdentity)
+            .setA(vk::ComponentSwizzle::eIdentity);
+
+        auto ImageViewCreateInfo = vk::ImageViewCreateInfo{}
+            .setViewType(vk::ImageViewType::e2D)
+            .setFormat(SwapChain.ImageFormat)
+            .setComponents(ComponentSwizzle)
+            .setSubresourceRange(ImageSubresourceRage);
+
+        for (const auto& Image : SwapChain.Images)
+        {
+            ImageViewCreateInfo.image = Image;
+            SwapChain.ImageViews.emplace_back(Device.Context, ImageViewCreateInfo);
+        }
     }
 
     void FVulkan::

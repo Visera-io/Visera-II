@@ -44,10 +44,11 @@ struct fmt::formatter<Visera::FPath>
     auto format(const Visera::FPath& I_Path, FormatContext& I_Context) const
     -> decltype(I_Context.out())
     {
+        Visera::FText Path{I_Path.GetNativePath().u8string()};
         return fmt::format_to(
             I_Context.out(),
             "{}",
-            I_Path.GetNativePath().c_str()
+            Path
         );
     }
 };
