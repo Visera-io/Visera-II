@@ -14,8 +14,6 @@ export int main(int argc, char *argv[])
     // //PNG.Parse("test_image.png");
     FHiResClock Clock{};
 
-
-    LOG_TRACE("???");
     FPath PathA{TEXT("Assets")};
     FPath PathB{TEXT("Assets")};
 

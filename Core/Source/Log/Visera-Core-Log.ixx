@@ -19,7 +19,7 @@ namespace Visera
 			if (IsBootstrapped())
 			{ Logger->trace(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
-			{ NativeLog('T', I_Fmt, std::forward<Args>(I_Args)...); }
+			{ NativeLog('T', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
 		template<typename... Args>
@@ -29,7 +29,7 @@ namespace Visera
 			if (IsBootstrapped())
 			{ Logger->debug(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
-			{ NativeLog('D', I_Fmt, std::forward<Args>(I_Args)...); }
+			{ NativeLog('D', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
 		template<typename... Args>
@@ -39,7 +39,7 @@ namespace Visera
 			if (IsBootstrapped())
 			{ Logger->info(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
-			{ NativeLog('I', I_Fmt, std::forward<Args>(I_Args)...); }
+			{ NativeLog('I', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
 		template<typename... Args>
@@ -49,7 +49,7 @@ namespace Visera
 			if (IsBootstrapped())
 			{ Logger->warn(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
-			{ NativeLog('W', I_Fmt, std::forward<Args>(I_Args)...); }
+			{ NativeLog('W', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
 		template<typename... Args>
@@ -59,7 +59,7 @@ namespace Visera
 			if (IsBootstrapped())
 			{ Logger->error(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
-			{ NativeLog('E', I_Fmt, std::forward<Args>(I_Args)...); }
+			{ NativeLog('E', stderr, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
 		template<typename... Args>
@@ -73,7 +73,8 @@ namespace Visera
 			}
 			else
 			{
-				NativeLog('C', I_Fmt, std::forward<Args>(I_Args)...);
+				NativeLog('C', stderr, I_Fmt, std::forward<Args>(I_Args)...);
+				std::fflush(stderr);
 			}
 
 			std::abort();
@@ -84,29 +85,27 @@ namespace Visera
 
 		template<typename... Args>
 		inline void
-		NativeLog(const char I_Level, spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
+		NativeLog(const char I_Level, decltype(stdout) I_Stream, spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			const auto Now = std::chrono::system_clock::now();
 			const auto Time = std::chrono::system_clock::to_time_t(Now);
 			const auto MilliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(Now.time_since_epoch()) % 1000;
 			
-			std::tm local_tm{};
+			std::tm LocalTime{};
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-			localtime_s(&local_tm, &Time);
+			localtime_s(&LocalTime, &Time);
 #else
-			localtime_r(&Time, &local_tm);
+			localtime_r(&Time, &LocalTime);
 #endif
 
-			auto thread_id = std::this_thread::get_id()._Get_underlying_id();
-			auto formatted_msg = fmt::format(I_Fmt, std::forward<Args>(I_Args)...);
-			auto Stream = (I_Level == 'E' || I_Level == 'C')? stderr : stdout;
-			fmt::println(Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
-						I_Level,
-						local_tm.tm_year + 1900, local_tm.tm_mon + 1, local_tm.tm_mday,
-						local_tm.tm_hour, local_tm.tm_min, local_tm.tm_sec, MilliSeconds.count(),
-						thread_id, formatted_msg);
-			if (I_Level == 'E' || I_Level == 'C')
-			{ std::fflush(Stream); }
+			auto ThreadID = std::this_thread::get_id()._Get_underlying_id();
+			auto Message = fmt::format(I_Fmt, std::forward<Args>(I_Args)...);
+
+			fmt::println(I_Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
+						 I_Level,
+						 LocalTime.tm_year + 1900, LocalTime.tm_mon + 1, LocalTime.tm_mday,
+						 LocalTime.tm_hour, LocalTime.tm_min, LocalTime.tm_sec, MilliSeconds.count(),
+						 ThreadID, Message);
 		}
 
 	public:
@@ -124,6 +123,7 @@ namespace Visera
 	void FLog::
 	Bootstrap()
 	{
+		if (IsBootstrapped()) { return;}
 		LOG_DEBUG("Bootstrapping Log.");
 
 		auto ConsoleSink = MakeShared<spdlog::sinks::stdout_color_sink_mt>();
@@ -151,6 +151,7 @@ namespace Visera
 	void FLog::
 	Terminate()
 	{
+		if (!IsBootstrapped()) { return;}
 		LOG_DEBUG("Terminating Log.");
 
 		Logger->flush();
