@@ -3,22 +3,35 @@ module;
 export module Visera.Core.Types.Path;
 #define VISERA_MODULE_NAME "Core.Types"
 export import Visera.Core.Types.Text;
+       import Visera.Core.Hash;
 
 export namespace Visera
 {
     class VISERA_CORE_API FPath
     {
     public:
+        [[nodiscard]] static inline FPath
+        CurrentPath() { return FPath{std::filesystem::current_path().u8string()}; }
+
+    public:
+        [[nodiscard]] inline Bool
+        IsEmpty() const { return Data.empty(); }
+
         [[nodiscard]] inline const auto&
         GetNativePath() const { return Data; }
 
         [[nodiscard]] FPath
         operator/(const FPath& I_Path) const {  return Merge(*this, I_Path); }
+        [[nodiscard]] Bool
+        operator==(const FPath& I_Path) const {  return Data == I_Path.Data; }
 
         FPath() = default;
-        FPath(const FPath& I_Path)     : Data{ I_Path.Data } {}
-        FPath(FPath&& I_Path) noexcept : Data{ I_Path.Data } {}
-        explicit FPath(const FText& I_Path)     : Data{ I_Path.GetData() } {}
+        FPath(const FPath& I_Path)      : Data{ I_Path.Data } {}
+        FPath(FPath&& I_Path) noexcept  : Data{ I_Path.Data } {}
+        FPath& operator=(const FPath& I_Path)     { Data = I_Path.Data; return *this; }
+        FPath& operator=(FPath&& I_Path) noexcept { Data = I_Path.Data; return *this; }
+        FPath(const FText& I_Path): Data{ I_Path.GetData() } {}
+        FPath(std::u8string_view I_Path): Data{ I_Path } {}
 
     private:
         std::filesystem::path Data;
@@ -27,6 +40,16 @@ export namespace Visera
         [[nodiscard]] friend FPath
         Merge(const FPath& I_PathA, const FPath& I_PathB)
         { FPath NewPath{}; NewPath.Data = I_PathA.Data / I_PathB.Data; return NewPath; }
+    };
+}
+
+namespace std
+{
+    template<>
+    struct hash<Visera::FPath>
+    {
+        std::size_t operator()(const Visera::FPath& I_Path) const noexcept
+        { return Visera::CityHash64(I_Path.GetNativePath().c_str()); }
     };
 }
 

@@ -26,9 +26,22 @@ if(MSVC)
     add_compile_options     (/utf-8)
 endif()
 
-add_subdirectory("${PROJECT_SOURCE_DIR}/Core")
-add_subdirectory("${PROJECT_SOURCE_DIR}/Runtime")
-add_subdirectory("${PROJECT_SOURCE_DIR}/Engine")
-add_subdirectory("${PROJECT_SOURCE_DIR}/Studio")
+set(VISERA_CORE_DIR     "${PROJECT_SOURCE_DIR}/Core")
+set(VISERA_RUNTIME_DIR  "${PROJECT_SOURCE_DIR}/Runtime")
+set(VISERA_ENGINE_DIR   "${PROJECT_SOURCE_DIR}/Engine")
+set(VISERA_STUDIO_DIR   "${PROJECT_SOURCE_DIR}/Studio")
+set(VISERA_APP_DIR      "${PROJECT_SOURCE_DIR}/Apps/${VISERA_APP}")
 
-add_subdirectory(Apps/${VISERA_APP})
+add_compile_definitions(
+    VISERA_CORE_DIR=u8"${VISERA_CORE_DIR}"
+    VISERA_RUNTIME_DIR=u8"${VISERA_RUNTIME_DIR}"
+    VISERA_ENGINE_DIR=u8"${VISERA_ENGINE_DIR}"
+    VISERA_STUDIO_DIR=u8"${VISERA_STUDIO_DIR}"
+    VISERA_APP_DIR=u8"${VISERA_APP_DIR}"
+)
+
+add_subdirectory(${VISERA_CORE_DIR})
+add_subdirectory(${VISERA_RUNTIME_DIR})
+add_subdirectory(${VISERA_ENGINE_DIR})
+add_subdirectory(${VISERA_STUDIO_DIR})
+add_subdirectory(${VISERA_APP_DIR})

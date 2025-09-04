@@ -15,11 +15,24 @@ export int main(int argc, char *argv[])
     FHiResClock Clock{};
 
     FPath PathA{TEXT("Assets")};
-    FPath PathB{TEXT("Shaders")};
+    FPath PathB{TEXT("Assets")};
 
-    FFileSystem VFS{};
-    VFS.CreateDirectory(PathA);
-    VFS.DeleteDirectory(PathB);
+    FFileSystem VFS{ FPath::CurrentPath() };
+    LOG_INFO("{}", GAssetHub->GetDebugName());
+
+    if (!VFS.SearchFile(TEXT("Hello")).IsEmpty())
+    {
+        LOG_INFO("Found");
+    }
+    else LOG_ERROR("Not found");
+    if (VFS.CreateDirectory(PathA))
+    {
+
+    }
+    if (VFS.DeleteDirectory(PathB))
+    {
+
+    }
 
     LOG_INFO("{}", VFS.GetRoot());
 

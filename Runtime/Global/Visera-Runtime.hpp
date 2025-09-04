@@ -23,6 +23,9 @@ namespace Visera
     public:
         enum EStatues { Disabled, Bootstrapped, Terminated  };
 
+        [[nodiscard]] FStringView
+        GetDebugName() const { return Name; }
+
         virtual void inline
         Bootstrap() = 0;
         virtual void inline
