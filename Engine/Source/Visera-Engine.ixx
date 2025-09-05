@@ -2,8 +2,6 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine;
 #define VISERA_MODULE_NAME "Engine"
-import Visera.Engine.Object;
-import Visera.Engine.Platform;
 import Visera.Engine.Render;
 import Visera.Runtime;
 import Visera.Core.Log;

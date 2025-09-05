@@ -1,7 +1,7 @@
 module;
-#include <Visera-Engine.hpp>
-export module Visera.Engine.Object;
-#define VISERA_MODULE_NAME "Engine.Object"
+#include <Visera-Runtime.hpp>
+export module Visera.Runtime.Object;
+#define VISERA_MODULE_NAME "Runtime.Object"
 import Visera.Core.Log;
 import Visera.Core.Types.Name;
 
@@ -14,7 +14,7 @@ export namespace Visera
      * FName provides O(1) comparisons and minimal memory footprint
      * through string interning, crucial for engine performance.
      */
-    class VISERA_ENGINE_API VObject
+    class VISERA_RUNTIME_API VObject
     {
     public:
         /**
