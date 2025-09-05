@@ -13,7 +13,7 @@ export int main(int argc, char *argv[])
     // FPNGImageWrapper PNG;
     // //PNG.Parse("test_image.png");
     FHiResClock Clock{};
-
+    LOG_INFO("{}", TEXT("❌"));
     FPath PathA{TEXT("Assets")};
     FPath PathB{TEXT("Assets")};
 
