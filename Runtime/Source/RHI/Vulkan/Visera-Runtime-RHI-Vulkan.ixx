@@ -310,9 +310,11 @@ namespace Visera::RHI
     {
         VkSurfaceKHR SurfaceHandle;
 
+        VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
+
         if(glfwCreateWindowSurface(
             *Instance,
-            GWindow->GetHandle(),
+            static_cast<GLFWwindow*>(GWindow->GetHandle()),
             nullptr,
             &SurfaceHandle) != VK_SUCCESS)
         { LOG_FATAL("Failed to create Vulkan Surface!"); }
