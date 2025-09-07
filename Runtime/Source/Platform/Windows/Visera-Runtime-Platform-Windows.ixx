@@ -9,6 +9,7 @@ namespace Visera
     export class VISERA_RUNTIME_API FWindowsPlatform : public IPlatform
     {
     public:
+        FWindowsPlatform() : IPlatform{EPlatform::Windows} {};
         ~FWindowsPlatform() override = default;
     };
 }

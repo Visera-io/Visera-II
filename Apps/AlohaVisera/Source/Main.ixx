@@ -13,6 +13,14 @@ export int main(int argc, char *argv[])
     // FPNGImageWrapper PNG;
     // //PNG.Parse("test_image.png");
     FHiResClock Clock{};
+
+    auto Lib = GPlatform->LoadLibrary(
+        PATH("/usr/local/share/dotnet/host/fxr/9.0.8/libhostfxr.dylib"));
+    if (!Lib->IsLoaded())
+    {
+        LOG_FATAL("Failed to load library");
+    }
+
     LOG_INFO("{}", TEXT("❌"));
     FPath PathA{TEXT("Assets")};
     FPath PathB{TEXT("Assets")};

@@ -11,6 +11,8 @@ import Visera.Runtime.Platform.MacOS;
 
 namespace Visera
 {
+    export using EPlatform = EPlatform;
+
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
     export inline VISERA_RUNTIME_API TUniquePtr<IPlatform>
     GPlatform = MakeUnique<FWindowsPlatform>();

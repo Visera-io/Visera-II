@@ -134,6 +134,7 @@
 #endif
 
 #define TEXT(I_Text) FText{u8##I_Text}
+#define PATH(I_Path) FPath{FText(u8##I_Path)}
 
 // << STD Modules >>
 #include <cassert>
