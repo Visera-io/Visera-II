@@ -1,5 +1,6 @@
 module;
 #include <Visera.hpp>
+#include <bvh/v2/bvh.h>
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
@@ -13,6 +14,7 @@ export int main(int argc, char *argv[])
     // FPNGImageWrapper PNG;
     // //PNG.Parse("test_image.png");
     FHiResClock Clock{};
+    bvh::v2::BBox<Int32, 2> TestBB;
 
     auto Lib = GPlatform->LoadLibrary(
         PATH("/usr/local/share/dotnet/host/fxr/9.0.8/libhostfxr.dylib"));

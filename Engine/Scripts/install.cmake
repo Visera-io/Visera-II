@@ -42,6 +42,11 @@ target_link_libraries(${VISERA_ENGINE} PRIVATE Visera::Runtime)
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_ENGINE_SCRIPTS_DIR})
 
+include(install_bvh)
+link_bvh(${VISERA_ENGINE})
+
+list(APPEND CMAKE_MODULE_PATH ${VISERA_ENGINE_SCRIPTS_DIR})
+
 #
 #
 #

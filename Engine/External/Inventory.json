@@ -1,3 +1,11 @@
 {
-   
+  "BVH" :
+  {
+    "Version" : "2025.9.7",
+    "Dependencies" :
+    [
+
+    ],
+    "URL" : "https://github.com/madmann91/bvh"
+  }
 }
