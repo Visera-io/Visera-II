@@ -3,6 +3,7 @@ module;
 export module Visera.Engine;
 #define VISERA_MODULE_NAME "Engine"
 import Visera.Engine.Render;
+import Visera.Engine.UI;
 import Visera.Runtime;
 import Visera.Core.Log;
 
@@ -47,8 +48,8 @@ namespace Visera
         FEngine() : IGlobalSingleton("Engine") {};
     };
 
-    export inline VISERA_ENGINE_API
-    TUniquePtr<FEngine> GEngine = MakeUnique<FEngine>();
+    export inline VISERA_ENGINE_API TUniquePtr<FEngine>
+    GEngine = MakeUnique<FEngine>();
 
 
 }

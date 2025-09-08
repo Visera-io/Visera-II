@@ -1,3 +1,5 @@
+https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2
+
 Phase 1 Complete When:
 ✅ All subsystem interfaces defined
 ✅ VulkanGraphicsSubsystem fully functional

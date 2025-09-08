@@ -16,6 +16,10 @@ export int main(int argc, char *argv[])
     FHiResClock Clock{};
     bvh::v2::BBox<Int32, 2> TestBB;
 
+    TS::TMap<FString, Int32> Map;
+    Map["Hello"] = 10;
+    LOG_INFO("{}", Map["Hello"]);
+
     auto Lib = GPlatform->LoadLibrary(
         PATH("/usr/local/share/dotnet/host/fxr/9.0.8/libhostfxr.dylib"));
     if (!Lib->IsLoaded())

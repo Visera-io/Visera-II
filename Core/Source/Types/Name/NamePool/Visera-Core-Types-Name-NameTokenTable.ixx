@@ -5,8 +5,11 @@ export module Visera.Core.Name.NamePool:NameTokenTable;
 import :Common;
 import :NameEntryTable;
 
+#if defined(VISERA_DEBUG_MODE)
+import Visera.Core.Math.Arithmetic;
+#endif
 import Visera.Core.OS.Memory;
-import Visera.Core.OS.Mutex;
+import Visera.Core.OS.Concurrency.Locks.RWLock;
 
 export namespace Visera
 {
@@ -36,10 +39,10 @@ export namespace Visera
             };
             static constexpr float GrowingThresh = 0.9;
 		public:
-			auto ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> _Prediction) const -> const FNameToken&;
-			auto ClaimToken(const FNameToken* I_Token, FNameToken _Value) { 
+			auto ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> I_Prediction) const -> const FNameToken&;
+			auto ClaimToken(const FNameToken* I_Token, FNameToken I_Value) { 
                 VISERA_ASSERT(!RWLock.TryToWrite() && !I_Token->IsClaimed());
-                const_cast<FNameToken*>(I_Token)->HashAndID = _Value.HashAndID; 
+                const_cast<FNameToken*>(I_Token)->HashAndID = I_Value.HashAndID; 
                 ++UseCount; 
             };
 			Bool ShouldGrow() const { return UseCount > Capacity * GrowingThresh; }
@@ -170,16 +173,16 @@ export namespace Visera
     }
 
     const FNameToken& FNameTokenTable::FNameTokenTableSection::
-    ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> _Prediction) const
+    ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> I_Prediction) const
     {
         VISERA_ASSERT(UseCount <= Capacity && "Curreny FNamePoolShard is full! Try to call FNamePool::GrowAndRehash(...)");
-        VISERA_ASSERT(IsPowerOfTwo(Capacity));
+        VISERA_ASSERT(Math::IsPowerOfTwo(Capacity));
          
         UInt32 TokenIndexMask = Capacity - 1;
         for(UInt32 Offset = 0; True; Offset++)
         {
             auto& Token = Tokens[(I_NameHash.GetUnmaskedTokenIndex() + Offset) & TokenIndexMask];
-            if (!Token.IsClaimed() || _Prediction(Token))
+            if (!Token.IsClaimed() || I_Prediction(Token))
             {
                 return Token; // Call FNameTokenTable::ClaimToken(...) if it should be used.
             }

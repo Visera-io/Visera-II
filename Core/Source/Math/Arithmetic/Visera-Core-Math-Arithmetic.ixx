@@ -40,5 +40,8 @@ export namespace Visera
 			if (I_Min > *IO_Value) { *IO_Value = I_Min; return; }
 			if (I_Max < *IO_Value) { *IO_Value = I_Max; return; }
 		}
+
+    	template<Concepts::Integeral T> Bool
+		IsPowerOfTwo(T I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
 	}
 }

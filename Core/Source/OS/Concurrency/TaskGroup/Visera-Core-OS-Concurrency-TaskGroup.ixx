@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 #include <oneapi/tbb.h>
-export module Visera.Core.OS.Thread.TaskGroup;
+export module Visera.Core.OS.Concurrency.TaskGroup;
 #define VISERA_MODULE_NAME "Core.OS"
 
 export namespace Visera

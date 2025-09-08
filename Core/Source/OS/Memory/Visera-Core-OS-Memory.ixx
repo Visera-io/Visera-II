@@ -8,6 +8,7 @@ module;
 export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.Log;
+import Visera.Core.Math.Arithmetic;
 
 export namespace Visera
 {
@@ -46,7 +47,7 @@ export namespace Visera
 
         /**Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.*/
         template <Concepts::Alignable T> constexpr
-        T Align(T I_Value, UInt64 I_Alignment) { VISERA_ASSERT(IsPowerOfTwo(I_Alignment)); return (T)(((UInt64)I_Value + I_Alignment - 1) & ~(I_Alignment - 1)); };
+        T Align(T I_Value, UInt64 I_Alignment) { VISERA_ASSERT(Math::IsPowerOfTwo(I_Alignment)); return (T)(((UInt64)I_Value + I_Alignment - 1) & ~(I_Alignment - 1)); };
     }
 
     // << Implementation >>
@@ -120,7 +121,7 @@ export namespace Visera
 
             if (I_Alignment)
             {
-                VISERA_ASSERT(IsPowerOfTwo(I_Alignment));
+                VISERA_ASSERT(Math::IsPowerOfTwo(I_Alignment));
     #if defined(VISERA_ON_WINDOWS_SYSTEM)
                 _aligned_free(I_Memory);
     #else
@@ -154,7 +155,7 @@ export namespace Visera
             return I_Size
                     && (!I_Alignment
                         ||
-                        (IsPowerOfTwo(I_Alignment)
+                        (Math::IsPowerOfTwo(I_Alignment)
                         && (I_Size % I_Alignment == 0))
     #if defined(VISERA_ON_APPLE_SYSTEM)
                         && (I_Alignment % sizeof(void*) == 0)

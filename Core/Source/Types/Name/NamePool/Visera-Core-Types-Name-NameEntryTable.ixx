@@ -5,7 +5,7 @@ export module Visera.Core.Name.NamePool:NameEntryTable;
 import :Common;
 
 import Visera.Core.OS.Memory;
-import Visera.Core.OS.Mutex;
+import Visera.Core.OS.Concurrency.Locks.RWLock;
 import Visera.Core.Log;
 
 export namespace Visera

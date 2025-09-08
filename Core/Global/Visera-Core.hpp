@@ -249,8 +249,8 @@ namespace Visera
     template <typename... Args>
     using TTuple    = std::tuple<Args...>;
 
-    template<Concepts::Integeral T>
-    Bool IsPowerOfTwo(T I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
+	VISERA_CORE_API void inline
+	Sleep(Float I_Seconds) { std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<UInt64>(1000 * I_Seconds))); }
 
     template<typename T>
     using TSharedPtr   = std::shared_ptr<T>;
