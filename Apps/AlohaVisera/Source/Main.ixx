@@ -26,10 +26,15 @@ export int main(int argc, char *argv[])
     {
 
     }
-    Lib = GPlatform->LoadLibrary(PATH("D:\\VSpace\\Visera-II\\cmake-build-alohavisera-release\\Core\\Release\\Visera-Core.dll"));
+    Lib = GPlatform->LoadLibrary(PATH("kernel32.dll"));
     if (Lib->IsLoaded())
     {
-        LOG_WARN("Loaded");
+        LOG_INFO("Loaded Kernel32.dll");
+        if (Lib->LoadFunction("SetThreadDescription"))
+        {
+            LOG_INFO("Loaded SetThreadDescription");
+        }
+
     }
 
     LOG_INFO("{}", TEXT("❌"));
