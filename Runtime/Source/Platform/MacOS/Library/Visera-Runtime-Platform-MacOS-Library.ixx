@@ -1,6 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
+#if defined(VISERA_ON_APPLE_SYSTEM)
 #include <dlfcn.h>
+#endif
 export module Visera.Runtime.Platform.MacOS.Library;
 #define VISERA_MODULE_NAME "Runtime.Platform"
 import Visera.Runtime.Platform.Interface.Library;
@@ -8,6 +10,7 @@ import Visera.Core.Log;
 
 namespace Visera
 {
+#if defined(VISERA_ON_APPLE_SYSTEM)
     export class VISERA_RUNTIME_API FMacOSLibrary : public ILibrary
     {
     public:
@@ -38,10 +41,12 @@ namespace Visera
     FMacOSLibrary(const FPath& I_Path)
     : ILibrary{I_Path}
     {
+        LOG_DEBUG("Loading MacOS library {}", Path);
+
         Handle = dlopen(I_Path.GetNativePath().c_str(), RTLD_LAZY);
         if (!Handle)
         {
-            LOG_ERROR("Failed to load the library \"{}\"", I_Path);
+            LOG_ERROR("Failed to load the library \"{}\"", Path);
         }
     }
 
@@ -50,7 +55,9 @@ namespace Visera
     {
         if (IsLoaded())
         {
+            LOG_DEBUG("Unloading MacOS library: {}", Path);
             dlclose(Handle);
         }
     }
+#endif
 }

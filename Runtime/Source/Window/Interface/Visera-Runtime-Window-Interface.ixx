@@ -6,16 +6,16 @@ import Visera.Core.Types.Text;
 
 namespace Visera
 {
-    export enum class EWindowType
-    {
-        Unknown,
-        GLFW
-    };
-
     export class VISERA_RUNTIME_API IWindow : public IGlobalSingleton
     {
         Bool bInitialized = False;
     public:
+        enum class EType
+        {
+            Unknown,
+            GLFW
+        };
+
         [[nodiscard]] virtual void*
         GetHandle() const = 0;
         [[nodiscard]] virtual Bool
@@ -33,7 +33,7 @@ namespace Visera
         GetWidth() const  { return Width; }
         [[nodiscard]] inline UInt32
         GetHeight() const { return Height; }
-        [[nodiscard]] EWindowType
+        [[nodiscard]] EType
         GetType() const { return Type; }
         [[nodiscard]] const FText&
         GetTitle() const { return Title; }
@@ -43,10 +43,10 @@ namespace Visera
         IsMaximized() const { return bMaximized; };
 
         explicit IWindow() = delete;
-        explicit IWindow(EWindowType I_Type) : IGlobalSingleton("Window"), Type(I_Type) {}
+        explicit IWindow(EType I_Type) : IGlobalSingleton("Window"), Type(I_Type) {}
 
     protected:
-        EWindowType Type   = EWindowType::Unknown;
+        EType Type   = EType::Unknown;
         FText       Title  = TEXT("Visera");
         Int32       Width{0},     Height{0};
         Float       ScaleX{1.0f}, ScaleY{1.0f};

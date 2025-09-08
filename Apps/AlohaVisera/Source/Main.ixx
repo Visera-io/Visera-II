@@ -20,7 +20,12 @@ export int main(int argc, char *argv[])
         PATH("/usr/local/share/dotnet/host/fxr/9.0.8/libhostfxr.dylib"));
     if (!Lib->IsLoaded())
     {
-        LOG_FATAL("Failed to load library");
+
+    }
+    Lib = GPlatform->LoadLibrary(PATH("D:\\VSpace\\Visera-II\\cmake-build-alohavisera-release\\Core\\Release\\Visera-Core.dll"));
+    if (Lib->IsLoaded())
+    {
+        LOG_WARN("Loaded");
     }
 
     LOG_INFO("{}", TEXT("❌"));

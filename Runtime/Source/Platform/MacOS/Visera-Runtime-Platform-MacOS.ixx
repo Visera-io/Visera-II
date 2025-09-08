@@ -8,21 +8,16 @@ import Visera.Core.Log;
 
 namespace Visera
 {
+#if defined(VISERA_ON_APPLE_SYSTEM)
     export class VISERA_RUNTIME_API FMacOSPlatform : public IPlatform
     {
     public:
         [[nodiscard]] TSharedPtr<ILibrary>
-        LoadLibrary(const FPath& I_Path) const override;
+        LoadLibrary(const FPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
 
     public:
         FMacOSPlatform() : IPlatform{EPlatform::MacOS} {};
         ~FMacOSPlatform() override = default;
     };
-
-    TSharedPtr<ILibrary> FMacOSPlatform::
-    LoadLibrary(const FPath& I_Path) const
-    {
-        LOG_DEBUG("Loading library {}", I_Path);
-        return MakeShared<FMacOSLibrary>(I_Path);
-    }
+#endif
 }

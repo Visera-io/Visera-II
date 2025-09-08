@@ -30,7 +30,7 @@ namespace Visera
         void inline
         SetPosition(Int32 I_X, Int32 I_Y) const override { glfwSetWindowPos(Handle, I_X, I_Y); }
 
-        FGLFWWindow() : IWindow(EWindowType::GLFW) {}
+        FGLFWWindow() : IWindow(EType::GLFW) {}
 
         void inline
         Bootstrap() override;

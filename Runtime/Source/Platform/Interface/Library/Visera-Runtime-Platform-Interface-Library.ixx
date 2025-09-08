@@ -20,7 +20,10 @@ namespace Visera
 
         ILibrary() = delete;
         ILibrary(const FPath& I_Path) : Path(I_Path) { }
-        virtual ~ILibrary() = default;
+        virtual ~ILibrary()
+        {
+            Handle = nullptr; // Always set Handle to nullptr to prevent double-free
+        }
 
     protected:
         FPath Path;

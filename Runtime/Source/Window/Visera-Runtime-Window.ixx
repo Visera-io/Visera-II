@@ -8,7 +8,7 @@ import Visera.Runtime.Window.GLFW;
 
 namespace Visera
 {
-    export using EWindowType = EWindowType;
+    export using EWindowType = IWindow::EType;
 
     export inline VISERA_RUNTIME_API TUniquePtr<IWindow>
     GWindow = MakeUnique<FGLFWWindow>();
