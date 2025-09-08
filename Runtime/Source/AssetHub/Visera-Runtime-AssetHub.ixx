@@ -5,7 +5,6 @@ export module Visera.Runtime.AssetHub;
 import Visera.Runtime.AssetHub.Asset;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
-import Visera.Core.OS.Concurrency;
 
 namespace Visera
 {
@@ -32,7 +31,6 @@ namespace Visera
 
     private:
         TMap<EAssetSource, FFileSystem> Roots;
-        TS::TMap<FName, TSharedPtr<FTextureAsset>> TextureAssets;
     };
 
     export inline VISERA_RUNTIME_API auto
