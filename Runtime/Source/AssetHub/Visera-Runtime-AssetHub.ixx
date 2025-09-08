@@ -2,11 +2,15 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
+import Visera.Runtime.AssetHub.Asset;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
+import Visera.Core.OS.Concurrency;
 
 namespace Visera
 {
+    export using EAssetType = IAsset::EType;
+
     export enum class EAssetSource
     {
         Engine,
@@ -14,11 +18,6 @@ namespace Visera
         App,
 
         Any,
-    };
-
-    export enum class EAssetType
-    {
-
     };
 
     class VISERA_RUNTIME_API FAssetHub : public IGlobalSingleton
@@ -33,6 +32,7 @@ namespace Visera
 
     private:
         TMap<EAssetSource, FFileSystem> Roots;
+        TS::TMap<FName, TSharedPtr<FTextureAsset>> TextureAssets;
     };
 
     export inline VISERA_RUNTIME_API auto
