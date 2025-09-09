@@ -6,7 +6,8 @@ import Visera.Core.Hash.CityHash;
 
 export namespace Visera
 {
-	using UInt128 = Google::uint128;
+	static_assert(std::is_same_v<UInt128, Google::uint128>);
+
 	/*<<City Hash by Google>>*/
 	inline auto
 	CityHash64(FStringView I_StringView)				-> UInt64	{ return Google::CityHash64(I_StringView.data(), I_StringView.size()); }

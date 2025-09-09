@@ -15,7 +15,7 @@ export namespace Visera
         [[nodiscard]] Bool static inline
         CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
         [[nodiscard]] Bool static inline
-        IsExist(const FPath& I_Path) { return std::filesystem::exists(I_Path.GetNativePath()); }
+        Exists(const FPath& I_Path) { return std::filesystem::exists(I_Path.GetNativePath()); }
         [[nodiscard]] Bool static inline
         IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(I_Path.GetNativePath()); }
 
@@ -48,7 +48,7 @@ export namespace Visera
     {
         const FPath Path = Root / I_FileName;
 
-        if (IsExist(Path) && !IsDirectory(Path))
+        if (Exists(Path) && !IsDirectory(Path))
         { return Path; }
 
         return FPath{};

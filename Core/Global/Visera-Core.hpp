@@ -185,6 +185,7 @@ namespace Visera
     using UInt32 	    = std::uint32_t;
     using Int64  	    = std::int64_t;
     using UInt64 	    = std::uint64_t;
+	using UInt128       = std::pair<UInt64, UInt64>;
 
     using FString       = std::string;
     using FStringView   = std::string_view;
@@ -299,4 +300,26 @@ namespace Visera
     	const char* Name;
     	mutable EStatues Statue = EStatues::Disabled;
     };
+
+	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)
+	{ return I_A.first == I_B.first && I_A.second == I_B.second; }
+
+	constexpr bool operator!=(const UInt128& I_A, const UInt128& I_B)
+	{ return !(I_A == I_B); }
+
+	constexpr bool operator<(const UInt128& I_A, const UInt128& I_B)
+	{
+		if (I_A.first < I_B.first) { return true;  }
+		if (I_A.first > I_B.first) { return false; }
+		return I_A.second < I_B.second;
+	}
+
+	constexpr bool operator>(const UInt128& I_A, const UInt128& I_B)
+	{ return I_B < I_A; }
+
+	constexpr bool operator<=(const UInt128& I_A, const UInt128& I_B)
+	{ return !(I_B < I_A); }
+
+	constexpr bool operator>=(const UInt128& I_A, const UInt128& I_B)
+	{ return !(I_A < I_B); }
 }

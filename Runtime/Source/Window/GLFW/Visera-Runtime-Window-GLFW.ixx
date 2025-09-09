@@ -49,8 +49,6 @@ namespace Visera
         if (!glfwInit())
         { LOG_FATAL("Failed to initialize GLFW!"); }
 
-        LOG_WARN("If the window is not responding call GWindow->Initialize() at first!");
-
         glfwSetErrorCallback([](Int32 I_Error, const char* I_Description)
         { LOG_ERROR("GLFW Error {}: {}", I_Error, I_Description); });
 
