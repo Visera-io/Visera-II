@@ -21,7 +21,7 @@ export int main(int argc, char *argv[])
     LOG_INFO("{}", Map["Hello"]);
 
     auto Lib = GPlatform->LoadLibrary(
-        PATH("/usr/local/share/dotnet/host/fxr/9.0.8/libhostfxr.dylib"));
+        PATH("hostfxr.dll"));
     if (!Lib->IsLoaded())
     {
 
