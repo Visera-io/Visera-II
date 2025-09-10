@@ -21,7 +21,7 @@ export int main(int argc, char *argv[])
     LOG_INFO("{}", Map["Hello"]);
 
     auto Lib = GPlatform->LoadLibrary(
-        PATH("hostfxr.dll"));
+        PATH("libhostfxr.dylib"));
     if (!Lib->IsLoaded())
     {
 

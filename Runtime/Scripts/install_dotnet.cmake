@@ -68,7 +68,7 @@ function(find_nethost_library)
         "${DOTNET_ROOT_DIR}/host/fxr"
         "${DOTNET_ROOT_DIR}/packs/Microsoft.NETCore.App.Host.win-x64/${DOTNETCORE_RUNTIME_VERSION}/runtimes/win-x64/native"
         "${DOTNET_ROOT_DIR}/packs/Microsoft.NETCore.App.Host.linux-x64/${DOTNETCORE_RUNTIME_VERSION}/runtimes/linux-x64/native"
-        "${DOTNET_ROOT_DIR}/packs/Microsoft.NETCore.App.Host.osx-x64/${DOTNETCORE_RUNTIME_VERSION}/runtimes/osx-x64/native"
+        "${DOTNET_ROOT_DIR}/packs/Microsoft.NETCore.App.Host.osx-arm64/${DOTNETCORE_RUNTIME_VERSION}/runtimes/osx-arm64/native"
     )
 
     find_library(NETHOST_LIBRARY
@@ -135,6 +135,14 @@ macro(link_dotnet in_target)
     find_dotnet_installation()
     find_nethost_library()
     find_hostfxr_library()
+
+    if(WIN32)
+        add_compile_definitions(HOSTFXR_LIBRARY_NAME=u8"hostfxr.dll")
+    elseif(APPLE)
+        add_compile_definitions(HOSTFXR_LIBRARY_NAME=u8"libhostfxr.dylib")
+    else()
+        message(FATAL_ERROR "Unsupported platform!")
+    endif ()
 
     target_include_directories(${in_target} PUBLIC ${VISERA_RUNTIME_EXTERNAL_DIR}/DotNET)
     target_link_libraries(${in_target} PRIVATE ${NETHOST_LIBRARY})
