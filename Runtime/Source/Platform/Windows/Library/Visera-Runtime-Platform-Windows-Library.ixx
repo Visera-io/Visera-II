@@ -121,7 +121,7 @@ namespace Visera
             }
             else
             {
-                LOG_DEBUG("Successfully freed Windows library: {}", Path);
+                LOG_DEBUG("Successfully unloaded Windows library: {}", Path);
             }
         }
     }

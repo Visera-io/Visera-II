@@ -57,6 +57,7 @@ namespace Visera
         {
             LOG_DEBUG("Unloading MacOS library: {}", Path);
             dlclose(Handle);
+            LOG_DEBUG("Successfully unloaded MacOS library: {}", Path);
         }
     }
 #endif
