@@ -44,7 +44,7 @@ export namespace Visera
     	template<Concepts::Integeral NumT> Bool
 		IsPowerOfTwo(NumT I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
 
-    	template<Concepts::Arithmetical NumT, Concepts::Integeral IntT> NumT
+    	template<Concepts::Arithmetical NumT, Concepts::Integeral IntT> Double
 		Pow(NumT I_Base, IntT I_Exp)
     	{
 			if (I_Exp < 0)
@@ -56,19 +56,19 @@ export namespace Visera
 				{ return static_cast<NumT>(1.0 / Pow(I_Base, -I_Exp)); }
 			}
     
-			NumT Result = 1;
+			Double Result = 1.0;
 			while (I_Exp)
 			{
 				if (I_Exp & 1) { Result *= I_Base; }
 
-				I_Base *= I_Base;
+				I_Base *=  I_Base;
 				I_Exp  >>= 1;
 			}
 			return Result;
 		}
 
-    	template<Concepts::Arithmetical NumT, Concepts::FloatingPoint FloatT> NumT
+    	template<Concepts::Arithmetical NumT, Concepts::FloatingPoint FloatT> Double
 		Pow(NumT I_Base, FloatT I_Exp)
-		{ return static_cast<NumT>(std::pow(I_Base, I_Exp)); }
+		{ return std::pow(I_Base, I_Exp); }
 	}
 }

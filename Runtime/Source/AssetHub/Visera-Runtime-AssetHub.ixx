@@ -2,7 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Asset;
+import Visera.Runtime.AssetHub.Assets;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
 
