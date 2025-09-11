@@ -5,36 +5,50 @@ module;
 #include <hostfxr.h>
 export module Visera.Runtime.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Runtime.Scripting"
+import Visera.Core.Log;
+import Visera.Core.Types.Path;
+import Visera.Runtime.Platform;
 
 namespace Visera
 {
 
     export class FDotNET
     {
+    private:
+        hostfxr_initialize_for_runtime_config_fn Fn_InitializeRuntime{nullptr};
+        hostfxr_get_runtime_delegate_fn          Fn_GetRuntimeDelegate{nullptr};
+        hostfxr_close_fn                         Fn_FinalizeRuntime{nullptr};
+
     public:
+        FDotNET()
+        {
+            LOG_INFO("Initing .NET");
+            Initialize();
+        }
         void Initialize()
         {
-
+            if (!load_hostfxr())
+            { LOG_FATAL("Failed to load hostfxr"); }
+            hostfxr_initialize_for_runtime_config_fn();
+            hostfxr_close_fn();
         }
 
         // Using the nethost library, discover the location of hostfxr and get exports
+        [[nodiscard]]
         bool load_hostfxr()
         {
-            // Pre-allocate a large buffer for the path to hostfxr
-            // char_t buffer[256];
-            // size_t buffer_size = sizeof(buffer) / sizeof(char_t);
-            // int rc = get_hostfxr_path(buffer, &buffer_size, nullptr);
-            // if (rc != 0)
-            //     return false;
+            auto HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
 
-            // Load hostfxr and get desired exports
-            // void *lib = load_library(buffer);
-            // init_fptr = (hostfxr_initialize_for_runtime_config_fn)get_export(lib, "hostfxr_initialize_for_runtime_config");
-            // get_delegate_fptr = (hostfxr_get_runtime_delegate_fn)get_export(lib, "hostfxr_get_runtime_delegate");
-            // close_fptr = (hostfxr_close_fn)get_export(lib, "hostfxr_close");
-            //
-            // return (init_fptr && get_delegate_fptr && close_fptr);
-            return False;
+            Fn_InitializeRuntime = reinterpret_cast<hostfxr_initialize_for_runtime_config_fn>
+                (HostFXR->LoadFunction("hostfxr_initialize_for_runtime_config"));
+            Fn_GetRuntimeDelegate = reinterpret_cast<hostfxr_get_runtime_delegate_fn>
+                (HostFXR->LoadFunction("hostfxr_get_runtime_delegate"));
+            Fn_FinalizeRuntime = reinterpret_cast<hostfxr_close_fn>
+                (HostFXR->LoadFunction("hostfxr_close"));
+
+            return Fn_InitializeRuntime  &&
+                   Fn_GetRuntimeDelegate &&
+                   Fn_FinalizeRuntime;
         }
 
         // // Load and initialize .NET Core and get desired function pointer for scenario

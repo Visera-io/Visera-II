@@ -7,5 +7,14 @@
 
     ],
     "URL" : "https://github.com/madmann91/bvh"
+  },
+  "Wwise" :
+  {
+    "Version" : "2025.1.1.8936 Beta",
+    "Dependencies" :
+    [
+
+    ],
+    "URL" : "https://www.audiokinetic.com"
   }
 }

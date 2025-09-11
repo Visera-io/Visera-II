@@ -13,15 +13,23 @@ export int main(int argc, char *argv[])
 {
     // FPNGImageWrapper PNG;
     // //PNG.Parse("test_image.png");
-    FHiResClock Clock{};
-    bvh::v2::BBox<Int32, 2> TestBB;
+    //bvh::v2::BBox<Int32, 2> TestBB;
 
-    TS::TMap<FString, Int32> Map;
-    Map["Hello"] = 10;
-    LOG_INFO("{}", Map["Hello"]);
+    FHiResClock Clock{};
+    Clock.Reset();
+    volatile int r{};
+    for (int i = 0; i < 100000; ++i) {
+        r = Math::Pow(2, i % 32);
+    }
+    LOG_INFO("Integer {}ms", Clock.Elapsed().Milliseconds());
+    Clock.Reset();
+    for (int i = 0; i < 100000; ++i) {
+        r = Math::Pow(2, Float(i % 32));
+    }
+    LOG_INFO("Float {}ms", Clock.Elapsed().Milliseconds());
 
     auto Lib = GPlatform->LoadLibrary(
-        PATH("hostfxr.dll"));
+        PATH("libhostfxr.dylib"));
     if (!Lib->IsLoaded())
     {
 
