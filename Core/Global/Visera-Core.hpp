@@ -296,6 +296,11 @@ namespace Visera
     		}
     	}
 
+    	IGlobalSingleton(const IGlobalSingleton&)			 = delete;
+    	IGlobalSingleton& operator=(const IGlobalSingleton&) = delete;
+    	IGlobalSingleton(IGlobalSingleton&&)				 = delete;
+    	IGlobalSingleton& operator=(IGlobalSingleton&&)      = delete;
+
     protected:
     	const char* Name;
     	mutable EStatues Statue = EStatues::Disabled;
