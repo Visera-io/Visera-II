@@ -1,5 +1,7 @@
 Build/
+Toolkit/CSharp/*App
 .idea/
 cmake-build*/
+*.a
 
 */.DS_Store
