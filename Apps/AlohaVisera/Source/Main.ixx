@@ -16,18 +16,7 @@ export int main(int argc, char *argv[])
     //bvh::v2::BBox<Int32, 2> TestBB;
 
     FHiResClock Clock{};
-    Clock.Reset();
-    volatile int r{};
-    for (int i = 0; i < 100000; ++i) {
-        r = Math::Pow(2, i % 32);
-    }
-    LOG_INFO("Integer {}ms", Clock.Elapsed().Milliseconds());
-    Clock.Reset();
-    for (int i = 0; i < 100000; ++i) {
-        r = Math::Pow(2, Float(i % 32));
-    }
-    LOG_INFO("Float {}ms", Clock.Elapsed().Milliseconds());
-
+    
     TArray<FByte> Buffer;
     FString Source = "asdwdwuiahgiawdiwadiaudiuhioxudoawdaodw";
     if (Compress(Source, &Buffer) != ECompressionStatue::Success)
