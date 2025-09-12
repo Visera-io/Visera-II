@@ -9,7 +9,6 @@ export import Visera.Runtime.Platform;
 export import Visera.Runtime.AssetHub;
 export import Visera.Runtime.Window;
 export import Visera.Runtime.Events;
-export import Visera.Runtime.GFX;
 export import Visera.Runtime.RHI;
        import Visera.Core.Log;
        import Visera.Core.OS.Time;

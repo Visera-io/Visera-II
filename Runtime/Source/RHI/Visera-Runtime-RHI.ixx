@@ -4,7 +4,6 @@ module;
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Driver;
-       import Visera.Runtime.RHI.Vulkan;
        import Visera.Core.Log;
 
 namespace Visera
@@ -23,7 +22,7 @@ namespace Visera
         EndFrame()    const { GetDriver()->EndFrame(); };
 
         [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
-        GetDriver()   const { return RHI::GVulkan; };
+        GetDriver()   const { return RHI::GDriver; };
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -45,7 +44,7 @@ namespace Visera
 
         try
         {
-            RHI::GVulkan->Bootstrap();
+            RHI::GDriver->Bootstrap();
         }
         catch (const SRuntimeError& Error)
         {
@@ -59,7 +58,7 @@ namespace Visera
     Terminate()
     {
         LOG_DEBUG("Terminating RHI.");
-        RHI::GVulkan->Terminate();
+        RHI::GDriver->Terminate();
 
         Statue = EStatues::Terminated;
     }

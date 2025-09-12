@@ -3,5 +3,6 @@ Toolkit/CSharp/*App
 .idea/
 cmake-build*/
 *.a
+*.lib
 
 */.DS_Store

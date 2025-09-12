@@ -3,18 +3,18 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-export module Visera.Runtime.RHI.Vulkan;
+export module Visera.Runtime.RHI.Driver.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Driver;
-import Visera.Runtime.RHI.Vulkan.Loader;
-import Visera.Runtime.RHI.Vulkan.Allocator;
+import Visera.Runtime.RHI.Driver.Interface;
+import Visera.Runtime.RHI.Driver.Vulkan.Loader;
+import Visera.Runtime.RHI.Driver.Vulkan.Allocator;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
 import Visera.Core.Math.Arithmetic;
 
 namespace Visera::RHI
 {
-    class VISERA_RUNTIME_API FVulkan : public IDriver
+    export class VISERA_RUNTIME_API FVulkan : public IDriver
     {
     public:
         vk::ApplicationInfo              AppInfo;
@@ -130,14 +130,11 @@ namespace Visera::RHI
         }
 
     public:
-        FVulkan() : IDriver{EDriverType::Vulkan} {};
+        FVulkan() : IDriver{EType::Vulkan} {};
         ~FVulkan() override;
         void Bootstrap() override;
         void Terminate() override;
     };
-
-    export inline VISERA_RUNTIME_API TUniquePtr<IDriver>
-    GVulkan = MakeUnique<FVulkan>();
 
     void FVulkan::
     Bootstrap()

@@ -5,7 +5,7 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
-export module Visera.Runtime.RHI.Vulkan.Allocator;
+export module Visera.Runtime.RHI.Driver.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
