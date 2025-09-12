@@ -1,10 +1,11 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-export import Visera.Runtime.RHI.Driver;
-       import Visera.Core.Log;
+import Visera.Runtime.RHI.Driver.Interface;
+import Visera.Runtime.RHI.Driver.Vulkan;
+import Visera.Runtime.RHI.Frame;
+import Visera.Core.Log;
 
 namespace Visera
 {
@@ -22,7 +23,11 @@ namespace Visera
         EndFrame()    const { GetDriver()->EndFrame(); };
 
         [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
-        GetDriver()   const { return RHI::GDriver; };
+        GetDriver()   const { return Driver; };
+
+    private:
+        TUniquePtr<RHI::IDriver> Driver;
+        TArray<RHI::FFrame>      Frames;
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -31,7 +36,6 @@ namespace Visera
         Bootstrap() override;
         void inline
         Terminate() override;
-
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FRHI>
@@ -44,7 +48,9 @@ namespace Visera
 
         try
         {
-            RHI::GDriver->Bootstrap();
+            Driver = MakeUnique<RHI::FVulkan>();
+            Frames.resize(Driver->GetFrameCount(), RHI::FFrame{Driver});
+            LOG_DEBUG("Created {} frames.", Frames.size());
         }
         catch (const SRuntimeError& Error)
         {
@@ -58,7 +64,7 @@ namespace Visera
     Terminate()
     {
         LOG_DEBUG("Terminating RHI.");
-        RHI::GDriver->Terminate();
+        Driver.reset();
 
         Statue = EStatues::Terminated;
     }

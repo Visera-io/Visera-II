@@ -7,7 +7,7 @@ import Visera.Core.Log;
 namespace Visera::RHI
 {
 
-    export class VISERA_RUNTIME_API IDriver : public IGlobalSingleton
+    export class VISERA_RUNTIME_API IDriver
     {
     public:
         enum class EType
@@ -26,19 +26,18 @@ namespace Visera::RHI
         EndFrame()   = 0;
         virtual void
         Present()    = 0;
+        [[nodiscard]] virtual UInt32
+        GetFrameCount() const = 0;
 
-        virtual void*
-        GetNativeInstance() = 0;
-        virtual void*
-        GetNativeDevice()   = 0;
+        [[nodiscard]] virtual const void*
+        GetNativeInstance() const = 0;
+        [[nodiscard]] virtual const void*
+        GetNativeDevice()   const = 0;
 
-        explicit IDriver(EType I_Type)
-        :
-        IGlobalSingleton{GetTypeString(I_Type)},
-        Type{ I_Type }
-        {
-            LOG_INFO("RHI Driver: {}", GetDebugName());
-        }
+        explicit IDriver() = delete;
+        explicit IDriver(EType I_Type) : Type{ I_Type }
+        { LOG_INFO("RHI Driver: {}", GetTypeString(Type)); }
+        virtual ~IDriver() = default;
 
     private:
         EType Type {EType::Unknown};

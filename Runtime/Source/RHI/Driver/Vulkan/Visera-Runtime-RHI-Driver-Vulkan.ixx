@@ -73,10 +73,12 @@ namespace Visera::RHI
         EndFrame()   override {};
         void
         Present()    override {};
-        inline void*
-        GetNativeInstance() override { return *Instance;       };
-        inline void*
-        GetNativeDevice()   override { return *Device.Context; };
+        UInt32
+        GetFrameCount() const override { return SwapChain.Images.size(); }
+        inline const void*
+        GetNativeInstance() const override { return *Instance;       };
+        inline const void*
+        GetNativeDevice() const override { return *Device.Context; };
 
     private:
         void CreateInstance();
@@ -130,17 +132,13 @@ namespace Visera::RHI
         }
 
     public:
-        FVulkan() : IDriver{EType::Vulkan} {};
+        FVulkan();
         ~FVulkan() override;
-        void Bootstrap() override;
-        void Terminate() override;
     };
 
-    void FVulkan::
-    Bootstrap()
+    FVulkan::
+    FVulkan() : IDriver{EType::Vulkan}
     {
-        LOG_DEBUG("Bootstrapping Vulkan.");
-
         AppInfo = vk::ApplicationInfo{}
         .setPApplicationName    ("Visera")
         .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
@@ -191,13 +189,11 @@ namespace Visera::RHI
         {
             CreateSwapChain();
         }
+    };
 
-        Statue = EStatues::Bootstrapped;
-    }
-    void FVulkan::
-    Terminate()
+    FVulkan::
+    ~FVulkan()
     {
-        LOG_DEBUG("Terminating Vulkan.");
         Device.Context.waitIdle();
 
         if (GWindow->IsBootstrapped())
@@ -229,15 +225,6 @@ namespace Visera::RHI
         }
 
         GVulkanLoader->Terminate();
-
-        Statue = EStatues::Terminated;
-    }
-
-    FVulkan::
-    ~FVulkan()
-    {
-        if (IsBootstrapped())
-        { std::cerr << "GVulkan did NOT be terminated properly!"; }
     }
 
     void FVulkan::

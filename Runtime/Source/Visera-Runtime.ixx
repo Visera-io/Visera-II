@@ -21,6 +21,8 @@ namespace Visera
     public:
         FRuntime()
         {
+            LOG_INFO("Initializing Runtime.");
+
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
             SetConsoleOutputCP(65001); // Set console output code page to UTF-8
             SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
@@ -32,7 +34,7 @@ namespace Visera
         ~FRuntime()
         {
             GLog->Terminate();
-            LOG_INFO("Finalizing Runtime (running time: {}s)", Timer.Elapsed().Seconds());
+            LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
         }
 
     private:
