@@ -57,77 +57,81 @@
 #define VISERA_LOG_LEVEL_ERROR 4 //|      Yes       | |     Yes     | |   Red    | |                | |                      |
 #define VISERA_LOG_LEVEL_FATAL 5 //|      Yes       | |     Yes     | |   Red    | |       Red      | |     SRuntimeError    |
 
-#define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_DEBUG
+#if defined(VISERA_DEBUG_MODE)
+#define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_TRACE
+#else
+#define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_INFO
+#endif
 
 #if defined(VISERA_ON_MSVC_COMPILER)
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_DEBUG(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_INFO >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_INFO(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_WARN >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_WARN(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_ERROR >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_ERROR(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_FATAL >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__);
+	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_FATAL(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 #else
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define VISERA_LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define VISERA_LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define VISERA_LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_DEBUG(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_INFO >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_INFO(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_WARN >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_WARN(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_ERROR >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_ERROR(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_FATAL >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__);
+	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_FATAL(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif

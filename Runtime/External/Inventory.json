@@ -43,5 +43,14 @@
             "Vulkan"
         ],
         "URL" : "https://github.com/shader-slang/slang"
+    },
+    ".NET" :
+    {
+        "Version" : "9.X.X",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://dotnet.microsoft.com/"
     }
 }

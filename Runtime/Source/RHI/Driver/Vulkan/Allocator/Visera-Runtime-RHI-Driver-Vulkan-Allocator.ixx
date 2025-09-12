@@ -31,7 +31,7 @@ namespace Visera
                      vk::PhysicalDevice I_GPU,
                      vk::Device         I_Device)
     {
-        LOG_DEBUG("Creating a Vulkan Allocator.")
+        LOG_DEBUG("Creating a Vulkan Allocator.");
 
         const VmaVulkanFunctions VulkanFunctions
         {

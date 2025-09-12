@@ -173,15 +173,15 @@ export namespace Visera
                 ColorFormat = EColorFormat::RGBA;
                 break;
             case PNG_COLOR_TYPE_GRAY:
-                LOG_WARN("The gray image ({}) is NOT safely supported!", Path)
+                LOG_WARN("The gray image ({}) is NOT safely supported!", Path);
                 ColorFormat = EColorFormat::Gray;
                 break;
             case PNG_COLOR_TYPE_GRAY_ALPHA:
-                LOG_WARN("The gray alpha image ({}) is NOT safely supported!", Path)
+                LOG_WARN("The gray alpha image ({}) is NOT safely supported!", Path);
                 ColorFormat = EColorFormat::Invalid;
                 break;
             default:
-                LOG_ERROR("The format of image ({}) is NOT supported!", Path)
+                LOG_ERROR("The format of image ({}) is NOT supported!", Path);
                 ColorFormat = EColorFormat::Invalid;
         }
     }
