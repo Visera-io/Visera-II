@@ -35,15 +35,6 @@
         ],
         "URL" : "https://github.com/madler/zlib"
     },
-    "LibPNG" : 
-    {
-        "Version" : "1.6.50",
-        "Dependencies" : 
-        [
-            "ZLib"
-        ],
-        "URL" : "https://github.com/pnggroup/libpng"
-    },
     "STB" :
     {
         "Version" : "Date >= 2025.5.1",

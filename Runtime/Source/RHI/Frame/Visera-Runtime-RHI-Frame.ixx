@@ -10,16 +10,9 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FFrame
     {
     public:
-        explicit FFrame() = delete;
-        explicit FFrame(const TUniquePtr<IDriver>& I_Driver);
-    private:
-        const TUniquePtr<IDriver>& Driver;
-    };
+        explicit FFrame() {};
 
-    FFrame::
-    FFrame(const TUniquePtr<IDriver>& I_Driver)
-        :Driver{I_Driver}
-    {
-        VISERA_ASSERT(Driver != nullptr);
-    }
+    private:
+        TUniquePtr<IFence> Fence;
+    };
 }

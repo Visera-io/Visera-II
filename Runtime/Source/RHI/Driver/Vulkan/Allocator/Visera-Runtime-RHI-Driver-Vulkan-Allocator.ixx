@@ -9,7 +9,7 @@ export module Visera.Runtime.RHI.Driver.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
-namespace Visera
+namespace Visera::RHI
 {
     export class VISERA_RUNTIME_API FVulkanAllocator
     {

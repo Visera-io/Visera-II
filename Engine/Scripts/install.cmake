@@ -1,5 +1,6 @@
 message(STATUS "\nInstalling Visera Engine...")
 
+set(VISERA_ENGINE_ASSETS_DIR   "${PROJECT_SOURCE_DIR}/Assets")
 set(VISERA_ENGINE_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
 set(VISERA_ENGINE_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_ENGINE_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
@@ -61,3 +62,5 @@ target_sources(${VISERA_ENGINE}
                PUBLIC
                FILE_SET "visera_engine_modules" TYPE CXX_MODULES
                FILES ${VISERA_ENGINE_MODULES})
+
+               # Find the Windows resource compiler

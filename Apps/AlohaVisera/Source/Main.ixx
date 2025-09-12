@@ -4,9 +4,9 @@ module;
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
-import Visera.Core.Media.Image.Wrappers;
 import Visera.Runtime;
 import Visera.Engine;
+import Visera.Core.Compression;
 using namespace Visera;
 
 export int main(int argc, char *argv[])
@@ -27,6 +27,14 @@ export int main(int argc, char *argv[])
         r = Math::Pow(2, Float(i % 32));
     }
     LOG_INFO("Float {}ms", Clock.Elapsed().Milliseconds());
+
+    TArray<FByte> Buffer;
+    FString Source = "asdwdwuiahgiawdiwadiaudiuhioxudoawdaodw";
+    if (Compress(Source, &Buffer) != ECompressionStatue::Success)
+    {
+        LOG_WARN("Src Size:{} Com Size:{}", Source.size(), Buffer.size());
+    }
+    else LOG_ERROR("Failed to compress!");
 
     auto Lib = GPlatform->LoadLibrary(
         PATH("libhostfxr.dylib"));

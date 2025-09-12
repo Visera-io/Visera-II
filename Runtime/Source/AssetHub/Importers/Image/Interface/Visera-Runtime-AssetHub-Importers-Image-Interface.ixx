@@ -1,12 +1,12 @@
 module;
-#include <Visera-Core.hpp>
-export module Visera.Core.Media.Image.Wrappers:Interface;
-#define VISERA_MODULE_NAME "Core.Media"
-export import Visera.Core.Media.Image.Common;
+#include <Visera-Runtime.hpp>
+export module Visera.Runtime.AssetHub.Importers.Image.Interface;
+#define VISERA_MODULE_NAME "Runtime.AssetHub"
+export import Visera.Runtime.AssetHub.Importers.Image.Common;
 
 export namespace Visera
 {
-    class VISERA_CORE_API IImageWrapper
+    class VISERA_RUNTIME_API IImageWrapper
     {
     public:
         virtual auto

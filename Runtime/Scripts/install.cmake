@@ -38,6 +38,9 @@ target_link_libraries(${VISERA_RUNTIME} PRIVATE Visera::Core)
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
+# Link Zlib from Core first since other libraries depend on it
+# Note: We don't call link_zlib here because it's already linked through Core
+
 include(install_dotnet)
 link_dotnet(${VISERA_RUNTIME})
 
@@ -55,6 +58,9 @@ link_volk(${VISERA_RUNTIME})
 
 include(install_slang)
 link_slang(${VISERA_RUNTIME})
+
+include(install_libpng)
+link_libpng(${VISERA_RUNTIME})
 
 #
 #

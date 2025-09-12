@@ -49,7 +49,7 @@ namespace Visera
         try
         {
             Driver = MakeUnique<RHI::FVulkan>();
-            Frames.resize(Driver->GetFrameCount(), RHI::FFrame{Driver});
+            Frames.resize(Driver->GetFrameCount());
             LOG_DEBUG("Created {} frames.", Frames.size());
         }
         catch (const SRuntimeError& Error)

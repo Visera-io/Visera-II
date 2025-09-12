@@ -2,6 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Driver.Interface;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+export import Visera.Runtime.RHI.Driver.Interface.Fence;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -28,6 +29,9 @@ namespace Visera::RHI
         Present()    = 0;
         [[nodiscard]] virtual UInt32
         GetFrameCount() const = 0;
+
+        [[nodiscard]] virtual TUniquePtr<IFence>
+        CreateFence() const = 0;
 
         [[nodiscard]] virtual const void*
         GetNativeInstance() const = 0;

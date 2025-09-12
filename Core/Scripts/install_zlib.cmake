@@ -8,21 +8,18 @@ macro(link_zlib in_target)
     if(NOT TARGET zlib)    
         option(ZLIB_BUILD_EXAMPLES "Enable Zlib Examples" OFF)
 
-        if (WIN32)
-            set(ZLIB_BUILD_STATIC_LIBS OFF CACHE BOOL " " FORCE)
-            set(ZLIB_BUILD_SHARED_LIBS ON  CACHE BOOL " " FORCE)
-            add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/ZLib)
+        set(ZLIB_BUILD_STATIC_LIBS OFF CACHE BOOL " " FORCE)
+        set(ZLIB_BUILD_SHARED_LIBS ON  CACHE BOOL " " FORCE)
+        add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/ZLib)
 
-            #set_property(TARGET zlib PROPERTY FOLDER "dependencies")
-            set(ZLIB_LIBRARY zlib)
-            set(ZLIB_INCLUDE_DIR "${VISERA_CORE_EXTERNAL_DIR}/ZLib" CACHE BOOL " " FORCE)
+        #set_property(TARGET zlib PROPERTY FOLDER "dependencies")
+        set(ZLIB_LIBRARY zlib PARENT_SCOPE) # For LibPNG
+        set(ZLIB_INCLUDE_DIR "${VISERA_CORE_EXTERNAL_DIR}/ZLib" CACHE BOOL " " FORCE)
 
-            # libpng expects zlib to be a modern CMake package, let's make an alias for it
-            add_library(ZLIB::ZLIB ALIAS zlib)
-            target_include_directories(zlib PUBLIC "${VISERA_CORE_EXTERNAL_DIR}/ZLib")
-        else()
-            message("Installing zlib on an untested platform!")
-        endif()
+        # libpng expects zlib to be a modern CMake package, let's make an alias for it
+        add_library(ZLIB::ZLIB ALIAS zlib)
+        target_include_directories(zlib PUBLIC "${VISERA_CORE_EXTERNAL_DIR}/ZLib")
+
     endif()
 
     target_link_libraries(${in_target} PUBLIC ZLIB::ZLIB)

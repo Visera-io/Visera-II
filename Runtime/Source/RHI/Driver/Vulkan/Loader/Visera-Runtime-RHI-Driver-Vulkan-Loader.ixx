@@ -7,7 +7,7 @@ export module Visera.Runtime.RHI.Driver.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
-namespace Visera
+namespace Visera::RHI
 {
     class VISERA_RUNTIME_API FVulkanLoader : public IGlobalSingleton
     {

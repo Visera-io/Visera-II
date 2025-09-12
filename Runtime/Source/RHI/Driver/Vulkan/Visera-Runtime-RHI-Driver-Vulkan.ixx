@@ -8,6 +8,7 @@ export module Visera.Runtime.RHI.Driver.Vulkan;
 import Visera.Runtime.RHI.Driver.Interface;
 import Visera.Runtime.RHI.Driver.Vulkan.Loader;
 import Visera.Runtime.RHI.Driver.Vulkan.Allocator;
+import Visera.Runtime.RHI.Driver.Vulkan.Fence;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
 import Visera.Core.Math.Arithmetic;
@@ -73,6 +74,8 @@ namespace Visera::RHI
         EndFrame()   override {};
         void
         Present()    override {};
+        TUniquePtr<IFence>
+        CreateFence() const override { return MakeUnique<FVulkanFence>(); }
         UInt32
         GetFrameCount() const override { return SwapChain.Images.size(); }
         inline const void*

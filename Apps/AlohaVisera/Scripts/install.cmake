@@ -1,5 +1,6 @@
 message(STATUS "\nInstalling ${VISERA_APP}...")
 
+set(VISERA_APP_ASSETS_DIR   "${PROJECT_SOURCE_DIR}/Assets")
 set(VISERA_APP_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
 set(VISERA_APP_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_APP_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
@@ -23,3 +24,13 @@ target_link_libraries(${VISERA_APP}
         Visera::Engine
         Visera::Studio
 )
+
+# App Icon
+if(MSVC)
+    enable_language(RC)
+    # Optional: Set icon path variable (if you want to make it configurable)
+    # set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_sources(${VISERA_APP}
+                   PRIVATE
+                   "${VISERA_APP_ASSETS_DIR}/Icons/App.ico.rc")
+endif()

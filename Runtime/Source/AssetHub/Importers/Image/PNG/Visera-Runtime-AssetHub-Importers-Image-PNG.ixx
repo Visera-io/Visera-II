@@ -1,14 +1,14 @@
 module;
-#include <Visera-Core.hpp>
+#include <Visera-Runtime.hpp>
 #include <png.h>
-export module Visera.Core.Media.Image.Wrappers:PNG;
-#define VISERA_MODULE_NAME "Core.Media"
+export module Visera.Runtime.AssetHub.Importers.Image.PNG;
+#define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Core.Log;
-import :Interface;
+import Visera.Runtime.AssetHub.Importers.Image.Interface;
 
 export namespace Visera
 {
-    class VISERA_CORE_API FPNGImageWrapper : public IImageWrapper
+    class VISERA_RUNTIME_API FPNGImageWrapper : public IImageWrapper
     {
     public:
         virtual auto
