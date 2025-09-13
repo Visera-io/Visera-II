@@ -9,7 +9,7 @@ import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    class VISERA_RUNTIME_API FVulkanLoader : public IGlobalSingleton
+    export class VISERA_RUNTIME_API FVulkanLoader
     {
     public:
         void inline
@@ -17,43 +17,29 @@ namespace Visera::RHI
         void inline
         Load(const vk::Device& I_Device)     const;
 
-        void inline
-        Bootstrap() override;
-        void inline
-        Terminate() override;
-
-        FVulkanLoader() : IGlobalSingleton("VMA") {}
-        ~FVulkanLoader() override;
+        FVulkanLoader();
+        ~FVulkanLoader();
 
     private:
         mutable UInt8 bLoadedInstance : 1 = False;
         mutable UInt8 bLoadedDevice   : 1 = False;
     };
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FVulkanLoader>
-    GVulkanLoader = MakeUnique<FVulkanLoader>();
-
-    void FVulkanLoader::
-    Bootstrap()
+    FVulkanLoader::
+    FVulkanLoader()
     {
-        if (IsBootstrapped()) { return; }
-
-        LOG_DEBUG("Bootstrapping Vulkan Loader.");
+        LOG_TRACE("Creating the Vulkan Loader.");
 
         if (volkInitialize() != VK_SUCCESS)
         {
             throw SRuntimeError("Failed to initialize the Volk!");
         }
-
-        Statue = EStatues::Bootstrapped;
     }
 
-    void FVulkanLoader::
-    Terminate()
+    FVulkanLoader::
+    ~FVulkanLoader()
     {
-        if (!IsBootstrapped()) { return; }
-
-        LOG_DEBUG("Terminating Vulkan Loader.");
+        LOG_TRACE("Destroying the Vulkan Loader.");
 
         if (!bLoadedInstance)
         { LOG_WARN("Forgot to load VkInstance?"); }
@@ -61,8 +47,6 @@ namespace Visera::RHI
         { LOG_WARN("Forgot to load VkDevice?"); }
 
         volkFinalize();
-
-        Statue = EStatues::Terminated;
     }
 
     void FVulkanLoader::
@@ -79,11 +63,5 @@ namespace Visera::RHI
         VISERA_ASSERT(I_Device != nullptr);
         volkLoadDevice(I_Device);
         bLoadedDevice = True;
-    }
-
-    FVulkanLoader::
-    ~FVulkanLoader()
-    {
-
     }
 }

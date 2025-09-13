@@ -41,7 +41,8 @@ namespace Visera::RHI
             vk::raii::Queue  GraphicsQueue   {nullptr};
         }Device;
 
-        TUniquePtr<FVulkanAllocator>Allocator;
+        TUniquePtr<FVulkanLoader>    Loader;
+        TUniquePtr<FVulkanAllocator> Allocator;
 
         struct
         {
@@ -113,7 +114,7 @@ namespace Visera::RHI
         {
             if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose)
             {
-                //LOG_INFO("{}", I_CallbackData->pMessage);
+                LOG_TRACE("{}", I_CallbackData->pMessage);
             }
             else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
             {
@@ -129,7 +130,7 @@ namespace Visera::RHI
             }
             else
             {
-                LOG_FATAL("Unknown Vulkan Debug Message Severity {}", static_cast<Int32>(I_Severity));
+                LOG_ERROR("Unknown Vulkan Debug Message Severity {}", static_cast<Int32>(I_Severity));
             }
             return vk::False; // Always return VK_FALSE
         }
@@ -149,14 +150,14 @@ namespace Visera::RHI
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
         .setApiVersion          (vk::ApiVersion13);
 
-        GVulkanLoader->Bootstrap();
+        Loader = MakeUnique<FVulkanLoader>();
 
         // Instance
         {
             CollectInstanceLayersAndExtensions();
 
             CreateInstance();
-            GVulkanLoader->Load(Instance);
+            Loader->Load(Instance);
 
             CreateDebugMessenger();
         }
@@ -173,7 +174,7 @@ namespace Visera::RHI
 
             PickPhysicalDevice();
             CreateDevice();
-            GVulkanLoader->Load(Device.Context);
+            Loader->Load(Device.Context);
         }
 
         // Allocator
@@ -227,7 +228,7 @@ namespace Visera::RHI
             Instance.clear();
         }
 
-        GVulkanLoader->Terminate();
+        Loader.reset();
     }
 
     void FVulkan::
@@ -279,7 +280,7 @@ namespace Visera::RHI
     {
 #if defined(VISERA_DEBUG_MODE)
         auto CreateInfo = vk::DebugUtilsMessengerCreateInfoEXT{}
-            .setMessageSeverity(//vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose    |
+            .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose    |
                                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning  |
                                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
                                 )
@@ -354,7 +355,7 @@ namespace Visera::RHI
 
             if (!bSuitable) { return False; }
 
-            LOG_DEBUG("Checking Extension supporting...");
+            LOG_TRACE("Checking Extension supporting...");
             auto Extensions = PhysicalDeviceCandidate.enumerateDeviceExtensionProperties( );
             for (auto const & RequiredExtension : DeviceExtensions)
             {
