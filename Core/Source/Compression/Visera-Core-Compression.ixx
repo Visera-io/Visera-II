@@ -3,6 +3,7 @@ module;
 #include <zlib.h>
 export module Visera.Core.Compression;
 #define VISERA_MODULE_NAME "Core.Compression"
+import Visera.Core.Log;
 import Visera.Core.OS.Memory;
 
 export namespace Visera
@@ -19,7 +20,7 @@ export namespace Visera
     Compress(FStringView I_Buffer, TMutable<TArray<FByte>> O_Buffer)
     {
         const FByte* SourceData = reinterpret_cast<const FByte*>(I_Buffer.data());
-        Int32 SourceSize = O_Buffer->size();
+        const UInt32 SourceSize = I_Buffer.size();
 
         if (SourceSize == 0) { return ECompressionStatue::Success; }
 
@@ -27,28 +28,29 @@ export namespace Visera
         // [ 4 bytes: original size ] [ compressed data... ]
         //   ^                         ^
         //   |                         |
-        // sizeof(Int32) header        Actual zlib compressed data
+        // sizeof(UInt32) header       Actual zlib compressed data
         uLongf CompressedSize = compressBound(SourceSize);
-        O_Buffer->resize(CompressedSize + sizeof(Int32));
+        O_Buffer->resize(CompressedSize + sizeof(UInt32));
 
         // Store original size at the beginning for decompression
-        Int32 OriginalSize = SourceSize;
-        Memory::Memcpy(O_Buffer->data(), &OriginalSize, sizeof(Int32));
+        Memory::Memcpy(O_Buffer->data(), &SourceSize, sizeof(UInt32));
 
         // Compress the data
-        Int32 ZlibResult = compress(
+        auto Result = compress(
             O_Buffer->data() + sizeof(Int32),  // Destination (after size header)
             &CompressedSize,                           // Compressed size (in/out)
             SourceData,                                // Source data
             SourceSize                                 // Source size
         );
 
-        if (ZlibResult == Z_OK)
-        {
-            // Resize array to actual compressed size + header
-            O_Buffer->resize(CompressedSize + sizeof(Int32));
-        }
+        if (Result == Z_OK)
+        { O_Buffer->resize(CompressedSize + sizeof(UInt32)); }
 
-        return static_cast<ECompressionStatue>(ZlibResult);
+        if (I_Buffer.size() < O_Buffer->size())
+        LOG_DEBUG("Compression resulted in larger size ({} -> {})"
+                  "-- Input may be too small or non-redundant.",
+                  I_Buffer.size(), O_Buffer->size());
+
+        return static_cast<ECompressionStatue>(Result);
     }
 }

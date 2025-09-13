@@ -101,9 +101,9 @@
 	#endif
 #else
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define VISERA_LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
-	#define VISERA_LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
+	#define LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY

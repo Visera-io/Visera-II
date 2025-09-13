@@ -18,6 +18,7 @@ namespace Visera
 
             GWindow->Bootstrap();
             GRHI->Bootstrap();
+            GAudio->Bootstrap();
 
             Statue = EStatues::Bootstrapped;
         }
@@ -38,6 +39,7 @@ namespace Visera
         {
             LOG_DEBUG("Terminating Engine.");
 
+            GAudio->Terminate();
             GRHI->Terminate();
             GWindow->Terminate();
 

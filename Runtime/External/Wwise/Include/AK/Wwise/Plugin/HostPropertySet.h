@@ -32,7 +32,7 @@ the specific language governing permissions and limitations under the License.
 #pragma once
 
 #include "PluginInfoGenerator.h"
-#include "./V1/HostPropertySet.h"
+#include "V1/HostPropertySet.h"
 
 /// \copydoc ak_wwise_plugin_host_property_set_v1
 struct ak_wwise_plugin_host_property_set_v2

@@ -18,12 +18,12 @@ export int main(int argc, char *argv[])
     FHiResClock Clock{};
     
     TArray<FByte> Buffer;
-    FString Source = "asdwdwuiahgiawdiwadiaudiuhioxudoawdaodw";
-    if (Compress(Source, &Buffer) != ECompressionStatue::Success)
+    FStringView Source = "aaaaaaaa";
+    if (auto Result = Compress(Source, &Buffer) != ECompressionStatue::Success)
     {
-        LOG_WARN("Src Size:{} Com Size:{}", Source.size(), Buffer.size());
+        LOG_ERROR("Failed to compress! ({})", Result);
     }
-    else LOG_ERROR("Failed to compress!");
+    else LOG_WARN("Src Size:{} Com Size:{}", Source.size(), Buffer.size());
 
     auto Lib = GPlatform->LoadLibrary(
         PATH("libhostfxr.dylib"));

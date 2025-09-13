@@ -52,5 +52,14 @@
 
         ],
         "URL" : "https://dotnet.microsoft.com/"
+    },
+    "Wwise" :
+    {
+        "Version" : "2025.1.1.8936 Beta",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://www.audiokinetic.com"
     }
 }

@@ -50,7 +50,7 @@ namespace Visera
         {
             Driver = MakeUnique<RHI::FVulkan>();
             Frames.resize(Driver->GetFrameCount());
-            LOG_DEBUG("Created {} frames.", Frames.size());
+            LOG_TRACE("Created {} frames.", Frames.size());
         }
         catch (const SRuntimeError& Error)
         {
@@ -73,10 +73,7 @@ namespace Visera
     ~FRHI()
     {
         if (IsBootstrapped())
-        {
-            std::cerr << "[FATAL] RHI must be terminated properly!\n";
-            std::exit(EXIT_FAILURE);
-        }
+        { LOG_FATAL("RHI must be terminated properly!"); }
     }
 
 }

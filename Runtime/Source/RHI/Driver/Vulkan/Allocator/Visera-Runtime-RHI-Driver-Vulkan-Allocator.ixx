@@ -31,8 +31,6 @@ namespace Visera::RHI
                      vk::PhysicalDevice I_GPU,
                      vk::Device         I_Device)
     {
-        LOG_DEBUG("Creating a Vulkan Allocator.");
-
         const VmaVulkanFunctions VulkanFunctions
         {
             .vkGetInstanceProcAddr               = vkGetInstanceProcAddr,
@@ -51,6 +49,8 @@ namespace Visera::RHI
         };
         if (vmaCreateAllocator(&CreateInfo, &Handle) != VK_SUCCESS)
         { LOG_FATAL("Failed to create the Vulkan Memory Allocator!"); }
+
+        LOG_TRACE("Created a Vulkan Memory Allocator.");
     }
 
 }

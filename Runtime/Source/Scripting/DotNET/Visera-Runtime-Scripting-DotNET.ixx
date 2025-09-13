@@ -25,18 +25,26 @@ namespace Visera
             LOG_INFO("Initing .NET");
             Initialize();
         }
+
         void Initialize()
         {
-            if (!load_hostfxr())
-            { LOG_FATAL("Failed to load hostfxr"); }
-            hostfxr_initialize_for_runtime_config_fn();
-            hostfxr_close_fn();
+            if (!LoadHostFXR()) { LOG_FATAL("Failed to load HostFXR"); }
+
+            if (!Fn_InitializeRuntime(nullptr, nullptr, nullptr))
+            {
+                LOG_FATAL("Failed to initialize HostFXR runtime");
+            }
+            if (!Fn_FinalizeRuntime(nullptr))
+            {
+                LOG_FATAL("Failed to finalize HostFXR runtime");
+            }
         }
 
-        // Using the nethost library, discover the location of hostfxr and get exports
-        [[nodiscard]]
-        bool load_hostfxr()
+    private:
+        [[nodiscard]] inline Bool
+        LoadHostFXR()
         {
+            // Using the nethost library, discover the location of hostfxr and get exports
             auto HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
 
             Fn_InitializeRuntime = reinterpret_cast<hostfxr_initialize_for_runtime_config_fn>

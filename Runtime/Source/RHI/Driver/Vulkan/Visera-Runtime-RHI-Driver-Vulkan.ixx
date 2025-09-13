@@ -322,13 +322,13 @@ namespace Visera::RHI
         find_if(PhysicalDeviceCandidates, [&](auto const & PhysicalDeviceCandidate)
         {
             auto PhysicalDeviceInfo = PhysicalDeviceCandidate.getProperties();
-            LOG_DEBUG("Current PhysicalDevice candidate: {}.", PhysicalDeviceInfo.deviceName.data());
+            LOG_TRACE("Current GPU candidate: {}.", PhysicalDeviceInfo.deviceName.data());
 
-            LOG_DEBUG("Checking Vulkan API Version...");
+            LOG_TRACE("Checking Vulkan API Version...");
             Bool bSuitable = PhysicalDeviceInfo.apiVersion >= AppInfo.apiVersion;
             if (!bSuitable) { return False; }
 
-            LOG_DEBUG("Checking Queue Families...");
+            LOG_TRACE("Checking Queue Families...");
             auto QueueFamilies = PhysicalDeviceCandidate.getQueueFamilyProperties();
 
             for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
@@ -373,7 +373,7 @@ namespace Visera::RHI
         if (SelectedPhysicalDevice == PhysicalDeviceCandidates.end())
         { throw SRuntimeError("Failed to find a suitable PhysicalDevice!"); }
 
-        LOG_INFO("Selected PhysicalDevice: {}", GPU.Context.getProperties().deviceName.data());
+        LOG_INFO("Selected GPU: {}", GPU.Context.getProperties().deviceName.data());
     }
 
     void FVulkan::
@@ -524,7 +524,7 @@ namespace Visera::RHI
 
         SwapChain.Context = vk::raii::SwapchainKHR(Device.Context, CreateInfo);
 
-        LOG_DEBUG("Created a SwapChain (extent:[{},{}]).",
+        LOG_TRACE("Created a SwapChain (extent:[{},{}]).",
                    SwapChain.Extent.width, SwapChain.Extent.height);
 
         SwapChain.Images = SwapChain.Context.getImages();

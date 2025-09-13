@@ -46,9 +46,6 @@ list(APPEND CMAKE_MODULE_PATH ${VISERA_ENGINE_SCRIPTS_DIR})
 include(install_bvh)
 link_bvh(${VISERA_ENGINE})
 
-include(install_wwise)
-link_wwise(${VISERA_ENGINE})
-
 #
 #
 #
