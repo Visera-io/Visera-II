@@ -150,6 +150,15 @@ namespace Visera::RHI
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
         .setApiVersion          (vk::ApiVersion13);
 
+#if defined(VISERA_ON_APPLE_SYSTEM)
+        if (setenv("VK_ICD_FILENAMES",
+                   VISERA_VULKAN_SDK_PATH "/share/vulkan/icd.d/MoltenVK_icd.json", True) != 0)
+        { LOG_ERROR("Failed to set \"VK_ICD_FILENAMES\"!"); }
+        if (setenv("VK_LAYER_PATH",
+                   VISERA_VULKAN_SDK_PATH "/share/vulkan/explicit_layer.d", True) != 0)
+        { LOG_ERROR("Failed to set \"VK_LAYER_PATH\"!"); }
+#endif
+
         Loader = MakeUnique<FVulkanLoader>();
 
         // Instance

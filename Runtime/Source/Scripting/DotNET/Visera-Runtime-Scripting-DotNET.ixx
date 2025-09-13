@@ -3,6 +3,7 @@ module;
 #include <nethost.h>
 #include <coreclr_delegates.h>
 #include <hostfxr.h>
+#include <sys/syslog.h>
 export module Visera.Runtime.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Runtime.Scripting"
 import Visera.Core.Log;
@@ -22,21 +23,21 @@ namespace Visera
     public:
         FDotNET()
         {
-            LOG_INFO("Initing .NET");
+            //LOG_DEBUG("Initializing .NET");
             Initialize();
         }
 
         void Initialize()
         {
-            if (!LoadHostFXR()) { LOG_FATAL("Failed to load HostFXR"); }
+            if (!LoadHostFXR()) { LOG_ERROR("Failed to load HostFXR"); return; }
 
             if (!Fn_InitializeRuntime(nullptr, nullptr, nullptr))
             {
-                LOG_FATAL("Failed to initialize HostFXR runtime");
+                LOG_ERROR("Failed to initialize HostFXR runtime");
             }
             if (!Fn_FinalizeRuntime(nullptr))
             {
-                LOG_FATAL("Failed to finalize HostFXR runtime");
+                LOG_ERROR("Failed to finalize HostFXR runtime");
             }
         }
 

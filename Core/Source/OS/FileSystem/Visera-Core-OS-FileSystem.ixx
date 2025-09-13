@@ -58,14 +58,16 @@ export namespace Visera
     CreateDirectory(const FPath& I_RelativePath) const
     {
         const auto Path = GetRoot()/I_RelativePath;
-        if (!std::filesystem::exists(Path.GetNativePath()))
+        std::error_code ErrorCode{};
+
+        if (!std::filesystem::exists(Path.GetNativePath(), ErrorCode))
         {
-            if (!std::filesystem::create_directories(Path.GetNativePath()))
-            { LOG_ERROR("Failed to create directory at \"{}\"", Path); }
+            if (!std::filesystem::create_directories(Path.GetNativePath(), ErrorCode))
+            { LOG_ERROR("Failed to create directory at \"{}\" -- {}.", Path, ErrorCode.message()); }
             else
             { LOG_INFO("Created a new directory at \"{}\"", Path); return True; }
         }
-        else { LOG_ERROR("Failed to create an existent directory \"{}\"!", Path); }
+        else { LOG_ERROR("Failed to create the directory \"{}\" -- {}.", Path, ErrorCode.message()); }
 
         return False;
     }
@@ -74,29 +76,31 @@ export namespace Visera
     DeleteDirectory(const FPath& I_RelativePath, Bool I_bForce/* = False*/) const
     {
         const auto Path = GetRoot()/I_RelativePath;
-        if (std::filesystem::exists(Path.GetNativePath())      &&
-            std::filesystem::is_directory(Path.GetNativePath()))
+        std::error_code ErrorCode{};
+
+        if (std::filesystem::exists(Path.GetNativePath(), ErrorCode)      &&
+            std::filesystem::is_directory(Path.GetNativePath(), ErrorCode))
         {
             if (I_bForce)
             {
-                if (!std::filesystem::remove_all(Path.GetNativePath()))
-                { LOG_ERROR("Failed to delete the directory \"{}\"", Path); }
+                if (!std::filesystem::remove_all(Path.GetNativePath(), ErrorCode))
+                { LOG_ERROR("Failed to delete the directory \"{}\" -- {}.", Path, ErrorCode.message()); }
                 else
                 { LOG_INFO("Deleted the directory \"{}\"", Path); return True;}
             }
 
-            if (!std::filesystem::is_empty(Path.GetNativePath()))
+            if (!std::filesystem::is_empty(Path.GetNativePath(), ErrorCode))
             {
-                LOG_ERROR("Failed to delete an non-empty directory at \"{}\"!", Path);
+                LOG_ERROR("Failed to delete the directory \"{}\" -- {}.", Path, ErrorCode.message());
                 return False;
             }
 
-            if (!std::filesystem::remove(Path.GetNativePath()))
-            { LOG_ERROR("Failed to delete the directory \"{}\"", Path); }
+            if (!std::filesystem::remove(Path.GetNativePath(), ErrorCode))
+            { LOG_ERROR("Failed to delete the directory \"{}\" -- {}.", Path, ErrorCode.message()); }
             else
             { LOG_INFO("Deleted the directory \"{}\"", Path); return True;}
         }
-        else { LOG_ERROR("Failed to delete an inexistent directory \"{}\"!", Path); }
+        else { LOG_ERROR("Failed to delete the directory \"{}\" -- {}.", Path, ErrorCode.message()); }
 
         return False;
     }
@@ -104,19 +108,26 @@ export namespace Visera
     Bool FFileSystem::
     CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath)
     {
-        if (!std::filesystem::exists(I_TargetPath.GetNativePath()))
+        std::error_code ErrorCode{};
+
+        if (!std::filesystem::exists(I_TargetPath.GetNativePath(), ErrorCode))
         {
-            LOG_ERROR("Failed to create soft link to a non-existent directory \"{}\"!", I_TargetPath);
+            LOG_ERROR("Failed to create a soft link to the directory \"{}\" -- {}.", I_TargetPath, ErrorCode.message());
             return False;
         }
 
-        if (!std::filesystem::exists(I_SourcePath.GetNativePath()))
+        if (std::filesystem::exists(I_SourcePath.GetNativePath(), ErrorCode))
         {
             std::filesystem::create_symlink(I_TargetPath.GetNativePath(),
-                                            I_SourcePath.GetNativePath());
-            LOG_INFO("Created soft link \"{}\" -> \"{}\"", I_SourcePath, I_TargetPath);
+                                            I_SourcePath.GetNativePath(),
+                                            ErrorCode);
+            if (ErrorCode)
+            { LOG_ERROR("Failed to create a soft link \"{}\" -> \"{}\" -- {}.", I_SourcePath, I_TargetPath, ErrorCode.message()); }
+            else
+            { LOG_INFO("Created a soft link \"{}\" -> \"{}\"", I_SourcePath, I_TargetPath); }
             return True;
         }
+        else { LOG_ERROR("Failed to create a soft link \"{}\" -> \"{}\" -- {}.", I_SourcePath, I_TargetPath, ErrorCode.message()); }
 
         return False;
     }

@@ -6,7 +6,12 @@ set(VISERA_APP_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_APP_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
 set(VISERA_APP_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
+if(APPLE)
+add_executable(${VISERA_APP} MACOSX_BUNDLE)
+else()
 add_executable(${VISERA_APP})
+endif()
+
 target_include_directories(${VISERA_APP} PRIVATE ${VISERA_APP_GLOBAL_DIR})
 
 file(GLOB_RECURSE VISERA_APP_MODULES
@@ -33,4 +38,20 @@ if(MSVC)
     target_sources(${VISERA_APP}
                    PRIVATE
                    "${VISERA_APP_ASSETS_DIR}/Icons/App.ico.rc")
+elseif(APPLE)
+    set(APP_ICON_MACOS "${VISERA_APP_ASSETS_DIR}/Icons/App.icns")
+
+    set_source_files_properties(${APP_ICON_MACOS}
+            PROPERTIES
+            MACOSX_PACKAGE_LOCATION "Resources")
+
+    target_sources(${VISERA_APP}
+                   PRIVATE
+                   ${APP_ICON_MACOS})
+
+    # Set Info.plist values (can be overridden by your own Info.plist if needed)
+    set_target_properties(AlohaVisera PROPERTIES
+            MACOSX_BUNDLE_ICON_FILE "App.icns"
+            RESOURCE "${APP_ICON_MACOS}"
+    )
 endif()
