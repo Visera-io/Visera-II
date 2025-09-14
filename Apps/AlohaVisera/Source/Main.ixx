@@ -7,6 +7,7 @@ import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
 import Visera.Core.Compression;
+import Visera.Runtime.Object;
 using namespace Visera;
 
 export int main(int argc, char *argv[])
@@ -16,6 +17,9 @@ export int main(int argc, char *argv[])
     //bvh::v2::BBox<Int32, 2> TestBB;
 
     FHiResClock Clock{};
+
+    auto Obj = MakeShared<VObject>();
+    LOG_INFO("{}", Obj->GetName());
     
     TArray<FByte> Buffer;
     FStringView Source = "aaaaaaaa";
