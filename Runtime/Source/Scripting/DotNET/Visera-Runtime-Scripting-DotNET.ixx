@@ -3,7 +3,6 @@ module;
 #include <nethost.h>
 #include <coreclr_delegates.h>
 #include <hostfxr.h>
-#include <sys/syslog.h>
 export module Visera.Runtime.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Runtime.Scripting"
 import Visera.Core.Log;
@@ -15,7 +14,7 @@ namespace Visera
 
     export class FDotNET
     {
-    private:
+        TSharedPtr<ILibrary> HostFXR;
         hostfxr_initialize_for_runtime_config_fn Fn_InitializeRuntime{nullptr};
         hostfxr_get_runtime_delegate_fn          Fn_GetRuntimeDelegate{nullptr};
         hostfxr_close_fn                         Fn_FinalizeRuntime{nullptr};
@@ -46,7 +45,7 @@ namespace Visera
         LoadHostFXR()
         {
             // Using the nethost library, discover the location of hostfxr and get exports
-            auto HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
+            HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
 
             Fn_InitializeRuntime = reinterpret_cast<hostfxr_initialize_for_runtime_config_fn>
                 (HostFXR->LoadFunction("hostfxr_initialize_for_runtime_config"));

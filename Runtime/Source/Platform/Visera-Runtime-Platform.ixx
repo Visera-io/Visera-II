@@ -2,7 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.Platform;
 #define VISERA_MODULE_NAME "Runtime.Platform"
-import Visera.Runtime.Platform.Interface;
+export import Visera.Runtime.Platform.Interface;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 import Visera.Runtime.Platform.Windows;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
