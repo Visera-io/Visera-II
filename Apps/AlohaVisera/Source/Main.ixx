@@ -18,8 +18,8 @@ export int main(int argc, char *argv[])
 
     FHiResClock Clock{};
 
-    auto Obj = MakeShared<VObject>();
-    LOG_INFO("{}", Obj->GetName());
+    auto Obj = VObject::Create();
+    LOG_INFO("{}", Obj->GetID());
     
     TArray<FByte> Buffer;
     FStringView Source = "aaaaaaaa";
