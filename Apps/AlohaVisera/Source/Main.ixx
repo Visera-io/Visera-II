@@ -46,33 +46,30 @@ export int main(int argc, char *argv[])
 
     }
 
-    LOG_INFO("{}", TEXT("❌"));
-    FPath PathA{TEXT("Assets")};
-    FPath PathB{TEXT("Assets")};
-
-    FFileSystem VFS{ FPath::CurrentPath() };
-    LOG_INFO("{}", GAssetHub->GetDebugName());
-
-    if (!VFS.SearchFile(TEXT("Hello")).IsEmpty())
-    {
-        LOG_INFO("Found");
-    }
-    else LOG_ERROR("Not found");
-    if (VFS.CreateDirectory(PathA))
-    {
-
-    }
-    if (VFS.DeleteDirectory(PathB))
-    {
-
-    }
-
-    LOG_INFO("{}", VFS.GetRoot());
+    // LOG_INFO("{}", TEXT("❌"));
+    // FPath PathA{TEXT("Assets")};
+    // FPath PathB{TEXT("Assets")};
+    //
+    // FFileSystem VFS{ FPath::CurrentPath() };
+    // LOG_INFO("{}", GAssetHub->GetDebugName());
+    //
+    // if (!VFS.SearchFile(TEXT("Hello")).IsEmpty())
+    // {
+    //     LOG_INFO("Found");
+    // }
+    // else LOG_ERROR("Not found");
+    // if (VFS.CreateDirectory(PathA))
+    // {
+    //
+    // }
+    // if (VFS.DeleteDirectory(PathB))
+    // {
+    //
+    // }
+    //LOG_INFO("{}", VFS.GetRoot());
 
     GEngine->Bootstrap();
     {
-
-
         GEngine->Run();
     }
     GEngine->Terminate();
