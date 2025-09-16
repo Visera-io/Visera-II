@@ -36,6 +36,8 @@ namespace Visera
     void FAudio::
     Terminate()
     {
+        Engine.reset();
+
         Statue = EStatues::Terminated;
     }
 
