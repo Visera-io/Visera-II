@@ -8,7 +8,6 @@ export module Visera.Core.Log;
 
 namespace Visera
 {
-
 	class VISERA_CORE_API FLog : public IGlobalSingleton
 	{
 	public:
@@ -16,6 +15,8 @@ namespace Visera
 		inline void
 		Trace(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
+			if (Level > VISERA_LOG_LEVEL_TRACE) { return; }
+
 			if (IsBootstrapped())
 			{ Logger->trace(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
@@ -26,6 +27,8 @@ namespace Visera
 		inline void
 		Debug(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
+			if (Level > VISERA_LOG_LEVEL_DEBUG) { return; }
+
 			if (IsBootstrapped())
 			{ Logger->debug(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
@@ -36,6 +39,8 @@ namespace Visera
 		inline void
 		Info(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
+			if (Level > VISERA_LOG_LEVEL_INFO) { return; }
+
 			if (IsBootstrapped())
 			{ Logger->info(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
@@ -46,6 +51,8 @@ namespace Visera
 		inline void
 		Warn(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
+			if (Level > VISERA_LOG_LEVEL_WARN) { return; }
+
 			if (IsBootstrapped())
 			{ Logger->warn(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
@@ -56,6 +63,8 @@ namespace Visera
 		inline void
 		Error(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
+			if (Level > VISERA_LOG_LEVEL_ERROR) { return; }
+
 			if (IsBootstrapped())
 			{ Logger->error(I_Fmt, std::forward<Args>(I_Args)...); }
 			else
@@ -76,12 +85,19 @@ namespace Visera
 				NativeLog('C', stderr, I_Fmt, std::forward<Args>(I_Args)...);
 				std::fflush(stderr);
 			}
-
 			std::abort();
+		}
+
+		void inline
+		SetLevel(UInt8 I_Level)
+		{
+			VISERA_ASSERT(I_Level <= VISERA_LOG_LEVEL_FATAL);
+			Level = I_Level;
 		}
 
 	protected:
 		TUniquePtr<spdlog::logger> Logger;
+		UInt8 Level = VISERA_LOG_SYSTEM_VERBOSITY;
 
 		template<typename... Args>
 		inline void
@@ -159,5 +175,4 @@ namespace Visera
 
 		Statue = EStatues::Terminated;
 	}
-
 }

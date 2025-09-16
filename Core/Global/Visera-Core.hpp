@@ -55,7 +55,7 @@
 #define VISERA_LOG_LEVEL_INFO  2 //|   Conditional  | |     Yes     | |   Green  | |                | |                      |
 #define VISERA_LOG_LEVEL_WARN  3 //|      Yes       | |     Yes     | |   Yellow | |                | |                      |
 #define VISERA_LOG_LEVEL_ERROR 4 //|      Yes       | |     Yes     | |   Red    | |                | |                      |
-#define VISERA_LOG_LEVEL_FATAL 5 //|      Yes       | |     Yes     | |   Red    | |       Red      | |     SRuntimeError    |
+#define VISERA_LOG_LEVEL_FATAL 5 //|      Yes       | |     Yes     | |   Red    | |       Red      | |        Abort()       |
 
 #if defined(VISERA_DEBUG_MODE)
 #define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_TRACE
