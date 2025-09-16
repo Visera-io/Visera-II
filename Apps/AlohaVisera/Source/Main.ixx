@@ -15,7 +15,7 @@ export int main(int argc, char *argv[])
     // FPNGImageWrapper PNG;
     // //PNG.Parse("test_image.png");
     //bvh::v2::BBox<Int32, 2> TestBB;
-    GLog->SetLevel(VISERA_LOG_LEVEL_DEBUG);
+    GLog->SetLevel(ELogLevel::Debug);
 
     FHiResClock Clock{};
 

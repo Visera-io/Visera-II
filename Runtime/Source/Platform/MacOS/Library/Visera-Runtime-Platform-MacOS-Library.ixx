@@ -32,7 +32,7 @@ namespace Visera
             if (const char* Error = dlerror())
             { LOG_ERROR("Failed to load the function {} -- {}", I_Name, Error); }
         }
-        else LOG_ERROR("Can NOT load the function {} from an unloaded library \"{}\"!", I_Name, Path);
+        else { LOG_ERROR("Can NOT load the function {} from an unloaded library \"{}\"!", I_Name, Path); }
 
         return Function;
     }
@@ -41,7 +41,7 @@ namespace Visera
     FMacOSLibrary(const FPath& I_Path)
     : ILibrary{I_Path}
     {
-        LOG_DEBUG("Loading MacOS library {}", Path);
+        LOG_TRACE("Loading MacOS library {}", Path);
 
         Handle = dlopen(I_Path.GetNativePath().c_str(), RTLD_LAZY);
         if (!Handle)
@@ -55,9 +55,8 @@ namespace Visera
     {
         if (IsLoaded())
         {
-            LOG_DEBUG("Unloading MacOS library: {}", Path);
+            LOG_TRACE("Unloading MacOS library: {}", Path);
             dlclose(Handle);
-            LOG_DEBUG("Successfully unloaded MacOS library: {}", Path);
         }
     }
 #endif

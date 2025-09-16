@@ -8,6 +8,16 @@ export module Visera.Core.Log;
 
 namespace Visera
 {
+	export enum class ELogLevel : UInt8
+	{
+		Trace   = VISERA_LOG_LEVEL_TRACE,
+		Debug   = VISERA_LOG_LEVEL_DEBUG,
+		Info    = VISERA_LOG_LEVEL_INFO,
+		Warn    = VISERA_LOG_LEVEL_WARN,
+		Error	= VISERA_LOG_LEVEL_ERROR,
+		Fatal	= VISERA_LOG_LEVEL_FATAL,
+	};
+
 	class VISERA_CORE_API FLog : public IGlobalSingleton
 	{
 	public:
@@ -89,11 +99,7 @@ namespace Visera
 		}
 
 		void inline
-		SetLevel(UInt8 I_Level)
-		{
-			VISERA_ASSERT(I_Level <= VISERA_LOG_LEVEL_FATAL);
-			Level = I_Level;
-		}
+		SetLevel(ELogLevel I_Level) { Level = static_cast<UInt8>(I_Level); }
 
 	protected:
 		TUniquePtr<spdlog::logger> Logger;
@@ -139,7 +145,7 @@ namespace Visera
 	Bootstrap()
 	{
 		if (IsBootstrapped()) { return;}
-		LOG_DEBUG("Bootstrapping Log.");
+		LOG_TRACE("Bootstrapping Log.");
 
 		auto ConsoleSink = MakeShared<spdlog::sinks::stdout_color_sink_mt>();
 
@@ -167,7 +173,7 @@ namespace Visera
 	Terminate()
 	{
 		if (!IsBootstrapped()) { return;}
-		LOG_DEBUG("Terminating Log.");
+		LOG_TRACE("Terminating Log.");
 
 		Logger->flush();
 		//Do not call drop_all() in your class! spdlog::drop_all();

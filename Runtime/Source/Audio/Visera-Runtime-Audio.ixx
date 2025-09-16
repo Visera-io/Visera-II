@@ -4,6 +4,7 @@ export module Visera.Runtime.Audio;
 #define VISERA_MODULE_NAME "Runtime.Audio"
 import Visera.Runtime.Audio.Interface;
 import Visera.Runtime.Audio.Wwise;
+import Visera.Core.Log;
 
 namespace Visera
 {
@@ -28,6 +29,8 @@ namespace Visera
     void FAudio::
     Bootstrap()
     {
+        LOG_TRACE("Bootstrapping Audio.");
+
         Engine = MakeUnique<FWwiseAudioEngine>();
 
         Statue = EStatues::Bootstrapped;
@@ -36,6 +39,8 @@ namespace Visera
     void FAudio::
     Terminate()
     {
+        LOG_TRACE("Terminating Audio.");
+
         Engine.reset();
 
         Statue = EStatues::Terminated;

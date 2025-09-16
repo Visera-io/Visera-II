@@ -48,7 +48,7 @@ namespace Visera
 
     void FEventSystem::Bootstrap()
     {
-        LOG_DEBUG("Bootstrapping Event System...");
+        LOG_TRACE("Bootstrapping Event System...");
 
         if (!Initialize())
         {
@@ -81,7 +81,7 @@ namespace Visera
 
     void FEventSystem::Terminate()
     {
-        LOG_DEBUG("Terminating Event System...");
+        LOG_TRACE("Terminating Event System...");
 
         Shutdown();
         Statue = EStatues::Terminated;

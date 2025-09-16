@@ -44,7 +44,7 @@ namespace Visera
     void FRHI::
     Bootstrap()
     {
-        LOG_DEBUG("Bootstrapping RHI.");
+        LOG_TRACE("Bootstrapping RHI.");
 
         try
         {
@@ -63,7 +63,7 @@ namespace Visera
     void FRHI::
     Terminate()
     {
-        LOG_DEBUG("Terminating RHI.");
+        LOG_TRACE("Terminating RHI.");
         Driver.reset();
 
         Statue = EStatues::Terminated;

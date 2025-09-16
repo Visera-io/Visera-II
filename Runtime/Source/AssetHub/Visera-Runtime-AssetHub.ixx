@@ -39,7 +39,7 @@ namespace Visera
     void FAssetHub::
     Bootstrap()
     {
-        LOG_DEBUG("Bootstrapping AssetHub.");
+        LOG_TRACE("Bootstrapping AssetHub.");
         Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR)};
         Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR)};
         Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)};
@@ -48,6 +48,6 @@ namespace Visera
     void FAssetHub::
     Terminate()
     {
-        LOG_DEBUG("Terminating AssetHub.");
+        LOG_TRACE("Terminating AssetHub.");
     }
 }

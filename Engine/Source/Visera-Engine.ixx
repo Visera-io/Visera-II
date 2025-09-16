@@ -14,7 +14,7 @@ namespace Visera
     public:
         void Bootstrap() override
         {
-            LOG_DEBUG("Bootstrapping Engine.");
+            LOG_TRACE("Bootstrapping Engine.");
 
             GWindow->Bootstrap();
             GRHI->Bootstrap();
@@ -37,7 +37,7 @@ namespace Visera
 
         void Terminate() override
         {
-            LOG_DEBUG("Terminating Engine.");
+            LOG_TRACE("Terminating Engine.");
 
             GAudio->Terminate();
             GRHI->Terminate();

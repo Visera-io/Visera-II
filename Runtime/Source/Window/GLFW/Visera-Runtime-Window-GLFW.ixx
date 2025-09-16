@@ -44,7 +44,7 @@ namespace Visera
     void FGLFWWindow::
     Bootstrap()
     {
-        LOG_DEBUG("Bootstrapping Window.");
+        LOG_TRACE("Bootstrapping Window.");
 
         if (!glfwInit())
         { LOG_FATAL("Failed to initialize GLFW!"); }
@@ -94,7 +94,7 @@ namespace Visera
     void FGLFWWindow::
     Terminate()
     {
-        LOG_DEBUG("Terminating Window.");
+        LOG_TRACE("Terminating Window.");
         glfwDestroyWindow(Handle);
         glfwTerminate();
         Handle = nullptr;

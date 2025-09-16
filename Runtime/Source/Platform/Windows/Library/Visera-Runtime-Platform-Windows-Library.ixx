@@ -34,10 +34,6 @@ namespace Visera
                 DWORD Error = GetLastError();
                 LOG_ERROR("Failed to load the function '{}' from library \"{}\" -- Windows Error Code: {}", I_Name, Path, Error);
             }
-            else
-            {
-                LOG_DEBUG("Successfully loaded function '{}' from library: {}", I_Name, Path);
-            }
         }
         else 
         {
@@ -51,7 +47,7 @@ namespace Visera
     FWindowsLibrary(const FPath& I_Path)
     : ILibrary{I_Path}
     {
-        LOG_DEBUG("Loading Windows library: {}", I_Path);
+        LOG_TRACE("Loading Windows library: {}", I_Path);
         
         // Get the native path string
         const FString NativePath = reinterpret_cast<const char*>(I_Path.GetNativePath().u8string().c_str());
@@ -81,8 +77,6 @@ namespace Visera
         if (!Handle)
         {
             DWORD Error = GetLastError();
-            LOG_ERROR("Failed to load the library \"{}\" -- Windows Error Code: {}", I_Path, Error);
-            
             // Provide more helpful error messages for common error codes
             switch (Error)
             {
@@ -100,10 +94,6 @@ namespace Visera
                     break;
             }
         }
-        else
-        {
-            LOG_DEBUG("Successfully loaded Windows library: {}", I_Path);
-        }
     }
 
     FWindowsLibrary::
@@ -111,17 +101,13 @@ namespace Visera
     {
         if (IsLoaded())
         {
-            LOG_DEBUG("Unloading Windows library: {}", Path);
+            LOG_TRACE("Unloading Windows library: {}", Path);
             
             BOOL Result = FreeLibrary(static_cast<HMODULE>(Handle));
             if (!Result)
             {
                 DWORD Error = GetLastError();
                 LOG_ERROR("Failed to free library \"{}\" -- Windows Error Code: {}", Path, Error);
-            }
-            else
-            {
-                LOG_DEBUG("Successfully unloaded Windows library: {}", Path);
             }
         }
     }
