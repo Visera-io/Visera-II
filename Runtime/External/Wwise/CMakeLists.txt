@@ -7,38 +7,37 @@ else()
 endif()
 
 if(WIN32)
-    set(WWISE_ARCHIVE "${CMAKE_CURRENT_SOURCE_DIR}/Windows/${WWISE_BUILD_TYPE}.zip")
-    set(EXTRACT_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Windows")
-
-    set(WWISE_SOUNDENGINE_LIB   "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/AkSoundEngine.lib")
-    set(WWISE_MEMORYMGR_LIB     "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/AkMemoryMgr.lib")
-    set(WWISE_SPATIALAUDIO_LIB  "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/AkSpatialAudio.lib")
-    set(WWISE_STREAMMGR_LIB     "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/AkStreamMgr.lib")
+    set(WWISE_PLATFORM  "Windows")
+    set(LIB_PREFIX      "")
+    set(LIB_EXTNAME     ".lib")
 elseif(APPLE)
-    set(WWISE_ARCHIVE "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/${WWISE_BUILD_TYPE}.zip")
-    set(EXTRACT_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/MacOS")
-
-    set(WWISE_SOUNDENGINE_LIB   "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkSoundEngine.a")
-    set(WWISE_MEMORYMGR_LIB     "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkMemoryMgr.a")
-    set(WWISE_SPATIALAUDIO_LIB  "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkSpatialAudio.a")
-    set(WWISE_STREAMMGR_LIB     "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkStreamMgr.a")
+    set(WWISE_PLATFORM  "MacOS")
+    set(LIB_PREFIX      "lib")
+    set(LIB_EXTNAME     ".a")
 elseif (UNIX)
-    set(WWISE_ARCHIVE "${CMAKE_CURRENT_SOURCE_DIR}/Linux/${WWISE_BUILD_TYPE}.zip")
-    set(EXTRACT_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Linux")
-
-    set(WWISE_SOUNDENGINE_LIB   "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkSoundEngine.a")
-    set(WWISE_MEMORYMGR_LIB     "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkMemoryMgr.a")
-    set(WWISE_SPATIALAUDIO_LIB  "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkSpatialAudio.a")
-    set(WWISE_STREAMMGR_LIB     "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}/libAkStreamMgr.a")
+    set(WWISE_PLATFORM  "Linux")
+    set(LIB_PREFIX      "lib")
+    set(LIB_EXTNAME     ".a")
 else()
     message(FATAL_ERROR "Unsupported platform!")
 endif()
 
-if(NOT EXISTS "${EXTRACT_DIR}/${WWISE_BUILD_TYPE}")
+set(WWISE_ARCHIVE       "${CMAKE_CURRENT_SOURCE_DIR}/${WWISE_PLATFORM}/${WWISE_BUILD_TYPE}.zip")
+set(WWISE_EXTRACT_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/${WWISE_PLATFORM}")
+
+set(WWISE_SOUNDENGINE_LIB    "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkSoundEngine${LIB_EXTNAME}")
+set(WWISE_MEMORYMGR_LIB      "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkMemoryMgr${LIB_EXTNAME}")
+set(WWISE_SPATIALAUDIO_LIB   "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkSpatialAudio${LIB_EXTNAME}")
+set(WWISE_STREAMMGR_LIB      "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkStreamMgr${LIB_EXTNAME}")
+if(WWISE_BUILD_TYPE STREQUAL "Debug")
+set(WWISE_COMMUNICATIONCENTRAL_LIB "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}CommunicationCentral${LIB_EXTNAME}")
+endif()
+
+if(NOT EXISTS "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}")
     message(STATUS "Extracting ${WWISE_ARCHIVE}")
     file(ARCHIVE_EXTRACT
             INPUT       "${WWISE_ARCHIVE}"
-            DESTINATION "${EXTRACT_DIR}"
+            DESTINATION "${WWISE_EXTRACT_DIR}"
     )
 endif()
 
@@ -54,6 +53,11 @@ if(NOT EXISTS "${WWISE_SPATIALAUDIO_LIB}")
 endif()
 if(NOT EXISTS "${WWISE_STREAMMGR_LIB}")
     message(FATAL_ERROR "Wwise StreamMgr library not found: ${WWISE_STREAMMGR_LIB}")
+endif()
+if(WWISE_BUILD_TYPE STREQUAL "Debug")
+if(NOT EXISTS "${WWISE_COMMUNICATIONCENTRAL_LIB}")
+    message(FATAL_ERROR "Wwise CommunicationCentral library not found: ${WWISE_COMMUNICATIONCENTRAL_LIB}")
+endif()
 endif()
 
 # Create imported targets for all Wwise libraries
@@ -77,6 +81,13 @@ set_target_properties(Wwise_StreamMgr PROPERTIES
     IMPORTED_LOCATION ${WWISE_STREAMMGR_LIB}
 )
 
+if(WWISE_BUILD_TYPE STREQUAL "Debug")
+add_library(Wwise_CommunicationCentral STATIC IMPORTED)
+set_target_properties(Wwise_CommunicationCentral PROPERTIES
+        IMPORTED_LOCATION ${WWISE_COMMUNICATIONCENTRAL_LIB}
+)
+endif()
+
 # Create a meta-target that links all Wwise components
 add_library(Wwise INTERFACE)
 target_link_libraries(Wwise INTERFACE
@@ -85,5 +96,8 @@ target_link_libraries(Wwise INTERFACE
     Wwise_SpatialAudio
     Wwise_StreamMgr
 )
+if(WWISE_BUILD_TYPE STREQUAL "Debug")
+target_link_libraries(Wwise INTERFACE Wwise_CommunicationCentral)
+endif()
 
 target_include_directories(Wwise INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Include)

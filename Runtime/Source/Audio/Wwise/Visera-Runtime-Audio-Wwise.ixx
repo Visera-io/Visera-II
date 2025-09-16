@@ -15,7 +15,7 @@ namespace Visera
     public:
         explicit FWwiseAudioEngine() : IAudioEngine{EType::Wwise}
         {
-            // Memory Manager
+            // // Memory Manager
             // AkMemSettings MemorySettings;
             // AK::MemoryMgr::GetDefaultSettings(MemorySettings);
             // if (AK::MemoryMgr::Init(&MemorySettings))
@@ -32,17 +32,17 @@ namespace Visera
             //     LOG_ERROR("Failed to initialize Wwise Stream Manager!");
             //     return;
             // }
-            //
-            // // Sound Engine
-            // AkInitSettings InitSettings;
-            // AkPlatformInitSettings PlatformInitSettings;
-            // AK::SoundEngine::GetDefaultInitSettings(InitSettings);
-            // AK::SoundEngine::GetDefaultPlatformInitSettings(PlatformInitSettings);
-            // if (!AK::SoundEngine::Init(&InitSettings, &PlatformInitSettings))
-            // {
-            //     LOG_ERROR("Failed to initialize Wwise Sound Engine!");
-            //     return;
-            // }
+
+            // Sound Engine
+            AkInitSettings InitSettings;
+            AkPlatformInitSettings PlatformInitSettings;
+            AK::SoundEngine::GetDefaultInitSettings(InitSettings);
+            AK::SoundEngine::GetDefaultPlatformInitSettings(PlatformInitSettings);
+            if (!AK::SoundEngine::Init(&InitSettings, &PlatformInitSettings))
+            {
+                LOG_ERROR("Failed to initialize Wwise Sound Engine!");
+                return;
+            }
         }
     };
 }
