@@ -3,10 +3,6 @@
 #define VISERA_ASSERT(Expression) assert(Expression);
 #define VISERA_WIP VISERA_ASSERT("Work in Progress!")
 
-#if (!NDEBUG)
-#define VISERA_DEBUG_MODE
-#endif
-
 #if defined(_WIN32) || defined(_WIN64)
 #define VISERA_ON_WINDOWS_SYSTEM
 #endif
@@ -59,7 +55,9 @@
 
 #if defined(VISERA_DEBUG_MODE)
 #define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_TRACE
-#else
+#elif defined(VISERA_DEVELOP_MODE)
+#define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_DEBUG
+#elif defined(VISERA_RELEASE_MODE)
 #define VISERA_LOG_SYSTEM_VERBOSITY VISERA_LOG_LEVEL_INFO
 #endif
 
