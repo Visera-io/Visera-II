@@ -17,13 +17,15 @@ namespace Visera
         {
             if (Objects.contains(I_Name))
             {
-                LOG_WARN("Object with name '{}' already exists.", I_Name);
-                return std::dynamic_pointer_cast<T>(Objects[I_Name]);
+                LOG_ERROR("Failed to create the existed object \"{}\".", I_Name);
+                return nullptr;
             }
 
             auto Object = MakeShared<T>(std::forward<Args>(I_Args)...);
             Object->SetName(I_Name);
+
             Objects[I_Name] = Object;
+            Object->Awake();
             return Object;
         }
 

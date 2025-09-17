@@ -2,7 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Frame;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Driver;
+import Visera.Runtime.RHI.Interface;
 import Visera.Core.Log;
 
 namespace Visera::RHI

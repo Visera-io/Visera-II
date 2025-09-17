@@ -3,12 +3,12 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-export module Visera.Runtime.RHI.Driver.Vulkan;
+export module Visera.Runtime.RHI.Drivers.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Driver.Interface;
-import Visera.Runtime.RHI.Driver.Vulkan.Loader;
-import Visera.Runtime.RHI.Driver.Vulkan.Allocator;
-import Visera.Runtime.RHI.Driver.Vulkan.Fence;
+import Visera.Runtime.RHI.Interface;
+import Visera.Runtime.RHI.Drivers.Vulkan.Loader;
+import Visera.Runtime.RHI.Drivers.Vulkan.Allocator;
+import Visera.Runtime.RHI.Drivers.Vulkan.Fence;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
 import Visera.Core.Math.Arithmetic;
@@ -76,7 +76,7 @@ namespace Visera::RHI
         void
         Present()    override {};
         TUniquePtr<IFence>
-        CreateFence() const override { return MakeUnique<FVulkanFence>(); }
+        CreateFence(Bool I_bSignaled) const override;
         UInt32
         GetFrameCount() const override { return SwapChain.Images.size(); }
         inline const void*
@@ -251,7 +251,7 @@ namespace Visera::RHI
                 [&Layer](auto const& LayerProperty)
                 { return strcmp(LayerProperty.layerName, Layer) == 0; }))
             {
-                throw SRuntimeError(fmt::format("Required instance layer \"{}\" is not supported!", Layer));
+                LOG_FATAL("Required instance layer \"{}\" is not supported!", Layer);
             }
         }
 
@@ -263,7 +263,7 @@ namespace Visera::RHI
                 [&Extension](auto const& ExtensionProperty)
                 { return strcmp(ExtensionProperty.extensionName, Extension) == 0; }))
             {
-                throw SRuntimeError(fmt::format("Required instance extension \"{}\" is not supported!", Extension));
+                LOG_FATAL("Required instance extension \"{}\" is not supported!", Extension);
             }
         }
 
@@ -281,7 +281,11 @@ namespace Visera::RHI
             .setFlags                   (Flags)
         ;
 
-        Instance = vk::raii::Instance(Context, CreateInfo);
+        auto Result = Context.createInstance(CreateInfo);
+        if (!Result)
+        { LOG_FATAL("Failed to create Vulkan Instance: {}", static_cast<Int32>(Result.error())); }
+        else
+        { Instance = std::move(*Result); }
     }
 
     void FVulkan::
@@ -298,14 +302,18 @@ namespace Visera::RHI
                             vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
                             )
             .setPfnUserCallback(DebugCallback);
-        DebugMessenger = Instance.createDebugUtilsMessengerEXT(CreateInfo);
+        auto Result = Instance.createDebugUtilsMessengerEXT(CreateInfo);
+        if (!Result)
+        { LOG_FATAL("Failed to create Vulkan Debug Messenger: {}", static_cast<Int32>(Result.error())); }
+        else
+        { DebugMessenger = std::move(*Result); }
 #endif
     }
 
     void FVulkan::
     CreateSurface()
     {
-        VkSurfaceKHR SurfaceHandle;
+        VkSurfaceKHR SurfaceHandle {nullptr};
 
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
 
@@ -324,9 +332,11 @@ namespace Visera::RHI
     {
         VISERA_ASSERT(Instance != nullptr);
 
-        auto PhysicalDeviceCandidates = Instance.enumeratePhysicalDevices();
-        if (PhysicalDeviceCandidates.empty())
-        { throw SRuntimeError("Failed to find PhysicalDevices with Vulkan support!"); }
+        auto Result = Instance.enumeratePhysicalDevices();
+        if (!Result)
+        { LOG_FATAL("Failed to find PhysicalDevices with Vulkan support (error:{})!", static_cast<Int32>(Result.error())); }
+
+        auto PhysicalDeviceCandidates = std::move(*Result);
 
         const auto SelectedPhysicalDevice = std::ranges::
         find_if(PhysicalDeviceCandidates, [&](auto const & PhysicalDeviceCandidate)
@@ -381,7 +391,7 @@ namespace Visera::RHI
         });
 
         if (SelectedPhysicalDevice == PhysicalDeviceCandidates.end())
-        { throw SRuntimeError("Failed to find a suitable PhysicalDevice!"); }
+        { LOG_FATAL("Failed to find a suitable PhysicalDevice!"); }
 
         LOG_INFO("Selected GPU: {}", GPU.Context.getProperties().deviceName.data());
     }
@@ -415,9 +425,26 @@ namespace Visera::RHI
             .setEnabledExtensionCount   (DeviceExtensions.size())
             .setPpEnabledExtensionNames (DeviceExtensions.data())
         ;
-        Device.Context       = vk::raii::Device{GPU.Context, CreateInfo};
-
-        Device.GraphicsQueue = vk::raii::Queue{Device.Context, *GPU.GraphicsQueueFamilies.begin(), 0};
+        //Create Device
+        {
+            auto Result = GPU.Context.createDevice(CreateInfo);
+            if (!Result)
+            { LOG_FATAL("Failed to create Vulkan Device -- error:{}!", static_cast<Int32>(Result.error())); }
+            else
+            { Device.Context = std::move(*Result); }
+        }
+        // Get Queues
+        {
+            auto Result = Device.Context.getQueue(*GPU.GraphicsQueueFamilies.begin(), 0);
+            if (!Result)
+            {
+                LOG_FATAL("Failed to get graphics queue (index:{}) -- error:{}!",
+                        0,
+                        static_cast<Int32>(Result.error()));
+            }
+            else
+            { Device.GraphicsQueue = std::move(*Result); }
+        }
     }
 
 
@@ -450,7 +477,7 @@ namespace Visera::RHI
         if (GWindow->IsBootstrapped())
         {
             if (!glfwVulkanSupported())
-            { throw SRuntimeError("The Window does NOT support Vulkan!"); }
+            { LOG_FATAL("The Window does NOT support Vulkan!"); }
 
             UInt32 WindowExtensionCount = 0;
             auto WindowExtensions = glfwGetRequiredInstanceExtensions(&WindowExtensionCount);
@@ -477,7 +504,7 @@ namespace Visera::RHI
                 { bFoundRequiredPresentMode = True; break; }
             }
             if (!bFoundRequiredPresentMode)
-            { throw SRuntimeError("Failed to find required present mode for swapchain!"); }
+            { LOG_FATAL("Failed to find required present mode for SwapChain!"); }
         }
 
         // Check Image Format and Color Space
@@ -491,7 +518,7 @@ namespace Visera::RHI
                 { bFoundRequiredFormatAndColorSpace = True; break; }
             }
             if (!bFoundRequiredFormatAndColorSpace)
-            { throw SRuntimeError("Failed to find required format and color space for swapchain images!"); }
+            { LOG_FATAL("Failed to find required format and color space for swapchain images!"); }
 
         }
 
@@ -532,7 +559,14 @@ namespace Visera::RHI
             .setPresentMode     (SwapChain.PresentMode)
             .setClipped         (SwapChain.bClipped);
 
-        SwapChain.Context = vk::raii::SwapchainKHR(Device.Context, CreateInfo);
+        auto Result = Device.Context.createSwapchainKHR(CreateInfo);
+        if (!Result)
+        {
+            LOG_FATAL("Failed to create Vulkan SwapChain -- error:{}!",
+                      static_cast<Int32>(Result.error()));
+        }
+        else
+        { SwapChain.Context = std::move(*Result); }
 
         LOG_TRACE("Created a SwapChain (extent:[{},{}]).",
                    SwapChain.Extent.width, SwapChain.Extent.height);
@@ -559,7 +593,13 @@ namespace Visera::RHI
         for (const auto& Image : SwapChain.Images)
         {
             ImageViewCreateInfo.image = Image;
-            SwapChain.ImageViews.emplace_back(Device.Context, ImageViewCreateInfo);
+            auto Result = Device.Context.createImageView(ImageViewCreateInfo);
+            if (!Result)
+            {
+                LOG_FATAL("Failed to create Vulkan ImageView -- error:{}!",
+                          static_cast<Int32>(Result.error()));
+            }
+            SwapChain.ImageViews.push_back(std::move(*Result));
         }
     }
 
@@ -576,5 +616,12 @@ namespace Visera::RHI
         ;
         if (GWindow->IsBootstrapped())
         { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
+    }
+
+    TUniquePtr<IFence> FVulkan::
+    CreateFence(Bool I_bSignaled) const
+    {
+        LOG_TRACE("Creating a Vulkan Fence (signaled:{})", I_bSignaled);
+        return MakeUnique<FVulkanFence>(Device.Context, I_bSignaled);
     }
 }

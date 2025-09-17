@@ -14,6 +14,11 @@ namespace Visera
     {
         friend class FScene;
     public:
+        virtual void
+        Awake()  {};
+        virtual void
+        Update() {};
+
         [[nodiscard]] UInt64
         GetID() const { return ID; }
 

@@ -2,8 +2,8 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Driver.Interface;
-import Visera.Runtime.RHI.Driver.Vulkan;
+import Visera.Runtime.RHI.Interface;
+import Visera.Runtime.RHI.Drivers.Vulkan;
 import Visera.Runtime.RHI.Frame;
 import Visera.Core.Log;
 
@@ -23,7 +23,11 @@ namespace Visera
         EndFrame()    const { GetDriver()->EndFrame(); };
 
         [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
-        GetDriver()   const { return Driver; };
+        GetDriver(const std::source_location& I_Location = std::source_location::current())  const
+        {
+            LOG_DEBUG("{} requires the RHI driver.", I_Location.function_name());
+            return Driver;
+        };
 
     private:
         TUniquePtr<RHI::IDriver> Driver;

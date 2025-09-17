@@ -16,6 +16,8 @@ using namespace Visera;
 class Foo : public VObject
 {
 public:
+    void Awake() override { LOG_DEBUG("Wake up Foo!"); }
+
     void Bar() {
         auto k = shared_from_this();
     }
@@ -23,10 +25,10 @@ public:
 
 export int main(int argc, char *argv[])
 {
-    GLog->SetLevel(ELogLevel::Debug);
+    //GLog->SetLevel(ELogLevel::Debug);
 
     FHiResClock Clock{};
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 1; ++i)
     {
         auto Instance = GScene->CreateObject<Foo>(FName(Format("Foo_{}", i)));
         LOG_DEBUG("[{}] {}", Instance->GetID(), Instance->GetName());
@@ -36,12 +38,20 @@ export int main(int argc, char *argv[])
     //Demos
     { Demos::Compression Demo; }
 
-    GEngine->Bootstrap();
-    {
+    try {
 
-        GEngine->Run();
+
+        GEngine->Bootstrap();
+        {
+            auto Fence = GRHI->GetDriver()->CreateFence(False);
+
+            GEngine->Run();
+        }
     }
-    GEngine->Terminate();
+    catch (const std::exception& e) {
+        LOG_ERROR("{}", e.what());
+    }
 
+    GEngine->Terminate();
     return EXIT_SUCCESS;
 }
