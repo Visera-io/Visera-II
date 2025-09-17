@@ -16,7 +16,7 @@ namespace Visera
         virtual void
         Awake()  {};
         virtual void
-        Update() {};
+        Update(Float I_FrameTime) {};
 
         [[nodiscard]] UInt64
         GetID() const { return ID; }

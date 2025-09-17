@@ -17,6 +17,7 @@ class Foo : public VObject
 {
 public:
     void Awake() override { LOG_DEBUG("Wake up Foo!"); }
+    void Update(Float I_FrameTime) override { LOG_DEBUG("Update Foo {}!", I_FrameTime); }
 
     void Bar() {
         auto k = shared_from_this();
@@ -32,6 +33,7 @@ export int main(int argc, char *argv[])
     {
         auto Instance = GScene->CreateObject<Foo>(FName(Format("Foo_{}", i)));
         LOG_DEBUG("[{}] {}", Instance->GetID(), Instance->GetName());
+        Instance->Update(1.02);
     }
     LOG_DEBUG("Test Time: {}ms", Clock.Elapsed().Milliseconds());
 
@@ -44,6 +46,8 @@ export int main(int argc, char *argv[])
         GEngine->Bootstrap();
         {
             auto Fence = GRHI->GetDriver()->CreateFence(False);
+            // if (Fence->Wait(1000))
+            // { }
 
             GEngine->Run();
         }
