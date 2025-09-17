@@ -61,7 +61,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Develop")
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(VISERA_RELEASE_MODE)
 else()
-    message(WARNING "Unknown build type: ${CMAKE_BUILD_TYPE}")
+    message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
 add_subdirectory(${VISERA_CORE_DIR})
