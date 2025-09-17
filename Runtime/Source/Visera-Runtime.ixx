@@ -11,6 +11,7 @@ export import Visera.Runtime.Audio;
 export import Visera.Runtime.Window;
 export import Visera.Runtime.Events;
 export import Visera.Runtime.RHI;
+export import Visera.Runtime.Scene;
        import Visera.Core.Log;
        import Visera.Core.OS.Time;
 

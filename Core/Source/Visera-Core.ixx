@@ -5,6 +5,7 @@ export module Visera.Core;
 export import Visera.Core.Archive;
 export import Visera.Core.Attribute;
 export import Visera.Core.Color;
+export import Visera.Core.Compression;
 export import Visera.Core.Hash;
 export import Visera.Core.Log;
 export import Visera.Core.Math;

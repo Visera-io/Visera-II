@@ -57,7 +57,7 @@ namespace Visera
             LOG_FATAL("{}", Error.what());
         }
 
-        Statue = EStatues::Bootstrapped;
+        Status = EStatues::Bootstrapped;
     }
 
     void FRHI::
@@ -66,7 +66,7 @@ namespace Visera
         LOG_TRACE("Terminating RHI.");
         Driver.reset();
 
-        Statue = EStatues::Terminated;
+        Status = EStatues::Terminated;
     }
 
     FRHI::

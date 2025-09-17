@@ -19,8 +19,9 @@ namespace Visera
             GWindow->Bootstrap();
             GRHI->Bootstrap();
             GAudio->Bootstrap();
+            GScene->Bootstrap();
 
-            Statue = EStatues::Bootstrapped;
+            Status = EStatues::Bootstrapped;
         }
 
         void Run()
@@ -39,11 +40,12 @@ namespace Visera
         {
             LOG_TRACE("Terminating Engine.");
 
+            GScene->Terminate();
             GAudio->Terminate();
             GRHI->Terminate();
             GWindow->Terminate();
 
-            Statue = EStatues::Terminated;
+            Status = EStatues::Terminated;
         }
 
         FEngine() : IGlobalSingleton("Engine") {};

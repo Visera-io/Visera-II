@@ -13,18 +13,19 @@ export namespace Visera
     class VISERA_CORE_API FText
     {
     public:
-        // static inline auto
-        // ToUTF8(FWideStringView I_String)    -> FString;
         auto inline
         GetData() const -> const FString& { return Data; }
 
         //auto ToString() const -> StringView { return Data; }
         explicit operator FString()		const	{ return Data; }
         explicit operator const char*()	const	{ return Data.data(); }
-        explicit FText(const char8_t* I_Text) : Data{ reinterpret_cast<const char *>(I_Text) } {}
+        explicit FText(const char8_t* I_Text)     : Data{ reinterpret_cast<const char *>(I_Text) } {}
         explicit FText(std::u8string_view I_Text) : Data{ reinterpret_cast<const char *>(I_Text.data()) } {}
+
     private:
         FString Data;
+        
+        explicit FText(const FString& I_Data) : Data{I_Data} {}
     };
 
     // Convert std::wstring (UTF-16) to std::string (UTF-8)

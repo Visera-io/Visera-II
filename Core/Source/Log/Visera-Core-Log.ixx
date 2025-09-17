@@ -131,7 +131,7 @@ namespace Visera
 
 	public:
 		FLog() : IGlobalSingleton{"Log"} {}
-		~FLog() noexcept override = default;
+		~FLog() noexcept override { Logger.reset(); };
 		void inline
 		Bootstrap() override;
 		void inline
@@ -166,7 +166,7 @@ namespace Visera
 		Logger->set_pattern("%^[%L] [%Y-%m-%d %H:%M:%S.%e] [T:%t] %v%$");
 		//Logger->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%L] %v%$");
 
-		Statue = EStatues::Bootstrapped;
+		Status = EStatues::Bootstrapped;
 	}
 
 	void FLog::
@@ -179,6 +179,6 @@ namespace Visera
 		//Do not call drop_all() in your class! spdlog::drop_all();
 		Logger.reset();
 
-		Statue = EStatues::Terminated;
+		Status = EStatues::Terminated;
 	}
 }

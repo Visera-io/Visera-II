@@ -286,9 +286,9 @@ namespace Visera
 		Terminate() = 0;
 
     	[[nodiscard]] inline Bool
-		IsBootstrapped() const { return Statue == EStatues::Bootstrapped; }
+		IsBootstrapped() const { return Status == EStatues::Bootstrapped; }
     	[[nodiscard]] inline Bool
-		IsTerminated() const   { return Statue == EStatues::Terminated; }
+		IsTerminated() const   { return Status == EStatues::Terminated; }
 
     	IGlobalSingleton() = delete;
     	explicit IGlobalSingleton(const char* I_Name) : Name(I_Name) {}
@@ -307,7 +307,7 @@ namespace Visera
 
     protected:
     	const char* Name;
-    	mutable EStatues Statue = EStatues::Disabled;
+    	mutable EStatues Status = EStatues::Disabled;
     };
 
 	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)
@@ -331,4 +331,8 @@ namespace Visera
 
 	constexpr bool operator>=(const UInt128& I_A, const UInt128& I_B)
 	{ return !(I_A < I_B); }
+
+	template<typename... Args> [[nodiscard]] static FString
+	Format(fmt::format_string<Args...> I_Fmt, Args &&... I_Args)
+	{ return fmt::format(I_Fmt, std::forward<Args>(I_Args)...); }
 }

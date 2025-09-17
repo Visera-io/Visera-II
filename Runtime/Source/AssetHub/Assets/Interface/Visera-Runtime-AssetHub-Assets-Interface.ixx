@@ -10,7 +10,7 @@ namespace Visera
    export VISERA_RUNTIME_API class IAsset
    {
    public:
-      enum class EStatue
+      enum class EStatus
       {
          Unloaded,
          Loaded,
@@ -30,7 +30,7 @@ namespace Visera
       Reload();
 
       void inline
-      MarkAsDirty() const { Statue = EStatue::Dirty; }
+      MarkAsDirty() const { Status = EStatus::Dirty; }
       [[nodiscard]] inline EType
       GetType() const { return Type; }
       [[nodiscard]] inline const FName&
@@ -38,9 +38,9 @@ namespace Visera
       [[nodiscard]] inline const FPath&
       GetPath() const { return Path; }
       [[nodiscard]] inline Bool
-      IsLoaded() const { return Statue != EStatue::Unloaded; }
+      IsLoaded() const { return Status != EStatus::Unloaded; }
       [[nodiscard]] inline Bool
-      IsDirty() const { return Statue == EStatue::Dirty; }
+      IsDirty() const { return Status == EStatus::Dirty; }
 
       IAsset() = delete;
       IAsset(EType I_Type, const FName& I_Name, const FPath& I_Path)
@@ -51,7 +51,7 @@ namespace Visera
       const EType Type;
       const FName Name;
       const FPath Path;
-      mutable EStatue Statue { EStatue::Unloaded };
+      mutable EStatus Status { EStatus::Unloaded };
    };
 
    Bool IAsset::

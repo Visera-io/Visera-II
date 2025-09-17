@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Types.Name;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Name.NamePool;
+
 export namespace Visera
 {
     using EName = EPreservedName;
