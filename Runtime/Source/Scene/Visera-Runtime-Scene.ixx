@@ -63,17 +63,10 @@ namespace Visera
     export VISERA_RUNTIME_API TUniquePtr<FScene>
     GScene = MakeUnique<FScene>();
 
-    UInt64 VObject::UUID = 0;
-
-    void VObject::
-    ResetUUID() { UUID = 0; }
-
     void FScene::
     Bootstrap()
     {
         LOG_TRACE("Bootstrapping Scene.");
-
-        VObject::ResetUUID();
 
         Status = EStatues::Bootstrapped;
     }

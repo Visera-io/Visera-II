@@ -453,7 +453,7 @@ namespace Visera::RHI
     {
         // Layers
         this
-#if defined(VISERA_DEBUG_MODE)
+#if not defined(VISERA_RELEASE_MODE)
             ->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
             ->AddInstanceLayer("VK_LAYER_KHRONOS_synchronization2")
         ;
@@ -464,7 +464,7 @@ namespace Visera::RHI
 
         // Extensions
         this
-#if defined(VISERA_DEBUG_MODE)
+#if not defined(VISERA_RELEASE_MODE)
             ->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
 #else
 

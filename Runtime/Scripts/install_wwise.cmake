@@ -19,4 +19,16 @@ macro(link_wwise in_target)
     target_compile_definitions(${in_target}
         PRIVATE
         AK_OPTIMIZED=$<NOT:$<CONFIG:Debug>>)
+
+    if(APPLE)
+        target_link_libraries(${in_target}
+            PRIVATE
+            "-framework AudioToolbox"
+            "-framework AudioUnit"
+            "-framework CoreAudio"
+            "-framework AVFoundation"
+            "-framework CoreMIDI"
+            "-framework CoreServices"
+        )
+    endif()
 endmacro()

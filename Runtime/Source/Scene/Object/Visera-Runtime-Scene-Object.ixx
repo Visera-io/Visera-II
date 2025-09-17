@@ -12,7 +12,6 @@ namespace Visera
     export class VISERA_RUNTIME_API VObject
         : public Attribute::SharedOnly<VObject>
     {
-        friend class FScene;
     public:
         virtual void
         Awake()  {};
@@ -28,16 +27,12 @@ namespace Visera
         GetName() const { return Name; }
 
     private:
-        static UInt64           UUID;
+        static inline UInt64           UUID {0};
         const UInt64                   ID   {0};
         FName                          Name {FName{EName::Object}};
 
         TWeakPtr<VObject>              Parent;
         TArray<TSharedPtr<VObject>>    Children;
-
-    public:
-        static void
-        ResetUUID();
 
     public:
         explicit VObject(): ID { ++UUID }
