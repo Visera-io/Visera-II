@@ -4,6 +4,7 @@ export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Runtime.AssetHub.Interface;
 import Visera.Runtime.AssetHub.Image;
+import Visera.Runtime.AssetHub.Shader;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
 
@@ -19,6 +20,8 @@ namespace Visera
     public:
         [[nodiscard]] inline auto
         LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FImage>;
+        [[nodiscard]] inline auto
+        LoadShader(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FShader>;
 
     public:
         void Bootstrap() override;
@@ -90,5 +93,44 @@ namespace Visera
         { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
 
         return Image;
+    }
+
+    TSharedPtr<FShader> FAssetHub::
+    LoadShader(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
+    {
+        VISERA_ASSERT(IsBootstrapped());
+
+        TSharedPtr<FShader> Shader{};
+
+        if (I_Source != EAssetSource::Any)
+        {
+            const auto& Root = Roots[I_Source];
+            FPath Path = Root.GetRoot() / PATH("Shaders") / I_File;
+            LOG_TRACE("Searching the shader in \"{}\".", Path);
+
+            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+            {
+                Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path);
+            }
+        }
+        else
+        {
+            for (const auto& [_, Root] : Roots)
+            {
+                FPath Path = Root.GetRoot() / PATH("Shaders") / I_File;
+                LOG_TRACE("Searching the shader in \"{}\".", Path);
+
+                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+                {
+                    Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path);
+                    break;
+                }
+            }
+        }
+
+        if (!Shader)
+        { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
+
+        return Shader;
     }
 }

@@ -3,6 +3,7 @@ module;
 export module Visera.Runtime.AssetHub.Image;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Runtime.AssetHub.Interface;
+import Visera.Runtime.AssetHub.Image.Importer;
 import Visera.Runtime.AssetHub.Image.PNG;
 import Visera.Core.Log;
 

@@ -5,5 +5,10 @@ export module Visera.Runtime.AssetHub.Shader.Common;
 
 export namespace Visera
 {
-
+    enum class EShaderStage
+    {
+        Unknown,
+        Vertex,
+        Fragment,
+    };
 }

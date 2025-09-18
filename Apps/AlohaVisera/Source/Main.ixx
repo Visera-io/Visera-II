@@ -44,6 +44,8 @@ export int main(int argc, char *argv[])
         auto Fence = GRHI->GetDriver()->CreateFence(True);
 
         auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
+
+        auto Shader = GAssetHub->LoadShader(PATH("Skybox.slang"));
         GEngine->Run();
     }
     GEngine->Terminate();

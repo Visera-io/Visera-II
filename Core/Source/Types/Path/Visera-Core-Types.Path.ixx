@@ -17,6 +17,10 @@ export namespace Visera
         [[nodiscard]] inline Bool
         IsEmpty() const { return Data.empty(); }
         [[nodiscard]] inline FPath
+        GetFileName() const { return FPath{Data.filename().u8string()}; }
+        [[nodiscard]] inline FPath
+        GetParent() const { return FPath{Data.parent_path().u8string()}; }
+        [[nodiscard]] inline FPath
         GetExtension() const { return Data.has_extension()? FPath{Data.extension().u8string()} : FPath{}; }
 
         [[nodiscard]] inline auto
