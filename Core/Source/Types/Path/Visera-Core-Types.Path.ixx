@@ -16,7 +16,11 @@ export namespace Visera
     public:
         [[nodiscard]] inline Bool
         IsEmpty() const { return Data.empty(); }
+        [[nodiscard]] inline FPath
+        GetExtension() const { return Data.has_extension()? FPath{Data.extension().u8string()} : FPath{}; }
 
+        [[nodiscard]] inline auto
+        GetUTF8Path() const { return FString{reinterpret_cast<const char*>(Data.u8string().c_str())}; }
         [[nodiscard]] inline const auto&
         GetNativePath() const { return Data; }
 
@@ -26,12 +30,12 @@ export namespace Visera
         operator==(const FPath& I_Path) const {  return Data == I_Path.Data; }
 
         FPath() = default;
-        FPath(const FPath& I_Path)      : Data{ I_Path.Data } {}
-        FPath(FPath&& I_Path) noexcept  : Data{ I_Path.Data } {}
+        FPath(const FPath& I_Path)      : Data{ I_Path.Data } { Data.make_preferred(); }
+        FPath(FPath&& I_Path) noexcept  : Data{ I_Path.Data } { Data.make_preferred(); }
         FPath& operator=(const FPath& I_Path)     { Data = I_Path.Data; return *this; }
         FPath& operator=(FPath&& I_Path) noexcept { Data = I_Path.Data; return *this; }
-        FPath(const FText& I_Path): Data{ I_Path.GetData() } {}
-        FPath(std::u8string_view I_Path): Data{ I_Path } {}
+        FPath(const FText& I_Path): Data{ I_Path.GetData() } { Data.make_preferred(); }
+        FPath(std::u8string_view I_Path): Data{ I_Path }     { Data.make_preferred(); }
 
     private:
         std::filesystem::path Data;

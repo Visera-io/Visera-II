@@ -28,8 +28,6 @@ namespace Visera
 
         void Initialize()
         {
-            if (!LoadHostFXR()) { LOG_ERROR("Failed to load HostFXR"); return; }
-
             if (!Fn_InitializeRuntime(nullptr, nullptr, nullptr))
             {
                 LOG_ERROR("Failed to initialize HostFXR runtime");
@@ -41,11 +39,12 @@ namespace Visera
         }
 
     private:
-        [[nodiscard]] inline Bool
+        [[nodiscard]] inline void
         LoadHostFXR()
         {
             // Using the nethost library, discover the location of hostfxr and get exports
             HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
+            if (!HostFXR) { LOG_FATAL("Failed to load HostFXR"); }
 
             Fn_InitializeRuntime = reinterpret_cast<hostfxr_initialize_for_runtime_config_fn>
                 (HostFXR->LoadFunction("hostfxr_initialize_for_runtime_config"));
@@ -53,10 +52,6 @@ namespace Visera
                 (HostFXR->LoadFunction("hostfxr_get_runtime_delegate"));
             Fn_FinalizeRuntime = reinterpret_cast<hostfxr_close_fn>
                 (HostFXR->LoadFunction("hostfxr_close"));
-
-            return Fn_InitializeRuntime  &&
-                   Fn_GetRuntimeDelegate &&
-                   Fn_FinalizeRuntime;
         }
 
         // // Load and initialize .NET Core and get desired function pointer for scenario

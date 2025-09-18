@@ -16,12 +16,13 @@ namespace Visera
         {
             LOG_TRACE("Bootstrapping Engine.");
 
+            GAssetHub->Bootstrap();
             GWindow->Bootstrap();
             GRHI->Bootstrap();
             GAudio->Bootstrap();
             GScene->Bootstrap();
 
-            Status = EStatues::Bootstrapped;
+            Status = EStatus::Bootstrapped;
         }
 
         void Run()
@@ -44,8 +45,9 @@ namespace Visera
             GAudio->Terminate();
             GRHI->Terminate();
             GWindow->Terminate();
+            GAssetHub->Terminate();
 
-            Status = EStatues::Terminated;
+            Status = EStatus::Terminated;
         }
 
         FEngine() : IGlobalSingleton("Engine") {};

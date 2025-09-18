@@ -12,12 +12,12 @@ namespace Visera
     public:
 
     private:
-        FDotNET DotNET;
+        TUniquePtr<FDotNET> DotNET;
 
     public:
         FScripting() : IGlobalSingleton{"Scripting"} {}
         void inline
-        Bootstrap() override {};
+        Bootstrap() override { DotNET = MakeUnique<FDotNET>(); };
         void inline
         Terminate() override {};
 

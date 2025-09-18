@@ -10,8 +10,14 @@ namespace Visera::RHI
     public:
         [[nodiscard]] virtual Bool
         Wait(UInt64 I_Timeout) const = 0;
+
         [[nodiscard]] virtual const void*
         GetHandle() const = 0;
+
+        [[nodiscard]] virtual Bool
+        IsTimeout() const = 0;
+        [[nodiscard]] virtual Bool
+        IsNotReady() const = 0;
 
     public:
         IFence()                         = default;

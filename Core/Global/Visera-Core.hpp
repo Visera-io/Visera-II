@@ -138,6 +138,12 @@
 #define TEXT(I_Text) FText{u8##I_Text}
 #define PATH(I_Path) FPath{FText(u8##I_Path)}
 
+#ifndef VISERA_RELEASE_MODE
+#define DEBUG_ONLY_FIELD(I_Content) I_Content
+#else
+#define DEBUG_ONLY_FIELD(I_Content)
+#endif
+
 // << STD Modules >>
 #include <cassert>
 #include <cmath>
@@ -273,7 +279,7 @@ namespace Visera
 	class VISERA_CORE_API IGlobalSingleton
     {
     public:
-    	enum EStatues { Disabled, Bootstrapped, Terminated  };
+    	enum EStatus { Disabled, Bootstrapped, Terminated  };
 
     	[[nodiscard]] FStringView
 		GetDebugName() const { return Name; }
@@ -284,9 +290,9 @@ namespace Visera
 		Terminate() = 0;
 
     	[[nodiscard]] inline Bool
-		IsBootstrapped() const { return Status == EStatues::Bootstrapped; }
+		IsBootstrapped() const { return Status == EStatus::Bootstrapped; }
     	[[nodiscard]] inline Bool
-		IsTerminated() const   { return Status == EStatues::Terminated; }
+		IsTerminated() const   { return Status == EStatus::Terminated; }
 
     	IGlobalSingleton() = delete;
     	explicit IGlobalSingleton(const char* I_Name) : Name(I_Name) {}
@@ -305,7 +311,7 @@ namespace Visera
 
     protected:
     	const char* Name;
-    	mutable EStatues Status = EStatues::Disabled;
+    	mutable EStatus Status = EStatus::Disabled;
     };
 
 	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)

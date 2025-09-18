@@ -88,7 +88,7 @@ namespace Visera
         LOG_DEBUG("Created a new window (title:{}, extent:[{},{}], scales:[{},{}])",
             Title, Width, Height, ScaleX, ScaleY);
 
-        Status = EStatues::Bootstrapped;
+        Status = EStatus::Bootstrapped;
     }
 
     void FGLFWWindow::
@@ -99,7 +99,7 @@ namespace Visera
         glfwTerminate();
         Handle = nullptr;
 
-        Status = EStatues::Terminated;
+        Status = EStatus::Terminated;
     }
 
     GLFWmonitor* FGLFWWindow::

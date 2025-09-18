@@ -68,7 +68,7 @@ namespace Visera
     {
         LOG_TRACE("Bootstrapping Scene.");
 
-        Status = EStatues::Bootstrapped;
+        Status = EStatus::Bootstrapped;
     }
 
     void FScene::
@@ -77,6 +77,6 @@ namespace Visera
         LOG_TRACE("Terminating Scene.");
 
         Objects.clear();
-        Status = EStatues::Terminated;
+        Status = EStatus::Terminated;
     }
 }

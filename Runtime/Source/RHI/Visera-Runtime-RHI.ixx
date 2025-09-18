@@ -23,7 +23,7 @@ namespace Visera
         EndFrame()    const { GetDriver()->EndFrame(); };
 
         [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
-        GetDriver(const std::source_location& I_Location = std::source_location::current())  const
+        GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
             LOG_DEBUG("\"{}\" accessed the RHI driver.", I_Location.function_name());
             return Driver;
@@ -61,7 +61,7 @@ namespace Visera
             LOG_FATAL("{}", Error.what());
         }
 
-        Status = EStatues::Bootstrapped;
+        Status = EStatus::Bootstrapped;
     }
 
     void FRHI::
@@ -70,7 +70,7 @@ namespace Visera
         LOG_TRACE("Terminating RHI.");
         Driver.reset();
 
-        Status = EStatues::Terminated;
+        Status = EStatus::Terminated;
     }
 
     FRHI::

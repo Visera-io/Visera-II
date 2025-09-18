@@ -2,7 +2,8 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Assets;
+import Visera.Runtime.AssetHub.Interface;
+import Visera.Runtime.AssetHub.Image;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
 
@@ -10,18 +11,14 @@ namespace Visera
 {
     export using EAssetType = IAsset::EType;
 
-    export enum class EAssetSource
-    {
-        Engine,
-        Studio,
-        App,
-
-        Any,
-    };
+    export enum class EAssetSource : UInt8
+    { App, Studio, Engine, Any, };
 
     class VISERA_RUNTIME_API FAssetHub : public IGlobalSingleton
     {
     public:
+        [[nodiscard]] inline auto
+        LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FImage>;
 
     public:
         void Bootstrap() override;
@@ -40,14 +37,58 @@ namespace Visera
     Bootstrap()
     {
         LOG_TRACE("Bootstrapping AssetHub.");
-        Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR)};
-        Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR)};
-        Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)};
+
+        Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR) / PATH("Assets") };
+        Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR) / PATH("Assets") };
+        Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)    / PATH("Assets") };
+
+        Status = EStatus::Bootstrapped;
     }
 
     void FAssetHub::
     Terminate()
     {
         LOG_TRACE("Terminating AssetHub.");
+
+        Status = EStatus::Terminated;
+    }
+
+    TSharedPtr<FImage> FAssetHub::
+    LoadImage(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
+    {
+        VISERA_ASSERT(IsBootstrapped());
+
+        TSharedPtr<FImage> Image{};
+
+        if (I_Source != EAssetSource::Any)
+        {
+            const auto& Root = Roots[I_Source];
+            FPath Path = Root.GetRoot() / PATH("Images") / I_File;
+            LOG_TRACE("Searching the image in \"{}\".", Path);
+
+            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+            {
+                Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
+            }
+        }
+        else
+        {
+            for (const auto& [_, Root] : Roots)
+            {
+                FPath Path = Root.GetRoot() / PATH("Images") / I_File;
+                LOG_TRACE("Searching the image in \"{}\".", Path);
+
+                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+                {
+                    Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
+                    break;
+                }
+            }
+        }
+
+        if (!Image)
+        { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
+
+        return Image;
     }
 }

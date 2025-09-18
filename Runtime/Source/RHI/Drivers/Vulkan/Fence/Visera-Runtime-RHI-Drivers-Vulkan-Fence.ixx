@@ -11,10 +11,16 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanFence : public IFence
     {
     public:
-        Bool
+        [[nodiscard]] Bool
         Wait(UInt64 I_Timeout) const override;
-        const void*
+
+        [[nodiscard]] const void*
         GetHandle() const override { return *Handle; }
+
+        [[nodiscard]] Bool
+        IsTimeout() const  override{ return Handle.getStatus() == vk::Result::eTimeout;  };
+        [[nodiscard]] Bool
+        IsNotReady() const override{ return Handle.getStatus() == vk::Result::eNotReady;  };
 
     private:
         vk::raii::Fence Handle {nullptr};
@@ -38,7 +44,7 @@ namespace Visera::RHI
     Bool FVulkanFence::
     Wait(UInt64 I_Timeout) const
     {
-        vk::Result Result = Handle.getDevice().waitForFences({Handle}, VK_TRUE, I_Timeout);
+        auto Result = Handle.getDevice().waitForFences({Handle}, VK_TRUE, I_Timeout);
         if (Result != vk::Result::eSuccess)
         {
             LOG_ERROR("Failed to wait fence (timeout: {}, error:{})!",

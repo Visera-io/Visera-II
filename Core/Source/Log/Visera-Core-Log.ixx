@@ -166,7 +166,7 @@ namespace Visera
 		Logger->set_pattern("%^[%L] [%Y-%m-%d %H:%M:%S.%e] [T:%t] %v%$");
 		//Logger->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%L] %v%$");
 
-		Status = EStatues::Bootstrapped;
+		Status = EStatus::Bootstrapped;
 	}
 
 	void FLog::
@@ -179,6 +179,6 @@ namespace Visera
 		//Do not call drop_all() in your class! spdlog::drop_all();
 		Logger.reset();
 
-		Status = EStatues::Terminated;
+		Status = EStatus::Terminated;
 	}
 }

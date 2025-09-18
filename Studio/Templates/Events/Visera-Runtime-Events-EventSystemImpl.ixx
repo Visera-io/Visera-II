@@ -56,7 +56,7 @@ namespace Visera
             return;
         }
 
-        Status = EStatues::Bootstrapped;
+        Status = EStatus::Bootstrapped;
         LOG_DEBUG("Event System bootstrapped successfully.");
     }
 
@@ -84,7 +84,7 @@ namespace Visera
         LOG_TRACE("Terminating Event System...");
 
         Shutdown();
-        Status = EStatues::Terminated;
+        Status = EStatus::Terminated;
 
         LOG_DEBUG("Event System terminated successfully.");
     }

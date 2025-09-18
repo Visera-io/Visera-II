@@ -16,8 +16,8 @@ using namespace Visera;
 class Foo : public VObject
 {
 public:
-    void Awake() override { LOG_DEBUG("Wake up Foo!"); }
-    void Update(Float I_FrameTime) override { LOG_DEBUG("Update Foo {}!", I_FrameTime); }
+    void Awake() override { LOG_INFO("Wake up Foo!"); }
+    void Update(Float I_FrameTime) override { LOG_INFO("Update Foo {}!", I_FrameTime); }
 
     void Bar() {
         auto k = shared_from_this();
@@ -26,7 +26,6 @@ public:
 
 export int main(int argc, char *argv[])
 {
-    //GLog->SetLevel(ELogLevel::Debug);
 
     FHiResClock Clock{};
     for (int i = 0; i < 1; ++i)
@@ -40,22 +39,13 @@ export int main(int argc, char *argv[])
     //Demos
     { Demos::Compression Demo; }
 
-    try {
+    GEngine->Bootstrap();
+    {
+        auto Fence = GRHI->GetDriver()->CreateFence(True);
 
-
-        GEngine->Bootstrap();
-        {
-            auto Fence = GRHI->GetDriver()->CreateFence(False);
-            // if (Fence->Wait(1000))
-            // { }
-
-            GEngine->Run();
-        }
+        auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
+        GEngine->Run();
     }
-    catch (const std::exception& e) {
-        LOG_ERROR("{}", e.what());
-    }
-
     GEngine->Terminate();
     return EXIT_SUCCESS;
 }

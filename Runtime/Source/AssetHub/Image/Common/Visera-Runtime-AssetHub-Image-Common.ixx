@@ -53,5 +53,4 @@ export namespace Visera
         // Gray scale using IEEE Floating-Point Arithmetic (see IEEE754). The format is always binary.
         GrayFloat,
     };
-
 }

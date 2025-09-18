@@ -33,7 +33,7 @@ namespace Visera
 
         Engine = MakeUnique<FWwiseAudioEngine>();
 
-        Status = EStatues::Bootstrapped;
+        Status = EStatus::Bootstrapped;
     }
 
     void FAudio::
@@ -43,7 +43,7 @@ namespace Visera
 
         Engine.reset();
 
-        Status = EStatues::Terminated;
+        Status = EStatus::Terminated;
     }
 
 }
