@@ -1,8 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.AssetHub.Importers.Image.Importer;
+export module Visera.Runtime.AssetHub.Image.Importer;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-export import Visera.Runtime.AssetHub.Importers.Image.Common;
+export import Visera.Runtime.AssetHub.Image.Common;
 export import Visera.Core.Types.Path;
 
 namespace Visera

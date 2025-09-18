@@ -51,5 +51,4 @@ namespace Visera
       LOG_DEBUG("Loaded the image \"{}\" (extend:[{},{}], sRGB:{}).",
                 GetPath(), Importer->GetWidth(), Importer->GetHeight(), Importer->IsSRGB());
    }
-
 }

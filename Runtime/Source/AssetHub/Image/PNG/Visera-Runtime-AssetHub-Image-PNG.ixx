@@ -3,7 +3,7 @@ module;
 #include <png.h>
 export module Visera.Runtime.AssetHub.Image.PNG;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-export import Visera.Runtime.AssetHub.Importers.Image.Importer;
+export import Visera.Runtime.AssetHub.Image.Importer;
        import Visera.Core.Log;
 
 namespace Visera
