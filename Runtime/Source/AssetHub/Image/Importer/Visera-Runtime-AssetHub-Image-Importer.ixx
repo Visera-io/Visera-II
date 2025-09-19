@@ -24,7 +24,7 @@ namespace Visera
         [[nodiscard]] auto
         GetAspectRatio() const -> Float { return static_cast<Float>(GetWidth()) / GetHeight(); }
 
-        Bool
+        [[nodiscard]] Bool
         IsSRGB() const { return GetBitDepth() == 8 && GetColorFormat() != EColorFormat::BGRExp; }
 
     public:

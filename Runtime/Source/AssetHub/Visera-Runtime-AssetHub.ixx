@@ -21,7 +21,7 @@ namespace Visera
         [[nodiscard]] inline auto
         LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FImage>;
         [[nodiscard]] inline auto
-        LoadShader(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FShader>;
+        LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FShader>;
 
     public:
         void Bootstrap() override;
@@ -96,7 +96,7 @@ namespace Visera
     }
 
     TSharedPtr<FShader> FAssetHub::
-    LoadShader(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
+    LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source /* = EAssetSource::Any */)
     {
         VISERA_ASSERT(IsBootstrapped());
 
@@ -110,7 +110,7 @@ namespace Visera
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
             {
-                Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path);
+                Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path, I_EntryPoint);
             }
         }
         else
@@ -122,7 +122,7 @@ namespace Visera
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
                 {
-                    Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path);
+                    Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path, I_EntryPoint);
                     break;
                 }
             }

@@ -45,7 +45,8 @@ export int main(int argc, char *argv[])
 
         auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
 
-        auto Shader = GAssetHub->LoadShader(PATH("Skybox.slang"));
+        auto VertShader = GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain");
+        auto FragShader = GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain");
         GEngine->Run();
     }
     GEngine->Terminate();

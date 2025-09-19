@@ -13,43 +13,50 @@ export namespace Visera
     {
     public:
         [[nodiscard]] auto
-        Import(const FPath& I_Path) -> TArray<FByte> override;
+    	Import(const FPath& I_Path, FStringView I_EntryPoint) -> TArray<FByte> override;
 
     private:
-        thread_local static inline Slang::ComPtr<slang::IGlobalSession>
+    	static inline Slang::ComPtr<slang::IGlobalSession>
     	Context {nullptr}; //[Note] Currently, the global session type is not thread-safe. Applications that wish to compile on multiple threads will need to ensure that each concurrent thread compiles with a distinct global session.
+    	static inline const TArray<FString>
+    	ShaderPaths
+    	{
+    		(FPath(VISERA_APP_DIR)    / PATH("Assets/Shaders")).GetUTF8Path(),
+    		(FPath(VISERA_ENGINE_DIR) / PATH("Assets/Shaders")).GetUTF8Path(),
+    	};
 
     	struct FSession
         {
             Slang::ComPtr<slang::ISession> Handle;
             slang::TargetDesc              Description;
-            TArray<FString>                ShaderPaths;
-        	Slang::ComPtr<slang::IBlob>    CompiledCode;
+    		Slang::ComPtr<slang::IBlob>    CompiledCode;
         };
         TUniquePtr<FSession>               Session;
 
     public:
         FSlangShaderImporter();
+    	~FSlangShaderImporter() override;
 
     private:
     	[[nodiscard]] Bool
-    	CreateSession(const FPath& I_WorkingDirectory);
+    	CreateSession();
     	[[nodiscard]] Bool
     	Compile(const FPath& I_File, FStringView I_EntryPoint);
     };
 
     TArray<FByte> FSlangShaderImporter::
-    Import(const FPath& I_Path)
+    Import(const FPath& I_Path, FStringView I_EntryPoint)
     {
     	TArray<FByte> ShaderData;
 
     	FPath WorkingDirectory = I_Path.GetParent();
 
-    	if (CreateSession(WorkingDirectory) &&
-    		Compile(I_Path.GetFileName(), "VertexMain") &&
-    		Compile(I_Path.GetFileName(), "FragmentMain"))
+    	if (Compile(I_Path.GetFileName(), I_EntryPoint))
     	{
-
+    		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
+    		ShaderData = TArray<FByte>(Buffer,
+    			                       Buffer + Session->CompiledCode->getBufferSize());
+    		Session->CompiledCode.setNull();
     	}
 		else { LOG_ERROR("Failed to import the shader \"{}\"!", I_Path); }
 
@@ -59,19 +66,29 @@ export namespace Visera
     FSlangShaderImporter::
     FSlangShaderImporter()
     {
-    	if (Context != nullptr) { return; }
+    	if (Context == nullptr)
+    	{
+    		LOG_DEBUG("Creating a Slang thread global context.");
 
-		LOG_DEBUG("Creating a Slang thread global context.");
+    		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
+    		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
+    	}
 
-        if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
-        { LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
+    	if (!CreateSession())
+    	{ LOG_FATAL("Failed to create the Slang Session!"); }
     }
 
+	FSlangShaderImporter::
+	~FSlangShaderImporter()
+    {
+    	Session->CompiledCode.setNull();
+		Session->Handle.setNull();
+    	Session.reset();
+    }
 
 	Bool FSlangShaderImporter::
-	CreateSession(const FPath& I_WorkingDirectory)
+	CreateSession()
     {
-    	VISERA_ASSERT(!Session);
     	LOG_TRACE("Creating a new slange session.");
     	Session = MakeUnique<FSession>();
 
@@ -81,20 +98,19 @@ export namespace Visera
     		.format  = SLANG_SPIRV,
 			.profile = Context->findProfile("glsl_450"),
 		};
-    	Session->ShaderPaths.emplace_back(I_WorkingDirectory.GetUTF8Path());
 
-    	TArray<const char*> ShaderPaths(Session->ShaderPaths.size());
+    	TArray<const char*> SearchPaths(ShaderPaths.size());
     	for (UInt32 Idx = 0; Idx < ShaderPaths.size(); ++Idx)
     	{
-    		ShaderPaths[Idx] = Session->ShaderPaths[Idx].data();
+    		SearchPaths[Idx] = ShaderPaths[Idx].data();
     	}
 
     	slang::SessionDesc SessionCreateInfo
 		{
 			.targets		 = &Session->Description,
 			.targetCount	 = 1,
-			.searchPaths	 = ShaderPaths.data(),
-			.searchPathCount = static_cast<UInt32>(Session->ShaderPaths.size()),
+			.searchPaths	 = SearchPaths.data(),
+			.searchPathCount = static_cast<UInt32>(SearchPaths.size()),
 		};
 
     	if (Context->createSession(SessionCreateInfo, Session->Handle.writeRef()) != SLANG_OK)
@@ -160,35 +176,29 @@ export namespace Visera
 	 		Session->CompiledCode.writeRef(),
 	 		Diagnostics.writeRef()) != SLANG_OK)
 	 	{
-	 		LOG_ERROR("Failed to obtain compiled shader code from {}: {}!",
+	 		LOG_ERROR("Failed to obtain compiled code from {}: {}!",
 	 		          I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
 	 		return False;
 	 	}
-		//
-	 // 	// Reflect Shader
-	 // 	slang::ProgramLayout* ShaderLayout = ShaderProgram->getLayout(0, Diagnostics.writeRef());
-	 // 	if (Diagnostics)
-		// {
-	 // 		String Info = Text("Failed to get reflection info from Shader({}): {} -- throw(SRuntimeError)",
-		// 					   _FileName.data(), RawString(Diagnostics->getBufferPointer()));
-	 // 		VE_LOG_ERROR("{}", Info);
-	 // 		throw SRuntimeError(Info);
-		// }
-		//
-	 // 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(_EntryPoint.data());
-		//
-	 // 	EShaderStage ShaderStage{};
-	 // 	switch (EntryPointRef->getStage())
-	 // 	{
-	 // 	case SLANG_STAGE_VERTEX:	ShaderStage = EShaderStage::Vertex;   break;
-	 // 	case SLANG_STAGE_FRAGMENT:	ShaderStage = EShaderStage::Fragment; break;
-	 // 	default: VE_LOG_FATAL("Unsupported Shader PoolType!");
-	 // 	}
-		//
-	 // 	auto RHIShader = RHI::CreateShader(ShaderStage,
-	 // 					                   CompiledCode->getBufferPointer(),
-	 // 					                   CompiledCode->getBufferSize());
-		//
+
+	 	// Reflect Shader
+	 	slang::ProgramLayout* ShaderLayout = ShaderProgram->getLayout(0, Diagnostics.writeRef());
+	 	if (Diagnostics)
+		{
+	 		LOG_ERROR("Failed to get reflection info from Shader({}): {}!",
+	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
+	 		return False;
+		}
+
+	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
+
+	 	switch (EntryPointRef->getStage())
+	 	{
+	 		case SLANG_STAGE_VERTEX:	ShaderStage = EShaderStage::Vertex;   break;
+	 		case SLANG_STAGE_FRAGMENT:	ShaderStage = EShaderStage::Fragment; break;
+	 		default: LOG_ERROR("Unsupported Shader Stage!");
+	 	}
+
 		return True;
 	 }
 }

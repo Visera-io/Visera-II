@@ -16,9 +16,26 @@ namespace Visera
       GetData() const override { return Data.data(); }
       [[nodiscard]] UInt64
       GetSize() const override { return Data.size(); }
-
+      [[nodiscard]] inline UInt32
+      GetWidth() const { return Importer->GetWidth(); }
+      [[nodiscard]] inline UInt32
+      GetHeight() const { return Importer->GetHeight(); }
+      [[nodiscard]] inline UInt8
+      GetBitDepth() const { return Importer->GetBitDepth(); }
       [[nodiscard]] EImageFormat
       GetFormat() const { return Format; }
+
+      [[nodiscard]] inline Bool
+      IsSRGB() const { return Importer->IsSRGB(); }
+      [[nodiscard]] Bool
+      IsRGBA() const { return Importer->GetColorFormat() == EColorFormat::RGBA; }
+      [[nodiscard]] Bool
+      IsBGRA() const { return Importer->GetColorFormat() == EColorFormat::BGRA; }
+      [[nodiscard]] Bool
+      HasAlpha() const { return IsRGBA() || IsBGRA(); }
+
+      [[nodiscard]] FByte*
+      Access() { return Data.data(); }
 
    private:
       TArray<FByte> Data;

@@ -5,6 +5,9 @@ export module Visera.Runtime.Window.GLFW;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Window.Interface;
 import Visera.Core.Log;
+#if defined VISERA_ON_WINDOWS_SYSTEM
+import Visera.Runtime.AssetHub;
+#endif
 
 namespace Visera
 {
@@ -60,7 +63,7 @@ namespace Visera
 
         //Create Window
         Handle = glfwCreateWindow(
-            Width, Height,
+            Width, Height, //[TODO] read from config (save the last scale).
             static_cast<const char*>(Title),
             nullptr,
             nullptr);
@@ -70,7 +73,15 @@ namespace Visera
 #if defined(VISERA_ON_APPLE_SYSTEM)
         //SetPosition(400, 200);
 #else
+        auto IconImage = GAssetHub->LoadImage(PATH("Visera.png"));
+        VISERA_ASSERT(IconImage->HasAlpha());
 
+        GLFWimage Icon;
+        Icon.width  = IconImage->GetWidth();
+        Icon.height = IconImage->GetHeight();
+        Icon.pixels = IconImage->Access();
+
+        glfwSetWindowIcon(Handle, 1, &Icon);
 #endif
         glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
 

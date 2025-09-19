@@ -11,10 +11,17 @@ namespace Visera
     {
     public:
         [[nodiscard]] virtual auto
-        Import(const FPath& I_Path) -> TArray<FByte> = 0;
+        Import(const FPath& I_Path, FStringView I_EntryPoint) -> TArray<FByte> = 0;
+        [[nodiscard]] inline EShaderLanguage
+        GetLanguage() const { return Language; };
+        [[nodiscard]] inline EShaderStage
+        GetShaderStage() const { return ShaderStage; };
+
+    protected:
+        EShaderLanguage Language   { EShaderLanguage::Slang };
+        EShaderStage    ShaderStage { EShaderStage::Unknown   };
 
     public:
         virtual ~IShaderImporter() = default;
     };
-
 }
