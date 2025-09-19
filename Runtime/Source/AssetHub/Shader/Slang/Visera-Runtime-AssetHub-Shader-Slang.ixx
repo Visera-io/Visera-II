@@ -18,12 +18,8 @@ export namespace Visera
     private:
     	static inline Slang::ComPtr<slang::IGlobalSession>
     	Context {nullptr}; //[Note] Currently, the global session type is not thread-safe. Applications that wish to compile on multiple threads will need to ensure that each concurrent thread compiles with a distinct global session.
-    	static inline const TArray<FString>
-    	ShaderPaths
-    	{
-    		(FPath(VISERA_APP_DIR)    / PATH("Assets/Shaders")).GetUTF8Path(),
-    		(FPath(VISERA_ENGINE_DIR) / PATH("Assets/Shaders")).GetUTF8Path(),
-    	};
+    	static inline TArray<FString>
+    	ShaderPaths{};
 
     	struct FSession
         {
@@ -72,6 +68,11 @@ export namespace Visera
 
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
+
+    		ShaderPaths.emplace_back((FPath(VISERA_APP_DIR)    / PATH("Assets/Shaders")).GetUTF8Path());
+    		LOG_TRACE("Added a new shader path: {}", ShaderPaths.back());
+    		ShaderPaths.emplace_back((FPath(VISERA_ENGINE_DIR) / PATH("Assets/Shaders")).GetUTF8Path());
+    		LOG_TRACE("Added a new shader path: {}", ShaderPaths.back());
     	}
 
     	if (!CreateSession())

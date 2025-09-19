@@ -77,7 +77,7 @@ namespace Visera
     ~FRHI()
     {
         if (IsBootstrapped())
-        { LOG_FATAL("RHI must be terminated properly!"); }
+        { LOG_WARN("RHI must be terminated properly!"); }
     }
 
 }
