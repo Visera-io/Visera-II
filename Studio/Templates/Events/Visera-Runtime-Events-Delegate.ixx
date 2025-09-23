@@ -1,6 +1,6 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.Events.Delegate;
+export module Visera.Runtime.Event.Delegate;
 #define VISERA_MODULE_NAME "Runtime.Events.Delegate"
 import Visera.Core.Log;
 

@@ -1,10 +1,10 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.Events.Examples;
+export module Visera.Runtime.Event.Examples;
 #define VISERA_MODULE_NAME "Runtime.Events.Examples"
-import Visera.Runtime.Events.Delegate;
-import Visera.Runtime.Events.MulticastDelegate;
-import Visera.Runtime.Events.EventSystem;
+import Visera.Runtime.Event.Delegate;
+import Visera.Runtime.Event.MulticastDelegate;
+import Visera.Runtime.Event.EventSystem;
 import Visera.Core.Log;
 
 namespace Visera::Examples

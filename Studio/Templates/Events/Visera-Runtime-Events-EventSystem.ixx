@@ -1,9 +1,9 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.Events.EventSystem;
+export module Visera.Runtime.Event.EventSystem;
 #define VISERA_MODULE_NAME "Runtime.Events.EventSystem"
-import Visera.Runtime.Events.Delegate;
-import Visera.Runtime.Events.MulticastDelegate;
+import Visera.Runtime.Event.Delegate;
+import Visera.Runtime.Event.MulticastDelegate;
 import Visera.Runtime.Core.Subsystem;
 import Visera.Core.Log;
 import Visera.Core.Types.Name;

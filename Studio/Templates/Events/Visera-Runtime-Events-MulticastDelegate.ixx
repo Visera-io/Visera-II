@@ -1,8 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.Events.MulticastDelegate;
+export module Visera.Runtime.Event.MulticastDelegate;
 #define VISERA_MODULE_NAME "Runtime.Events.MulticastDelegate"
-import Visera.Runtime.Events.Delegate;
+import Visera.Runtime.Event.Delegate;
 import Visera.Core.Log;
 
 namespace Visera

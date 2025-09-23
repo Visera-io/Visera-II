@@ -4,16 +4,16 @@ module;
 #include <slang-com-ptr.h>
 export module Visera.Runtime.AssetHub.Shader.Slang;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Shader.Importer;
+import Visera.Runtime.AssetHub.Shader.Compiler;
 import Visera.Core.Log;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FSlangShaderImporter : public IShaderImporter
+    class VISERA_RUNTIME_API FSlangShaderCompiler : public IShaderCompiler
     {
     public:
         [[nodiscard]] auto
-    	Import(const FPath& I_Path, FStringView I_EntryPoint) -> TArray<FByte> override;
+    	Compile(const FPath& I_Path, FStringView I_EntryPoint) -> TArray<FByte> override;
 
     private:
     	static inline Slang::ComPtr<slang::IGlobalSession>
@@ -30,37 +30,37 @@ export namespace Visera
         TUniquePtr<FSession>               Session;
 
     public:
-        FSlangShaderImporter();
-    	~FSlangShaderImporter() override;
+        FSlangShaderCompiler();
+    	~FSlangShaderCompiler() override;
 
     private:
     	[[nodiscard]] Bool
     	CreateSession();
     	[[nodiscard]] Bool
-    	Compile(const FPath& I_File, FStringView I_EntryPoint);
+    	Process(const FPath& I_File, FStringView I_EntryPoint);
     };
 
-    TArray<FByte> FSlangShaderImporter::
-    Import(const FPath& I_Path, FStringView I_EntryPoint)
+    TArray<FByte> FSlangShaderCompiler::
+    Compile(const FPath& I_Path, FStringView I_EntryPoint)
     {
     	TArray<FByte> ShaderData;
 
     	FPath WorkingDirectory = I_Path.GetParent();
 
-    	if (Compile(I_Path.GetFileName(), I_EntryPoint))
+    	if (Process(I_Path.GetFileName(), I_EntryPoint))
     	{
     		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
     		ShaderData = TArray<FByte>(Buffer,
     			                       Buffer + Session->CompiledCode->getBufferSize());
     		Session->CompiledCode.setNull();
     	}
-		else { LOG_ERROR("Failed to import the shader \"{}\"!", I_Path); }
+		else { LOG_ERROR("Failed to compile the shader \"{}\"!", I_Path); }
 
         return ShaderData;
     }
 
-    FSlangShaderImporter::
-    FSlangShaderImporter()
+    FSlangShaderCompiler::
+    FSlangShaderCompiler()
     {
     	if (Context == nullptr)
     	{
@@ -79,15 +79,15 @@ export namespace Visera
     	{ LOG_FATAL("Failed to create the Slang Session!"); }
     }
 
-	FSlangShaderImporter::
-	~FSlangShaderImporter()
+	FSlangShaderCompiler::
+	~FSlangShaderCompiler()
     {
     	Session->CompiledCode.setNull();
 		Session->Handle.setNull();
     	Session.reset();
     }
 
-	Bool FSlangShaderImporter::
+	Bool FSlangShaderCompiler::
 	CreateSession()
     {
     	LOG_TRACE("Creating a new slange session.");
@@ -123,8 +123,8 @@ export namespace Visera
     	return True;
     }
 
-     Bool FSlangShaderImporter::
-	 Compile(const FPath& I_File, FStringView I_EntryPoint)
+     Bool FSlangShaderCompiler::
+	 Process(const FPath& I_File, FStringView I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);
 

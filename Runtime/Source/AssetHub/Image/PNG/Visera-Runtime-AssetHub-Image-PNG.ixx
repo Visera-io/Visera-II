@@ -3,25 +3,32 @@ module;
 #include <png.h>
 export module Visera.Runtime.AssetHub.Image.PNG;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Image.Importer;
+import Visera.Runtime.AssetHub.Image.Wrapper;
 import Visera.Core.Log;
 
 namespace Visera
 {
-    export class VISERA_RUNTIME_API FPNGImageImporter : public IImageImporter
+    export class VISERA_RUNTIME_API FPNGImageWrapper : public IImageWrapper
     {
     public:
         [[nodiscard]] auto
         Import(const FPath& I_Path) -> TArray<FByte> override;
 
         [[nodiscard]] auto
-        GetWidth()       const -> UInt32        override { return Width; };
+        GetWidth()       const -> UInt32        override { return Width; }
         [[nodiscard]] auto
-        GetHeight()      const -> UInt32        override { return Height; };
+        GetHeight()      const -> UInt32        override { return Height; }
         [[nodiscard]] auto
-        GetColorFormat() const -> EColorFormat override { return ColorFormat; };
+        GetChannels()    const -> UInt8        override { return Channels; }
         [[nodiscard]] auto
-        GetBitDepth()    const -> UInt8        override { return BitDepth; };
+        GetColorFormat() const -> EColorFormat override { return ColorFormat; }
+        [[nodiscard]] auto
+        GetBitDepth()    const -> UInt8        override { return BitDepth; }
+
+        void
+        SetWidth(UInt32 I_Width)   override { Width = I_Width; }
+        void
+        SetHeight(UInt32 I_Height) override { Height = I_Height; }
 
     private:
         png_structp Handle = nullptr;
@@ -41,12 +48,12 @@ namespace Visera
         void DetectFormat();
         void DetectColorSpace();
         void EndParsing();
-        
+
     public:
-        FPNGImageImporter() = default;
+        FPNGImageWrapper() = default;
     };
 
-    TArray<FByte> FPNGImageImporter::
+    TArray<FByte> FPNGImageWrapper::
     Import(const FPath& I_Path)
     {
         TArray<FByte> ImageData;
@@ -73,7 +80,7 @@ namespace Visera
         return ImageData;
     }
 
-    Bool FPNGImageImporter::
+    Bool FPNGImageWrapper::
     BeginParsing(const FPath& I_Path)
     {
         auto Path = I_Path.GetUTF8Path();
@@ -134,7 +141,7 @@ namespace Visera
         return True;
     }
 
-    void FPNGImageImporter::
+    void FPNGImageWrapper::
     Preprocessing()
     {
         const auto ColorType = png_get_color_type(Handle, Info);
@@ -175,7 +182,7 @@ namespace Visera
         Channels = png_get_channels(Handle,     Info);
     }
 
-    void FPNGImageImporter::
+    void FPNGImageWrapper::
     DetectFormat()
     {
         //libpng read PNG images in RGBA order.
@@ -202,7 +209,7 @@ namespace Visera
         }
     }
 
-    void FPNGImageImporter::
+    void FPNGImageWrapper::
     DetectColorSpace()
     {
         if (png_get_valid(Handle, Info, PNG_INFO_sRGB))
@@ -226,7 +233,7 @@ namespace Visera
         }
     }
 
-    void FPNGImageImporter::
+    void FPNGImageWrapper::
     EndParsing()
     {
         VISERA_ASSERT(File);

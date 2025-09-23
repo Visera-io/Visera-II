@@ -1,8 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.Events.EventSystemImpl;
+export module Visera.Runtime.Event.EventSystemImpl;
 #define VISERA_MODULE_NAME "Runtime.Events.EventSystemImpl"
-import Visera.Runtime.Events.EventSystem;
+import Visera.Runtime.Event.EventSystem;
 import Visera.Core.Log;
 
 namespace Visera

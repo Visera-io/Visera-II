@@ -4,7 +4,7 @@ export module Visera.Runtime.AssetHub.Shader;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Runtime.AssetHub.Asset;
 import Visera.Runtime.AssetHub.Shader.Common;
-import Visera.Runtime.AssetHub.Shader.Importer;
+import Visera.Runtime.AssetHub.Shader.Compiler;
 import Visera.Runtime.AssetHub.Shader.Slang;
 import Visera.Core.Log;
 
@@ -27,7 +27,7 @@ export namespace Visera
     private:
         const FString   EntryPoint;
         TArray<FByte>   Data;
-        TUniquePtr<IShaderImporter> Importer;
+        TUniquePtr<IShaderCompiler> Importer;
 
     public:
         FShader() = delete;
@@ -43,8 +43,8 @@ export namespace Visera
 
         if (Extension == PATH(".slang"))
         {
-            Importer = MakeUnique<FSlangShaderImporter>(); //[TODO]: Shared Session
-            Data = Importer->Import(GetPath(), EntryPoint);
+            Importer = MakeUnique<FSlangShaderCompiler>(); //[TODO]: Shared Session
+            Data = Importer->Compile(GetPath(), EntryPoint);
         }
         else
         {
