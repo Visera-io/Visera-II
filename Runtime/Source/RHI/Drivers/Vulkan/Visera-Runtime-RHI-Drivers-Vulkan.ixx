@@ -11,6 +11,7 @@ import Visera.Runtime.RHI.Drivers.Vulkan.Allocator;
 import Visera.Runtime.RHI.Drivers.Vulkan.Fence;
 import Visera.Runtime.RHI.Drivers.Vulkan.ShaderModule;
 import Visera.Runtime.RHI.Drivers.Vulkan.RenderPass;
+import Visera.Runtime.RHI.Drivers.Vulkan.CommandBuffer;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
 import Visera.Core.Math.Arithmetic;
@@ -64,6 +65,8 @@ namespace Visera::RHI
             Bool                          bClipped       {True};
         }SwapChain;
 
+        vk::raii::CommandPool GraphicsCommandPool {nullptr};
+
     private:
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
@@ -78,12 +81,14 @@ namespace Visera::RHI
         void
         Present()    override {};
         TSharedPtr<IShaderModule>
-        CreateShaderModule(TSharedPtr<FShader> I_Shader) const override;
+        CreateShaderModule(TSharedPtr<FShader> I_Shader) override;
         TUniquePtr<IRenderPass>
         CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
-                         TSharedPtr<IShaderModule> I_FragmentShader) const override;
+                         TSharedPtr<IShaderModule> I_FragmentShader) override;
         TUniquePtr<IFence>
-        CreateFence(Bool I_bSignaled) const override;
+        CreateFence(Bool I_bSignaled) override;
+        TSharedPtr<ICommandBuffer>
+        CreateCommandBuffer(ECommandType I_Type) override;
         UInt32
         GetFrameCount() const override { return SwapChain.Images.size(); }
         inline const void*
@@ -98,6 +103,7 @@ namespace Visera::RHI
         void PickPhysicalDevice();
         void CreateDevice();
         void CreateSwapChain();
+        void CreateCommandPools();
 
         inline FVulkan*
         AddInstanceLayer(const char* I_Layer)           { InstanceLayers.emplace_back(I_Layer);         return this; }
@@ -209,12 +215,22 @@ namespace Visera::RHI
         {
             CreateSwapChain();
         }
+
+        // Command Pools
+        {
+            CreateCommandPools();
+        }
     };
 
     FVulkan::
     ~FVulkan()
     {
         Device.Context.waitIdle();
+
+        // Command Pools
+        {
+            GraphicsCommandPool.clear();
+        }
 
         if (GWindow->IsBootstrapped())
         {
@@ -626,7 +642,7 @@ namespace Visera::RHI
     }
 
     TSharedPtr<IShaderModule> FVulkan::
-    CreateShaderModule(TSharedPtr<FShader> I_Shader) const
+    CreateShaderModule(TSharedPtr<FShader> I_Shader)
     {
         VISERA_ASSERT(!I_Shader->IsEmpty());
         LOG_TRACE("Creating a Vulkan Shader Module (shader:{})",
@@ -636,7 +652,7 @@ namespace Visera::RHI
 
     TUniquePtr<IRenderPass> FVulkan::
     CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
-                     TSharedPtr<IShaderModule> I_FragmentShader) const
+                     TSharedPtr<IShaderModule> I_FragmentShader)
     {
         LOG_DEBUG("Creating a Vulkan Render Pass (vertex:{}, fragment:{})",
                   I_VertexShader->GetName(), I_FragmentShader->GetName());
@@ -646,9 +662,44 @@ namespace Visera::RHI
     }
 
     TUniquePtr<IFence> FVulkan::
-    CreateFence(Bool I_bSignaled) const
+    CreateFence(Bool I_bSignaled)
     {
         LOG_TRACE("Creating a Vulkan Fence (signaled:{})", I_bSignaled);
         return MakeUnique<FVulkanFence>(Device.Context, I_bSignaled);
+    }
+
+    void FVulkan::
+    CreateCommandPools()
+    {
+        LOG_TRACE("Creating a Vulkan Graphics Command Pool.");
+        {
+            auto CreateInfo = vk::CommandPoolCreateInfo{}
+                .setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+                .setQueueFamilyIndex(*GPU.GraphicsQueueFamilies.begin())
+            ;
+            auto Result = Device.Context.createCommandPool(CreateInfo);
+            if (!Result)
+            { LOG_FATAL("Failed to create the Vulkan Graphics Command Pool!"); }
+            else
+            { GraphicsCommandPool = std::move(*Result); }
+        }
+    }
+
+    TSharedPtr<ICommandBuffer> FVulkan::
+    CreateCommandBuffer(ECommandType I_Type)
+    {
+        switch (I_Type)
+        {
+        case ICommandBuffer::EType::Graphics:
+            LOG_TRACE("Creating a new Vulkan Graphics Command Buffer.");
+            return MakeShared<FVulkanCommandBuffer>(
+                Device.Context,
+                GraphicsCommandPool,
+                I_Type);
+        default:
+            LOG_FATAL("Invalid Command Buffer Type!");
+            return {};
+        }
+
     }
 }

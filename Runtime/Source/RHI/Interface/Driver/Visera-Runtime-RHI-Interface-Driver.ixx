@@ -3,7 +3,7 @@ module;
 export module Visera.Runtime.RHI.Interface.Driver;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.AssetHub.Shader;
-import Visera.Runtime.RHI.Interface.CommandPool;
+import Visera.Runtime.RHI.Interface.CommandBuffer;
 import Visera.Runtime.RHI.Interface.Fence;
 import Visera.Runtime.RHI.Interface.ShaderModule;
 import Visera.Runtime.RHI.Interface.RenderPass;
@@ -11,6 +11,7 @@ import Visera.Core.Log;
 
 namespace Visera::RHI
 {
+    export using ECommandType = ICommandBuffer::EType;
 
     export class VISERA_RUNTIME_API IDriver
     {
@@ -30,19 +31,21 @@ namespace Visera::RHI
         [[nodiscard]] virtual UInt32
         GetFrameCount() const = 0;
         [[nodiscard]] virtual TSharedPtr<IShaderModule>
-        CreateShaderModule(TSharedPtr<FShader> I_Shader) const = 0;
+        CreateShaderModule(TSharedPtr<FShader> I_Shader) = 0;
         [[nodiscard]] virtual TUniquePtr<IRenderPass>
         CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
-                         TSharedPtr<IShaderModule> I_FragmentShader) const = 0;
+                         TSharedPtr<IShaderModule> I_FragmentShader) = 0;
         [[nodiscard]] virtual TUniquePtr<IFence>
-        CreateFence(Bool I_bSignaled) const = 0;
+        CreateFence(Bool I_bSignaled) = 0;
+        [[nodiscard]] virtual TSharedPtr<ICommandBuffer>
+        CreateCommandBuffer(ECommandType I_Type) = 0;
 
         [[nodiscard]] virtual const void*
         GetNativeInstance() const = 0;
         [[nodiscard]] virtual const void*
         GetNativeDevice()   const = 0;
 
-        inline EType
+        [[nodiscard]] inline EType
         GetType() const { return Type; }
 
     private:

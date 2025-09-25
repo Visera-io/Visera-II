@@ -49,6 +49,8 @@ export int main(int argc, char *argv[])
         auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
         auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
+
+        auto Cmd = Driver->CreateCommandBuffer(RHI::ECommandType::Graphics);
         GEngine->Run();
     }
     GEngine->Terminate();
