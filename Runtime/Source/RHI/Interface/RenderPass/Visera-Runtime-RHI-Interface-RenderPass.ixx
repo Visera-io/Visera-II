@@ -10,6 +10,8 @@ namespace Visera::RHI
     public:
         [[nodiscard]] virtual const void*
         GetHandle() const = 0;
+        [[nodiscard]] virtual const void*
+        GetPipeline() const = 0;
 
     public:
         IRenderPass()                              = default;

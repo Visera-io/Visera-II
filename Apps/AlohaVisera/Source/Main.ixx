@@ -51,6 +51,11 @@ export int main(int argc, char *argv[])
         auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::ECommandType::Graphics);
+        Cmd->Begin();
+        {
+            LOG_INFO("Beginning!");
+        }
+        Cmd->End();
         GEngine->Run();
     }
     GEngine->Terminate();

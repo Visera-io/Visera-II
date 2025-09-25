@@ -2,6 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Interface.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.Interface.RenderPass;
 
 namespace Visera::RHI
 {
@@ -20,15 +21,22 @@ namespace Visera::RHI
             Idle,
             Recording,
             InsideRenderPass,
-            ReadyToSubmit,
+            Submitted,
         };
 
         virtual void
-        Begin() const = 0;
+        Begin() = 0;
         virtual void
-        End() const = 0;
+        ReachRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass) = 0;
         virtual void
-        Submit(const void* I_Queue) const = 0;
+        Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
+             UInt32 I_FirstVertex, UInt32 I_FirstInstance) const = 0;
+        virtual void
+        LeaveRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass) = 0;
+        virtual void
+        End() = 0;
+        virtual void
+        Submit(const void* I_Queue) = 0;
 
         [[nodiscard]] virtual const void*
         GetHandle() const = 0;
@@ -40,11 +48,11 @@ namespace Visera::RHI
         [[nodiscard]] inline Bool
         IsInsideRenderPass() const { return Status == EStatus::InsideRenderPass; }
         [[nodiscard]] inline Bool
-        IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
+        IsSubmitted() const { return Status == EStatus::Submitted; }
 
     protected:
-        const   EType   Type   {EType::Unknown};
-        mutable EStatus Status {EStatus::Idle};
+        const EType   Type   {EType::Unknown};
+        EStatus       Status {EStatus::Idle};
 
     public:
         ICommandBuffer()                                 = delete;
