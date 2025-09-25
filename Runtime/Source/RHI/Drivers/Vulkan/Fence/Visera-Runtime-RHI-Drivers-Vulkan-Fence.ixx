@@ -15,7 +15,7 @@ namespace Visera::RHI
         Wait(UInt64 I_Timeout) const override;
 
         [[nodiscard]] const void*
-        GetHandle() const override { return *Handle; }
+        GetHandle() const override { return &Handle; }
 
         [[nodiscard]] Bool
         IsTimeout() const  override{ return Handle.getStatus() == vk::Result::eTimeout;  };

@@ -9,6 +9,8 @@ import Visera.Runtime.RHI.Interface;
 import Visera.Runtime.RHI.Drivers.Vulkan.Loader;
 import Visera.Runtime.RHI.Drivers.Vulkan.Allocator;
 import Visera.Runtime.RHI.Drivers.Vulkan.Fence;
+import Visera.Runtime.RHI.Drivers.Vulkan.ShaderModule;
+import Visera.Runtime.RHI.Drivers.Vulkan.RenderPass;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
 import Visera.Core.Math.Arithmetic;
@@ -75,6 +77,11 @@ namespace Visera::RHI
         EndFrame()   override {};
         void
         Present()    override {};
+        TSharedPtr<IShaderModule>
+        CreateShaderModule(TSharedPtr<FShader> I_Shader) const override;
+        TUniquePtr<IRenderPass>
+        CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
+                         TSharedPtr<IShaderModule> I_FragmentShader) const override;
         TUniquePtr<IFence>
         CreateFence(Bool I_bSignaled) const override;
         UInt32
@@ -616,6 +623,26 @@ namespace Visera::RHI
         ;
         if (GWindow->IsBootstrapped())
         { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
+    }
+
+    TSharedPtr<IShaderModule> FVulkan::
+    CreateShaderModule(TSharedPtr<FShader> I_Shader) const
+    {
+        VISERA_ASSERT(!I_Shader->IsEmpty());
+        LOG_TRACE("Creating a Vulkan Shader Module (shader:{})",
+                  I_Shader->GetName());
+        return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
+    }
+
+    TUniquePtr<IRenderPass> FVulkan::
+    CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
+                     TSharedPtr<IShaderModule> I_FragmentShader) const
+    {
+        LOG_DEBUG("Creating a Vulkan Render Pass (vertex:{}, fragment:{})",
+                  I_VertexShader->GetName(), I_FragmentShader->GetName());
+        return MakeUnique<FVulkanRenderPass>(Device.Context,
+               std::dynamic_pointer_cast<FVulkanShaderModule>(I_VertexShader),
+               std::dynamic_pointer_cast<FVulkanShaderModule>(I_FragmentShader));
     }
 
     TUniquePtr<IFence> FVulkan::

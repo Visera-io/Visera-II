@@ -25,7 +25,8 @@ namespace Visera
         [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
-            LOG_DEBUG("\"{}\" accesses the RHI driver.", I_Location.function_name());
+            DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" accessed the RHI driver.",
+                             I_Location.function_name()));
             return Driver;
         };
 

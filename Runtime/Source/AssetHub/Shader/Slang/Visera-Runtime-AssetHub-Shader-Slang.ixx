@@ -90,7 +90,7 @@ export namespace Visera
 	Bool FSlangShaderCompiler::
 	CreateSession()
     {
-    	LOG_TRACE("Creating a new slange session.");
+    	LOG_TRACE("Creating a new slang session.");
     	Session = MakeUnique<FSession>();
 
     	// Create Vulkan Compiler Session

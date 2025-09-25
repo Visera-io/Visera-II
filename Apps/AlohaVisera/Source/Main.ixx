@@ -41,13 +41,14 @@ export int main(int argc, char *argv[])
 
     GEngine->Bootstrap();
     {
+        auto& Driver = GRHI->GetDriver();
         //auto Fence = GRHI->GetDriver()->CreateFence(True);
 
         //auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
 
-
-        //auto VertShader = GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain");
-        //auto FragShader = GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain");
+        auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
+        auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
+        auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
         GEngine->Run();
     }
     GEngine->Terminate();

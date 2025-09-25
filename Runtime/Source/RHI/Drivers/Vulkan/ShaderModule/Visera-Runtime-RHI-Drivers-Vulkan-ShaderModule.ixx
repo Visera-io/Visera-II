@@ -4,6 +4,7 @@ module;
 export module Visera.Runtime.RHI.Drivers.Vulkan.ShaderModule;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface.ShaderModule;
+import Visera.Runtime.AssetHub.Shader;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -12,20 +13,34 @@ namespace Visera::RHI
     {
     public:
         [[nodiscard]] const void*
-        GetHandle() const override { return *Handle; }
+        GetHandle() const override { return &Handle; }
 
     private:
         vk::raii::ShaderModule Handle {nullptr};
 
     public:
-        FVulkanShaderModule();
+        FVulkanShaderModule() = delete;
+        FVulkanShaderModule(const vk::raii::Device& I_Device,
+                            TSharedPtr<FShader>     I_Shader);
         ~FVulkanShaderModule() override;
     };
 
     FVulkanShaderModule::
-    FVulkanShaderModule()
+    FVulkanShaderModule(const vk::raii::Device& I_Device,
+                        TSharedPtr<FShader>     I_Shader)
+    : IShaderModule{I_Shader}
     {
-
+        auto CreateInfo = vk::ShaderModuleCreateInfo{}
+            .setPCode    (reinterpret_cast<const uint32_t*>(Shader->GetData()))
+            .setCodeSize (Shader->GetSize() * sizeof(FByte))
+        ;
+        auto Result = I_Device.createShaderModule(CreateInfo);
+        if (!Result)
+        {
+            LOG_FATAL("Failed to create a shader module from {}!", I_Shader->GetName());
+        }
+        else
+        { Handle = std::move(*Result); }
     }
 
     FVulkanShaderModule::

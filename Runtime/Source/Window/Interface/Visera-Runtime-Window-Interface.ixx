@@ -48,7 +48,7 @@ namespace Visera
     protected:
         EType Type   = EType::Unknown;
         FText       Title  = TEXT("Visera");
-        Int32       Width{0},     Height{0};
+        Int32       Width {900},  Height{600};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};
     };

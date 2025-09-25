@@ -11,7 +11,7 @@ namespace Visera::RHI
     {
     public:
         const void*
-        GetHandle() const override { return *Handle; }
+        GetHandle() const override { return &Handle; }
 
     private:
         vk::raii::CommandPool Handle {nullptr};

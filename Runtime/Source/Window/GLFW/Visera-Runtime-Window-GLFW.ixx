@@ -58,9 +58,6 @@ namespace Visera
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE,	GLFW_FALSE);
 
-        Width = 1920;
-        Height = 1080;
-
         //Create Window
         Handle = glfwCreateWindow(
             Width, Height, //[TODO] read from config (save the last scale).

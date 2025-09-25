@@ -9,13 +9,13 @@ namespace Visera
     {
     public:
         [[nodiscard]] Bool
-        Fire() const { VISERA_WIP; }
+        Fire() const { VISERA_WIP; return False; }
         [[nodiscard]] Bool
-        Connect() const { VISERA_WIP; }
+        Connect() const { VISERA_WIP; return False; }
         [[nodiscard]] Bool
-        Disconnect() const { VISERA_WIP; }
+        Disconnect() const { VISERA_WIP; return False; }
 
     private:
         TList<std::function<void()>> Slots;
-    }
+    };
 }
