@@ -3,7 +3,7 @@ module;
 #define VOLK_IMPLEMENTATION
 #include <volk.h>
 #include <vulkan/vulkan.hpp>
-export module Visera.Runtime.RHI.Drivers.Vulkan.Loader;
+export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 

@@ -26,7 +26,7 @@ export namespace Visera
             }
             catch (const std::exception& e)
             {
-                VISERA_WIP
+                VISERA_WIP;
                 return false;
             }
         }

@@ -3,22 +3,22 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-export module Visera.Runtime.RHI.Drivers.Vulkan;
+export module Visera.Runtime.RHI.Vulkan.Driver;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface;
-import Visera.Runtime.RHI.Drivers.Vulkan.Loader;
-import Visera.Runtime.RHI.Drivers.Vulkan.Allocator;
-import Visera.Runtime.RHI.Drivers.Vulkan.Fence;
-import Visera.Runtime.RHI.Drivers.Vulkan.ShaderModule;
-import Visera.Runtime.RHI.Drivers.Vulkan.RenderPass;
-import Visera.Runtime.RHI.Drivers.Vulkan.CommandBuffer;
+import Visera.Runtime.RHI.Vulkan.Loader;
+import Visera.Runtime.RHI.Vulkan.Allocator;
+import Visera.Runtime.RHI.Vulkan.Fence;
+import Visera.Runtime.RHI.Vulkan.ShaderModule;
+import Visera.Runtime.RHI.Vulkan.RenderPass;
+import Visera.Runtime.RHI.Vulkan.CommandBuffer;
 import Visera.Runtime.Window;
 import Visera.Core.Log;
 import Visera.Core.Math.Arithmetic;
 
 namespace Visera::RHI
 {
-    export class VISERA_RUNTIME_API FVulkan : public IDriver
+    export class VISERA_RUNTIME_API FVulkanDriver : public IDriver
     {
     public:
         vk::ApplicationInfo              AppInfo;
@@ -87,6 +87,10 @@ namespace Visera::RHI
                          TSharedPtr<IShaderModule> I_FragmentShader) override;
         TUniquePtr<IFence>
         CreateFence(Bool I_bSignaled) override;
+        TSharedPtr<ITexture2D>
+        CreateTexture2D(const FExtent2D& I_Extent) override;
+        TSharedPtr<IRenderTarget>
+        CreateRenderTarget(const FExtent2D& I_Extent) override;
         TSharedPtr<ICommandBuffer>
         CreateCommandBuffer(ECommandType I_Type) override;
         UInt32
@@ -105,13 +109,13 @@ namespace Visera::RHI
         void CreateSwapChain();
         void CreateCommandPools();
 
-        inline FVulkan*
+        inline FVulkanDriver*
         AddInstanceLayer(const char* I_Layer)           { InstanceLayers.emplace_back(I_Layer);         return this; }
-        inline FVulkan*
+        inline FVulkanDriver*
         AddInstanceExtension(const char* I_Extension)   { InstanceExtensions.push_back(I_Extension);    return this; }
-        inline FVulkan*
+        inline FVulkanDriver*
         AddDeviceLayer(const char* I_Layer)             { DeviceLayers.push_back(I_Layer);              return this; }
-        inline FVulkan*
+        inline FVulkanDriver*
         AddDeviceExtension(const char* I_Extension)     { DeviceExtensions.push_back(I_Extension);      return this; }
 
         void inline
@@ -149,12 +153,12 @@ namespace Visera::RHI
         }
 
     public:
-        FVulkan();
-        ~FVulkan() override;
+        FVulkanDriver();
+        ~FVulkanDriver() override;
     };
 
-    FVulkan::
-    FVulkan() : IDriver{EType::Vulkan}
+    FVulkanDriver::
+    FVulkanDriver() : IDriver{EType::Vulkan}
     {
         AppInfo = vk::ApplicationInfo{}
         .setPApplicationName    ("Visera")
@@ -222,8 +226,8 @@ namespace Visera::RHI
         }
     };
 
-    FVulkan::
-    ~FVulkan()
+    FVulkanDriver::
+    ~FVulkanDriver()
     {
         Device.Context.waitIdle();
 
@@ -263,7 +267,7 @@ namespace Visera::RHI
         Loader.reset();
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     CreateInstance()
     {
         // Check Layers
@@ -311,7 +315,7 @@ namespace Visera::RHI
         { Instance = std::move(*Result); }
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     CreateDebugMessenger()
     {
 #if defined(VISERA_DEBUG_MODE)
@@ -333,7 +337,7 @@ namespace Visera::RHI
 #endif
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     CreateSurface()
     {
         VkSurfaceKHR SurfaceHandle {nullptr};
@@ -350,7 +354,7 @@ namespace Visera::RHI
         Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     PickPhysicalDevice()
     {
         VISERA_ASSERT(Instance != nullptr);
@@ -419,7 +423,7 @@ namespace Visera::RHI
         LOG_INFO("Selected GPU: {}", GPU.Context.getProperties().deviceName.data());
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     CreateDevice()
     {
         VISERA_ASSERT(GPU.Context != nullptr);
@@ -471,7 +475,7 @@ namespace Visera::RHI
     }
 
 
-    void FVulkan::
+    void FVulkanDriver::
     CollectInstanceLayersAndExtensions()
     {
         // Layers
@@ -512,7 +516,7 @@ namespace Visera::RHI
         }
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     CreateSwapChain()
     {
         VISERA_ASSERT(Surface != nullptr);
@@ -626,7 +630,7 @@ namespace Visera::RHI
         }
     }
 
-    void FVulkan::
+    void FVulkanDriver::
     CollectDeviceLayersAndExtensions()
     {
         this->AddDeviceExtension(vk::EXTDescriptorIndexingExtensionName)
@@ -641,7 +645,7 @@ namespace Visera::RHI
         { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
     }
 
-    TSharedPtr<IShaderModule> FVulkan::
+    TSharedPtr<IShaderModule> FVulkanDriver::
     CreateShaderModule(TSharedPtr<FShader> I_Shader)
     {
         VISERA_ASSERT(!I_Shader->IsEmpty());
@@ -650,7 +654,7 @@ namespace Visera::RHI
         return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
     }
 
-    TSharedPtr<IRenderPass> FVulkan::
+    TSharedPtr<IRenderPass> FVulkanDriver::
     CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
                      TSharedPtr<IShaderModule> I_FragmentShader)
     {
@@ -661,14 +665,30 @@ namespace Visera::RHI
                std::dynamic_pointer_cast<FVulkanShaderModule>(I_FragmentShader));
     }
 
-    TUniquePtr<IFence> FVulkan::
+    TUniquePtr<IFence> FVulkanDriver::
     CreateFence(Bool I_bSignaled)
     {
         LOG_TRACE("Creating a Vulkan Fence (signaled:{})", I_bSignaled);
         return MakeUnique<FVulkanFence>(Device.Context, I_bSignaled);
     }
 
-    void FVulkan::
+    TSharedPtr<ITexture2D> FVulkanDriver::
+    CreateTexture2D(const FExtent2D& I_Extent)
+    {
+        LOG_TRACE("Creating a Vulkan Texture2D");
+        VISERA_WIP;
+        return {};
+    }
+
+    TSharedPtr<IRenderTarget> FVulkanDriver::
+    CreateRenderTarget(const FExtent2D& I_Extent)
+    {
+        LOG_TRACE("Creating a Vulkan Render Target");
+        VISERA_WIP;
+        return {};
+    }
+
+    void FVulkanDriver::
     CreateCommandPools()
     {
         LOG_TRACE("Creating a Vulkan Graphics Command Pool.");
@@ -685,7 +705,7 @@ namespace Visera::RHI
         }
     }
 
-    TSharedPtr<ICommandBuffer> FVulkan::
+    TSharedPtr<ICommandBuffer> FVulkanDriver::
     CreateCommandBuffer(ECommandType I_Type)
     {
         switch (I_Type)

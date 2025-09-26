@@ -7,6 +7,7 @@ export import Visera.Runtime.RHI.Interface.CommandBuffer;
 export import Visera.Runtime.RHI.Interface.Fence;
 export import Visera.Runtime.RHI.Interface.ShaderModule;
 export import Visera.Runtime.RHI.Interface.RenderPass;
+export import Visera.Runtime.RHI.Interface.RenderTarget;
 
 namespace Visera::RHI
 {

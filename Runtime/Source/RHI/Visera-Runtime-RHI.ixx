@@ -3,7 +3,7 @@ module;
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface;
-import Visera.Runtime.RHI.Drivers.Vulkan;
+import Visera.Runtime.RHI.Vulkan;
 import Visera.Runtime.RHI.Frame;
 import Visera.Core.Log;
 
@@ -53,7 +53,7 @@ namespace Visera
 
         try
         {
-            Driver = MakeUnique<RHI::FVulkan>();
+            Driver = MakeUnique<RHI::FVulkanDriver>();
             Frames.resize(Driver->GetFrameCount());
             LOG_TRACE("Created {} frames.", Frames.size());
         }

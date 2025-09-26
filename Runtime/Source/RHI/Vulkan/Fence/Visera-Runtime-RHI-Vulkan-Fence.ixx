@@ -1,7 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-export module Visera.Runtime.RHI.Drivers.Vulkan.Fence;
+export module Visera.Runtime.RHI.Vulkan.Fence;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface.Fence;
 import Visera.Core.Log;

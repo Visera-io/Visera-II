@@ -1,9 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#undef TEXT
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-#include <windows.h>
-#endif
 export module Visera.Core.Types.Text;
 #define VISERA_MODULE_NAME "Core.Types"
 

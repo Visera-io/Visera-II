@@ -1,8 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-#include <Windows.h>
-#endif
 export module Visera.Runtime;
 #define VISERA_MODULE_NAME "Runtime"
 export import Visera.Runtime.AssetHub;

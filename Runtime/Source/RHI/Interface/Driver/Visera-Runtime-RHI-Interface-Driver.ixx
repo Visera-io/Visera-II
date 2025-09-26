@@ -7,6 +7,7 @@ import Visera.Runtime.RHI.Interface.CommandBuffer;
 import Visera.Runtime.RHI.Interface.Fence;
 import Visera.Runtime.RHI.Interface.ShaderModule;
 import Visera.Runtime.RHI.Interface.RenderPass;
+import Visera.Runtime.RHI.Interface.RenderTarget;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -37,6 +38,10 @@ namespace Visera::RHI
                          TSharedPtr<IShaderModule> I_FragmentShader) = 0;
         [[nodiscard]] virtual TUniquePtr<IFence>
         CreateFence(Bool I_bSignaled) = 0;
+        [[nodiscard]] virtual TSharedPtr<ITexture2D>
+        CreateTexture2D(const FExtent2D& I_Extent) = 0;
+        [[nodiscard]] virtual TSharedPtr<IRenderTarget>
+        CreateRenderTarget(const FExtent2D& I_Extent) = 0;
         [[nodiscard]] virtual TSharedPtr<ICommandBuffer>
         CreateCommandBuffer(ECommandType I_Type) = 0;
 

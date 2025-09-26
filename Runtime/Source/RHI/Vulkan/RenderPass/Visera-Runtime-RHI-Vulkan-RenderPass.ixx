@@ -1,10 +1,10 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-export module Visera.Runtime.RHI.Drivers.Vulkan.RenderPass;
+export module Visera.Runtime.RHI.Vulkan.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface.RenderPass;
-import Visera.Runtime.RHI.Drivers.Vulkan.ShaderModule;
+import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Core.Log;
 
 namespace Visera::RHI

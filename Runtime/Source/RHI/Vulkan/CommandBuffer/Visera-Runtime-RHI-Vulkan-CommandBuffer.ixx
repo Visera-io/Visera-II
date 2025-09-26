@@ -1,11 +1,10 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-export module Visera.Runtime.RHI.Drivers.Vulkan.CommandBuffer;
+export module Visera.Runtime.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface.CommandBuffer;
-import Visera.Runtime.RHI.Interface.RenderPass;
-import Visera.Runtime.RHI.Drivers.Vulkan.RenderPass;
+import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -15,6 +14,13 @@ namespace Visera::RHI
     public:
         void
         Begin() override;
+        void
+        ConvertImageLayout(TSharedPtr<ITexture2D> I_Texture,
+                           EImageLayout           I_NewLayout,
+                           EPipelineStage         I_SrcStage,
+                           EAccess                I_SrcAccess,
+                           EPipelineStage         I_DstStage,
+                           EAccess                I_DstAccess) override;
         void
         EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass) override;
         void
@@ -70,14 +76,64 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass)
+    ConvertImageLayout(TSharedPtr<ITexture2D> I_Texture,
+                       EImageLayout           I_NewLayout,
+                       EPipelineStage         I_SrcStage,
+                       EAccess                I_SrcAccess,
+                       EPipelineStage         I_DstStage,
+                       EAccess                I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
 
-        const auto& RenderTarget = I_RenderPass->GetRenderTarget();
-        auto View = static_cast<const vk::raii::ImageView*>(RenderTarget->GetView());
+        auto OldLayout = AutoCast(I_Texture->GetLayout());
+        auto NewLayout = AutoCast(I_NewLayout);
+
+        if (OldLayout == NewLayout)
+        {
+            LOG_WARN("Skipped to convert a image to the same layout \"{}\"!",
+                     I_NewLayout);
+            return;
+        }
+
+        auto Image = static_cast<const vk::raii::Image*>(I_Texture->GetHandle());
+
+        auto ImageSubresourceRange = vk::ImageSubresourceRange{}
+            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
+            .setBaseMipLevel    (0)
+            .setLevelCount      (1)
+            .setBaseArrayLayer  (0)
+            .setLayerCount      (1)
+        ;
+        auto Barrier = vk::ImageMemoryBarrier2{}
+            .setSrcStageMask        (AutoCast(I_SrcStage))
+            .setSrcAccessMask       (AutoCast(I_SrcAccess))
+            .setDstStageMask        (AutoCast(I_DstStage))
+            .setDstAccessMask       (AutoCast(I_DstAccess))
+            .setOldLayout           (OldLayout)
+            .setNewLayout           (NewLayout)
+            .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
+            .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
+            .setImage               (*Image)
+            .setSubresourceRange    (ImageSubresourceRange)
+        ;
+        auto DependencyInfo = vk::DependencyInfo{}
+            .setDependencyFlags     ({})
+            .setImageMemoryBarrierCount(1)
+            .setPImageMemoryBarriers(&Barrier)
+        ;
+        Handle.pipelineBarrier2(DependencyInfo);
+    }
+
+    void FVulkanCommandBuffer::
+    EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_RenderPass->GetHandle() != nullptr);
+
+        const auto& RT = I_RenderPass->GetRenderTarget();
+        auto RTView = static_cast<const vk::raii::ImageView*>(RT->GetView());
         auto AttachmentInfo = vk::RenderingAttachmentInfo{}
-            .setImageView(*View)
+            .setImageView(*RTView)
         ;
         // {
         //     .imageView = swapChainImageViews[imageIndex],

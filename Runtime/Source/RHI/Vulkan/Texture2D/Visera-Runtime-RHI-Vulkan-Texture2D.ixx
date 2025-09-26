@@ -1,7 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-export module Visera.Runtime.RHI.Drivers.Vulkan.Texture2D;
+export module Visera.Runtime.RHI.Vulkan.Texture2D;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface.Texture2D;
 import Visera.Core.Log;

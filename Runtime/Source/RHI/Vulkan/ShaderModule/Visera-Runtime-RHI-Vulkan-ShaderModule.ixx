@@ -1,7 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-export module Visera.Runtime.RHI.Drivers.Vulkan.ShaderModule;
+export module Visera.Runtime.RHI.Vulkan.ShaderModule;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Interface.ShaderModule;
 import Visera.Runtime.AssetHub.Shader;

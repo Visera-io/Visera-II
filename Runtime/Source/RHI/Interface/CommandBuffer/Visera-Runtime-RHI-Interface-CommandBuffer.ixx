@@ -2,7 +2,9 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Interface.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Interface.RenderPass;
+export import Visera.Runtime.RHI.Interface.Common;
+export import Visera.Runtime.RHI.Interface.Texture2D;
+export import Visera.Runtime.RHI.Interface.RenderPass;
 
 namespace Visera::RHI
 {
@@ -26,6 +28,13 @@ namespace Visera::RHI
 
         virtual void
         Begin() = 0;
+        virtual void
+        ConvertImageLayout(TSharedPtr<ITexture2D> I_Texture,
+                           EImageLayout           I_NewLayout,
+                           EPipelineStage         I_SrcStage,
+                           EAccess                I_SrcAccess,
+                           EPipelineStage         I_DstStage,
+                           EAccess                I_DstAccess) = 0;
         virtual void
         EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass) = 0;
         virtual void

@@ -1,8 +1,5 @@
 #pragma once
 
-#define VISERA_ASSERT(Expression) assert(Expression);
-#define VISERA_WIP VISERA_ASSERT("Work in Progress!")
-
 #if defined(_WIN32) || defined(_WIN64)
 #define VISERA_ON_WINDOWS_SYSTEM
 #endif
@@ -43,6 +40,26 @@
 #define VISERA_NO_OPERATION __noop
 #else
 #define VISERA_NO_OPERATION (void)(0)
+#endif
+
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+	#include <windows.h>
+	#undef TEXT
+
+	#define PLATFORM_ASSERT(expression) ((void)(                                                       \
+		(!!(expression)) ||                                                               \
+		(_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0)) \
+		)
+#else
+	//[TODO]: MacOS
+#endif
+
+#if defined(VISERA_RELEASE_MODE)
+#define VISERA_ASSERT(Expression) VISERA_NO_OPERATION
+#define VISERA_WIP                VISERA_NO_OPERATION
+#else
+#define VISERA_ASSERT(Expression) PLATFORM_ASSERT(Expression)
+#define VISERA_WIP VISERA_ASSERT("Work in Progress!")
 #endif
 
 //      [       Level      ]   [Print in Console] [Sink in Files] [Text Color] [Background Color] [Additional Information]
