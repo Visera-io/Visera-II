@@ -27,12 +27,12 @@ namespace Visera::RHI
         virtual void
         Begin() = 0;
         virtual void
-        ReachRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass) = 0;
+        EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass) = 0;
         virtual void
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const = 0;
         virtual void
-        LeaveRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass) = 0;
+        LeaveRenderPass();
         virtual void
         End() = 0;
         virtual void
@@ -53,14 +53,35 @@ namespace Visera::RHI
     protected:
         const EType   Type   {EType::Unknown};
         EStatus       Status {EStatus::Idle};
+        union
+        {
+            TSharedPtr<IRenderPass> RenderPass  {nullptr};
+            //TSharedPtr<IRenderPass> ComputePass {nullptr};
+        };
 
     public:
         ICommandBuffer()                                 = delete;
         ICommandBuffer(EType I_Type) : Type(I_Type) {}
-        virtual ~ICommandBuffer()                        = default;
+        virtual ~ICommandBuffer();
         ICommandBuffer(const ICommandBuffer&)            = delete;
         ICommandBuffer& operator=(const ICommandBuffer&) = delete;
     };
+
+    void ICommandBuffer::
+    LeaveRenderPass()
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+
+        RenderPass.reset();
+
+        Status = EStatus::Recording;
+    };
+
+    ICommandBuffer::
+    ~ICommandBuffer()
+    {
+        RenderPass.reset();
+    }
 }
 
 

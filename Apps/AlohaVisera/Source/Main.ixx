@@ -54,6 +54,9 @@ export int main(int argc, char *argv[])
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");
+            Cmd->EnterRenderPass(RenderPass);
+            Cmd->Draw(3,1,0,0);
+            Cmd->LeaveRenderPass();
         }
         Cmd->End();
         GEngine->Run();

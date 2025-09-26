@@ -2,6 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Interface.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.Interface.RenderTarget;
 
 namespace Visera::RHI
 {
@@ -12,6 +13,14 @@ namespace Visera::RHI
         GetHandle() const = 0;
         [[nodiscard]] virtual const void*
         GetPipeline() const = 0;
+
+        [[nodiscard]] TSharedPtr<const IRenderTarget>
+        GetRenderTarget() const { return CurrentRenderTarget; }
+        void
+        SetRenderTarget(TSharedPtr<IRenderTarget> I_RenderTarget) { CurrentRenderTarget = I_RenderTarget; }
+
+    protected:
+        TSharedPtr<IRenderTarget> CurrentRenderTarget;
 
     public:
         IRenderPass()                              = default;

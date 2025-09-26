@@ -32,7 +32,7 @@ namespace Visera::RHI
         GetFrameCount() const = 0;
         [[nodiscard]] virtual TSharedPtr<IShaderModule>
         CreateShaderModule(TSharedPtr<FShader> I_Shader) = 0;
-        [[nodiscard]] virtual TUniquePtr<IRenderPass>
+        [[nodiscard]] virtual TSharedPtr<IRenderPass>
         CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
                          TSharedPtr<IShaderModule> I_FragmentShader) = 0;
         [[nodiscard]] virtual TUniquePtr<IFence>

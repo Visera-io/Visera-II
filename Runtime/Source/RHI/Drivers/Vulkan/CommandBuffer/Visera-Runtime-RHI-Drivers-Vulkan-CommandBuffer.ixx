@@ -16,12 +16,10 @@ namespace Visera::RHI
         void
         Begin() override;
         void
-        ReachRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass) override;
+        EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass) override;
         void
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const override;
-        void
-        LeaveRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass) override;
         void
         End() override;
         void
@@ -32,8 +30,9 @@ namespace Visera::RHI
 
     private:
         vk::raii::CommandBuffer Handle {nullptr};
-        vk::Viewport Viewport {};
-        vk::Rect2D   Scissor  {};
+        vk::Viewport   Viewport {};
+        vk::Rect2D     Scissor  {};
+        vk::ClearValue ClearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
 
     public:
         FVulkanCommandBuffer(const vk::raii::Device&      I_Device,
@@ -71,12 +70,27 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    ReachRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass)
+    EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass)
     {
         VISERA_ASSERT(IsRecording());
+
+        const auto& RenderTarget = I_RenderPass->GetRenderTarget();
+        auto View = static_cast<const vk::raii::ImageView*>(RenderTarget->GetView());
+        auto AttachmentInfo = vk::RenderingAttachmentInfo{}
+            .setImageView(*View)
+        ;
+        // {
+        //     .imageView = swapChainImageViews[imageIndex],
+        //     .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        //     .loadOp = vk::AttachmentLoadOp::eClear,
+        //     .storeOp = vk::AttachmentStoreOp::eStore,
+        //     .clearValue = clearColor
+        // };
+
         auto Pipeline = static_cast<const vk::raii::Pipeline*>(I_RenderPass->GetPipeline());
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
                          *Pipeline);
+
         Status = EStatus::InsideRenderPass;
     }
 
@@ -89,14 +103,6 @@ namespace Visera::RHI
             I_InstanceCount,
             I_FirstVertex,
             I_FirstInstance);
-    }
-
-    void FVulkanCommandBuffer::
-    LeaveRenderPass(const TUniquePtr<IRenderPass>& I_RenderPass)
-    {
-        VISERA_ASSERT(IsInsideRenderPass());
-
-        Status = EStatus::Recording;
     }
 
     void FVulkanCommandBuffer::

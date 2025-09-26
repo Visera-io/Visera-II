@@ -5,5 +5,8 @@ export module Visera.Runtime.RHI.Interface.Common;
 
 export namespace Visera::RHI
 {
-    
+    enum class EImageLayout
+    {
+        Undefined,
+    };
 }

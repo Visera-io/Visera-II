@@ -82,7 +82,7 @@ namespace Visera::RHI
         Present()    override {};
         TSharedPtr<IShaderModule>
         CreateShaderModule(TSharedPtr<FShader> I_Shader) override;
-        TUniquePtr<IRenderPass>
+        TSharedPtr<IRenderPass>
         CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
                          TSharedPtr<IShaderModule> I_FragmentShader) override;
         TUniquePtr<IFence>
@@ -650,7 +650,7 @@ namespace Visera::RHI
         return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
     }
 
-    TUniquePtr<IRenderPass> FVulkan::
+    TSharedPtr<IRenderPass> FVulkan::
     CreateRenderPass(TSharedPtr<IShaderModule> I_VertexShader,
                      TSharedPtr<IShaderModule> I_FragmentShader)
     {
