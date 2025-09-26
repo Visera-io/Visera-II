@@ -13,7 +13,7 @@ namespace Visera::RHI
     {
     public:
         [[nodiscard]] const void*
-        GetHandle() const override { return *Handle; }
+        GetHandle() const override { return &Handle; }
         [[nodiscard]] const void*
         GetPipeline() const override { return &Pipeline; }
 

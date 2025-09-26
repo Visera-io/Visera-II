@@ -17,7 +17,7 @@ namespace Visera::RHI
         [[nodiscard]] TSharedPtr<const IRenderTarget>
         GetRenderTarget() const { return CurrentRenderTarget; }
         void
-        SetRenderTarget(TSharedPtr<IRenderTarget> I_RenderTarget) { CurrentRenderTarget = I_RenderTarget; }
+        SetRenderTarget(TSharedPtr<IRenderTarget> I_RenderTarget) { VISERA_ASSERT(I_RenderTarget && I_RenderTarget->GetHandle()); CurrentRenderTarget = I_RenderTarget; }
 
     protected:
         TSharedPtr<IRenderTarget> CurrentRenderTarget;

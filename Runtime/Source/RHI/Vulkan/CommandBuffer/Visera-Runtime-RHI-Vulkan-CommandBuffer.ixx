@@ -128,7 +128,7 @@ namespace Visera::RHI
     EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass)
     {
         VISERA_ASSERT(IsRecording());
-        VISERA_ASSERT(I_RenderPass->GetHandle() != nullptr);
+        VISERA_ASSERT(I_RenderPass);
 
         const auto& RT = I_RenderPass->GetRenderTarget();
         auto RTView = static_cast<const vk::raii::ImageView*>(RT->GetView());
