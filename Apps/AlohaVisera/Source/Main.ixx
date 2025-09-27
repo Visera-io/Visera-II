@@ -45,18 +45,19 @@ export int main(int argc, char *argv[])
         //auto Fence = GRHI->GetDriver()->CreateFence(True);
 
         //auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
+        assert("");
 
         auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
         auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
 
-        auto Cmd = Driver->CreateCommandBuffer(RHI::ECommandType::Graphics);
+        auto Cmd = Driver->CreateCommandBuffer(RHI::ETESTCommandType::Graphics);
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");
-            Cmd->EnterRenderPass(RenderPass);
-            Cmd->Draw(3,1,0,0);
-            Cmd->LeaveRenderPass();
+            //Cmd->EnterRenderPass(RenderPass);
+            //Cmd->Draw(3,1,0,0);
+            //Cmd->LeaveRenderPass();
         }
         Cmd->End();
         GEngine->Run();

@@ -11,7 +11,7 @@ namespace Visera
 {
     export namespace RHI
     {
-
+        using ETESTCommandType = ECommandType;
     }
 
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton

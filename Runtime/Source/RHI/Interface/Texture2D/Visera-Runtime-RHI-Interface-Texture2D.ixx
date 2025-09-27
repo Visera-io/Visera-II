@@ -8,7 +8,6 @@ namespace Visera::RHI
 {
     export class VISERA_RUNTIME_API ITexture2D
     {
-        friend class ICommandBuffer;
     public:
         [[nodiscard]] virtual const void*
         GetHandle() const = 0;

@@ -2,11 +2,11 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.AssetHub.Shader;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Asset;
-import Visera.Runtime.AssetHub.Shader.Common;
-import Visera.Runtime.AssetHub.Shader.Compiler;
-import Visera.Runtime.AssetHub.Shader.Slang;
-import Visera.Core.Log;
+export import Visera.Runtime.AssetHub.Shader.Common;
+       import Visera.Runtime.AssetHub.Asset;
+       import Visera.Runtime.AssetHub.Shader.Compiler;
+       import Visera.Runtime.AssetHub.Shader.Slang;
+       import Visera.Core.Log;
 
 export namespace Visera
 {
