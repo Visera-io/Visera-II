@@ -90,7 +90,10 @@ namespace Visera::RHI
         [[nodiscard]] TUniquePtr<FVulkanFence>
         CreateFence(Bool I_bSignaled);
         [[nodiscard]] TSharedPtr<FVulkanImage>
-        CreateTexture2D(const FVulkanExtent2D& I_Extent);
+        CreateImage(EVulkanImageType       I_ImageType,
+                    const FVulkanExtent3D& I_Extent,
+                    EVulkanFormat          I_Format,
+                    EVulkanImageUsage      I_Usages);
         [[nodiscard]] TSharedPtr<FVulkanRenderTarget>
         CreateRenderTarget(const FVulkanExtent2D& I_Extent);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
@@ -675,11 +678,15 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanImage> FVulkanDriver::
-    CreateTexture2D(const vk::Extent2D& I_Extent)
+    CreateImage(EVulkanImageType       I_ImageType,
+                const FVulkanExtent3D& I_Extent,
+                EVulkanFormat          I_Format,
+                EVulkanImageUsage      I_Usages)
     {
-        LOG_TRACE("Creating a Vulkan Texture2D");
-        VISERA_WIP;
-        return {};
+        VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
+        LOG_TRACE("Creating a Vulkan Image (extent:[{},{},{}]).",
+                  I_Extent.width, I_Extent.height, I_Extent.depth);
+        return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
     }
 
     TSharedPtr<FVulkanRenderTarget> FVulkanDriver::

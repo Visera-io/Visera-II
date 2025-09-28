@@ -12,6 +12,13 @@ export namespace Visera::RHI
     using EVulkanQueue         = vk::QueueFlagBits;
     using EVulkanLoadOp        = vk::AttachmentLoadOp;
     using EVulkanStoreOp       = vk::AttachmentStoreOp;
+    using EVulkanImageType     = vk::ImageType;
+    using EVulkanFormat        = vk::Format;
+    using EVulkanImageUsage    = vk::ImageUsageFlagBits;
+    using EVulkanImageAspect   = vk::ImageAspectFlagBits;
+    using EVulkanSharingMode   = vk::SharingMode;
+    using EVulkanSamplingRate  = vk::SampleCountFlagBits;
+    using EVulkanImageTiling   = vk::ImageTiling;
 
     using FVulkanExtent2D      = vk::Extent2D;
     using FVulkanExtent3D      = vk::Extent3D;

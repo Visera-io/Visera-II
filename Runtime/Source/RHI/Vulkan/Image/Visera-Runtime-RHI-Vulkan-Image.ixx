@@ -30,21 +30,38 @@ namespace Visera::RHI
 
     public:
         FVulkanImage()                               = delete;
-        FVulkanImage(TUniqueRef<FVulkanAllocator> I_Allocator,
-                     FVulkanExtent3D              I_Extent,
-                     EVulkanImageLayout           I_Layout);
+        FVulkanImage(EVulkanImageType       I_ImageType,
+                     const FVulkanExtent3D&	I_Extent,
+                     EVulkanFormat          I_Format,
+                     EVulkanImageUsage      I_Usages);
         ~FVulkanImage()                              = default;
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
     };
 
     FVulkanImage::
-    FVulkanImage(TUniqueRef<FVulkanAllocator> I_Allocator,
-                     FVulkanExtent3D          I_Extent,
-                     EVulkanImageLayout       I_Layout)
+    FVulkanImage(EVulkanImageType       I_ImageType,
+                 const FVulkanExtent3D&	I_Extent,
+                 EVulkanFormat          I_Format,
+                 EVulkanImageUsage      I_Usages)
     : IVulkanResource{EType::Image}
     {
+        auto CreateInfo = vk::ImageCreateInfo{}
+            .setImageType               (I_ImageType)
+            .setExtent                  (I_Extent)
+            .setFormat                  (I_Format)
+            .setMipLevels               (1)
+            .setArrayLayers             (1)
+            .setSamples                 (EVulkanSamplingRate::e1)
+            .setTiling                  (EVulkanImageTiling::eOptimal)
+            .setUsage                   (I_Usages)
+            .setSharingMode             (EVulkanSharingMode::eExclusive)
+            .setQueueFamilyIndexCount   (0)
+            .setPQueueFamilyIndices     (nullptr)
+            .setInitialLayout           (EVulkanImageLayout::eUndefined);
+        ;
 
+        Allocate(&Handle, &CreateInfo);
     }
 
     vk::raii::ImageView FVulkanImage::

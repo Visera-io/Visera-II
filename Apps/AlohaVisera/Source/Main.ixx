@@ -52,6 +52,13 @@ export int main(int argc, char *argv[])
         RenderPass->SetRenderArea({{0,0},{GWindow->GetWidth(),GWindow->GetHeight()}});
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
+        auto RHIImage = Driver->CreateImage(
+            RHI::EVulkanImageType::e2D,
+            {200, 400, 1},
+            RHI::EVulkanFormat::eR8G8B8A8Unorm,
+            RHI::EVulkanImageUsage::eColorAttachment
+            );
+
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");

@@ -69,13 +69,6 @@ namespace Visera::RHI
             Image,
             Buffer,
         };
-
-		[[nodiscard]] static inline VmaAllocator
-        GetAllocator() { return GVulkanAllocator->GetHandle(); }
-        [[nodiscard]] inline VmaAllocation&
-        GetAllocation() { return Allocation; }
-        [[nodiscard]] inline const VmaAllocation&
-        GetAllocation() const { return Allocation; }
 		[[nodiscard]] inline VkDeviceSize
         GetMemorySize() const { return Allocation->GetSize(); }
         [[nodiscard]] inline EType
@@ -83,6 +76,10 @@ namespace Visera::RHI
 
 		[[nodiscard]] inline Bool
         IsEmpty() const { return GetMemorySize() == 0; }
+
+    protected:
+        inline void
+        Allocate(void* I_Handle, const void* I_CreateInfo);
 
     private:
         EType         Type{ EType::Unknown };
@@ -92,4 +89,37 @@ namespace Visera::RHI
         IVulkanResource() = delete;
         IVulkanResource(EType  I_Type) : Type{ I_Type } {}
     };
+
+    void IVulkanResource::
+    Allocate(void* I_Handle, const void* I_CreateInfo)
+    {
+        VmaAllocationCreateInfo AllocationCreateInfo
+        {
+            .flags = 0x0,
+            .usage = VMA_MEMORY_USAGE_AUTO,
+        };
+
+        switch (Type)
+        {
+        case EType::Image:
+        {
+            auto CreateInfo  = static_cast<const VkImageCreateInfo*>(I_CreateInfo);
+            auto ImageHandle = static_cast<VkImage*>(I_Handle);
+
+            VkResult Result = vmaCreateImage(
+                GVulkanAllocator->GetHandle(),
+                CreateInfo,
+                &AllocationCreateInfo,
+                ImageHandle,
+                &Allocation,
+                nullptr);
+
+            if (Result != VK_SUCCESS)
+            { LOG_FATAL("Failed to allocate the Vulkan Image Memory (error:{})!", static_cast<Int32>(Result)); }
+            break;
+        }
+        default:
+            VISERA_WIP;
+        }
+    }
 }
