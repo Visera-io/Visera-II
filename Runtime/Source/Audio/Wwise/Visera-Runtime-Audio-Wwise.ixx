@@ -4,7 +4,7 @@ module;
 #include <AK/SoundEngine/Common/AkSoundEngine.h>
 #include <AK/SoundEngine/Common/AkMemoryMgrModule.h>
 #include <AK/SoundEngine/Common/AkStreamMgrModule.h>
-#if not defined(AK_OPTIMIZED)
+#if !defined(AK_OPTIMIZED)
 #include <AK/Comm/AkCommunication.h>	// Communication between Wwise and the game (excluded in release build)
 #endif
 export module Visera.Runtime.Audio.Wwise;

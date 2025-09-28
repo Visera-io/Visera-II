@@ -161,7 +161,7 @@
 #define TEXT(I_Text) FText{u8##I_Text}
 #define PATH(I_Path) FPath{FText(u8##I_Path)}
 
-#ifndef VISERA_RELEASE_MODE
+#if !defined(VISERA_RELEASE_MODE)
 #define DEBUG_ONLY_FIELD(I_Content) I_Content
 #else
 #define DEBUG_ONLY_FIELD(I_Content)
@@ -290,6 +290,8 @@ namespace Visera
     TSharedPtr<T>
     MakeShared(Args &&...args) { return std::make_shared<T>(std::forward<Args>(args)...); }
 
+	template<typename T>
+	using TSharedRef   = const TSharedPtr<T>&;
     template<typename T>
     using TWeakPtr	   = std::weak_ptr<T>;
 
@@ -298,6 +300,9 @@ namespace Visera
     template<typename T, typename... Args>
     TUniquePtr<T>
     MakeUnique(Args &&...args) { return std::make_unique<T>(std::forward<Args>(args)...); }
+
+	template<typename T>
+	using TUniqueRef   = const TUniquePtr<T>&;
 
 	class VISERA_CORE_API IGlobalSingleton
     {

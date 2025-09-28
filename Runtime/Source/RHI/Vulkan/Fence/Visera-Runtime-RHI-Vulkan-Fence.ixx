@@ -3,24 +3,23 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.Fence;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Interface.Fence;
 import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    export class VISERA_RUNTIME_API FVulkanFence : public IFence
+    export class VISERA_RUNTIME_API FVulkanFence
     {
     public:
-        [[nodiscard]] Bool
-        Wait(UInt64 I_Timeout) const override;
+        [[nodiscard]] inline Bool
+        Wait(UInt64 I_Timeout) const;
 
-        [[nodiscard]] const void*
-        GetHandle() const override { return &Handle; }
+        [[nodiscard]] inline const vk::raii::Fence&
+        GetHandle() const { return Handle; }
 
         [[nodiscard]] Bool
-        IsTimeout() const  override{ return Handle.getStatus() == vk::Result::eTimeout;  };
+        IsTimeout() const { return Handle.getStatus() == vk::Result::eTimeout;  };
         [[nodiscard]] Bool
-        IsNotReady() const override{ return Handle.getStatus() == vk::Result::eNotReady;  };
+        IsNotReady() const { return Handle.getStatus() == vk::Result::eNotReady;  };
 
     private:
         vk::raii::Fence Handle {nullptr};
@@ -38,7 +37,7 @@ namespace Visera::RHI
             else
             { Handle = std::move(*Result); }
         }
-        ~FVulkanFence() override {}
+        ~FVulkanFence() {}
     };
 
     Bool FVulkanFence::

@@ -2,7 +2,6 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Interface;
 import Visera.Runtime.RHI.Vulkan;
 import Visera.Runtime.RHI.Frame;
 import Visera.Core.Log;
@@ -11,7 +10,7 @@ namespace Visera
 {
     export namespace RHI
     {
-        using ETESTCommandType = ECommandType;
+        using EQueue = EVulkanQueue;
     }
 
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
@@ -22,7 +21,7 @@ namespace Visera
         void
         EndFrame()    const { GetDriver()->EndFrame(); };
 
-        [[nodiscard]] inline const TUniquePtr<RHI::IDriver>&
+        [[nodiscard]] inline const TUniquePtr<RHI::FVulkanDriver>&
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
             DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" accessed the RHI driver.",
@@ -31,8 +30,8 @@ namespace Visera
         };
 
     private:
-        TUniquePtr<RHI::IDriver> Driver;
-        TArray<RHI::FFrame>      Frames;
+        TUniquePtr<RHI::FVulkanDriver> Driver;
+        TArray<RHI::FFrame>            Frames;
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}

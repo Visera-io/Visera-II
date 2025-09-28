@@ -3,55 +3,75 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Interface.CommandBuffer;
 import Visera.Runtime.RHI.Vulkan.Common;
+import Visera.Runtime.RHI.Vulkan.RenderPass;
+import Visera.Runtime.RHI.Vulkan.Texture2D;
 import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    export class VISERA_RUNTIME_API FVulkanCommandBuffer : public ICommandBuffer
+    export class VISERA_RUNTIME_API FVulkanCommandBuffer
     {
     public:
-        void
-        Begin() override;
-        void
-        ConvertImageLayout(TSharedPtr<ITexture2D> I_Texture,
-                           EImageLayout           I_NewLayout,
-                           EPipelineStage         I_SrcStage,
-                           EAccess                I_SrcAccess,
-                           EPipelineStage         I_DstStage,
-                           EAccess                I_DstAccess) override;
-        void
-        EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass) override;
-        void
-        Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
-             UInt32 I_FirstVertex, UInt32 I_FirstInstance) const override;
-        void
-        End() override;
-        void
-        Submit(const void* I_Queue) override;
+        enum class EStatus : UInt8
+        {
+            Idle,
+            Recording,
+            InsideRenderPass,
+            Submitted,
+        };
 
-        const void*
-        GetHandle() const override { return &Handle; }
+        void inline
+        Begin();
+        void inline
+        ConvertImageLayout(TSharedRef<FVulkanTexture2D> I_Texture,
+                           EVulkanImageLayout           I_NewLayout,
+                           EVulkanPipelineStage         I_SrcStage,
+                           EVulkanAccess                I_SrcAccess,
+                           EVulkanPipelineStage         I_DstStage,
+                           EVulkanAccess                I_DstAccess);
+        void inline
+        EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass);
+        void inline
+        Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
+             UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
+        void inline
+        LeaveRenderPass() { CurrentRenderPass.reset(); }
+        void inline
+        End();
+        void inline
+        Submit(const void* I_Queue);
+
+        [[nodiscard]] inline const vk::raii::CommandBuffer&
+        GetHandle() const { return Handle; }
+
+        [[nodiscard]] inline Bool
+        IsIdle() const { return Status == EStatus::Idle; }
+        [[nodiscard]] inline Bool
+        IsRecording() const { return Status == EStatus::Recording; }
+        [[nodiscard]] inline Bool
+        IsInsideRenderPass() const { return Status == EStatus::InsideRenderPass; }
+        [[nodiscard]] inline Bool
+        IsSubmitted() const { return Status == EStatus::Submitted; }
 
     private:
         vk::raii::CommandBuffer Handle {nullptr};
         vk::Viewport   Viewport {};
         vk::Rect2D     Scissor  {};
         vk::ClearValue ClearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+        TSharedPtr<FVulkanRenderPass> CurrentRenderPass;
+
+        EStatus Status { EStatus::Idle };
 
     public:
         FVulkanCommandBuffer(const vk::raii::Device&      I_Device,
-                             const vk::raii::CommandPool& I_Pool,
-                             EType I_Type);
-        ~FVulkanCommandBuffer() override {}
+                             const vk::raii::CommandPool& I_Pool);
+        ~FVulkanCommandBuffer() {}
     };
 
     FVulkanCommandBuffer::
     FVulkanCommandBuffer(const vk::raii::Device&      I_Device,
-                         const vk::raii::CommandPool& I_Pool,
-                         EType I_Type)
-    : ICommandBuffer{I_Type}
+                         const vk::raii::CommandPool& I_Pool)
     {
         auto CreateInfo = vk::CommandBufferAllocateInfo{}
             .setCommandPool         (I_Pool)
@@ -60,7 +80,7 @@ namespace Visera::RHI
         ;
         auto Results = I_Device.allocateCommandBuffers(CreateInfo);
         if (!Results)
-        {  LOG_FATAL("Failed to create a new Vulkan Command Buffer (type:{})!", I_Type); }
+        {  LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
         else
         { Handle = std::move(Results->front()); }
     }
@@ -76,17 +96,17 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    ConvertImageLayout(TSharedPtr<ITexture2D> I_Texture,
-                       EImageLayout           I_NewLayout,
-                       EPipelineStage         I_SrcStage,
-                       EAccess                I_SrcAccess,
-                       EPipelineStage         I_DstStage,
-                       EAccess                I_DstAccess)
+    ConvertImageLayout(TSharedRef<FVulkanTexture2D> I_Texture,
+                       EVulkanImageLayout           I_NewLayout,
+                       EVulkanPipelineStage         I_SrcStage,
+                       EVulkanAccess                I_SrcAccess,
+                       EVulkanPipelineStage         I_DstStage,
+                       EVulkanAccess                I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
 
-        auto OldLayout = AutoCast(I_Texture->GetLayout());
-        auto NewLayout = AutoCast(I_NewLayout);
+        auto OldLayout = I_Texture->GetLayout();
+        auto NewLayout = I_NewLayout;
 
         if (OldLayout == NewLayout)
         {
@@ -94,8 +114,6 @@ namespace Visera::RHI
                      I_NewLayout);
             return;
         }
-
-        auto Image = static_cast<const vk::raii::Image*>(I_Texture->GetHandle());
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)
@@ -105,15 +123,15 @@ namespace Visera::RHI
             .setLayerCount      (1)
         ;
         auto Barrier = vk::ImageMemoryBarrier2{}
-            .setSrcStageMask        (AutoCast(I_SrcStage))
-            .setSrcAccessMask       (AutoCast(I_SrcAccess))
-            .setDstStageMask        (AutoCast(I_DstStage))
-            .setDstAccessMask       (AutoCast(I_DstAccess))
+            .setSrcStageMask        (I_SrcStage)
+            .setSrcAccessMask       (I_SrcAccess)
+            .setDstStageMask        (I_DstStage)
+            .setDstAccessMask       (I_DstAccess)
             .setOldLayout           (OldLayout)
             .setNewLayout           (NewLayout)
             .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
             .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setImage               (*Image)
+            .setImage               (I_Texture->GetHandle())
             .setSubresourceRange    (ImageSubresourceRange)
         ;
         auto DependencyInfo = vk::DependencyInfo{}
@@ -125,15 +143,14 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    EnterRenderPass(TSharedPtr<IRenderPass> I_RenderPass)
+    EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass)
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_RenderPass);
 
         const auto& RT = I_RenderPass->GetRenderTarget();
-        auto RTView = static_cast<const vk::raii::ImageView*>(RT->GetView());
         auto AttachmentInfo = vk::RenderingAttachmentInfo{}
-            .setImageView(*RTView)
+            .setImageView(RT->GetView())
         ;
         // {
         //     .imageView = swapChainImageViews[imageIndex],
@@ -143,9 +160,8 @@ namespace Visera::RHI
         //     .clearValue = clearColor
         // };
 
-        auto Pipeline = static_cast<const vk::raii::Pipeline*>(I_RenderPass->GetPipeline());
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                         *Pipeline);
+                         I_RenderPass->GetPipeline());
 
         Status = EStatus::InsideRenderPass;
     }

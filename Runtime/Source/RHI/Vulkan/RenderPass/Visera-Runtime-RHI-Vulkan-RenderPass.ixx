@@ -3,24 +3,27 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Interface.RenderPass;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
+import Visera.Runtime.RHI.Vulkan.RenderTarget;
 import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    export class VISERA_RUNTIME_API FVulkanRenderPass : public IRenderPass
+    export class VISERA_RUNTIME_API FVulkanRenderPass
     {
     public:
-        [[nodiscard]] const void*
-        GetHandle() const override { return &Handle; }
-        [[nodiscard]] const void*
-        GetPipeline() const override { return &Pipeline; }
+        [[nodiscard]] inline const vk::raii::RenderPass&
+        GetHandle() const { return Handle; }
+        [[nodiscard]] inline const vk::raii::Pipeline&
+        GetPipeline() const { return Pipeline; }
+        [[nodiscard]] inline TSharedPtr<FVulkanRenderTarget>
+        GetRenderTarget() const { return CurrentRenderTarget; }
 
     private:
         vk::raii::RenderPass      Handle         {nullptr};
         vk::raii::PipelineLayout  PipelineLayout {nullptr};
         vk::raii::Pipeline        Pipeline       {nullptr};
+        TSharedPtr<FVulkanRenderTarget> CurrentRenderTarget;
         TSharedPtr<FVulkanShaderModule> VertexShader;
         TSharedPtr<FVulkanShaderModule> FragmentShader;
 
@@ -49,21 +52,19 @@ namespace Visera::RHI
     : VertexShader   (std::move(I_VertexShader)),
       FragmentShader (std::move(I_FragmentShader))
     {
-        vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
+        VISERA_ASSERT(VertexShader->IsVertexShader());
+        VISERA_ASSERT(FragmentShader->IsFragmentShader());
 
-        VISERA_ASSERT(VertexShader->IsValid() && VertexShader->IsVertexShader());
-        auto  VertexModule = static_cast<const vk::raii::ShaderModule*>(VertexShader->GetHandle());
+        vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
         ShaderStageCreateInfos[0]
             .setStage(vk::ShaderStageFlagBits::eVertex)
             .setPName(VertexShader->GetEntryPoint())
-            .setModule(*VertexModule)
+            .setModule(VertexShader->GetHandle())
         ;
-        VISERA_ASSERT(FragmentShader->IsValid() && FragmentShader->IsFragmentShader());
-        auto  FragmentModule = static_cast<const vk::raii::ShaderModule*>(FragmentShader->GetHandle());
         ShaderStageCreateInfos[1]
             .setStage(vk::ShaderStageFlagBits::eFragment)
             .setPName(FragmentShader->GetEntryPoint())
-            .setModule(*FragmentModule)
+            .setModule(FragmentShader->GetHandle())
         ;
         auto DynamicStateCreateInfo = vk::PipelineDynamicStateCreateInfo{}
             .setDynamicStateCount   (MAX_DYNAMIC_STATE)

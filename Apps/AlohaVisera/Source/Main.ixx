@@ -51,7 +51,7 @@ export int main(int argc, char *argv[])
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
         auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
 
-        auto Cmd = Driver->CreateCommandBuffer(RHI::ETESTCommandType::Graphics);
+        auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");
