@@ -3,6 +3,7 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Runtime.RHI.Vulkan.RenderTarget;
 import Visera.Core.Log;
@@ -16,14 +17,22 @@ namespace Visera::RHI
         GetHandle() const { return Handle; }
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetPipeline() const { return Pipeline; }
-        [[nodiscard]] inline TSharedPtr<FVulkanRenderTarget>
-        GetRenderTarget() const { return CurrentRenderTarget; }
+        [[nodiscard]] inline const FVulkanRect2D&
+        GetRenderArea() const { return CurrentRenderArea; }
+        inline void
+        SetRenderArea(const FVulkanRect2D& I_RenderArea) { CurrentRenderArea = I_RenderArea; }
+        [[nodiscard]] inline auto
+        GetRenderingInfo() const;
 
     private:
         vk::raii::RenderPass      Handle         {nullptr};
         vk::raii::PipelineLayout  PipelineLayout {nullptr};
         vk::raii::Pipeline        Pipeline       {nullptr};
-        TSharedPtr<FVulkanRenderTarget> CurrentRenderTarget;
+
+        TArray<FVulkanRenderTarget>     RenderTargets;
+        UInt8                           CurrentRenderTargetIndex{0};
+        FVulkanRect2D                   CurrentRenderArea{};
+
         TSharedPtr<FVulkanShaderModule> VertexShader;
         TSharedPtr<FVulkanShaderModule> FragmentShader;
 
@@ -172,5 +181,22 @@ namespace Visera::RHI
             else
             { Pipeline = std::move(*Result); }
         }
+    }
+
+    auto FVulkanRenderPass::
+    GetRenderingInfo() const
+    {
+        VISERA_ASSERT(CurrentRenderTargetIndex < RenderTargets.size());
+
+        auto AttachmentInfo = RenderTargets[CurrentRenderTargetIndex]
+                              .GetAttachmentInfo();
+
+        auto RenderingInfo = vk::RenderingInfo{}
+            .setRenderArea          (CurrentRenderArea)
+            .setLayerCount          (1)
+            .setColorAttachmentCount(1)
+            .setColorAttachments    (AttachmentInfo)
+        ;
+        return RenderingInfo;
     }
 }

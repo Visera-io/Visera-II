@@ -37,7 +37,7 @@ namespace Visera::RHI
     FVulkanShaderModule::
     FVulkanShaderModule(const vk::raii::Device& I_Device,
                         TSharedPtr<FShader>     I_Shader)
-    : Shader{I_Shader}
+    : Shader{ std::move(I_Shader) }
     {
         auto CreateInfo = vk::ShaderModuleCreateInfo{}
             .setPCode    (reinterpret_cast<const uint32_t*>(Shader->GetData()))

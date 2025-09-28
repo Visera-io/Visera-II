@@ -5,7 +5,7 @@ export module Visera.Runtime.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.RenderPass;
-import Visera.Runtime.RHI.Vulkan.Texture2D;
+import Visera.Runtime.RHI.Vulkan.Image;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -22,25 +22,27 @@ namespace Visera::RHI
         };
 
         void inline
+        Reset();
+        void inline
         Begin();
         void inline
-        ConvertImageLayout(TSharedRef<FVulkanTexture2D> I_Texture,
-                           EVulkanImageLayout           I_NewLayout,
-                           EVulkanPipelineStage         I_SrcStage,
-                           EVulkanAccess                I_SrcAccess,
-                           EVulkanPipelineStage         I_DstStage,
-                           EVulkanAccess                I_DstAccess);
+        ConvertImageLayout(TSharedRef<FVulkanImage> I_Image,
+                           EVulkanImageLayout       I_NewLayout,
+                           EVulkanPipelineStage     I_SrcStage,
+                           EVulkanAccess            I_SrcAccess,
+                           EVulkanPipelineStage     I_DstStage,
+                           EVulkanAccess            I_DstAccess);
         void inline
         EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass);
         void inline
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
         void inline
-        LeaveRenderPass() { CurrentRenderPass.reset(); }
+        LeaveRenderPass();
         void inline
         End();
         void inline
-        Submit(const void* I_Queue);
+        Submit(const vk::raii::Queue& I_Queue);
 
         [[nodiscard]] inline const vk::raii::CommandBuffer&
         GetHandle() const { return Handle; }
@@ -56,9 +58,8 @@ namespace Visera::RHI
 
     private:
         vk::raii::CommandBuffer Handle {nullptr};
-        vk::Viewport   Viewport {};
-        vk::Rect2D     Scissor  {};
-        vk::ClearValue ClearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+        TOptional<FVulkanViewport>    CurrentViewport;
+        TOptional<FVulkanRect2D>      CurrentScissor;
         TSharedPtr<FVulkanRenderPass> CurrentRenderPass;
 
         EStatus Status { EStatus::Idle };
@@ -86,9 +87,19 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
+    Reset()
+    {
+        VISERA_ASSERT(IsSubmitted() || IsIdle());
+
+        Handle.reset();
+
+        Status = EStatus::Idle;
+    }
+
+    void FVulkanCommandBuffer::
     Begin()
     {
-        VISERA_ASSERT(IsIdle() || IsSubmitted());
+        VISERA_ASSERT(IsIdle());
 
         Handle.begin({});
 
@@ -96,22 +107,22 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    ConvertImageLayout(TSharedRef<FVulkanTexture2D> I_Texture,
-                       EVulkanImageLayout           I_NewLayout,
-                       EVulkanPipelineStage         I_SrcStage,
-                       EVulkanAccess                I_SrcAccess,
-                       EVulkanPipelineStage         I_DstStage,
-                       EVulkanAccess                I_DstAccess)
+    ConvertImageLayout(TSharedRef<FVulkanImage> I_Image,
+                       EVulkanImageLayout       I_NewLayout,
+                       EVulkanPipelineStage     I_SrcStage,
+                       EVulkanAccess            I_SrcAccess,
+                       EVulkanPipelineStage     I_DstStage,
+                       EVulkanAccess            I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
 
-        auto OldLayout = I_Texture->GetLayout();
+        auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
 
         if (OldLayout == NewLayout)
         {
             LOG_WARN("Skipped to convert a image to the same layout \"{}\"!",
-                     I_NewLayout);
+                     NewLayout);
             return;
         }
 
@@ -131,7 +142,7 @@ namespace Visera::RHI
             .setNewLayout           (NewLayout)
             .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
             .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setImage               (I_Texture->GetHandle())
+            .setImage               (I_Image->GetHandle())
             .setSubresourceRange    (ImageSubresourceRange)
         ;
         auto DependencyInfo = vk::DependencyInfo{}
@@ -140,28 +151,35 @@ namespace Visera::RHI
             .setPImageMemoryBarriers(&Barrier)
         ;
         Handle.pipelineBarrier2(DependencyInfo);
+
+        I_Image->SetLayout(NewLayout);
     }
 
     void FVulkanCommandBuffer::
     EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass)
     {
         VISERA_ASSERT(IsRecording());
-        VISERA_ASSERT(I_RenderPass);
+        CurrentRenderPass = I_RenderPass;
 
-        const auto& RT = I_RenderPass->GetRenderTarget();
-        auto AttachmentInfo = vk::RenderingAttachmentInfo{}
-            .setImageView(RT->GetView())
-        ;
-        // {
-        //     .imageView = swapChainImageViews[imageIndex],
-        //     .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        //     .loadOp = vk::AttachmentLoadOp::eClear,
-        //     .storeOp = vk::AttachmentStoreOp::eStore,
-        //     .clearValue = clearColor
-        // };
+        auto RenderingInfo = CurrentRenderPass->GetRenderingInfo();
+        Handle.beginRendering(RenderingInfo);
 
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                         I_RenderPass->GetPipeline());
+                         CurrentRenderPass->GetPipeline());
+
+        if (!CurrentViewport.has_value())
+        {
+            CurrentViewport = FVulkanViewport{}
+                .setX       (RenderingInfo.renderArea.offset.x)
+                .setY       (RenderingInfo.renderArea.offset.y)
+                .setWidth   (RenderingInfo.renderArea.extent.width)
+                .setHeight  (RenderingInfo.renderArea.extent.height)
+            ;
+        }
+        Handle.setViewport(0, CurrentViewport.value());
+
+        if (CurrentScissor.has_value())
+        { Handle.setScissor(0, CurrentScissor.value()); }
 
         Status = EStatus::InsideRenderPass;
     }
@@ -178,19 +196,36 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
+    LeaveRenderPass()
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+
+        CurrentViewport.reset();
+        CurrentScissor.reset();
+
+        CurrentRenderPass.reset();
+    }
+
+    void FVulkanCommandBuffer::
     End()
     {
         VISERA_ASSERT(IsRecording());
+
         Handle.end();
 
         Status = EStatus::Recording;
     }
 
     void FVulkanCommandBuffer::
-    Submit(const void* I_Queue)
+    Submit(const vk::raii::Queue& I_Queue)
     {
-        VISERA_ASSERT(!IsSubmitted());
+        VISERA_ASSERT(IsRecording());
 
+        auto SubmitInfo = vk::SubmitInfo{}
+            .setCommandBuffers(*Handle)
+            .setSignalSemaphores(nullptr)
+        ;
+        I_Queue.submit(SubmitInfo, {});
 
         Status = EStatus::Submitted;
     }

@@ -37,7 +37,7 @@ export int main(int argc, char *argv[])
     LOG_DEBUG("Test Time: {}ms", Clock.Elapsed().Milliseconds());
 
     //Demos
-    { Demos::Compression Demo; }
+    //{ Demos::Compression Demo; }
 
     GEngine->Bootstrap();
     {
@@ -45,19 +45,19 @@ export int main(int argc, char *argv[])
         //auto Fence = GRHI->GetDriver()->CreateFence(True);
 
         //auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
-        assert("");
 
         auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
         auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
+        RenderPass->SetRenderArea({{0,0},{GWindow->GetWidth(),GWindow->GetHeight()}});
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");
-            //Cmd->EnterRenderPass(RenderPass);
-            //Cmd->Draw(3,1,0,0);
-            //Cmd->LeaveRenderPass();
+            Cmd->EnterRenderPass(RenderPass);
+            Cmd->Draw(3,1,0,0);
+            Cmd->LeaveRenderPass();
         }
         Cmd->End();
         GEngine->Run();

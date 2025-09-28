@@ -45,6 +45,7 @@
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 	#include <windows.h>
 	#undef TEXT
+    #undef LoadImage
 
 	#define PLATFORM_ASSERT(expression) ((void)(                                                       \
 		(!!(expression)) ||                                                               \
@@ -279,7 +280,10 @@ namespace Visera
     using TPair     = std::pair<T1, T2>;
 
     template <typename... Args>
-    using TTuple    = std::tuple<Args...>;
+	using TTuple    = std::tuple<Args...>;
+
+	template<typename T>
+	using TOptional = std::optional<T>;
 
 	VISERA_CORE_API void inline
 	Sleep(Float I_Seconds) { std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<UInt64>(1000 * I_Seconds))); }

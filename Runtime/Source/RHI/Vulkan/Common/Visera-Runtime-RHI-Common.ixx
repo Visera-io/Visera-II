@@ -10,8 +10,14 @@ export namespace Visera::RHI
     using EVulkanPipelineStage = vk::PipelineStageFlagBits2;
     using EVulkanAccess        = vk::AccessFlagBits2;
     using EVulkanQueue         = vk::QueueFlagBits;
+    using EVulkanLoadOp        = vk::AttachmentLoadOp;
+    using EVulkanStoreOp       = vk::AttachmentStoreOp;
 
     using FVulkanExtent2D      = vk::Extent2D;
+    using FVulkanExtent3D      = vk::Extent3D;
+    using FVulkanViewport      = vk::Viewport;
+    using FVulkanRect2D        = vk::Rect2D;
+    using FVulkanClearColor    = vk::ClearColorValue;
 }
 
 using namespace Visera;
@@ -30,9 +36,10 @@ struct fmt::formatter<RHI::EVulkanImageLayout>
     auto format(RHI::EVulkanImageLayout I_ImageLayout, FormatContext& I_Context) const
     -> decltype(I_Context.out())
     {
-        const char* Name = "Undefined";
+        const char* Name = "(WIP)";
         switch (I_ImageLayout)
         {
+        case RHI::EVulkanImageLayout::eUndefined:                         Name = "Undefined"; break;
         case RHI::EVulkanImageLayout::eColorAttachmentOptimal:            Name = "Color"; break;
         case RHI::EVulkanImageLayout::eDepthAttachmentOptimal:            Name = "Depth"; break;
         case RHI::EVulkanImageLayout::eDepthStencilAttachmentOptimal:     Name = "DepthStencil"; break;

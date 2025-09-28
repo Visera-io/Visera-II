@@ -13,7 +13,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.RenderPass;
        import Visera.Runtime.RHI.Vulkan.CommandBuffer;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
-       import Visera.Runtime.RHI.Vulkan.Texture2D;
+       import Visera.Runtime.RHI.Vulkan.Image;
        import Visera.Runtime.AssetHub.Shader;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
@@ -48,7 +48,6 @@ namespace Visera::RHI
         }Device;
 
         TUniquePtr<FVulkanLoader>    Loader;
-        TUniquePtr<FVulkanAllocator> Allocator;
 
         struct
         {
@@ -90,7 +89,7 @@ namespace Visera::RHI
                          TSharedPtr<FVulkanShaderModule> I_FragmentShader);
         [[nodiscard]] TUniquePtr<FVulkanFence>
         CreateFence(Bool I_bSignaled);
-        [[nodiscard]] TSharedPtr<FVulkanTexture2D>
+        [[nodiscard]] TSharedPtr<FVulkanImage>
         CreateTexture2D(const FVulkanExtent2D& I_Extent);
         [[nodiscard]] TSharedPtr<FVulkanRenderTarget>
         CreateRenderTarget(const FVulkanExtent2D& I_Extent);
@@ -98,10 +97,10 @@ namespace Visera::RHI
         CreateCommandBuffer(EVulkanQueue I_Queue);
         [[nodiscard]] UInt32
         GetFrameCount() const { return SwapChain.Images.size(); }
-        [[nodiscard]] inline const void*
-        GetNativeInstance() const { return *Instance;       };
-        [[nodiscard]] inline const void*
-        GetNativeDevice() const { return *Device.Context; };
+        [[nodiscard]] inline const vk::raii::Instance&
+        GetNativeInstance() const { return Instance;       };
+        [[nodiscard]] inline const vk::raii::Device&
+        GetNativeDevice() const { return Device.Context; };
 
     private:
         void CreateInstance();
@@ -208,12 +207,12 @@ namespace Visera::RHI
 
         // Allocator
         {
-            Allocator = MakeUnique<FVulkanAllocator>
+            GVulkanAllocator = MakeUnique<FVulkanAllocator>
             (
                 AppInfo.apiVersion,
-                *Instance,
-                *GPU.Context,
-                *Device.Context
+                Instance,
+                GPU.Context,
+                Device.Context
             );
         }
 
@@ -252,7 +251,7 @@ namespace Visera::RHI
 
         // Allocator
         {
-            Allocator.reset();
+            GVulkanAllocator.reset();
         }
 
         // Surface
@@ -675,7 +674,7 @@ namespace Visera::RHI
         return MakeUnique<FVulkanFence>(Device.Context, I_bSignaled);
     }
 
-    TSharedPtr<FVulkanTexture2D> FVulkanDriver::
+    TSharedPtr<FVulkanImage> FVulkanDriver::
     CreateTexture2D(const vk::Extent2D& I_Extent)
     {
         LOG_TRACE("Creating a Vulkan Texture2D");
