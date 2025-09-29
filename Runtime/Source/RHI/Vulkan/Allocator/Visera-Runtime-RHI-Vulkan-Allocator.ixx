@@ -14,6 +14,8 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanAllocator
     {
     public:
+
+
         [[nodiscard]] inline VmaAllocator
         GetHandle() const { return Handle; }
 
@@ -80,6 +82,8 @@ namespace Visera::RHI
     protected:
         inline void
         Allocate(void* I_Handle, const void* I_CreateInfo);
+        inline void
+        Release(void* I_Handle);
 
     private:
         EType         Type{ EType::Unknown };
@@ -121,5 +125,27 @@ namespace Visera::RHI
         default:
             VISERA_WIP;
         }
+    }
+
+    void IVulkanResource::
+    Release(void* I_Handle)
+    {
+        switch (Type)
+        {
+        case EType::Image:
+            {
+                auto ImageHandle = static_cast<VkImage*>(I_Handle);
+
+                vmaDestroyImage(
+                    GVulkanAllocator->GetHandle(),
+                    *ImageHandle,
+                    Allocation);
+                *ImageHandle = nullptr;
+                break;
+            }
+        default:
+            VISERA_WIP;
+        }
+        Allocation = nullptr;
     }
 }

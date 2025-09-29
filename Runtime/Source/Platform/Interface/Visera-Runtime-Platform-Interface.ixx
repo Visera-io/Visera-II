@@ -20,6 +20,8 @@ namespace Visera
     public:
         [[nodiscard]] virtual TSharedPtr<ILibrary>
         LoadLibrary(const FPath& I_Path) const = 0;
+        [[nodiscard]] virtual const FPath&
+        GetExecutableDirectory() const = 0;
 
         [[nodiscard]] inline EPlatform
         GetType() const { return Type; }

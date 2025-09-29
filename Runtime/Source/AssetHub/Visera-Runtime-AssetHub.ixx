@@ -5,6 +5,7 @@ export module Visera.Runtime.AssetHub;
 import Visera.Runtime.AssetHub.Asset;
 import Visera.Runtime.AssetHub.Image;
 import Visera.Runtime.AssetHub.Shader;
+import Visera.Runtime.Platform;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
 
@@ -13,7 +14,7 @@ namespace Visera
     export using EAssetType = IAsset::EType;
 
     export enum class EAssetSource : UInt8
-    { App, Studio, Engine, Any, };
+    { App, Studio, Engine, Local, Any, };
 
     class VISERA_RUNTIME_API FAssetHub : public IGlobalSingleton
     {
@@ -22,6 +23,8 @@ namespace Visera
         LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FImage>;
         [[nodiscard]] inline auto
         LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FShader>;
+        [[nodiscard]] inline auto
+        LoadBinary() { VISERA_WIP; }
 
     public:
         void Bootstrap() override;
@@ -44,6 +47,7 @@ namespace Visera
         Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR) / PATH("Assets") };
         Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR) / PATH("Assets") };
         Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)    / PATH("Assets") };
+        Roots[EAssetSource::Local]  = FFileSystem{ GPlatform->GetExecutableDirectory() };
 
         Status = EStatus::Bootstrapped;
     }

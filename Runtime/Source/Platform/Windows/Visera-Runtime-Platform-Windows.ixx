@@ -14,10 +14,26 @@ namespace Visera
     public:
         [[nodiscard]] TSharedPtr<ILibrary>
         LoadLibrary(const FPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
+        [[nodiscard]] const FPath&
+        GetExecutableDirectory() const override { return ExecutableDirectory; }
+
+    private:
+        FPath ExecutableDirectory;
 
     public:
-        FWindowsPlatform() : IPlatform{EPlatform::Windows} {};
+        FWindowsPlatform();
         ~FWindowsPlatform() override = default;
     };
+
+    FWindowsPlatform::
+    FWindowsPlatform()
+    : IPlatform{EPlatform::Windows}
+    {
+        std::wstring Buffer(MAX_PATH, L'\0');
+        DWORD Size = GetModuleFileNameW(nullptr, Buffer.data(), static_cast<DWORD>(Buffer.size()));
+        Buffer.resize(Size);
+
+        ExecutableDirectory = FPath{Buffer}.GetParent();
+    }
 #endif
 }

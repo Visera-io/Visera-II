@@ -69,6 +69,8 @@ namespace Visera::RHI
 
         vk::raii::CommandPool GraphicsCommandPool {nullptr};
 
+        vk::raii::PipelineCache PipelineCache {nullptr};
+
     private:
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
@@ -113,6 +115,7 @@ namespace Visera::RHI
         void CreateDevice();
         void CreateSwapChain();
         void CreateCommandPools();
+        void CreatePipelineCache();
 
         inline FVulkanDriver*
         AddInstanceLayer(const char* I_Layer)           { InstanceLayers.emplace_back(I_Layer);         return this; }
@@ -229,12 +232,22 @@ namespace Visera::RHI
         {
             CreateCommandPools();
         }
+
+        // Pipeline Cache
+        {
+            CreatePipelineCache();
+        }
     };
 
     FVulkanDriver::
     ~FVulkanDriver()
     {
         Device.Context.waitIdle();
+
+        // Pipeline Cache
+        {
+            PipelineCache.clear();
+        }
 
         // Command Pools
         {
@@ -666,8 +679,9 @@ namespace Visera::RHI
         LOG_DEBUG("Creating a Vulkan Render Pass (vertex:{}, fragment:{})",
                   I_VertexShader->GetName(), I_FragmentShader->GetName());
         return MakeUnique<FVulkanRenderPass>(Device.Context,
-               std::dynamic_pointer_cast<FVulkanShaderModule>(I_VertexShader),
-               std::dynamic_pointer_cast<FVulkanShaderModule>(I_FragmentShader));
+               I_VertexShader,
+               I_FragmentShader,
+               PipelineCache);
     }
 
     TUniquePtr<FVulkanFence> FVulkanDriver::
@@ -711,6 +725,21 @@ namespace Visera::RHI
             { LOG_FATAL("Failed to create the Vulkan Graphics Command Pool!"); }
             else
             { GraphicsCommandPool = std::move(*Result); }
+        }
+    }
+
+    void FVulkanDriver::
+    CreatePipelineCache()
+    {
+        LOG_TRACE("Creating a Vulkan Pipeline Cache.");
+        {
+            // auto CreateInfo = vk::PipelineCacheCreateInfo{}
+            // ;
+            // auto Result = Device.Context.createCommandPool(CreateInfo);
+            // if (!Result)
+            // { LOG_FATAL("Failed to create the Vulkan Graphics Command Pool!"); }
+            // else
+            // { GraphicsCommandPool = std::move(*Result); }
         }
     }
 

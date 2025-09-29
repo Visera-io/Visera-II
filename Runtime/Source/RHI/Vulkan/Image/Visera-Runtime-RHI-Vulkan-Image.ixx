@@ -34,7 +34,7 @@ namespace Visera::RHI
                      const FVulkanExtent3D&	I_Extent,
                      EVulkanFormat          I_Format,
                      EVulkanImageUsage      I_Usages);
-        ~FVulkanImage()                              = default;
+        ~FVulkanImage()                              { Release(&Handle); };
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
     };

@@ -51,13 +51,15 @@ namespace Visera::RHI
         FVulkanRenderPass() = delete;
         FVulkanRenderPass(const vk::raii::Device&         I_Device,
                           TSharedPtr<FVulkanShaderModule> I_VertexShader,
-                          TSharedPtr<FVulkanShaderModule> I_FragmentShader);
+                          TSharedPtr<FVulkanShaderModule> I_FragmentShader,
+                          const vk::raii::PipelineCache&  I_PipelineCache);
     };
 
     FVulkanRenderPass::
     FVulkanRenderPass(const vk::raii::Device&         I_Device,
                       TSharedPtr<FVulkanShaderModule> I_VertexShader,
-                      TSharedPtr<FVulkanShaderModule> I_FragmentShader)
+                      TSharedPtr<FVulkanShaderModule> I_FragmentShader,
+                      const vk::raii::PipelineCache&  I_PipelineCache)
     : VertexShader   (std::move(I_VertexShader)),
       FragmentShader (std::move(I_FragmentShader))
     {
@@ -173,7 +175,7 @@ namespace Visera::RHI
         ;
         // Create Pipeline
         {
-            auto Result = I_Device.createGraphicsPipeline(nullptr, PipelineCreateInfo);
+            auto Result = I_Device.createGraphicsPipeline(I_PipelineCache, PipelineCreateInfo);
             if (!Result)
             {
                 LOG_FATAL("Failed to create the pipeline!");

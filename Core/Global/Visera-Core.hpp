@@ -46,6 +46,7 @@
 	#include <windows.h>
 	#undef TEXT
     #undef LoadImage
+	#undef LoadLibrary
 
 	#define PLATFORM_ASSERT(expression) ((void)(                                                       \
 		(!!(expression)) ||                                                               \
