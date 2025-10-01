@@ -1,7 +1,5 @@
 module;
 #include <Visera.hpp>
-#include <bvh/v2/bvh.h>
-
 #include "Visera-Runtime.hpp"
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
@@ -53,20 +51,21 @@ export int main(int argc, char *argv[])
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
         auto RHIImage = Driver->CreateImage(
-            RHI::EVulkanImageType::e2D,
+            RHI::EImageType::e2D,
             {200, 400, 1},
-            RHI::EVulkanFormat::eR8G8B8A8Unorm,
-            RHI::EVulkanImageUsage::eColorAttachment
+            RHI::EFormat::eR8G8B8A8Unorm,
+            RHI::EImageUsage::eColorAttachment
             );
 
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");
-            Cmd->EnterRenderPass(RenderPass);
-            Cmd->Draw(3,1,0,0);
-            Cmd->LeaveRenderPass();
+            // Cmd->EnterRenderPass(RenderPass);
+            // Cmd->Draw(3,1,0,0);
+            // Cmd->LeaveRenderPass();
         }
         Cmd->End();
+
         GEngine->Run();
     }
     GEngine->Terminate();

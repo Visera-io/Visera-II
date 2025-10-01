@@ -53,6 +53,15 @@
         ],
         "URL" : "https://dotnet.microsoft.com/"
     },
+    "LibPNG" :
+    {
+        "Version" : "1.6.50",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://libpng.sourceforge.io/"
+    },
     "Wwise" :
     {
         "Version" : "2025.1.1.8936 Beta",

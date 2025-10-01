@@ -169,6 +169,8 @@
 #define DEBUG_ONLY_FIELD(I_Content)
 #endif
 
+#define VISERA_UNIMPLEMENTED_API LOG_ERROR("Unimplmented API \"{}\"!", __FUNCTION__)
+
 // << STD Modules >>
 #include <cassert>
 #include <cmath>
