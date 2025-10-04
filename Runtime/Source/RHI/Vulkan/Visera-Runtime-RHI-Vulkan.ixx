@@ -10,6 +10,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.Allocator;
        import Visera.Runtime.RHI.Vulkan.Fence;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
+       import Visera.Runtime.RHI.Vulkan.PipelineCache;
        import Visera.Runtime.RHI.Vulkan.RenderPass;
        import Visera.Runtime.RHI.Vulkan.CommandBuffer;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
@@ -69,7 +70,7 @@ namespace Visera::RHI
 
         vk::raii::CommandPool GraphicsCommandPool {nullptr};
 
-        vk::raii::PipelineCache PipelineCache {nullptr};
+        TUniquePtr<FVulkanPipelineCache> PipelineCache;
 
     private:
         TArray<const char*> InstanceLayers;
@@ -246,7 +247,7 @@ namespace Visera::RHI
 
         // Pipeline Cache
         {
-            PipelineCache.clear();
+            PipelineCache.reset();
         }
 
         // Command Pools
@@ -379,12 +380,35 @@ namespace Visera::RHI
 
         auto Result = Instance.enumeratePhysicalDevices();
         if (!Result)
-        { LOG_FATAL("Failed to find PhysicalDevices with Vulkan support (error:{})!", static_cast<Int32>(Result.error())); }
+        {
+            LOG_FATAL("Failed to find PhysicalDevices with Vulkan support (error:{})!",
+                      static_cast<Int32>(Result.error()));
+        }
 
         auto PhysicalDeviceCandidates = std::move(*Result);
 
-        const auto SelectedPhysicalDevice = std::ranges::
-        find_if(PhysicalDeviceCandidates, [&](auto const & PhysicalDeviceCandidate)
+        // Sort: Discrete GPU first, then Integrated, then others
+        std::ranges::sort(PhysicalDeviceCandidates,
+            [](auto const& A, auto const& B)
+            {
+                auto AType = A.getProperties().deviceType;
+                auto BType = B.getProperties().deviceType;
+
+                auto Rank = [](vk::PhysicalDeviceType Type)
+                {
+                    switch (Type)
+                    {
+                    case vk::PhysicalDeviceType::eDiscreteGpu:    return 0;
+                    case vk::PhysicalDeviceType::eIntegratedGpu:  return 1;
+                    default:                                      return 2;
+                    }
+                };
+
+                return Rank(AType) < Rank(BType);
+            });
+
+        const auto SelectedPhysicalDevice = std::ranges::find_if(
+            PhysicalDeviceCandidates, [&](auto const& PhysicalDeviceCandidate)
         {
             auto PhysicalDeviceInfo = PhysicalDeviceCandidate.getProperties();
             LOG_TRACE("Current GPU candidate: {}.", PhysicalDeviceInfo.deviceName.data());
@@ -396,6 +420,11 @@ namespace Visera::RHI
             LOG_TRACE("Checking Queue Families...");
             auto QueueFamilies = PhysicalDeviceCandidate.getQueueFamilyProperties();
 
+            GPU.GraphicsQueueFamilies.clear();
+            GPU.ComputeQueueFamilies.clear();
+            GPU.TransferQueueFamilies.clear();
+            GPU.PresentQueueFamilies.clear();
+
             for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
             {
                 auto& QueueFamily = QueueFamilies[Idx];
@@ -405,6 +434,7 @@ namespace Visera::RHI
                 { GPU.ComputeQueueFamilies.insert(Idx); }
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
                 { GPU.TransferQueueFamilies.insert(Idx); }
+
                 if (GWindow->IsBootstrapped())
                 {
                     VISERA_ASSERT(Surface != nullptr);
@@ -415,28 +445,37 @@ namespace Visera::RHI
             bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
                         !GPU.ComputeQueueFamilies.empty()  &&
                         !GPU.TransferQueueFamilies.empty();
-            if (GWindow->IsBootstrapped()) { bSuitable &= !GPU.PresentQueueFamilies.empty(); }
+            if (GWindow->IsBootstrapped())
+            {
+                bSuitable &= !GPU.PresentQueueFamilies.empty();
+            }
 
             if (!bSuitable) { return False; }
 
             LOG_TRACE("Checking Extension supporting...");
-            auto Extensions = PhysicalDeviceCandidate.enumerateDeviceExtensionProperties( );
-            for (auto const & RequiredExtension : DeviceExtensions)
+            auto Extensions = PhysicalDeviceCandidate.enumerateDeviceExtensionProperties();
+            for (auto const& RequiredExtension : DeviceExtensions)
             {
-                auto ExtensionIter =
-                    std::ranges::find_if(Extensions,
-                [RequiredExtension](auto const & Extension)
-                    {return strcmp(Extension.extensionName, RequiredExtension) == 0;});
+                auto ExtensionIter = std::ranges::find_if(
+                    Extensions,
+                    [RequiredExtension](auto const& Extension)
+                    {
+                        return strcmp(Extension.extensionName, RequiredExtension) == 0;
+                    });
                 bSuitable &= (ExtensionIter != Extensions.end());
             }
 
             if (bSuitable)
-            { GPU.Context = PhysicalDeviceCandidate; }
+            {
+                GPU.Context = PhysicalDeviceCandidate;
+            }
             return bSuitable;
         });
 
         if (SelectedPhysicalDevice == PhysicalDeviceCandidates.end())
-        { LOG_FATAL("Failed to find a suitable PhysicalDevice!"); }
+        {
+            LOG_FATAL("Failed to find a suitable PhysicalDevice!");
+        }
 
         LOG_INFO("Selected GPU: {}", GPU.Context.getProperties().deviceName.data());
     }
@@ -733,13 +772,7 @@ namespace Visera::RHI
     {
         LOG_TRACE("Creating a Vulkan Pipeline Cache.");
         {
-            // auto CreateInfo = vk::PipelineCacheCreateInfo{}
-            // ;
-            // auto Result = Device.Context.createCommandPool(CreateInfo);
-            // if (!Result)
-            // { LOG_FATAL("Failed to create the Vulkan Graphics Command Pool!"); }
-            // else
-            // { GraphicsCommandPool = std::move(*Result); }
+            PipelineCache = MakeUnique<FVulkanPipelineCache>(PATH("VulkanPipelines.cache"));
         }
     }
 

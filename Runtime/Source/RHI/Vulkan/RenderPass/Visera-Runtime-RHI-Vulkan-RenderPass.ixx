@@ -4,6 +4,7 @@ module;
 export module Visera.Runtime.RHI.Vulkan.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
+import Visera.Runtime.RHI.Vulkan.PipelineCache;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Runtime.RHI.Vulkan.RenderTarget;
 import Visera.Core.Log;
@@ -49,17 +50,17 @@ namespace Visera::RHI
         Bool         bColorBlendEnabled { False };
     public:
         FVulkanRenderPass() = delete;
-        FVulkanRenderPass(const vk::raii::Device&         I_Device,
-                          TSharedPtr<FVulkanShaderModule> I_VertexShader,
-                          TSharedPtr<FVulkanShaderModule> I_FragmentShader,
-                          const vk::raii::PipelineCache&  I_PipelineCache);
+        FVulkanRenderPass(const vk::raii::Device&          I_Device,
+                          TSharedPtr<FVulkanShaderModule>  I_VertexShader,
+                          TSharedPtr<FVulkanShaderModule>  I_FragmentShader,
+                          TUniqueRef<FVulkanPipelineCache> I_PipelineCache);
     };
 
     FVulkanRenderPass::
-    FVulkanRenderPass(const vk::raii::Device&         I_Device,
-                      TSharedPtr<FVulkanShaderModule> I_VertexShader,
-                      TSharedPtr<FVulkanShaderModule> I_FragmentShader,
-                      const vk::raii::PipelineCache&  I_PipelineCache)
+    FVulkanRenderPass(const vk::raii::Device&          I_Device,
+                      TSharedPtr<FVulkanShaderModule>  I_VertexShader,
+                      TSharedPtr<FVulkanShaderModule>  I_FragmentShader,
+                      TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
     : VertexShader   (std::move(I_VertexShader)),
       FragmentShader (std::move(I_FragmentShader))
     {
@@ -175,7 +176,7 @@ namespace Visera::RHI
         ;
         // Create Pipeline
         {
-            auto Result = I_Device.createGraphicsPipeline(I_PipelineCache, PipelineCreateInfo);
+            auto Result = I_Device.createGraphicsPipeline(I_PipelineCache->GetHandle(), PipelineCreateInfo);
             if (!Result)
             {
                 LOG_FATAL("Failed to create the pipeline!");

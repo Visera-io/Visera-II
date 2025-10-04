@@ -14,17 +14,15 @@ namespace Visera
     export using EAssetType = IAsset::EType;
 
     export enum class EAssetSource : UInt8
-    { App, Studio, Engine, Local, Any, };
+    { App, Studio, Engine, Any, };
 
     class VISERA_RUNTIME_API FAssetHub : public IGlobalSingleton
     {
     public:
-        [[nodiscard]] inline auto
-        LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FImage>;
-        [[nodiscard]] inline auto
-        LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any) -> TSharedPtr<FShader>;
-        [[nodiscard]] inline auto
-        LoadBinary() { VISERA_WIP; }
+        [[nodiscard]] inline TSharedPtr<FImage>
+        LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
+        [[nodiscard]] inline TSharedPtr<FShader>
+        LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any);
 
     public:
         void Bootstrap() override;
@@ -47,8 +45,7 @@ namespace Visera
         Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR) / PATH("Assets") };
         Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR) / PATH("Assets") };
         Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)    / PATH("Assets") };
-        Roots[EAssetSource::Local]  = FFileSystem{ GPlatform->GetExecutableDirectory() };
-
+        
         Status = EStatus::Bootstrapped;
     }
 

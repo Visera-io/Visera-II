@@ -69,6 +69,8 @@ export int main(int argc, char *argv[])
             // Cmd->LeaveRenderPass();
         }
         Cmd->End();
+        
+        LOG_FATAL("Exited for Development!");
 
         GEngine->Run();
     }
