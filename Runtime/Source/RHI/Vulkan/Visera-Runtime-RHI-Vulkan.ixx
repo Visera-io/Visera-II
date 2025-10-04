@@ -19,6 +19,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
        import Visera.Core.Math.Arithmetic;
+       import Visera.Core.Types.Path;
 
 namespace Visera::RHI
 {
