@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <mach-o/dyld.h>
 export module Visera.Runtime.AssetHub.Asset;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 export import Visera.Core.Types.Name;

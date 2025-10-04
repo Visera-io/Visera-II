@@ -12,7 +12,7 @@ namespace Visera::RHI
     {
     public:
         void inline
-        Wait() const { VISERA_WIP; auto R = Fence->Wait(Math::UpperBound<UInt64>()); }
+        Wait() const { VISERA_UNIMPLEMENTED_API; auto R = Fence->Wait(Math::UpperBound<UInt64>()); }
 
     private:
         TUniquePtr<FVulkanFence> Fence;

@@ -7,6 +7,8 @@ macro(link_onetbb in_target)
     
     if(NOT TARGET TBB::tbb)
         set(BUILD_SHARED_LIBS ON)
+        set(TBB_TEST OFF CACHE BOOL "" FORCE)
+        set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
         add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/OneTBB)
     endif()
     target_link_libraries(${in_target} PUBLIC TBB::tbb)
