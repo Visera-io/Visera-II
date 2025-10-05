@@ -773,7 +773,10 @@ namespace Visera::RHI
     {
         LOG_TRACE("Creating a Vulkan Pipeline Cache.");
         {
-            PipelineCache = MakeUnique<FVulkanPipelineCache>(PATH("VulkanPipelines.cache"));
+            PipelineCache = MakeUnique<FVulkanPipelineCache>(
+                Device.Context,
+                PATH("VulkanPipelines.cache")
+            );
         }
     }
 

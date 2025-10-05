@@ -28,6 +28,8 @@ export namespace Visera
         SearchFile(const FPath& I_FileName) const;
 
         [[nodiscard]] Bool inline
+        CreateFile(const FPath& I_FileName) const;
+        [[nodiscard]] Bool inline
         CreateDirectory(const FPath& I_RelativePath) const;
         [[nodiscard]] Bool inline
         DeleteDirectory(const FPath& I_RelativePath, Bool I_bForce = False) const;
@@ -52,6 +54,32 @@ export namespace Visera
         { return Path; }
 
         return FPath{};
+    }
+
+    Bool FFileSystem::
+    CreateFile(const FPath& I_FileName) const
+    {
+        const auto Path = GetRoot()/I_FileName;
+        std::error_code ErrorCode{};
+
+        if (!std::filesystem::exists(Path.GetNativePath(), ErrorCode))
+        {
+            // Create the file by opening a stream
+            std::ofstream File(Path.GetNativePath());
+            if (!File)
+            {
+                LOG_ERROR("Failed to create file at \"{}\" -- {}.",
+                          Path, ErrorCode.message());
+                return False;
+            }
+            LOG_INFO("Created a new file at \"{}\".", Path);
+            return True;
+        }
+
+        LOG_ERROR("Failed to create the file \"{}\" -- {}.",
+                  Path, ErrorCode.message());
+
+        return False;
     }
 
     Bool FFileSystem::
