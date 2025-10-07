@@ -16,6 +16,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
        import Visera.Runtime.RHI.Vulkan.Image;
        import Visera.Runtime.AssetHub.Shader;
+       import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
        import Visera.Core.Math.Arithmetic;
@@ -747,7 +748,7 @@ namespace Visera::RHI
     CreateRenderTarget(const vk::Extent2D& I_Extent)
     {
         LOG_TRACE("Creating a Vulkan Render Target");
-        VISERA_WIP;
+        VISERA_UNIMPLEMENTED_API;
         return {};
     }
 
@@ -774,8 +775,9 @@ namespace Visera::RHI
         LOG_TRACE("Creating a Vulkan Pipeline Cache.");
         {
             PipelineCache = MakeUnique<FVulkanPipelineCache>(
+                GPU.Context,
                 Device.Context,
-                PATH("VulkanPipelines.cache")
+                GPlatform->GetExecutableDirectory() / PATH("VulkanPipelines.cache")
             );
         }
     }

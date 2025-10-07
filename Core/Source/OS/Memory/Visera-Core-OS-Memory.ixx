@@ -25,6 +25,8 @@ export namespace Visera
         inline auto
         Memcpy(void* I_Destination, const void* I_Source, UInt64 I_Size) -> void { std::memcpy(I_Destination, I_Source, I_Size); }
         inline auto
+        Memcmp(const void* I_MemA, const void* I_MemB, UInt64 I_Size) { return std::memcmp(I_MemA, I_MemB, I_Size); }
+        inline auto
         Malloc(UInt64 I_Size, UInt32 I_Alignment) -> void*;
         inline auto
         MallocNow(UInt64 I_Size, UInt32 I_Alignment, Int32 I_Value = 0) -> void* { void* AllocatedMemory = Malloc(I_Size, I_Alignment); Memset(AllocatedMemory, I_Value, I_Size); return AllocatedMemory; }
