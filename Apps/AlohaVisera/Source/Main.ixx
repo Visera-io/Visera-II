@@ -43,10 +43,10 @@ export int main(int argc, char *argv[])
         //auto Fence = GRHI->GetDriver()->CreateFence(True);
 
         auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
-        if (Image->Save())
-        {
-            LOG_INFO("Successfully saved!");
-        }
+        // if (Image->Save())
+        // {
+        //     LOG_INFO("Successfully saved!");
+        // }
 
         auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
@@ -54,12 +54,12 @@ export int main(int argc, char *argv[])
         RenderPass->SetRenderArea({{0,0},{GWindow->GetWidth(),GWindow->GetHeight()}});
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
-        auto RHIImage = Driver->CreateImage(
-            RHI::EImageType::e2D,
-            {200, 400, 1},
-            RHI::EFormat::eR8G8B8A8Unorm,
-            RHI::EImageUsage::eColorAttachment
-            );
+        // auto RHIImage = Driver->CreateImage(
+        //     RHI::EImageType::e2D,
+        //     {200, 400, 1},
+        //     RHI::EFormat::eR8G8B8A8Unorm,
+        //     RHI::EImageUsage::eColorAttachment
+        //     );
 
         Cmd->Begin();
         {
@@ -70,9 +70,9 @@ export int main(int argc, char *argv[])
         }
         Cmd->End();
         
-        LOG_FATAL("Exited for Development!");
+        //LOG_FATAL("Exited for Development!");
 
-        GEngine->Run();
+        //GEngine->Run();
     }
     GEngine->Terminate();
     return EXIT_SUCCESS;

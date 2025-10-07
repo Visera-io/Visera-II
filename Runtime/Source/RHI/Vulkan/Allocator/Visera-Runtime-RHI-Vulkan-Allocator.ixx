@@ -133,16 +133,16 @@ namespace Visera::RHI
         switch (Type)
         {
         case EType::Image:
-            {
-                auto ImageHandle = static_cast<VkImage*>(I_Handle);
+        {
+            auto ImageHandle = static_cast<VkImage*>(I_Handle);
 
-                vmaDestroyImage(
-                    GVulkanAllocator->GetHandle(),
-                    *ImageHandle,
-                    Allocation);
-                *ImageHandle = nullptr;
-                break;
-            }
+            vmaDestroyImage(
+                GVulkanAllocator->GetHandle(),
+                *ImageHandle,
+                Allocation);
+            *ImageHandle = nullptr;
+            break;
+        }
         default:
             VISERA_WIP;
         }

@@ -1,5 +1,4 @@
 module;
-#include <MacTypes.h>
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.PipelineCache;
