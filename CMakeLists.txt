@@ -17,6 +17,11 @@ set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
+option(BuildSharedViseraCore    "Build Visera::Core as a shared library"    ON)
+option(BuildSharedViseraRuntime "Build Visera::Runtime as a shared library" ON)
+option(BuildSharedViseraEngine  "Build Visera::Engine as a shared library"  ON)
+option(BuildSharedViseraStudio  "Build Visera::Studio as a shared library"  ON)
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
 endif()

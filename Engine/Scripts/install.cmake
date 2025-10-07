@@ -6,9 +6,14 @@ set(VISERA_ENGINE_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_ENGINE_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
 set(VISERA_ENGINE_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
-add_library(${VISERA_ENGINE} SHARED)
+if(BuildSharedViseraEngine)
+    add_library(${VISERA_ENGINE} SHARED)
+    target_compile_definitions(${VISERA_ENGINE} PRIVATE VISERA_ENGINE_BUILD_SHARED)
+else()
+    add_library(${VISERA_ENGINE} STATIC)
+    target_compile_definitions(${VISERA_ENGINE} PRIVATE VISERA_ENGINE_BUILD_STATIC)
+endif()
 add_library(Visera::Engine ALIAS ${VISERA_ENGINE})
-target_compile_definitions(${VISERA_ENGINE} PRIVATE VISERA_ENGINE_BUILD_SHARED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
 add_custom_command(

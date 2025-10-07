@@ -5,9 +5,14 @@ set(VISERA_RUNTIME_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_RUNTIME_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
 set(VISERA_RUNTIME_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
-add_library(${VISERA_RUNTIME} SHARED)
+if(BuildSharedViseraRuntime)
+    add_library(${VISERA_RUNTIME} SHARED)
+    target_compile_definitions(${VISERA_RUNTIME} PRIVATE VISERA_RUNTIME_BUILD_SHARED)
+else()
+    add_library(${VISERA_RUNTIME} STATIC)
+    target_compile_definitions(${VISERA_RUNTIME} PRIVATE VISERA_RUNTIME_BUILD_STATIC)
+endif()
 add_library(Visera::Runtime ALIAS ${VISERA_RUNTIME})
-target_compile_definitions(${VISERA_RUNTIME} PRIVATE VISERA_RUNTIME_BUILD_SHARED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
 add_custom_command(

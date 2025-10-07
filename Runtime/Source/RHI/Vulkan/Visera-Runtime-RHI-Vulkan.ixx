@@ -718,7 +718,7 @@ namespace Visera::RHI
                      TSharedPtr<FVulkanShaderModule> I_FragmentShader)
     {
         LOG_DEBUG("Creating a Vulkan Render Pass (vertex:{}, fragment:{})",
-                  I_VertexShader->GetName(), I_FragmentShader->GetName());
+                  I_VertexShader->GetPath(), I_FragmentShader->GetPath());
         return MakeUnique<FVulkanRenderPass>(Device.Context,
                I_VertexShader,
                I_FragmentShader,

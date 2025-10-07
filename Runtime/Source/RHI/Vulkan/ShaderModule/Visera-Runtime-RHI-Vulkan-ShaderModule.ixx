@@ -15,6 +15,8 @@ namespace Visera::RHI
         GetEntryPoint() const { return "main"/*Shader->GetEntryPoint().data()*/; }
         [[nodiscard]] inline const auto&
         GetName() const { return Shader->GetName(); }
+        [[nodiscard]] inline const auto&
+        GetPath() const { return Shader->GetPath(); }
         [[nodiscard]] inline const vk::raii::ShaderModule&
         GetHandle() const { return Handle; }
 
@@ -46,7 +48,7 @@ namespace Visera::RHI
         auto Result = I_Device.createShaderModule(CreateInfo);
         if (!Result)
         {
-            LOG_FATAL("Failed to create a shader module from {}!", I_Shader->GetName());
+            LOG_FATAL("Failed to create a shader module from {}!", I_Shader->GetPath());
         }
         else
         { Handle = std::move(*Result); }
