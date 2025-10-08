@@ -63,6 +63,7 @@ macro(link_vulkan in_target)
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${in_target} PUBLIC Vulkan::Vulkan)
+    target_include_directories(${in_target} BEFORE  PRIVATE ${VISERA_RUNTIME_EXTERNAL_DIR}/Vulkan/Include)
     target_compile_definitions(${in_target} PRIVATE VULKAN_HPP_NO_EXCEPTIONS)
     target_compile_definitions(${in_target} PRIVATE VULKAN_HPP_RAII_NO_EXCEPTIONS)
     target_compile_definitions(${in_target} PRIVATE VISERA_VULKAN_SDK_PATH="$ENV{VULKAN_SDK}")
