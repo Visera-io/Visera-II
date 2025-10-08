@@ -7,8 +7,8 @@ import Visera.Demos;
 import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
-import Visera.Core.Compression;
 import Visera.Runtime.Scene;
+import Visera.Runtime.AssetHub.Font.FreeType;
 using namespace Visera;
 
 class Foo : public VObject
@@ -36,6 +36,8 @@ export int main(int argc, char *argv[])
 
     //Demos
     //{ Demos::Compression Demo; }
+
+    FFreeType Ft{};
 
     GEngine->Bootstrap();
     {

@@ -58,7 +58,7 @@
         "Version" : "1.6.50",
         "Dependencies" :
         [
-
+            "ZLib"
         ],
         "URL" : "https://libpng.sourceforge.io/"
     },
@@ -70,5 +70,14 @@
 
         ],
         "URL" : "https://www.audiokinetic.com"
+    },
+    "FreeType" :
+    {
+        "Version" : "2.14.1",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://freetype.org"
     }
 }

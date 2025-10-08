@@ -70,6 +70,9 @@ link_libpng(${VISERA_RUNTIME})
 include(install_wwise)
 link_wwise(${VISERA_RUNTIME})
 
+include(install_freetype)
+link_freetype(${VISERA_RUNTIME})
+
 #
 #
 #
