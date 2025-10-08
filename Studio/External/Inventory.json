@@ -1,7 +1,7 @@
 {
     "ImGui" :
     {
-        "Version" : "v1.92.2b-docking",
+        "Version" : "v1.92.3-docking",
         "Dependencies" : 
         [
             "Volk",
