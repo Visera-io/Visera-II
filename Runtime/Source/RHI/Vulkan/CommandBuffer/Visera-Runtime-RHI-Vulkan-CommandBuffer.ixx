@@ -80,7 +80,7 @@ namespace Visera::RHI
             .setCommandBufferCount  (1)
         ;
         auto Results = I_Device.allocateCommandBuffers(CreateInfo);
-        if (!Results)
+        if (!Results.has_value())
         {  LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
         else
         { Handle = std::move(Results->front()); }

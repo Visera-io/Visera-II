@@ -145,7 +145,7 @@ namespace Visera::RHI
         // Create Pipeline Layout
         {
             auto Result = I_Device.createPipelineLayout(PipelineLayoutInfo);
-            if (!Result)
+            if (!Result.has_value())
             {
                 LOG_FATAL("Failed to create the pipeline layout!");
             }
@@ -177,7 +177,7 @@ namespace Visera::RHI
         // Create Pipeline
         {
             auto Result = I_Device.createGraphicsPipeline(I_PipelineCache->GetHandle(), PipelineCreateInfo);
-            if (!Result)
+            if (!Result.has_value())
             {
                 LOG_FATAL("Failed to create the pipeline!");
             }

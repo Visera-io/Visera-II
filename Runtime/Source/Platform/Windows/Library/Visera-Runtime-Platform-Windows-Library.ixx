@@ -101,7 +101,7 @@ namespace Visera
             LOG_TRACE("Unloading Windows library: {}", Path);
             
             BOOL Result = FreeLibrary(static_cast<HMODULE>(Handle));
-            if (!Result)
+            if (!Result.has_value())
             {
                 DWORD Error = GetLastError();
                 LOG_ERROR("Failed to free library \"{}\" -- Windows Error Code: {}", Path, Error);

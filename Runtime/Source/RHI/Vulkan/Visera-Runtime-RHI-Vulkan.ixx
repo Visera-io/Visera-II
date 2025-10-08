@@ -292,26 +292,38 @@ namespace Visera::RHI
     CreateInstance()
     {
         // Check Layers
-        const auto LayerProperties = Context.enumerateInstanceLayerProperties();
-        for (const auto& Layer : InstanceLayers)
         {
-            if (std::ranges::none_of(LayerProperties,
-                [&Layer](auto const& LayerProperty)
-                { return strcmp(LayerProperty.layerName, Layer) == 0; }))
+            auto Result = Context.enumerateInstanceLayerProperties();
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to enumerate instance layer properties!"); }
+
+            const auto LayerProperties = std::move(*Result);
+            for (const auto& Layer : InstanceLayers)
             {
-                LOG_FATAL("Required instance layer \"{}\" is not supported!", Layer);
+                if (std::ranges::none_of(LayerProperties,
+                    [&Layer](auto const& LayerProperty)
+                    { return strcmp(LayerProperty.layerName, Layer) == 0; }))
+                {
+                    LOG_FATAL("Required instance layer \"{}\" is not supported!", Layer);
+                }
             }
         }
 
         // Check Extensions
-        auto ExtensionProperties = Context.enumerateInstanceExtensionProperties();
-        for (const auto& Extension : InstanceExtensions)
         {
-            if (std::ranges::none_of(ExtensionProperties,
-                [&Extension](auto const& ExtensionProperty)
-                { return strcmp(ExtensionProperty.extensionName, Extension) == 0; }))
+            auto Result = Context.enumerateInstanceExtensionProperties();
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to enumerate instance extension properties!"); }
+
+            auto ExtensionProperties = std::move(*Result);
+            for (const auto& Extension : InstanceExtensions)
             {
-                LOG_FATAL("Required instance extension \"{}\" is not supported!", Extension);
+                if (std::ranges::none_of(ExtensionProperties,
+                    [&Extension](auto const& ExtensionProperty)
+                    { return strcmp(ExtensionProperty.extensionName, Extension) == 0; }))
+                {
+                    LOG_FATAL("Required instance extension \"{}\" is not supported!", Extension);
+                }
             }
         }
 
@@ -330,8 +342,8 @@ namespace Visera::RHI
         ;
 
         auto Result = Context.createInstance(CreateInfo);
-        if (!Result)
-        { LOG_FATAL("Failed to create Vulkan Instance: {}", static_cast<Int32>(Result.error())); }
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to create Vulkan Instance!"); }
         else
         { Instance = std::move(*Result); }
     }
@@ -351,8 +363,8 @@ namespace Visera::RHI
                             )
             .setPfnUserCallback(DebugCallback);
         auto Result = Instance.createDebugUtilsMessengerEXT(CreateInfo);
-        if (!Result)
-        { LOG_FATAL("Failed to create Vulkan Debug Messenger: {}", static_cast<Int32>(Result.error())); }
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to create Vulkan Debug Messenger!"); }
         else
         { DebugMessenger = std::move(*Result); }
 #endif
@@ -381,11 +393,8 @@ namespace Visera::RHI
         VISERA_ASSERT(Instance != nullptr);
 
         auto Result = Instance.enumeratePhysicalDevices();
-        if (!Result)
-        {
-            LOG_FATAL("Failed to find PhysicalDevices with Vulkan support (error:{})!",
-                      static_cast<Int32>(Result.error()));
-        }
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to find PhysicalDevices with Vulkan support!"); }
 
         auto PhysicalDeviceCandidates = std::move(*Result);
 
@@ -440,8 +449,9 @@ namespace Visera::RHI
                 if (GWindow->IsBootstrapped())
                 {
                     VISERA_ASSERT(Surface != nullptr);
-                    if (PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface))
-                    { GPU.PresentQueueFamilies.insert(Idx); }
+                    auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
+                    if (Result.has_value())
+                    { GPU.PresentQueueFamilies.insert(std::move(*Result)); }
                 }
             }
             bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
@@ -455,7 +465,11 @@ namespace Visera::RHI
             if (!bSuitable) { return False; }
 
             LOG_TRACE("Checking Extension supporting...");
-            auto Extensions = PhysicalDeviceCandidate.enumerateDeviceExtensionProperties();
+            auto Result = PhysicalDeviceCandidate.enumerateDeviceExtensionProperties();
+            if (!Result.has_value())
+            {LOG_FATAL("Failed to enumerate device extension properties!"); }
+
+            auto Extensions = std::move(*Result);
             for (auto const& RequiredExtension : DeviceExtensions)
             {
                 auto ExtensionIter = std::ranges::find_if(
@@ -494,15 +508,27 @@ namespace Visera::RHI
             .setQueuePriorities({Priority});
 
         // First build each feature struct explicitly
-        auto Feature1 = vk::PhysicalDeviceFeatures2{};
+        auto Feature2 = vk::PhysicalDeviceFeatures2{};
 
-        auto Feature2 =  vk::PhysicalDeviceVulkan13Features{};
-        Feature2.dynamicRendering     = VK_TRUE;
+        auto Vulkan13Features =  vk::PhysicalDeviceVulkan13Features{};
+        Vulkan13Features.dynamicRendering     = vk::True;
 
-        auto Feature3 = vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT{};
-        Feature3.extendedDynamicState = VK_TRUE;
+        auto ExtendedDynamicsStateFeatures = vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT{};
+        ExtendedDynamicsStateFeatures.extendedDynamicState = vk::True;
 
-        vk::StructureChain FeatureChain(Feature1, Feature2, Feature3);
+#if defined(VISERA_ON_APPLE_SYSTEM)
+        auto Vulkan11Features =  vk::PhysicalDeviceVulkan11Features{};
+        Vulkan11Features.shaderDrawParameters = vk::True;
+#endif
+
+        vk::StructureChain FeatureChain{
+            Feature2,
+            Vulkan13Features,
+            ExtendedDynamicsStateFeatures,
+#if defined(VISERA_ON_APPLE_SYSTEM)
+            Vulkan11Features,
+#endif
+        };
 
         const auto CreateInfo = vk::DeviceCreateInfo{}
             .setPNext                   (&FeatureChain.get<vk::PhysicalDeviceFeatures2>())
@@ -514,22 +540,14 @@ namespace Visera::RHI
         //Create Device
         {
             auto Result = GPU.Context.createDevice(CreateInfo);
-            if (!Result)
-            { LOG_FATAL("Failed to create Vulkan Device -- error:{}!", static_cast<Int32>(Result.error())); }
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to create Vulkan Device!"); }
             else
             { Device.Context = std::move(*Result); }
         }
         // Get Queues
         {
-            auto Result = Device.Context.getQueue(*GPU.GraphicsQueueFamilies.begin(), 0);
-            if (!Result)
-            {
-                LOG_FATAL("Failed to get graphics queue (index:{}) -- error:{}!",
-                        0,
-                        static_cast<Int32>(Result.error()));
-            }
-            else
-            { Device.GraphicsQueue = std::move(*Result); }
+            Device.GraphicsQueue = Device.Context.getQueue(*GPU.GraphicsQueueFamilies.begin(), 0);
         }
     }
 
@@ -583,7 +601,11 @@ namespace Visera::RHI
         // Check Present Mode
         {
             Bool bFoundRequiredPresentMode {False};
-            for (const auto PresentModes= GPU.Context.getSurfacePresentModesKHR(Surface);
+            auto Result = GPU.Context.getSurfacePresentModesKHR(Surface);
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to get the required Present Mode!"); }
+
+            for (const auto PresentModes = std::move(*Result);
                  const auto& PresentMode : PresentModes)
             {
                 if (PresentMode == SwapChain.PresentMode)
@@ -596,7 +618,11 @@ namespace Visera::RHI
         // Check Image Format and Color Space
         {
             Bool bFoundRequiredFormatAndColorSpace {False};
-            for (const auto AvailableFormats = GPU.Context.getSurfaceFormatsKHR(Surface);
+            auto Result = GPU.Context.getSurfaceFormatsKHR(Surface);
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to get the required format or color space!"); }
+
+            for (const auto AvailableFormats = std::move(*Result);
                  const auto& AvailableFormat : AvailableFormats)
             {
                 if (AvailableFormat.format     == SwapChain.ImageFormat &&
@@ -608,7 +634,11 @@ namespace Visera::RHI
 
         }
 
-        const auto SurfaceCapabilities = GPU.Context.getSurfaceCapabilitiesKHR(Surface);
+        auto Result = GPU.Context.getSurfaceCapabilitiesKHR(Surface);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to get the required surface capabilities!"); }
+
+        const auto SurfaceCapabilities = std::move(*Result);
         // Swap Chain Image Extent
         {
             if (SurfaceCapabilities.currentExtent.width != Math::UpperBound<UInt32>())
@@ -645,19 +675,26 @@ namespace Visera::RHI
             .setPresentMode     (SwapChain.PresentMode)
             .setClipped         (SwapChain.bClipped);
 
-        auto Result = Device.Context.createSwapchainKHR(CreateInfo);
-        if (!Result)
+        // Create Swapchain
         {
-            LOG_FATAL("Failed to create Vulkan SwapChain -- error:{}!",
-                      static_cast<Int32>(Result.error()));
+            auto Result = Device.Context.createSwapchainKHR(CreateInfo);
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to create Vulkan SwapChain!"); }
+            else
+            { SwapChain.Context = std::move(*Result); }
         }
-        else
-        { SwapChain.Context = std::move(*Result); }
 
         LOG_TRACE("Created a SwapChain (extent:[{},{}]).",
                    SwapChain.Extent.width, SwapChain.Extent.height);
 
-        SwapChain.Images = SwapChain.Context.getImages();
+        // Retrieve Swapchain Images
+        {
+            auto Result = SwapChain.Context.getImages();
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to retrieve Vulkan Swapchain Images!"); }
+
+            SwapChain.Images = std::move(*Result);
+        }
         constexpr auto ImageSubresourceRage = vk::ImageSubresourceRange{}
             .setAspectMask(vk::ImageAspectFlagBits::eColor)
             .setBaseMipLevel(0)
@@ -680,11 +717,9 @@ namespace Visera::RHI
         {
             ImageViewCreateInfo.image = Image;
             auto Result = Device.Context.createImageView(ImageViewCreateInfo);
-            if (!Result)
-            {
-                LOG_FATAL("Failed to create Vulkan ImageView -- error:{}!",
-                          static_cast<Int32>(Result.error()));
-            }
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to create Vulkan ImageView!"); }
+
             SwapChain.ImageViews.push_back(std::move(*Result));
         }
     }
@@ -762,7 +797,7 @@ namespace Visera::RHI
                 .setQueueFamilyIndex(*GPU.GraphicsQueueFamilies.begin())
             ;
             auto Result = Device.Context.createCommandPool(CreateInfo);
-            if (!Result)
+            if (!Result.has_value())
             { LOG_FATAL("Failed to create the Vulkan Graphics Command Pool!"); }
             else
             { GraphicsCommandPool = std::move(*Result); }

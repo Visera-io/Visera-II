@@ -46,7 +46,7 @@ namespace Visera::RHI
             .setCodeSize (Shader->GetSize() * sizeof(FByte))
         ;
         auto Result = I_Device.createShaderModule(CreateInfo);
-        if (!Result)
+        if (!Result.has_value())
         {
             LOG_FATAL("Failed to create a shader module from {}!", I_Shader->GetPath());
         }

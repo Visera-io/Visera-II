@@ -85,7 +85,7 @@ namespace Visera::RHI
         ;
 
         auto Result = I_Device.createPipelineCache(CreateInfo);
-        if (!Result)
+        if (!Result.has_value())
         { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from \"{}\"!", Path); }
         else
         { Handle = std::move(*Result); }
@@ -98,7 +98,15 @@ namespace Visera::RHI
     {
         if (bExpired)
         {
-            auto CacheData = Handle.getData();
+            TArray<FByte> CacheData{};
+            auto Result = Handle.getData();
+            if (!Result.has_value())
+            {
+                LOG_ERROR("Failed to get Vulkan Pipeline Cache data, skipped to save the cache!");
+                return;
+            }
+
+            CacheData = std::move(*Result);
             LOG_DEBUG("Caching Vulkan Pipeline Data (bytes:{}) at \"{}\".", CacheData.size(), Path);
 
             std::ofstream File(Path.GetNativePath(), std::ios::binary);

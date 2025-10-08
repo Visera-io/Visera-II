@@ -32,8 +32,8 @@ namespace Visera::RHI
             { CreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled); }
 
             auto Result = I_Device.createFence(CreateInfo);
-            if (!Result)
-            { LOG_ERROR("Failed to create Vulkan Fence: {}", static_cast<Int32>(Result.error())); }
+            if (!Result.has_value())
+            { LOG_ERROR("Failed to create Vulkan Fence: {}", static_cast<Int32>(Result->getStatus())); }
             else
             { Handle = std::move(*Result); }
         }
