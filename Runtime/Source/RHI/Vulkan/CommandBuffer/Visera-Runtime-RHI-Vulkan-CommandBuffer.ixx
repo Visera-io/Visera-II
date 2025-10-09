@@ -18,7 +18,7 @@ namespace Visera::RHI
             Idle,
             Recording,
             InsideRenderPass,
-            Submitted,
+            ReadyToSubmit,    // ===Queue::Submit==> Idle (by Reset())
         };
 
         void inline
@@ -41,8 +41,6 @@ namespace Visera::RHI
         LeaveRenderPass();
         void inline
         End();
-        void inline
-        Submit(const vk::raii::Queue& I_Queue);
 
         [[nodiscard]] inline const vk::raii::CommandBuffer&
         GetHandle() const { return Handle; }
@@ -54,10 +52,10 @@ namespace Visera::RHI
         [[nodiscard]] inline Bool
         IsInsideRenderPass() const { return Status == EStatus::InsideRenderPass; }
         [[nodiscard]] inline Bool
-        IsSubmitted() const { return Status == EStatus::Submitted; }
+        IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
 
     private:
-        vk::raii::CommandBuffer Handle {nullptr};
+        vk::raii::CommandBuffer       Handle {nullptr};
         TOptional<FVulkanViewport>    CurrentViewport;
         TOptional<FVulkanRect2D>      CurrentScissor;
         TSharedPtr<FVulkanRenderPass> CurrentRenderPass;
@@ -89,7 +87,7 @@ namespace Visera::RHI
     void FVulkanCommandBuffer::
     Reset()
     {
-        VISERA_ASSERT(IsSubmitted() || IsIdle());
+        VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
         Handle.reset();
 
@@ -99,7 +97,7 @@ namespace Visera::RHI
     void FVulkanCommandBuffer::
     Begin()
     {
-        VISERA_ASSERT(IsIdle());
+        VISERA_ASSERT(IsIdle()); // Forgot to Reset()?
 
         Handle.begin({});
 
@@ -204,29 +202,15 @@ namespace Visera::RHI
         CurrentScissor.reset();
 
         CurrentRenderPass.reset();
-    }
-
-    void FVulkanCommandBuffer::
-    End()
-    {
-        VISERA_ASSERT(IsRecording());
-
-        Handle.end();
 
         Status = EStatus::Recording;
     }
 
     void FVulkanCommandBuffer::
-    Submit(const vk::raii::Queue& I_Queue)
+    End()
     {
-        VISERA_ASSERT(IsRecording());
+        Handle.end();
 
-        auto SubmitInfo = vk::SubmitInfo{}
-            .setCommandBuffers(*Handle)
-            .setSignalSemaphores(nullptr)
-        ;
-        I_Queue.submit(SubmitInfo, {});
-
-        Status = EStatus::Submitted;
+        Status = EStatus::ReadyToSubmit;
     }
 }
