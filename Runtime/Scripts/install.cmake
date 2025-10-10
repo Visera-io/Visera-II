@@ -58,9 +58,6 @@ link_vma(${VISERA_RUNTIME})
 include(install_vulkan)
 link_vulkan(${VISERA_RUNTIME})
 
-include(install_volk)
-link_volk(${VISERA_RUNTIME})
-
 include(install_slang)
 link_slang(${VISERA_RUNTIME})
 
@@ -83,6 +80,6 @@ target_include_directories(${VISERA_RUNTIME}
                            ${VISERA_RUNTIME_GLOBAL_DIR})
 
 target_sources(${VISERA_RUNTIME}
-               PUBLIC
-               FILE_SET "visera_runtime_modules" TYPE CXX_MODULES
-               FILES ${VISERA_RUNTIME_MODULES})
+        PUBLIC
+        FILE_SET "visera_runtime_modules" TYPE CXX_MODULES
+        FILES ${VISERA_RUNTIME_MODULES})

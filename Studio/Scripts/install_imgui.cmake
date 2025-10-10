@@ -6,8 +6,9 @@ macro(link_imgui in_target)
     message(STATUS "\nLinking Dear ImGui (ImGui)")
 
     if(NOT TARGET ImGui)
-        if(NOT TARGET volk::volk)
-            message(FATAL_ERROR "Volk is required by ImGui!")
+        find_package(Vulkan REQUIRED)
+        if(NOT TARGET Vulkan::Vulkan)
+            message(FATAL_ERROR "Vulkan is required by ImGui!")
         endif()
 
         if(NOT TARGET glfw)
@@ -23,7 +24,7 @@ macro(link_imgui in_target)
 
         target_link_libraries(ImGui
                               PRIVATE
-                              volk::volk volk::volk_headers
+                              Vulkan::Vulkan
                               glfw)
     endif()
 

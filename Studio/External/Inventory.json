@@ -4,7 +4,7 @@
         "Version" : "v1.92.3-docking",
         "Dependencies" : 
         [
-            "Volk",
+            "Vulkan",
             "GLFW"
         ],
         "URL" : "https://github.com/ocornut/imgui"

@@ -12,11 +12,21 @@ namespace Visera
         enum class EType
         {
             Unknown,
+            Null,
             Wwise,
         };
         explicit IAudioEngine() = delete;
         explicit IAudioEngine(EType I_Type) : Type{I_Type}
-        { LOG_INFO("Audio Engine: {}", Type == EType::Unknown? "Unknown" : "Wwise"); }
+        {
+            const char* AudioEngineName = "Unknown";
+            switch (Type)
+            {
+            case EType::Null:  AudioEngineName = "Null";  break;
+            case EType::Wwise: AudioEngineName = "Wwise"; break;
+            default: LOG_FATAL("Unknown Audio Engine!");  break;
+            }
+            LOG_INFO("Audio Engine: {}", AudioEngineName);
+        }
         virtual ~IAudioEngine() = default;
 
     private:

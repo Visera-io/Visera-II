@@ -25,7 +25,7 @@ macro(link_vulkan in_target)
         endif()
 
         # Extract the version from the path
-        string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VULKAN_VERSION $ENV{VULKAN_SDK})
+        string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+" VULKAN_VERSION $ENV{VULKAN_SDK})
 
         if(VULKAN_VERSION)
             message(STATUS "Found VulkanSDK ${VULKAN_VERSION} on current system")
@@ -63,7 +63,10 @@ macro(link_vulkan in_target)
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${in_target} PUBLIC Vulkan::Vulkan)
-    target_compile_definitions(${in_target} PRIVATE VULKAN_HPP_NO_EXCEPTIONS)
-    target_compile_definitions(${in_target} PRIVATE VULKAN_HPP_RAII_NO_EXCEPTIONS)
-    target_compile_definitions(${in_target} PRIVATE VISERA_VULKAN_SDK_PATH="$ENV{VULKAN_SDK}")
+
+    target_compile_definitions(${in_target} PRIVATE
+            VISERA_VULKAN_SDK_PATH="$ENV{VULKAN_SDK}"
+            VULKAN_HPP_NO_EXCEPTIONS
+            VULKAN_HPP_RAII_NO_EXCEPTIONS
+    )
 endmacro()

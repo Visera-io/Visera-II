@@ -11,9 +11,7 @@ macro(link_freetype in_target)
             message(FATAL_ERROR "ZLIB::ZLIB target not found. Please ensure Visera-Core is installed before Visera-Runtime.")
         endif()
 
-        # Don’t call find_package(ZLIB) again
-        set(FT_DISABLE_ZLIB FALSE CACHE BOOL "" FORCE)
-        set(FT_REQUIRE_ZLIB TRUE  CACHE BOOL "" FORCE)
+        set(SKIP_INSTALL_ALL TRUE CACHE BOOL "Skip FreeType install rules" FORCE)
 
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/FreeType)
     endif()

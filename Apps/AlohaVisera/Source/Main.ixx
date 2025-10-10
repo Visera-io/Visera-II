@@ -71,7 +71,13 @@ export int main(int argc, char *argv[])
             // Cmd->LeaveRenderPass();
         }
         Cmd->End();
-        
+        auto Fence = Driver->CreateFence(False);
+        Driver->Submit(Cmd, Fence);
+        if (!Fence->Wait(10000))
+        {
+            LOG_ERROR("Fence->Wait");
+        }
+
         //LOG_FATAL("Exited for Development!");
 
         //GEngine->Run();

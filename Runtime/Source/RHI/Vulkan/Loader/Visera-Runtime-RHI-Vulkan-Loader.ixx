@@ -1,8 +1,6 @@
 module;
 #include <Visera-Runtime.hpp>
-#define VOLK_IMPLEMENTATION
-#include <volk.h>
-#include <vulkan/vulkan.hpp>
+#include "Visera-Runtime-RHI-Vulkan-Loader.inl"
 export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
@@ -21,19 +19,16 @@ namespace Visera::RHI
         ~FVulkanLoader();
 
     private:
-        mutable UInt8 bLoadedInstance : 1 = False;
-        mutable UInt8 bLoadedDevice   : 1 = False;
+        vk::detail::DynamicLoader DynamicLoader;
+
+        mutable Bool bLoadedInstance = False;
+        mutable Bool bLoadedDevice   = False;
     };
 
     FVulkanLoader::
     FVulkanLoader()
     {
         LOG_TRACE("Creating the Vulkan Loader.");
-
-        if (volkInitialize() != VK_SUCCESS)
-        {
-            throw SRuntimeError("Failed to initialize the Volk!");
-        }
     }
 
     FVulkanLoader::
@@ -42,18 +37,22 @@ namespace Visera::RHI
         LOG_TRACE("Destroying the Vulkan Loader.");
 
         if (!bLoadedInstance)
-        { LOG_WARN("Forgot to load VkInstance?"); }
+        { LOG_ERROR("Forgot to load VkInstance!"); }
         if (!bLoadedDevice)
-        { LOG_WARN("Forgot to load VkDevice?"); }
-
-        volkFinalize();
+        { LOG_ERROR("Forgot to load VkDevice!"); }
     }
 
     void FVulkanLoader::
     Load(const vk::Instance& I_Instance) const
     {
         VISERA_ASSERT(I_Instance != nullptr);
-        volkLoadInstance(I_Instance);
+
+        auto Func_vkGetInstanceProcAddr = DynamicLoader.getProcAddress<PFN_vkGetInstanceProcAddr>
+            ("vkGetInstanceProcAddr");
+        if (!Func_vkGetInstanceProcAddr)
+        { LOG_FATAL("Failed to get the 'vkGetInstanceProcAddr'!"); }
+
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Instance, Func_vkGetInstanceProcAddr);
         bLoadedInstance = True;
     }
 
@@ -61,7 +60,9 @@ namespace Visera::RHI
     Load(const vk::Device& I_Device) const
     {
         VISERA_ASSERT(I_Device != nullptr);
-        volkLoadDevice(I_Device);
+        VISERA_ASSERT(bLoadedInstance);
+        
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Device);
         bLoadedDevice = True;
     }
 }

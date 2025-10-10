@@ -87,6 +87,9 @@ namespace Visera::RHI
         EndFrame() {};
         inline void
         Present()  {};
+        inline void
+        Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
+               TUniqueRef<FVulkanFence>         I_Fence = FVulkanFence::Null);
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
         CreateShaderModule(TSharedPtr<FShader> I_Shader);
         [[nodiscard]] TSharedPtr<FVulkanRenderPass>
@@ -176,7 +179,7 @@ namespace Visera::RHI
         .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
         .setPEngineName         ("Visera")
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
-        .setApiVersion          (vk::ApiVersion13);
+        .setApiVersion          (vk::ApiVersion14);
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
         if (setenv("VK_ICD_FILENAMES",
@@ -737,6 +740,22 @@ namespace Visera::RHI
         ;
         if (GWindow->IsBootstrapped())
         { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
+    }
+
+    void FVulkanDriver::
+    Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
+           TUniqueRef<FVulkanFence>         I_Fence /* = FVulkanFence::Null */)
+    {
+        VISERA_ASSERT(I_CommandBuffer->IsReadyToSubmit());
+
+        auto& CommandBuffer = I_CommandBuffer->GetHandle();
+        auto  Fence = I_Fence == FVulkanFence::Null? nullptr : *I_Fence->GetHandle();
+
+        auto SubmitInfo = vk::SubmitInfo{}
+            .setCommandBufferCount(1)
+            .setPCommandBuffers(&(*CommandBuffer))
+        ;
+        Device.GraphicsQueue.submit(SubmitInfo, Fence);
     }
 
     TSharedPtr<FVulkanShaderModule> FVulkanDriver::

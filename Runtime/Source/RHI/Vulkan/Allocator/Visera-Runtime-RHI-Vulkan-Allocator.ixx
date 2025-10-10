@@ -1,7 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#define VK_NO_PROTOTYPES
-#include <volk.h>
 #include <vulkan/vulkan_raii.hpp>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
