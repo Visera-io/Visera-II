@@ -61,7 +61,7 @@ namespace Visera::RHI
     {
         VISERA_ASSERT(I_Device != nullptr);
         VISERA_ASSERT(bLoadedInstance);
-        
+
         VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Device);
         bLoadedDevice = True;
     }

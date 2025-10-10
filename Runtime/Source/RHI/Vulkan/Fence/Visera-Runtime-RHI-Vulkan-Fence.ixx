@@ -3,6 +3,7 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.Fence;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -51,8 +52,8 @@ namespace Visera::RHI
         auto Result = Handle.getDevice().waitForFences(*Handle, vk::True, I_Timeout);
         if (Result != vk::Result::eSuccess)
         {
-            LOG_ERROR("Failed to wait fence (timeout: {}, error:{})!",
-                      I_Timeout, static_cast<Int32>(Result));
+            LOG_ERROR("Failed to wait fence (timeout: {}) -- {}!",
+                      I_Timeout, Result);
             return False;
         }
         return True;

@@ -73,7 +73,7 @@ export int main(int argc, char *argv[])
         Cmd->End();
         auto Fence = Driver->CreateFence(False);
         Driver->Submit(Cmd, Fence);
-        if (!Fence->Wait(10000))
+        if (!Fence->Wait(UINT64_MAX))
         {
             LOG_ERROR("Fence->Wait");
         }
