@@ -10,7 +10,7 @@ namespace Visera
     export VISERA_RUNTIME_API class FNullAudioEngine : public IAudioEngine
     {
     public:
-        explicit FNullAudioEngine() : IAudioEngine{EType::Wwise}
+        explicit FNullAudioEngine() : IAudioEngine{EType::Null}
         {
 
         }

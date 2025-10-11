@@ -29,7 +29,9 @@ namespace Visera
         [[nodiscard]] inline const TUniquePtr<RHI::FVulkanDriver>&
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
-            DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" accessed the RHI driver.",
+            DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" line:{} \"{}\" accessed the RHI driver.",
+                             I_Location.file_name(),
+                             I_Location.line(),
                              I_Location.function_name()));
             return Driver;
         };

@@ -13,12 +13,12 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanRenderTarget
     {
     public:
-        [[nodiscard]] inline const vk::raii::ImageView&
-        GetView() const  { return View; }
+        [[nodiscard]] inline TSharedRef<FVulkanImageView>
+        GetView() const  { return TargetImageView; }
         [[nodiscard]] inline EVulkanImageLayout
-        GetLayout() const  { return Layout; }
-        [[nodiscard]] inline const vk::raii::Image&
-        GetHandle() const { return Handle; }
+        GetLayout() const  { return TargetImage->GetLayout(); }
+        [[nodiscard]] inline const vk::Image&
+        GetHandle() const { return TargetImage->GetHandle(); }
         [[nodiscard]] inline EVulkanLoadOp
         GetLoadOp() const { return LoadOp; }
         inline FVulkanRenderTarget&
@@ -36,9 +36,8 @@ namespace Visera::RHI
         GetAttachmentInfo() const;
 
     private:
-        vk::raii::Image     Handle {nullptr};
-        vk::raii::ImageView View   {nullptr};
-        EVulkanImageLayout  Layout { EVulkanImageLayout::eUndefined };
+        TSharedPtr<FVulkanImage>     TargetImage;
+        TSharedPtr<FVulkanImageView> TargetImageView;
 
         EVulkanLoadOp       LoadOp     { EVulkanLoadOp::eNone  };
         EVulkanStoreOp      StoreOp    { EVulkanStoreOp::eNone };
@@ -62,7 +61,7 @@ namespace Visera::RHI
     GetAttachmentInfo() const
     {
         auto AttachmentInfo = vk::RenderingAttachmentInfo{}
-            .setImageView   (GetView())
+            .setImageView   (GetView()->GetHandle())
             .setImageLayout (GetLayout())
             .setLoadOp      (GetLoadOp())
             .setStoreOp     (GetStoreOp())

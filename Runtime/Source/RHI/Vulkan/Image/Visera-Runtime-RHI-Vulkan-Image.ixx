@@ -9,10 +9,28 @@ import Visera.Core.Log;
 
 namespace Visera::RHI
 {
+    export class VISERA_RUNTIME_API FVulkanImageView : IVulkanResource
+    {
+    public:
+        [[nodiscard]] inline const vk::raii::ImageView&
+        GetHandle() const { return Handle; }
+
+        [[nodiscard]] inline Bool
+        IsExpired() const { return Image == nullptr; }
+
+    private:
+        vk::raii::ImageView Handle {nullptr};
+        const vk::Image&    Image;
+
+    public:
+        FVulkanImageView() = delete;
+        FVulkanImageView(const vk::Image& I_Image);
+    };
+
     export class VISERA_RUNTIME_API FVulkanImage : IVulkanResource
     {
     public:
-        [[nodiscard]] vk::raii::ImageView
+        [[nodiscard]] TSharedPtr<FVulkanImageView>
         CreateImageView() const;
 
         [[nodiscard]] inline const vk::Image&
@@ -26,7 +44,11 @@ namespace Visera::RHI
 
     protected:
         vk::Image           Handle {nullptr};
+        EVulkanImageType    Type   {};
+        EVulkanFormat       Format {};
         EVulkanImageLayout  Layout { EVulkanImageLayout::eUndefined };
+        FVulkanExtent3D     Extent {0,0,0};
+        EVulkanImageUsage   Usages {};
 
     public:
         FVulkanImage()                               = delete;
@@ -34,12 +56,12 @@ namespace Visera::RHI
                      const FVulkanExtent3D&	I_Extent,
                      EVulkanFormat          I_Format,
                      EVulkanImageUsage      I_Usages);
-        ~FVulkanImage();
+        ~FVulkanImage() override;
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
     };
 
-    export class FVulkanImageWrapper : public FVulkanImage
+    export class VISERA_RUNTIME_API FVulkanImageWrapper : public FVulkanImage
     {
     public:
         FVulkanImageWrapper() = delete;
@@ -52,30 +74,42 @@ namespace Visera::RHI
         {
             Handle = I_Handle;
         }
+        ~FVulkanImageWrapper() override { Handle = nullptr; } // Disable release
     };
+
+    FVulkanImageView::
+    FVulkanImageView(const vk::Image& I_Image)
+    : IVulkanResource{EType::ImageView},
+      Image { I_Image }
+    {
+        VISERA_UNIMPLEMENTED_API;
+    }
 
     FVulkanImage::
     FVulkanImage(EVulkanImageType       I_ImageType,
                  const FVulkanExtent3D&	I_Extent,
                  EVulkanFormat          I_Format,
                  EVulkanImageUsage      I_Usages)
-    : IVulkanResource{EType::Image}
+    : IVulkanResource{EType::Image},
+      Type   {I_ImageType},
+      Format {I_Format},
+      Extent {I_Extent},
+      Usages {I_Usages}
     {
         auto CreateInfo = vk::ImageCreateInfo{}
-            .setImageType               (I_ImageType)
-            .setExtent                  (I_Extent)
-            .setFormat                  (I_Format)
+            .setImageType               (Type)
+            .setExtent                  (Extent)
+            .setFormat                  (Format)
             .setMipLevels               (1)
             .setArrayLayers             (1)
             .setSamples                 (EVulkanSamplingRate::e1)
             .setTiling                  (EVulkanImageTiling::eOptimal)
-            .setUsage                   (I_Usages)
+            .setUsage                   (Usages)
             .setSharingMode             (EVulkanSharingMode::eExclusive)
             .setQueueFamilyIndexCount   (0)
             .setPQueueFamilyIndices     (nullptr)
             .setInitialLayout           (EVulkanImageLayout::eUndefined);
         ;
-
         Allocate(&Handle, &CreateInfo);
     }
 
@@ -99,7 +133,7 @@ namespace Visera::RHI
         Layout = I_MemoryBarrier.newLayout;
     }
 
-    vk::raii::ImageView FVulkanImage::
+    TSharedPtr<FVulkanImageView> FVulkanImage::
     CreateImageView() const
     {
         VISERA_UNIMPLEMENTED_API;

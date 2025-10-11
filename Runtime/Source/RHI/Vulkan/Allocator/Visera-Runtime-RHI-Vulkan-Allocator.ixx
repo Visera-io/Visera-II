@@ -12,13 +12,14 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanAllocator
     {
     public:
-
-
         [[nodiscard]] inline VmaAllocator
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline const vk::raii::Device&
+        GetDevice() const { return Device; }
 
     private:
         VmaAllocator	        Handle{ nullptr };
+        const vk::raii::Device& Device;
 
     public:
         FVulkanAllocator() = delete;
@@ -34,6 +35,7 @@ namespace Visera::RHI
                      const vk::raii::Instance&       I_Instance,
                      const vk::raii::PhysicalDevice& I_GPU,
                      const vk::raii::Device&         I_Device)
+    : Device {I_Device}
     {
         const VmaVulkanFunctions VulkanFunctions
         {
@@ -46,7 +48,7 @@ namespace Visera::RHI
         const VmaAllocatorCreateInfo CreateInfo
         {
             .physicalDevice     = *I_GPU,
-            .device             = *I_Device,
+            .device             = *Device,
             .pVulkanFunctions   = &VulkanFunctions,
             .instance           = *I_Instance,
             .vulkanApiVersion   = I_APIVersion,
@@ -67,6 +69,7 @@ namespace Visera::RHI
         {
             Unknown,
             Image,
+            ImageView,
             Buffer,
         };
 		[[nodiscard]] inline VkDeviceSize
@@ -90,6 +93,7 @@ namespace Visera::RHI
     public:
         IVulkanResource() = delete;
         IVulkanResource(EType  I_Type) : Type{ I_Type } {}
+        virtual ~IVulkanResource() = default;
     };
 
     void IVulkanResource::
@@ -120,6 +124,17 @@ namespace Visera::RHI
             { LOG_FATAL("Failed to allocate the Vulkan Image Memory (error:{})!", static_cast<Int32>(Result)); }
             break;
         }
+        case EType::ImageView:
+        {
+            auto CreateInfo  = static_cast<const vk::ImageViewCreateInfo*>(I_CreateInfo);
+            auto ImageViewHandle = static_cast<vk::ImageView*>(I_Handle);
+
+            auto Result = GVulkanAllocator->GetDevice().createImageView(*CreateInfo);
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to create the Vulkan Image View!"); }
+            else
+            { *ImageViewHandle = std::move(*Result); }
+        }
         default:
             VISERA_WIP;
         }
@@ -140,6 +155,10 @@ namespace Visera::RHI
                 Allocation);
             *ImageHandle = nullptr;
             break;
+        }
+        case EType::ImageView:
+        {
+            // Vulkan RAII
         }
         default:
             VISERA_WIP;

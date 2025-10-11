@@ -217,6 +217,11 @@ namespace Visera::RHI
             Loader->Load(Device.Context);
         }
 
+        // Command Pools
+        {
+            CreateCommandPools();
+        }
+
         // Allocator
         {
             GVulkanAllocator = MakeUnique<FVulkanAllocator>
@@ -232,11 +237,6 @@ namespace Visera::RHI
         if (GWindow->IsBootstrapped())
         {
             CreateSwapChain();
-        }
-
-        // Command Pools
-        {
-            CreateCommandPools();
         }
 
         // Pipeline Cache
@@ -514,7 +514,8 @@ namespace Visera::RHI
         auto Feature2 = vk::PhysicalDeviceFeatures2{};
 
         auto Vulkan13Features =  vk::PhysicalDeviceVulkan13Features{};
-        Vulkan13Features.dynamicRendering     = vk::True;
+        Vulkan13Features.dynamicRendering = vk::True;
+        Vulkan13Features.synchronization2 = vk::True;
 
         auto ExtendedDynamicsStateFeatures = vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT{};
         ExtendedDynamicsStateFeatures.extendedDynamicState = vk::True;
@@ -704,23 +705,29 @@ namespace Visera::RHI
             auto Fence = CreateFence(False);
             auto Extent = FVulkanExtent3D{ SwapChain.Extent.width, SwapChain.Extent.height, 1U};
 
-            for (auto& Image : SwapChain.Images)
+            Cmd->Begin();
             {
-                auto ImageWrapper = MakeShared<FVulkanImageWrapper>(
-                    Image,
-                    EVulkanImageType::e2D,
-                    Extent,
-                    SwapChain.ImageFormat,
-                    SwapChain.ImageUsage
-                );
-                Cmd->ConvertImageLayout(ImageWrapper,
-                    EVulkanImageLayout::eTransferDstOptimal,
-                    EVulkanPipelineStage::eTopOfPipe,
-                    EVulkanAccess::eMemoryRead,
-                    EVulkanPipelineStage::eTopOfPipe,
-                    EVulkanAccess::eMemoryRead
-                );
+                for (auto& Image : SwapChain.Images)
+                {
+                    auto ImageWrapper = MakeShared<FVulkanImageWrapper>(
+                        Image,
+                        EVulkanImageType::e2D,
+                        Extent,
+                        SwapChain.ImageFormat,
+                        SwapChain.ImageUsage
+                    );
+                    Cmd->ConvertImageLayout(ImageWrapper,
+                        EVulkanImageLayout::eTransferDstOptimal,
+                        EVulkanPipelineStage::eTopOfPipe,
+                        EVulkanAccess::eNone,
+                        EVulkanPipelineStage::eTransfer,
+                        EVulkanAccess::eTransferWrite
+                    );
+                }
             }
+            Cmd->End();
+            Submit(Cmd, Fence);
+
             if (!Fence->Wait())
             { LOG_FATAL("Failed to wait for convert swapchain image layouts!"); }
         }
