@@ -14,7 +14,7 @@ namespace Visera::RHI
         static TUniquePtr<FVulkanFence> Null;
 
         [[nodiscard]] inline Bool
-        Wait(UInt64 I_Timeout) const;
+        Wait(UInt64 I_Timeout = ~0U) const;
 
         [[nodiscard]] inline const vk::raii::Fence&
         GetHandle() const { return Handle; }
@@ -47,7 +47,7 @@ namespace Visera::RHI
     TUniquePtr<FVulkanFence> FVulkanFence::Null = nullptr;
 
     Bool FVulkanFence::
-    Wait(UInt64 I_Timeout) const
+    Wait(UInt64 I_Timeout /* = ~0U */) const
     {
         auto Result = Handle.getDevice().waitForFences(*Handle, vk::True, I_Timeout);
         if (Result != vk::Result::eSuccess)

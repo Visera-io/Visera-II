@@ -698,24 +698,51 @@ namespace Visera::RHI
 
             SwapChain.Images = std::move(*Result);
         }
+        // Convert Swapchain Images' layout
+        {
+            auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
+            auto Fence = CreateFence(False);
+            auto Extent = FVulkanExtent3D{ SwapChain.Extent.width, SwapChain.Extent.height, 1U};
+
+            for (auto& Image : SwapChain.Images)
+            {
+                auto ImageWrapper = MakeShared<FVulkanImageWrapper>(
+                    Image,
+                    EVulkanImageType::e2D,
+                    Extent,
+                    SwapChain.ImageFormat,
+                    SwapChain.ImageUsage
+                );
+                Cmd->ConvertImageLayout(ImageWrapper,
+                    EVulkanImageLayout::eTransferDstOptimal,
+                    EVulkanPipelineStage::eTopOfPipe,
+                    EVulkanAccess::eMemoryRead,
+                    EVulkanPipelineStage::eTopOfPipe,
+                    EVulkanAccess::eMemoryRead
+                );
+            }
+            if (!Fence->Wait())
+            { LOG_FATAL("Failed to wait for convert swapchain image layouts!"); }
+        }
         constexpr auto ImageSubresourceRage = vk::ImageSubresourceRange{}
             .setAspectMask(vk::ImageAspectFlagBits::eColor)
             .setBaseMipLevel(0)
             .setLevelCount(1)
             .setBaseArrayLayer(0)
-            .setLayerCount(1);
+            .setLayerCount(1)
+        ;
         constexpr auto ComponentSwizzle = vk::ComponentMapping{}
             .setR(vk::ComponentSwizzle::eIdentity)
             .setG(vk::ComponentSwizzle::eIdentity)
             .setB(vk::ComponentSwizzle::eIdentity)
-            .setA(vk::ComponentSwizzle::eIdentity);
-
+            .setA(vk::ComponentSwizzle::eIdentity)
+        ;
         auto ImageViewCreateInfo = vk::ImageViewCreateInfo{}
             .setViewType(vk::ImageViewType::e2D)
             .setFormat(SwapChain.ImageFormat)
             .setComponents(ComponentSwizzle)
-            .setSubresourceRange(ImageSubresourceRage);
-
+            .setSubresourceRange(ImageSubresourceRage)
+        ;
         for (const auto& Image : SwapChain.Images)
         {
             ImageViewCreateInfo.image = Image;

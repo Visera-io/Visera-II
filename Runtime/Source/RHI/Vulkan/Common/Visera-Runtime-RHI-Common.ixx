@@ -14,7 +14,7 @@ export namespace Visera::RHI
     using EVulkanStoreOp       = vk::AttachmentStoreOp;
     using EVulkanImageType     = vk::ImageType;
     using EVulkanFormat        = vk::Format;
-    using EVulkanImageUsage    = vk::ImageUsageFlagBits;
+    using EVulkanImageUsage    = vk::Flags<vk::ImageUsageFlagBits>;
     using EVulkanImageAspect   = vk::ImageAspectFlagBits;
     using EVulkanSharingMode   = vk::SharingMode;
     using EVulkanSamplingRate  = vk::SampleCountFlagBits;
@@ -25,6 +25,7 @@ export namespace Visera::RHI
     using FVulkanViewport      = vk::Viewport;
     using FVulkanRect2D        = vk::Rect2D;
     using FVulkanClearColor    = vk::ClearColorValue;
+    using FVulkanImageBarrier  = vk::ImageMemoryBarrier2;
 }
 
 using namespace Visera;

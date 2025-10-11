@@ -20,11 +20,11 @@ namespace Visera::RHI
         [[nodiscard]] inline EVulkanImageLayout
         GetLayout() const { return Layout; }
 
-        // CommandBuffer API !!!
         inline void
-        SetLayout(EVulkanImageLayout I_NewLayout) { Layout = I_NewLayout; }
+        ConvertLayout(const vk::raii::CommandBuffer& I_CommandBuffer,
+                      const FVulkanImageBarrier&     I_MemoryBarrier);
 
-    private:
+    protected:
         vk::Image           Handle {nullptr};
         EVulkanImageLayout  Layout { EVulkanImageLayout::eUndefined };
 
@@ -37,6 +37,21 @@ namespace Visera::RHI
         ~FVulkanImage();
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
+    };
+
+    export class FVulkanImageWrapper : public FVulkanImage
+    {
+    public:
+        FVulkanImageWrapper() = delete;
+        FVulkanImageWrapper(const vk::Image&        I_Handle,
+                            EVulkanImageType        I_ImageType,
+                            const FVulkanExtent3D&	I_Extent,
+                            EVulkanFormat           I_Format,
+                            EVulkanImageUsage       I_Usages)
+        : FVulkanImage{I_ImageType, I_Extent, I_Format, I_Usages}
+        {
+            Handle = I_Handle;
+        }
     };
 
     FVulkanImage::
@@ -68,6 +83,20 @@ namespace Visera::RHI
     ~FVulkanImage()
     {
         Release(&Handle);
+    }
+
+    void FVulkanImage::
+    ConvertLayout(const vk::raii::CommandBuffer& I_CommandBuffer,
+                  const FVulkanImageBarrier&     I_MemoryBarrier)
+    {
+        auto DependencyInfo = vk::DependencyInfo{}
+            .setDependencyFlags     ({})
+            .setImageMemoryBarrierCount(1)
+            .setPImageMemoryBarriers(&I_MemoryBarrier)
+        ;
+        I_CommandBuffer.pipelineBarrier2(DependencyInfo);
+
+        Layout = I_MemoryBarrier.newLayout;
     }
 
     vk::raii::ImageView FVulkanImage::

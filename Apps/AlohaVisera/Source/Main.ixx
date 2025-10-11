@@ -66,14 +66,14 @@ export int main(int argc, char *argv[])
         Cmd->Begin();
         {
             LOG_INFO("Beginning!");
-            // Cmd->EnterRenderPass(RenderPass);
-            // Cmd->Draw(3,1,0,0);
-            // Cmd->LeaveRenderPass();
+            Cmd->EnterRenderPass(RenderPass);
+            Cmd->Draw(3,1,0,0);
+            Cmd->LeaveRenderPass();
         }
         Cmd->End();
         auto Fence = Driver->CreateFence(False);
         Driver->Submit(Cmd, Fence);
-        if (!Fence->Wait(UINT64_MAX))
+        if (!Fence->Wait())
         {
             LOG_ERROR("Fence->Wait");
         }

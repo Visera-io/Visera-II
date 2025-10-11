@@ -125,13 +125,13 @@ namespace Visera::RHI
         }
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
+            .setAspectMask      (EVulkanImageAspect::eColor)
             .setBaseMipLevel    (0)
             .setLevelCount      (1)
             .setBaseArrayLayer  (0)
             .setLayerCount      (1)
         ;
-        auto Barrier = vk::ImageMemoryBarrier2{}
+        auto Barrier = FVulkanImageBarrier{}
             .setSrcStageMask        (I_SrcStage)
             .setSrcAccessMask       (I_SrcAccess)
             .setDstStageMask        (I_DstStage)
@@ -143,14 +143,7 @@ namespace Visera::RHI
             .setImage               (I_Image->GetHandle())
             .setSubresourceRange    (ImageSubresourceRange)
         ;
-        auto DependencyInfo = vk::DependencyInfo{}
-            .setDependencyFlags     ({})
-            .setImageMemoryBarrierCount(1)
-            .setPImageMemoryBarriers(&Barrier)
-        ;
-        Handle.pipelineBarrier2(DependencyInfo);
-
-        I_Image->SetLayout(NewLayout);
+        I_Image->ConvertLayout(Handle, Barrier);
     }
 
     void FVulkanCommandBuffer::
