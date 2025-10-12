@@ -39,7 +39,7 @@ namespace Visera::RHI
         EVulkanImageUsage   Usages {};
 
     public:
-        FVulkanImage()                               = delete;
+        FVulkanImage() : IVulkanResource{EType::Image} {}
         FVulkanImage(EVulkanImageType       I_ImageType,
                      const FVulkanExtent3D&	I_Extent,
                      EVulkanFormat          I_Format,
@@ -82,9 +82,12 @@ namespace Visera::RHI
                             const FVulkanExtent3D&	I_Extent,
                             EVulkanFormat           I_Format,
                             EVulkanImageUsage       I_Usages)
-        : FVulkanImage{I_ImageType, I_Extent, I_Format, I_Usages}
         {
             Handle = I_Handle;
+            Extent = I_Extent;
+            Type   = I_ImageType;
+            Format = I_Format;
+            Usages = I_Usages;
         }
         ~FVulkanImageWrapper() override { Handle = nullptr; } // Disable release
     };
