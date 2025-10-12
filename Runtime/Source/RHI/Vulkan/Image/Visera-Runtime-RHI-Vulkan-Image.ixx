@@ -37,6 +37,8 @@ namespace Visera::RHI
         GetHandle() const { return Handle; }
         [[nodiscard]] inline EVulkanImageLayout
         GetLayout() const { return Layout; }
+        [[nodiscard]] inline EVulkanFormat
+        GetFormat() const { return Format; }
 
         inline void
         ConvertLayout(const vk::raii::CommandBuffer& I_CommandBuffer,

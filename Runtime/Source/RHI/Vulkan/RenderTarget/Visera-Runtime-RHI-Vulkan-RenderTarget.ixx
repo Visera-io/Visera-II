@@ -17,6 +17,8 @@ namespace Visera::RHI
         GetView() const  { return TargetImageView; }
         [[nodiscard]] inline EVulkanImageLayout
         GetLayout() const  { return TargetImage->GetLayout(); }
+        [[nodiscard]] inline EVulkanFormat
+        GetFormat() const  { return TargetImage->GetFormat(); }
         [[nodiscard]] inline const vk::Image&
         GetHandle() const { return TargetImage->GetHandle(); }
         [[nodiscard]] inline EVulkanLoadOp
@@ -34,6 +36,12 @@ namespace Visera::RHI
 
         vk::RenderingAttachmentInfo
         GetAttachmentInfo() const;
+        [[nodiscard]] inline Bool
+        HasDepth() const;
+        [[nodiscard]] inline Bool
+        HasStencil() const;
+        void inline
+        Swap(TSharedRef<FVulkanRenderTarget> I_Other);
 
     private:
         TSharedPtr<FVulkanImage>     TargetImage;
@@ -44,17 +52,20 @@ namespace Visera::RHI
         FVulkanClearColor   ClearColor { FVulkanClearColor(0.0f, 0.0f, 0.0f, 1.0f)} ;
 
     public:
-        FVulkanRenderTarget()                                      = default;
-        FVulkanRenderTarget(int k);
+        FVulkanRenderTarget()                                      = delete;
+        FVulkanRenderTarget(TSharedPtr<FVulkanImage> I_TargetImage);
         ~FVulkanRenderTarget()                                     = default;
         FVulkanRenderTarget(const FVulkanRenderTarget&)            = delete;
         FVulkanRenderTarget& operator=(const FVulkanRenderTarget&) = delete;
     };
 
     FVulkanRenderTarget::
-    FVulkanRenderTarget(int k)
+    FVulkanRenderTarget(TSharedPtr<FVulkanImage> I_TargetImage)
+    : TargetImage{ std::move(I_TargetImage) }
     {
-
+        VISERA_ASSERT(TargetImage && TargetImage->GetHandle());
+        VISERA_ASSERT(TargetImage->GetLayout() != EVulkanImageLayout::eUndefined &&
+                      "Convert layout before creation!");
     }
 
     vk::RenderingAttachmentInfo FVulkanRenderTarget::
@@ -68,5 +79,47 @@ namespace Visera::RHI
             .setClearValue  (GetClearColor())
         ;
         return AttachmentInfo;
+    }
+
+    Bool FVulkanRenderTarget::
+    HasDepth() const
+    {
+        switch (GetFormat())
+        {
+            case EVulkanFormat::eD16Unorm:
+            case EVulkanFormat::eX8D24UnormPack32:
+            case EVulkanFormat::eD32Sfloat:
+            case EVulkanFormat::eD16UnormS8Uint:
+            case EVulkanFormat::eD24UnormS8Uint:
+            case EVulkanFormat::eD32SfloatS8Uint:
+                return True;
+            default:
+                return False;
+        }
+    }
+
+    Bool FVulkanRenderTarget::
+    HasStencil() const
+    {
+        switch (GetFormat())
+        {
+            case EVulkanFormat::eS8Uint:
+            case EVulkanFormat::eD16UnormS8Uint:
+            case EVulkanFormat::eD24UnormS8Uint:
+            case EVulkanFormat::eD32SfloatS8Uint:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void FVulkanRenderTarget::
+    Swap(TSharedRef<FVulkanRenderTarget> I_Other)
+    {
+        std::swap(TargetImage, I_Other->TargetImage);
+        std::swap(TargetImageView, I_Other->TargetImageView);
+        std::swap(LoadOp, I_Other->LoadOp);
+        std::swap(StoreOp, I_Other->StoreOp);
+        std::swap(ClearColor, I_Other->ClearColor);
     }
 }

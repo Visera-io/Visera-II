@@ -7,6 +7,7 @@ import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.PipelineCache;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Runtime.RHI.Vulkan.RenderTarget;
+import Visera.Core.Types.Text;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -14,24 +15,32 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanRenderPass
     {
     public:
+        static constexpr auto ColorRTFormat = EVulkanFormat::eR8G8B8A8Unorm;
+        static constexpr auto DepthRTFormat = EVulkanFormat::eD32Sfloat;
+
         [[nodiscard]] inline const vk::raii::RenderPass&
         GetHandle() const { return Handle; }
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetPipeline() const { return Pipeline; }
         [[nodiscard]] inline const FVulkanRect2D&
         GetRenderArea() const { return CurrentRenderArea; }
-        inline void
-        SetRenderArea(const FVulkanRect2D& I_RenderArea) { CurrentRenderArea = I_RenderArea; }
+        inline FVulkanRenderPass*
+        SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT);
+        inline FVulkanRenderPass*
+        SetDepthRT(TSharedRef<FVulkanRenderTarget> I_DepthRT);
+        inline FVulkanRenderPass*
+        SetRenderArea(const FVulkanRect2D& I_RenderArea) { CurrentRenderArea = I_RenderArea; return this; }
         [[nodiscard]] inline auto
         GetRenderingInfo() const;
 
     private:
+        FText                     Name;
         vk::raii::RenderPass      Handle         {nullptr};
         vk::raii::PipelineLayout  PipelineLayout {nullptr};
         vk::raii::Pipeline        Pipeline       {nullptr};
 
-        TArray<FVulkanRenderTarget>     RenderTargets;
-        UInt8                           CurrentRenderTargetIndex{0};
+        TSharedPtr<FVulkanRenderTarget> CurrentColorRT;
+        TSharedPtr<FVulkanRenderTarget> CurrentDepthRT;
         FVulkanRect2D                   CurrentRenderArea{};
 
         TSharedPtr<FVulkanShaderModule> VertexShader;
@@ -44,24 +53,24 @@ namespace Visera::RHI
             vk::DynamicState::eViewport,
             vk::DynamicState::eScissor,
         };
-
-        vk::Viewport Viewport {};
-        vk::Rect2D   Scissor  {};
         Bool         bColorBlendEnabled { False };
     public:
         FVulkanRenderPass() = delete;
-        FVulkanRenderPass(const vk::raii::Device&          I_Device,
+        FVulkanRenderPass(const FText&                     I_Name,
+                          const vk::raii::Device&          I_Device,
                           TSharedPtr<FVulkanShaderModule>  I_VertexShader,
                           TSharedPtr<FVulkanShaderModule>  I_FragmentShader,
                           TUniqueRef<FVulkanPipelineCache> I_PipelineCache);
     };
 
     FVulkanRenderPass::
-    FVulkanRenderPass(const vk::raii::Device&          I_Device,
+    FVulkanRenderPass(const FText&                     I_Name,
+                      const vk::raii::Device&          I_Device,
                       TSharedPtr<FVulkanShaderModule>  I_VertexShader,
                       TSharedPtr<FVulkanShaderModule>  I_FragmentShader,
                       TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
-    : VertexShader   (std::move(I_VertexShader)),
+    : Name{I_Name},
+      VertexShader   (std::move(I_VertexShader)),
       FragmentShader (std::move(I_FragmentShader))
     {
         VISERA_ASSERT(VertexShader->IsVertexShader());
@@ -87,22 +96,11 @@ namespace Visera::RHI
         auto InputAssembly = vk::PipelineInputAssemblyStateCreateInfo{}
             .setTopology(vk::PrimitiveTopology::eTriangleList)
         ;
-        Viewport = vk::Viewport
-        {  0.0f, 0.0f,
-            900,
-            600,
-            0.0f, 1.0f
-        };
-        Scissor = vk::Rect2D
-        {
-            vk::Offset2D{ 0, 0 },
-            {900, 600}
-        };
         auto ViewportState = vk::PipelineViewportStateCreateInfo{}
             .setViewportCount   (1)
-            .setPViewports      (&Viewport)
+            .setPViewports      (nullptr) // Dynamic Viewport
             .setScissorCount    (1)
-            .setPScissors       (&Scissor)
+            .setPScissors       (nullptr) // Dynamic Scissor
         ;
         auto Rasterizer = vk::PipelineRasterizationStateCreateInfo{}
             .setDepthClampEnable        (vk::False)
@@ -153,10 +151,9 @@ namespace Visera::RHI
             { PipelineLayout = std::move(*Result); }
         }
 
-        auto RTFormat = vk::Format::eR8G8B8A8Unorm; //[TODO]: Remove
         auto PipelineRenderingCreateInfo = vk::PipelineRenderingCreateInfo{}
             .setColorAttachmentCount    (1)
-            .setPColorAttachmentFormats (&RTFormat)
+            .setPColorAttachmentFormats (&ColorRTFormat)
         ;
         auto PipelineCreateInfo = vk::GraphicsPipelineCreateInfo{}
             .setPNext               (&PipelineRenderingCreateInfo)
@@ -186,13 +183,30 @@ namespace Visera::RHI
         }
     }
 
+    FVulkanRenderPass* FVulkanRenderPass::
+    SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT)
+    {
+        VISERA_ASSERT(I_ColorRT && I_ColorRT->GetHandle());
+        VISERA_ASSERT(I_ColorRT->GetFormat() == ColorRTFormat);
+        CurrentColorRT = I_ColorRT;
+        return this;
+    }
+
+    FVulkanRenderPass* FVulkanRenderPass::
+    SetDepthRT(TSharedRef<FVulkanRenderTarget> I_DepthRT)
+    {
+        VISERA_ASSERT(I_DepthRT && I_DepthRT->GetHandle());
+        VISERA_ASSERT(I_DepthRT->GetFormat() == DepthRTFormat);
+        CurrentDepthRT = I_DepthRT;
+        return this;
+    }
+
     auto FVulkanRenderPass::
     GetRenderingInfo() const
     {
-        VISERA_ASSERT(CurrentRenderTargetIndex < RenderTargets.size());
+        VISERA_ASSERT(CurrentColorRT && CurrentColorRT->GetHandle());
 
-        auto AttachmentInfo = RenderTargets[CurrentRenderTargetIndex]
-                              .GetAttachmentInfo();
+        auto AttachmentInfo = CurrentColorRT->GetAttachmentInfo();
 
         auto RenderingInfo = vk::RenderingInfo{}
             .setRenderArea          (CurrentRenderArea)

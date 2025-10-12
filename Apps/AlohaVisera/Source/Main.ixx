@@ -52,7 +52,7 @@ export int main(int argc, char *argv[])
 
         auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
-        auto RenderPass = Driver->CreateRenderPass(VertModule, FragModule);
+        auto RenderPass = Driver->CreateRenderPass(TEXT("TestPass"), VertModule, FragModule);
         RenderPass->SetRenderArea({{0,0},{GWindow->GetWidth(),GWindow->GetHeight()}});
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
@@ -73,9 +73,9 @@ export int main(int argc, char *argv[])
         Cmd->End();
         auto Fence = Driver->CreateFence(False);
         Driver->Submit(Cmd, Fence);
-        if (!Fence->Wait())
+        if (Fence->Wait())
         {
-            LOG_ERROR("Fence->Wait");
+            LOG_INFO("Fence->Wait Ok!");
         }
 
         //LOG_FATAL("Exited for Development!");

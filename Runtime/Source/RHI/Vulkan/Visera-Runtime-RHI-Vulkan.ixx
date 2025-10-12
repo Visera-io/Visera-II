@@ -59,6 +59,7 @@ namespace Visera::RHI
             vk::Extent2D            Extent      {0U, 0U};
             TArray<vk::Image>           Images      {}; // SwapChain manage Images so do NOT use RAII here.
             TArray<vk::raii::ImageView> ImageViews  {};
+            UInt8                       Cursor      {0};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
             vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
@@ -70,7 +71,8 @@ namespace Visera::RHI
             Bool                          bClipped       {True};
         }SwapChain;
 
-        vk::raii::CommandPool GraphicsCommandPool {nullptr};
+        TArray<TSharedPtr<FVulkanRenderTarget>> ColorRTs;
+        vk::raii::CommandPool        GraphicsCommandPool {nullptr};
 
         TUniquePtr<FVulkanPipelineCache> PipelineCache;
 
@@ -93,8 +95,9 @@ namespace Visera::RHI
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
         CreateShaderModule(TSharedPtr<FShader> I_Shader);
         [[nodiscard]] TSharedPtr<FVulkanRenderPass>
-        CreateRenderPass(TSharedPtr<FVulkanShaderModule> I_VertexShader,
-                         TSharedPtr<FVulkanShaderModule> I_FragmentShader);
+        CreateRenderPass(const FText&                    I_Name,
+                         TSharedRef<FVulkanShaderModule> I_VertexShader,
+                         TSharedRef<FVulkanShaderModule> I_FragmentShader);
         [[nodiscard]] TUniquePtr<FVulkanFence>
         CreateFence(Bool I_bSignaled);
         [[nodiscard]] TSharedPtr<FVulkanImage>
@@ -114,14 +117,15 @@ namespace Visera::RHI
         GetNativeDevice() const { return Device.Context; };
 
     private:
-        void CreateInstance();
-        void CreateDebugMessenger();
-        void CreateSurface();
-        void PickPhysicalDevice();
-        void CreateDevice();
-        void CreateSwapChain();
-        void CreateCommandPools();
-        void CreatePipelineCache();
+        void inline CreateInstance();       void inline DestroyInstance();
+        void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
+        void inline CreateSurface();        void inline DestroySurface();
+        void inline PickPhysicalDevice();
+        void inline CreateDevice();         void inline DestroyDevice();
+        void inline CreateSwapChain();      void inline DestroySwapChain();
+        void inline CreateCommandPools();   void inline DestroyCommandPools();
+        void inline CreatePipelineCache();  void inline DestroyPipelineCache();
+        void inline CreateRenderTargets();  void inline DestroyRenderTargets();
 
         inline FVulkanDriver*
         AddInstanceLayer(const char* I_Layer)           { InstanceLayers.emplace_back(I_Layer);         return this; }
@@ -192,57 +196,42 @@ namespace Visera::RHI
 
         Loader = MakeUnique<FVulkanLoader>();
 
-        // Instance
-        {
-            CollectInstanceLayersAndExtensions();
+        CollectInstanceLayersAndExtensions();
 
-            CreateInstance();
-            Loader->Load(Instance);
+        CreateInstance();
+        Loader->Load(Instance);
 
-            CreateDebugMessenger();
-        }
+        CreateDebugMessenger();
 
-        // Surface
         if (GWindow->IsBootstrapped())
         {
             CreateSurface();
         }
 
-        // Device
-        {
-            CollectDeviceLayersAndExtensions();
+        CollectDeviceLayersAndExtensions();
 
-            PickPhysicalDevice();
-            CreateDevice();
-            Loader->Load(Device.Context);
-        }
+        PickPhysicalDevice();
+        CreateDevice();
+        Loader->Load(Device.Context);
 
-        // Command Pools
-        {
-            CreateCommandPools();
-        }
+        CreateCommandPools();
 
-        // Allocator
-        {
-            GVulkanAllocator = MakeUnique<FVulkanAllocator>
-            (
-                AppInfo.apiVersion,
-                Instance,
-                GPU.Context,
-                Device.Context
-            );
-        }
+        GVulkanAllocator = MakeUnique<FVulkanAllocator>
+        (
+            AppInfo.apiVersion,
+            Instance,
+            GPU.Context,
+            Device.Context
+        );
 
-        // Swap Chain
         if (GWindow->IsBootstrapped())
         {
             CreateSwapChain();
         }
 
-        // Pipeline Cache
-        {
-            CreatePipelineCache();
-        }
+        CreateRenderTargets();
+
+        CreatePipelineCache();
     };
 
     FVulkanDriver::
@@ -250,45 +239,111 @@ namespace Visera::RHI
     {
         Device.Context.waitIdle();
 
-        // Pipeline Cache
-        {
-            PipelineCache.reset();
-        }
+        DestroyPipelineCache();
 
-        // Command Pools
-        {
-            GraphicsCommandPool.clear();
-        }
+        DestroyRenderTargets();
+
+        DestroyCommandPools();
 
         if (GWindow->IsBootstrapped())
         {
-            SwapChain.ImageViews.clear();
-            SwapChain.Context.clear();
+            DestroySwapChain();
         }
 
-        // Device
-        {
-            Device.Context.clear();
-        }
+        DestroyDevice();
 
-        // Allocator
-        {
-            GVulkanAllocator.reset();
-        }
+        GVulkanAllocator.reset();
 
-        // Surface
         if (GWindow->IsBootstrapped())
         {
-            Surface.clear();
+            DestroySurface();
         }
 
-        // Instance
-        {
-            DebugMessenger.clear();
-            Instance.clear();
-        }
+        DestroyDebugMessenger();
+        DestroyInstance();
 
         Loader.reset();
+    }
+
+    void FVulkanDriver::
+    DestroyInstance()
+    {
+        Instance.clear();
+    }
+
+    void FVulkanDriver::
+    DestroyDebugMessenger()
+    {
+        DebugMessenger.clear();
+    }
+
+    void FVulkanDriver::
+    DestroySurface()
+    {
+        Surface.clear();
+    }
+
+    void FVulkanDriver::
+    DestroyDevice()
+    {
+        Device.Context.clear();
+    }
+
+    void FVulkanDriver::
+    DestroySwapChain()
+    {
+        SwapChain.ImageViews.clear();
+        SwapChain.Context.clear();
+    }
+
+    void FVulkanDriver::
+    DestroyCommandPools()
+    {
+        GraphicsCommandPool.clear();
+    }
+
+    void FVulkanDriver::
+    DestroyPipelineCache()
+    {
+        PipelineCache.reset();
+    }
+
+    void FVulkanDriver::
+    DestroyRenderTargets()
+    {
+        ColorRTs.clear();
+    }
+
+    void FVulkanDriver::
+    CreateRenderTargets()
+    {
+        if (SwapChain.Images.empty()) { return;}
+
+        auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
+        auto Fence = CreateFence(False);
+        Cmd->Begin();
+        {
+            for (UInt8 Idx = 0; Idx < SwapChain.Images.size(); ++Idx)
+            {
+                auto RTImage = CreateImage(EVulkanImageType::e2D,
+                    {GWindow->GetWidth(), GWindow->GetHeight(), 1},
+                    FVulkanRenderPass::ColorRTFormat,
+                    vk::ImageUsageFlagBits::eColorAttachment |
+                    vk::ImageUsageFlagBits::eTransferSrc);
+                Cmd->ConvertImageLayout(RTImage, EVulkanImageLayout::eColorAttachmentOptimal,
+                    EVulkanPipelineStage::eTopOfPipe,
+                    EVulkanAccess::eNone,
+                    EVulkanPipelineStage::eColorAttachmentOutput,
+                    EVulkanAccess::eColorAttachmentWrite
+                );
+                ColorRTs.push_back(MakeShared<FVulkanRenderTarget>(RTImage));
+            }
+        }
+        Cmd->End();
+        Submit(Cmd, Fence);
+
+        if (!Fence->Wait())
+        { LOG_FATAL("Failed to convert the layout of color render targets!"); }
     }
 
     void FVulkanDriver::
@@ -802,15 +857,20 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanRenderPass> FVulkanDriver::
-    CreateRenderPass(TSharedPtr<FVulkanShaderModule> I_VertexShader,
-                     TSharedPtr<FVulkanShaderModule> I_FragmentShader)
+    CreateRenderPass(const FText&                    I_Name,
+                     TSharedRef<FVulkanShaderModule> I_VertexShader,
+                     TSharedRef<FVulkanShaderModule> I_FragmentShader)
     {
-        LOG_DEBUG("Creating a Vulkan Render Pass (vertex:{}, fragment:{})",
-                  I_VertexShader->GetPath(), I_FragmentShader->GetPath());
-        return MakeUnique<FVulkanRenderPass>(Device.Context,
+        LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{})",
+                  I_Name, I_VertexShader->GetPath(), I_FragmentShader->GetPath());
+        auto RenderPass = MakeShared<FVulkanRenderPass>(
+               I_Name,
+               Device.Context,
                I_VertexShader,
                I_FragmentShader,
                PipelineCache);
+        RenderPass->SetColorRT(ColorRTs[SwapChain.Cursor]);
+        return RenderPass;
     }
 
     TUniquePtr<FVulkanFence> FVulkanDriver::
