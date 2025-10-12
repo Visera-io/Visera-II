@@ -9,36 +9,22 @@ import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    export class VISERA_RUNTIME_API FVulkanImageView : IVulkanResource
-    {
-    public:
-        [[nodiscard]] inline const vk::raii::ImageView&
-        GetHandle() const { return Handle; }
-
-        [[nodiscard]] inline Bool
-        IsExpired() const { return Image == nullptr; }
-
-    private:
-        vk::raii::ImageView Handle {nullptr};
-        const vk::Image&    Image;
-
-    public:
-        FVulkanImageView() = delete;
-        FVulkanImageView(const vk::Image& I_Image);
-    };
-
     export class VISERA_RUNTIME_API FVulkanImage : IVulkanResource
     {
     public:
-        [[nodiscard]] TSharedPtr<FVulkanImageView>
-        CreateImageView() const;
-
         [[nodiscard]] inline const vk::Image&
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline EVulkanImageType
+        GetType() const { return Type; }
         [[nodiscard]] inline EVulkanImageLayout
         GetLayout() const { return Layout; }
         [[nodiscard]] inline EVulkanFormat
         GetFormat() const { return Format; }
+
+        [[nodiscard]] inline Bool
+        HasDepth() const;
+        [[nodiscard]] inline Bool
+        HasStencil() const;
 
         inline void
         ConvertLayout(const vk::raii::CommandBuffer& I_CommandBuffer,
@@ -63,6 +49,30 @@ namespace Visera::RHI
         FVulkanImage& operator=(const FVulkanImage&) = delete;
     };
 
+    export class VISERA_RUNTIME_API FVulkanImageView
+    {
+    public:
+        [[nodiscard]] inline const vk::raii::ImageView&
+        GetHandle() const { return Handle; }
+
+        [[nodiscard]] inline Bool
+        IsExpired() const { return Image.expired(); }
+
+    private:
+        vk::raii::ImageView    Handle {nullptr};
+        TWeakPtr<FVulkanImage> Image;
+
+    public:
+        FVulkanImageView() = delete;
+        FVulkanImageView(TSharedPtr<FVulkanImage>   I_Image,
+                         EVulkanImageViewType       I_Type,
+                         EVulkanImageAspect         I_Aspect,
+                         const TPair<UInt8, UInt8>& I_MipmapRange = {0,0},
+                         const TPair<UInt8, UInt8>& I_ArrayRange  = {0,0},
+                         TOptional<FVulkanSwizzle>  I_Swizzle     = {});
+    };
+
+
     export class VISERA_RUNTIME_API FVulkanImageWrapper : public FVulkanImage
     {
     public:
@@ -80,11 +90,38 @@ namespace Visera::RHI
     };
 
     FVulkanImageView::
-    FVulkanImageView(const vk::Image& I_Image)
-    : IVulkanResource{EType::ImageView},
-      Image { I_Image }
+    FVulkanImageView(TSharedPtr<FVulkanImage>   I_Image,
+                     EVulkanImageViewType       I_Type,
+                     EVulkanImageAspect         I_Aspect,
+                     const TPair<UInt8, UInt8>& I_MipmapRange,
+                     const TPair<UInt8, UInt8>& I_ArrayRange,
+                     TOptional<FVulkanSwizzle>  I_Swizzle)
+    : Image {I_Image}
     {
-        VISERA_UNIMPLEMENTED_API;
+        auto& Device = GVulkanAllocator->GetDevice();
+
+        auto ImageSubresourceRage = vk::ImageSubresourceRange{}
+            .setAspectMask(I_Aspect)
+            .setBaseMipLevel(I_MipmapRange.first)
+            .setLevelCount(I_MipmapRange.second - I_MipmapRange.first + 1)
+            .setBaseArrayLayer(I_ArrayRange.first)
+            .setLayerCount(I_ArrayRange.second - I_ArrayRange.first + 1)
+        ;
+        const auto& Swizzle = I_Swizzle.has_value()?
+                            I_Swizzle.value(): IdentitySwizzle;
+
+        auto CreateInfo = vk::ImageViewCreateInfo{}
+            .setImage            (I_Image->GetHandle())
+            .setViewType         (I_Type)
+            .setFormat           (I_Image->GetFormat())
+            .setComponents       (Swizzle)
+            .setSubresourceRange (ImageSubresourceRage)
+        ;
+        auto Result = Device.createImageView(CreateInfo);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to create Vulkan Image View"); }
+        else
+        { Handle = std::move(*Result); }
     }
 
     FVulkanImage::
@@ -134,11 +171,36 @@ namespace Visera::RHI
 
         Layout = I_MemoryBarrier.newLayout;
     }
-
-    TSharedPtr<FVulkanImageView> FVulkanImage::
-    CreateImageView() const
+    
+    Bool FVulkanImage::
+    HasDepth() const
     {
-        VISERA_UNIMPLEMENTED_API;
-        return nullptr;
+        switch (GetFormat())
+        {
+            case EVulkanFormat::eD16Unorm:
+            case EVulkanFormat::eX8D24UnormPack32:
+            case EVulkanFormat::eD32Sfloat:
+            case EVulkanFormat::eD16UnormS8Uint:
+            case EVulkanFormat::eD24UnormS8Uint:
+            case EVulkanFormat::eD32SfloatS8Uint:
+                return True;
+            default:
+                return False;
+        }
+    }
+
+    Bool FVulkanImage::
+    HasStencil() const
+    {
+        switch (GetFormat())
+        {
+            case EVulkanFormat::eS8Uint:
+            case EVulkanFormat::eD16UnormS8Uint:
+            case EVulkanFormat::eD24UnormS8Uint:
+            case EVulkanFormat::eD32SfloatS8Uint:
+                return true;
+            default:
+                return false;
+        }
     }
 }

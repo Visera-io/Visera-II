@@ -27,7 +27,7 @@ namespace Visera::RHI
                          const vk::raii::Instance&       I_Instance,
                          const vk::raii::PhysicalDevice& I_GPU,
                          const vk::raii::Device&         I_Device);
-        ~FVulkanAllocator() = default;
+        ~FVulkanAllocator();
     };
 
     FVulkanAllocator::
@@ -59,6 +59,12 @@ namespace Visera::RHI
         LOG_TRACE("Created a Vulkan Memory Allocator.");
     }
 
+    FVulkanAllocator::
+    ~FVulkanAllocator()
+    {
+        vmaDestroyAllocator(Handle);
+    }
+
     export inline VISERA_RUNTIME_API TUniquePtr<FVulkanAllocator>
     GVulkanAllocator;
 
@@ -69,13 +75,12 @@ namespace Visera::RHI
         {
             Unknown,
             Image,
-            ImageView,
             Buffer,
         };
 		[[nodiscard]] inline VkDeviceSize
         GetMemorySize() const { return Allocation->GetSize(); }
         [[nodiscard]] inline EType
-        GetType() const { return Type; }
+        GetResourceType() const { return Type; }
 
 		[[nodiscard]] inline Bool
         IsEmpty() const { return GetMemorySize() == 0; }
@@ -124,17 +129,6 @@ namespace Visera::RHI
             { LOG_FATAL("Failed to allocate the Vulkan Image Memory (error:{})!", static_cast<Int32>(Result)); }
             break;
         }
-        case EType::ImageView:
-        {
-            auto CreateInfo  = static_cast<const vk::ImageViewCreateInfo*>(I_CreateInfo);
-            auto ImageViewHandle = static_cast<vk::ImageView*>(I_Handle);
-
-            auto Result = GVulkanAllocator->GetDevice().createImageView(*CreateInfo);
-            if (!Result.has_value())
-            { LOG_FATAL("Failed to create the Vulkan Image View!"); }
-            else
-            { *ImageViewHandle = std::move(*Result); }
-        }
         default:
             VISERA_WIP;
         }
@@ -147,18 +141,13 @@ namespace Visera::RHI
         {
         case EType::Image:
         {
-            auto ImageHandle = static_cast<VkImage*>(I_Handle);
+            auto ImageHandle = *static_cast<vk::Image*>(I_Handle);
 
             vmaDestroyImage(
                 GVulkanAllocator->GetHandle(),
-                *ImageHandle,
+                ImageHandle,
                 Allocation);
-            *ImageHandle = nullptr;
             break;
-        }
-        case EType::ImageView:
-        {
-            // Vulkan RAII
         }
         default:
             VISERA_WIP;

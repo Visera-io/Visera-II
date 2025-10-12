@@ -105,8 +105,6 @@ namespace Visera::RHI
                     const FVulkanExtent3D& I_Extent,
                     EVulkanFormat          I_Format,
                     EVulkanImageUsage      I_Usages);
-        [[nodiscard]] TSharedPtr<FVulkanRenderTarget>
-        CreateRenderTarget(const FVulkanExtent2D& I_Extent);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(EVulkanQueue I_Queue);
         [[nodiscard]] UInt32
@@ -311,7 +309,10 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroyRenderTargets()
     {
-        ColorRTs.clear();
+        for (auto& ColorRT : ColorRTs)
+        {
+            ColorRT.reset();
+        }
     }
 
     void FVulkanDriver::
@@ -793,21 +794,15 @@ namespace Visera::RHI
             .setBaseArrayLayer(0)
             .setLayerCount(1)
         ;
-        constexpr auto ComponentSwizzle = vk::ComponentMapping{}
-            .setR(vk::ComponentSwizzle::eIdentity)
-            .setG(vk::ComponentSwizzle::eIdentity)
-            .setB(vk::ComponentSwizzle::eIdentity)
-            .setA(vk::ComponentSwizzle::eIdentity)
-        ;
         auto ImageViewCreateInfo = vk::ImageViewCreateInfo{}
             .setViewType(vk::ImageViewType::e2D)
             .setFormat(SwapChain.ImageFormat)
-            .setComponents(ComponentSwizzle)
+            .setComponents(IdentitySwizzle)
             .setSubresourceRange(ImageSubresourceRage)
         ;
         for (const auto& Image : SwapChain.Images)
         {
-            ImageViewCreateInfo.image = Image;
+            ImageViewCreateInfo.setImage(Image);
             auto Result = Device.Context.createImageView(ImageViewCreateInfo);
             if (!Result.has_value())
             { LOG_FATAL("Failed to create Vulkan ImageView!"); }
@@ -890,14 +885,6 @@ namespace Visera::RHI
         LOG_TRACE("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
         return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
-    }
-
-    TSharedPtr<FVulkanRenderTarget> FVulkanDriver::
-    CreateRenderTarget(const vk::Extent2D& I_Extent)
-    {
-        LOG_TRACE("Creating a Vulkan Render Target");
-        VISERA_UNIMPLEMENTED_API;
-        return {};
     }
 
     void FVulkanDriver::

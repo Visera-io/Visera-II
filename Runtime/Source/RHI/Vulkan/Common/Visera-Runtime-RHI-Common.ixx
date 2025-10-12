@@ -13,6 +13,7 @@ export namespace Visera::RHI
     using EVulkanLoadOp        = vk::AttachmentLoadOp;
     using EVulkanStoreOp       = vk::AttachmentStoreOp;
     using EVulkanImageType     = vk::ImageType;
+    using EVulkanImageViewType = vk::ImageViewType;
     using EVulkanFormat        = vk::Format;
     using EVulkanImageUsage    = vk::Flags<vk::ImageUsageFlagBits>;
     using EVulkanImageAspect   = vk::ImageAspectFlagBits;
@@ -26,6 +27,14 @@ export namespace Visera::RHI
     using FVulkanRect2D        = vk::Rect2D;
     using FVulkanClearColor    = vk::ClearColorValue;
     using FVulkanImageBarrier  = vk::ImageMemoryBarrier2;
+    using FVulkanSwizzle       = vk::ComponentMapping;
+
+    constexpr auto IdentitySwizzle = FVulkanSwizzle{}
+        .setR(vk::ComponentSwizzle::eIdentity)
+        .setG(vk::ComponentSwizzle::eIdentity)
+        .setB(vk::ComponentSwizzle::eIdentity)
+        .setA(vk::ComponentSwizzle::eIdentity)
+    ;
 }
 
 using namespace Visera;

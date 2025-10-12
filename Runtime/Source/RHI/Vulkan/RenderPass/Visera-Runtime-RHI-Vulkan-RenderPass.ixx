@@ -206,13 +206,14 @@ namespace Visera::RHI
     {
         VISERA_ASSERT(CurrentColorRT && CurrentColorRT->GetHandle());
 
-        auto AttachmentInfo = CurrentColorRT->GetAttachmentInfo();
+        static vk::RenderingAttachmentInfo AttachmentInfo{};
+        AttachmentInfo = CurrentColorRT->GetAttachmentInfo();
 
         auto RenderingInfo = vk::RenderingInfo{}
             .setRenderArea          (CurrentRenderArea)
             .setLayerCount          (1)
             .setColorAttachmentCount(1)
-            .setColorAttachments    (AttachmentInfo)
+            .setPColorAttachments   (&AttachmentInfo)
         ;
         return RenderingInfo;
     }

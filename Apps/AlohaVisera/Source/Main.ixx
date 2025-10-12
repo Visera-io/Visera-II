@@ -79,7 +79,7 @@ export int main(int argc, char *argv[])
         }
 
         //LOG_FATAL("Exited for Development!");
-
+        RenderPass.reset();
         //GEngine->Run();
     }
     GEngine->Terminate();

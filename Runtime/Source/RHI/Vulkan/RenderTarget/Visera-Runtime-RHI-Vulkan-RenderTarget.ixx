@@ -19,8 +19,8 @@ namespace Visera::RHI
         GetLayout() const  { return TargetImage->GetLayout(); }
         [[nodiscard]] inline EVulkanFormat
         GetFormat() const  { return TargetImage->GetFormat(); }
-        [[nodiscard]] inline const vk::Image&
-        GetHandle() const { return TargetImage->GetHandle(); }
+        [[nodiscard]] inline TSharedRef<FVulkanImage>
+        GetHandle() const { return TargetImage; }
         [[nodiscard]] inline EVulkanLoadOp
         GetLoadOp() const { return LoadOp; }
         inline FVulkanRenderTarget&
@@ -37,9 +37,9 @@ namespace Visera::RHI
         vk::RenderingAttachmentInfo
         GetAttachmentInfo() const;
         [[nodiscard]] inline Bool
-        HasDepth() const;
+        HasDepth() const { return TargetImage->HasDepth(); }
         [[nodiscard]] inline Bool
-        HasStencil() const;
+        HasStencil() const { return TargetImage->HasStencil(); }
         void inline
         Swap(TSharedRef<FVulkanRenderTarget> I_Other);
 
@@ -66,6 +66,25 @@ namespace Visera::RHI
         VISERA_ASSERT(TargetImage && TargetImage->GetHandle());
         VISERA_ASSERT(TargetImage->GetLayout() != EVulkanImageLayout::eUndefined &&
                       "Convert layout before creation!");
+        EVulkanImageViewType RTViewType{};
+        switch (TargetImage->GetType())
+        {
+        case EVulkanImageType::e2D: RTViewType = EVulkanImageViewType::e2D; break;
+        default: LOG_FATAL("Unsupported image type!"); break;
+        }
+
+        EVulkanImageAspect RTAspect{};
+        if (TargetImage->HasDepth())
+        { RTAspect = EVulkanImageAspect::eDepth; }
+        else if (TargetImage->HasStencil())
+        { RTAspect = EVulkanImageAspect::eStencil; }
+        else
+        { RTAspect = EVulkanImageAspect::eColor; }
+
+        TargetImageView = MakeShared<FVulkanImageView>(
+            TargetImage,
+            RTViewType,
+            RTAspect);
     }
 
     vk::RenderingAttachmentInfo FVulkanRenderTarget::
@@ -79,38 +98,6 @@ namespace Visera::RHI
             .setClearValue  (GetClearColor())
         ;
         return AttachmentInfo;
-    }
-
-    Bool FVulkanRenderTarget::
-    HasDepth() const
-    {
-        switch (GetFormat())
-        {
-            case EVulkanFormat::eD16Unorm:
-            case EVulkanFormat::eX8D24UnormPack32:
-            case EVulkanFormat::eD32Sfloat:
-            case EVulkanFormat::eD16UnormS8Uint:
-            case EVulkanFormat::eD24UnormS8Uint:
-            case EVulkanFormat::eD32SfloatS8Uint:
-                return True;
-            default:
-                return False;
-        }
-    }
-
-    Bool FVulkanRenderTarget::
-    HasStencil() const
-    {
-        switch (GetFormat())
-        {
-            case EVulkanFormat::eS8Uint:
-            case EVulkanFormat::eD16UnormS8Uint:
-            case EVulkanFormat::eD24UnormS8Uint:
-            case EVulkanFormat::eD32SfloatS8Uint:
-                return true;
-            default:
-                return false;
-        }
     }
 
     void FVulkanRenderTarget::

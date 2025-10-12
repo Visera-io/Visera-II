@@ -55,10 +55,10 @@ namespace Visera::RHI
         IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
 
     private:
-        vk::raii::CommandBuffer       Handle {nullptr};
-        TOptional<FVulkanViewport>    CurrentViewport;
-        TOptional<FVulkanRect2D>      CurrentScissor;
-        TSharedPtr<FVulkanRenderPass> CurrentRenderPass;
+        vk::raii::CommandBuffer     Handle {nullptr};
+        TOptional<FVulkanViewport>  CurrentViewport;
+        TOptional<FVulkanRect2D>    CurrentScissor;
+        TWeakPtr<FVulkanRenderPass> CurrentRenderPass;
 
         EStatus Status { EStatus::Idle };
 
@@ -152,11 +152,11 @@ namespace Visera::RHI
         VISERA_ASSERT(IsRecording());
         CurrentRenderPass = I_RenderPass;
 
-        auto RenderingInfo = CurrentRenderPass->GetRenderingInfo();
+        auto RenderingInfo = I_RenderPass->GetRenderingInfo();
         Handle.beginRendering(RenderingInfo);
 
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                         CurrentRenderPass->GetPipeline());
+                         I_RenderPass->GetPipeline());
 
         if (!CurrentViewport.has_value())
         {
@@ -167,10 +167,17 @@ namespace Visera::RHI
                 .setHeight  (RenderingInfo.renderArea.extent.height)
             ;
         }
-        Handle.setViewport(0, CurrentViewport.value());
+        auto& Viewport = CurrentViewport.value();
+        Handle.setViewport(0, Viewport);
 
-        if (CurrentScissor.has_value())
-        { Handle.setScissor(0, CurrentScissor.value()); }
+        if (!CurrentScissor.has_value())
+        {
+            CurrentScissor = vk::Rect2D{}
+                .setOffset({0,0})
+                .setExtent({static_cast<UInt32>(Viewport.width),static_cast<UInt32>(Viewport.height)})
+            ;
+        }
+        Handle.setScissor(0, CurrentScissor.value());
 
         Status = EStatus::InsideRenderPass;
     }
