@@ -10,8 +10,18 @@ SOURCE_DIRS = [
     "Studio/Source",
 ]
 
+SCRIPT_DIRS = [
+    "Core/Scripts",
+    "Runtime/Scripts",
+    "Engine/Scripts",
+    "Studio/Scripts",
+]
+
 # File extensions we consider as code
 CODE_EXTS = {".hpp", ".ixx"}
+
+# File extensions we consider as CMake
+CMAKE_EXTS = {".cmake", "CMakeLists.txt"}
 
 def count_lines_in_file(file_path: Path) -> int:
     """Count non-empty lines in a file safely."""
@@ -22,12 +32,14 @@ def count_lines_in_file(file_path: Path) -> int:
         print(f"⚠️ Could not read {file_path}: {e}")
         return 0
 
-def count_lines_in_dir(base_dir: Path) -> int:
-    """Recursively count lines of code in a directory."""
+def count_lines_in_dir(base_dir: Path, exts) -> int:
+    """Recursively count lines of code in a directory for given extensions."""
     total = 0
     for root, _, files in os.walk(base_dir):
         for file in files:
-            if Path(file).suffix in CODE_EXTS:
+            suffix = Path(file).suffix
+            # Handle special case for CMakeLists.txt which has no suffix but is a full filename
+            if file in exts or suffix in exts:
                 total += count_lines_in_file(Path(root) / file)
     return total
 
@@ -36,9 +48,17 @@ def main():
     for folder in SOURCE_DIRS:
         path = Path(folder)
         if path.exists():
-            total = count_lines_in_dir(path)
+            total = count_lines_in_dir(path, CODE_EXTS)
             grand_total += total
-            print(f"{folder}: {total} LOC")
+            print(f"{folder}: {total} LOC (C++)")
+        else:
+            print(f"⚠️ Skipping missing folder: {folder}")
+    for folder in SCRIPT_DIRS:
+        path = Path(folder)
+        if path.exists():
+            total = count_lines_in_dir(path, CMAKE_EXTS)
+            grand_total += total
+            print(f"{folder}: {total} LOC (CMake)")
         else:
             print(f"⚠️ Skipping missing folder: {folder}")
     print("=" * 40)

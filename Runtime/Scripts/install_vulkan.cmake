@@ -7,7 +7,7 @@ macro(link_vulkan in_target)
 
     if(NOT TARGET Vulkan::Vulkan)
         if(APPLE)
-            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.0")
+            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328") # Vulkan Hpp
         else()
             set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328") # MoltenVk 1.4.0
         endif()
