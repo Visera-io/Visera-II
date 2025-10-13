@@ -71,6 +71,7 @@ namespace Visera::RHI
             Bool                          bClipped       {True};
         }SwapChain;
 
+        FVulkanExtent2D ColorRTRes { 1920, 1080 };
         TArray<TSharedPtr<FVulkanRenderTarget>> ColorRTs;
         vk::raii::CommandPool        GraphicsCommandPool {nullptr};
 
@@ -318,16 +319,18 @@ namespace Visera::RHI
     void FVulkanDriver::
     CreateRenderTargets()
     {
-        if (SwapChain.Images.empty()) { return;}
+        UInt8 ColorRTCount = Math::Max(SwapChain.Images.size(), static_cast<size_t>(1));
+        LOG_DEBUG("Creating Color Render Targets (count: {}, extent:[{},{}]).",
+                  ColorRTCount, ColorRTRes.width, ColorRTRes.height);
 
         auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
         auto Fence = CreateFence(False);
         Cmd->Begin();
         {
-            for (UInt8 Idx = 0; Idx < SwapChain.Images.size(); ++Idx)
+            for (UInt8 Idx = 0; Idx < ColorRTCount; ++Idx)
             {
                 auto RTImage = CreateImage(EVulkanImageType::e2D,
-                    {GWindow->GetWidth(), GWindow->GetHeight(), 1},
+                    {ColorRTRes.width, ColorRTRes.height, 1},
                     FVulkanRenderPass::ColorRTFormat,
                     vk::ImageUsageFlagBits::eColorAttachment |
                     vk::ImageUsageFlagBits::eTransferSrc);

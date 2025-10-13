@@ -17,7 +17,7 @@ namespace Visera
             LOG_TRACE("Bootstrapping Engine.");
 
             GAssetHub->Bootstrap();
-            GWindow->Bootstrap();
+            //GWindow->Bootstrap();
             GRHI->Bootstrap();
             GAudio->Bootstrap();
             GScene->Bootstrap();
@@ -32,7 +32,7 @@ namespace Visera
             while (!GWindow->ShouldClose())
             {
                 GWindow->PollEvents();
-                //GWindow->PollEvents(); // You MUST call this function on MacOS.
+                GWindow->PollEvents(); // You MUST call this function on MacOS.
 
             }
         }
