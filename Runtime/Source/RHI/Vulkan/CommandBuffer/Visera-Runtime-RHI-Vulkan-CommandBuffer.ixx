@@ -40,6 +40,9 @@ namespace Visera::RHI
         void inline
         LeaveRenderPass();
         void inline
+        BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
+                  TSharedRef<FVulkanImage> I_DstImage);
+        void inline
         End();
 
         [[nodiscard]] inline const vk::raii::CommandBuffer&
@@ -198,12 +201,53 @@ namespace Visera::RHI
     {
         VISERA_ASSERT(IsInsideRenderPass());
 
+        Handle.endRendering();
+
         CurrentViewport.reset();
         CurrentScissor.reset();
 
         CurrentRenderPass.reset();
 
         Status = EStatus::Recording;
+    }
+
+    void FVulkanCommandBuffer::
+    BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
+              TSharedRef<FVulkanImage> I_DstImage)
+    {
+        VISERA_ASSERT(I_SrcImage->GetLayout() == EVulkanImageLayout::eTransferSrcOptimal);
+        VISERA_ASSERT(I_DstImage->GetLayout() == EVulkanImageLayout::eTransferDstOptimal);
+        //VISERA_ASSERT(!_SrcImage->EnabledMSAA() && !_DstImage->EnabledMSAA()); //vkCmdBlitImage must not be used for multisampled source or destination images. Use vkCmdResolveImage for this purpose.
+
+        //[TODO]: As parameters
+        constexpr auto Offset = vk::Offset3D{0, 0, 0};
+        const auto&  SrcExtent = I_SrcImage->GetExtent();
+        vk::Offset3D SrcRange(SrcExtent.width, SrcExtent.height, SrcExtent.depth);
+        const auto&  DstExtent = I_DstImage->GetExtent();
+        vk::Offset3D DstRange(DstExtent.width, DstExtent.height, DstExtent.depth);
+
+        constexpr auto BlitSubresourceRange = vk::ImageSubresourceLayers{}
+            .setAspectMask      (EVulkanImageAspect::eColor)
+            .setMipLevel        (0)
+            .setBaseArrayLayer  (0)
+            .setLayerCount      (1)
+        ;
+        const auto BlitRegion = vk::ImageBlit2{}
+            .setSrcSubresource (BlitSubresourceRange)
+            .setSrcOffsets({Offset, SrcRange})
+            .setDstSubresource (BlitSubresourceRange)
+            .setDstOffsets     ({Offset, DstRange})
+        ;
+        const auto BlitInfo = vk::BlitImageInfo2{}
+            .setSrcImage        (I_SrcImage->GetHandle())
+            .setSrcImageLayout  (I_SrcImage->GetLayout())
+            .setDstImage        (I_DstImage->GetHandle())
+            .setDstImageLayout  (I_DstImage->GetLayout())
+            .setRegionCount     (1)
+            .setPRegions        (&BlitRegion)
+            .setFilter          (vk::Filter::eLinear);
+        ;
+        Handle.blitImage2(BlitInfo);
     }
 
     void FVulkanCommandBuffer::

@@ -10,12 +10,13 @@ namespace Visera
 {
     export namespace RHI
     {
-        using EQueue        = EVulkanQueue;
-        using EImageType    = EVulkanImageType;
-        using EFormat       = EVulkanFormat;
-        using EImageUsage   = EVulkanImageUsage;
-        using EImageLayout  = EVulkanImageLayout;
-        using EAccess       = EVulkanAccess;
+        using EQueue            = EVulkanQueue;
+        using EImageType        = EVulkanImageType;
+        using EFormat           = EVulkanFormat;
+        using EImageUsage       = EVulkanImageUsage;
+        using EImageLayout      = EVulkanImageLayout;
+        using EPipelineStage    = EVulkanPipelineStage;
+        using EAccess           = EVulkanAccess;
     }
 
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton

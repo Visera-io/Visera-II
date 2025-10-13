@@ -75,7 +75,61 @@ export int main(int argc, char *argv[])
         Driver->Submit(Cmd, Fence);
         if (Fence->Wait())
         {
-            LOG_INFO("Fence->Wait Ok!");
+            LOG_INFO("Rendering Ok!");
+        }
+
+        Cmd->Reset();
+        if (Fence->Reset()){}
+
+        Cmd->Begin();
+        {
+            auto OldColorRTLayout   = Driver->ColorRTs[0]->GetLayout();
+            auto OldSwapChainLayout = Driver->SwapChain.Images[0]->GetLayout();
+            Cmd->ConvertImageLayout(
+                Driver->ColorRTs[0]->GetHandle(),
+                RHI::EImageLayout::eTransferSrcOptimal,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+
+            Cmd->ConvertImageLayout(
+                Driver->SwapChain.Images[0],
+                RHI::EImageLayout::eTransferDstOptimal,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+
+            Cmd->BlitImage(Driver->ColorRTs[0]->GetHandle(),
+                           Driver->SwapChain.Images[0]);
+
+            Cmd->ConvertImageLayout(
+                Driver->ColorRTs[0]->GetHandle(),
+                OldColorRTLayout,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+
+            Cmd->ConvertImageLayout(
+                Driver->SwapChain.Images[0],
+                OldSwapChainLayout,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+        }
+        Cmd->End();
+
+        Driver->Submit(Cmd, Fence);
+        if (Fence->Wait())
+        {
+            LOG_INFO("Blit to SwapChain Ok!");
         }
 
         //LOG_FATAL("Exited for Development!");

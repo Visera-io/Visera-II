@@ -14,6 +14,8 @@ namespace Visera::RHI
     public:
         [[nodiscard]] inline const vk::Image&
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline FVulkanExtent3D
+        GetExtent() const { return Extent; }
         [[nodiscard]] inline EVulkanImageType
         GetType() const { return Type; }
         [[nodiscard]] inline EVulkanImageLayout

@@ -17,7 +17,7 @@ namespace Visera
             LOG_TRACE("Bootstrapping Engine.");
 
             GAssetHub->Bootstrap();
-            //GWindow->Bootstrap();
+            GWindow->Bootstrap();
             GRHI->Bootstrap();
             GAudio->Bootstrap();
             GScene->Bootstrap();
@@ -29,11 +29,15 @@ namespace Visera
         {
             VISERA_ASSERT(IsBootstrapped());
 
+            if (!GWindow->IsBootstrapped())
+            {
+                LOG_INFO("Off-Screen Mode.");
+                return;
+            }
+
             while (!GWindow->ShouldClose())
             {
                 GWindow->PollEvents();
-                GWindow->PollEvents(); // You MUST call this function on MacOS.
-
             }
         }
 

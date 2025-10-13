@@ -15,6 +15,8 @@ namespace Visera::RHI
 
         [[nodiscard]] inline Bool
         Wait(UInt64 I_Timeout = ~0U) const;
+        [[nodiscard]] inline Bool
+        Reset() const;
 
         [[nodiscard]] inline const vk::raii::Fence&
         GetHandle() const { return Handle; }
@@ -54,6 +56,18 @@ namespace Visera::RHI
         {
             LOG_ERROR("Failed to wait fence (timeout: {}) -- {}!",
                       I_Timeout, Result);
+            return False;
+        }
+        return True;
+    }
+
+    Bool FVulkanFence::
+    Reset() const
+    {
+        auto Result = Handle.getDevice().resetFences(1, &(*Handle));
+        if (Result != vk::Result::eSuccess)
+        {
+            LOG_ERROR("Failed to reset fence -- {}!", Result);
             return False;
         }
         return True;

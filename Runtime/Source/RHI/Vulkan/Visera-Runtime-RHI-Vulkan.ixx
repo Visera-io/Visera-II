@@ -57,8 +57,8 @@ namespace Visera::RHI
             vk::raii::SwapchainKHR  Context     {nullptr};
             vk::raii::SwapchainKHR  OldContext  {nullptr};
             vk::Extent2D            Extent      {0U, 0U};
-            TArray<vk::Image>           Images      {}; // SwapChain manage Images so do NOT use RAII here.
-            TArray<vk::raii::ImageView> ImageViews  {};
+            TArray<TSharedPtr<FVulkanImageWrapper>> Images     {}; // SwapChain manages Images so do NOT use RAII here.
+            TArray<TSharedPtr<FVulkanImageView>>    ImageViews {};
             UInt8                       Cursor      {0};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
@@ -292,6 +292,7 @@ namespace Visera::RHI
     DestroySwapChain()
     {
         SwapChain.ImageViews.clear();
+        SwapChain.Images.clear();
         SwapChain.Context.clear();
     }
 
@@ -756,26 +757,27 @@ namespace Visera::RHI
             if (!Result.has_value())
             { LOG_FATAL("Failed to retrieve Vulkan Swapchain Images!"); }
 
-            SwapChain.Images = std::move(*Result);
+            TArray<vk::Image> SwapChainImages = std::move(*Result);
+            for (UInt32 Idx = 0; Idx < SwapChainImages.size(); Idx++)
+            {
+                SwapChain.Images.emplace_back(MakeShared<FVulkanImageWrapper>(
+                    SwapChainImages[Idx],
+                    EVulkanImageType::e2D,
+                    FVulkanExtent3D{SwapChain.Extent.width, SwapChain.Extent.height, 1},
+                    SwapChain.ImageFormat,
+                    SwapChain.ImageUsage));
+            }
         }
         // Convert Swapchain Images' layout
         {
             auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
             auto Fence = CreateFence(False);
-            auto Extent = FVulkanExtent3D{ SwapChain.Extent.width, SwapChain.Extent.height, 1U};
 
             Cmd->Begin();
             {
                 for (auto& Image : SwapChain.Images)
                 {
-                    auto ImageWrapper = MakeShared<FVulkanImageWrapper>(
-                        Image,
-                        EVulkanImageType::e2D,
-                        Extent,
-                        SwapChain.ImageFormat,
-                        SwapChain.ImageUsage
-                    );
-                    Cmd->ConvertImageLayout(ImageWrapper,
+                    Cmd->ConvertImageLayout(Image,
                         EVulkanImageLayout::eTransferDstOptimal,
                         EVulkanPipelineStage::eTopOfPipe,
                         EVulkanAccess::eNone,
@@ -790,27 +792,13 @@ namespace Visera::RHI
             if (!Fence->Wait())
             { LOG_FATAL("Failed to wait for convert swapchain image layouts!"); }
         }
-        constexpr auto ImageSubresourceRage = vk::ImageSubresourceRange{}
-            .setAspectMask(vk::ImageAspectFlagBits::eColor)
-            .setBaseMipLevel(0)
-            .setLevelCount(1)
-            .setBaseArrayLayer(0)
-            .setLayerCount(1)
-        ;
-        auto ImageViewCreateInfo = vk::ImageViewCreateInfo{}
-            .setViewType(vk::ImageViewType::e2D)
-            .setFormat(SwapChain.ImageFormat)
-            .setComponents(IdentitySwizzle)
-            .setSubresourceRange(ImageSubresourceRage)
-        ;
+        // Create Image Views
         for (const auto& Image : SwapChain.Images)
         {
-            ImageViewCreateInfo.setImage(Image);
-            auto Result = Device.Context.createImageView(ImageViewCreateInfo);
-            if (!Result.has_value())
-            { LOG_FATAL("Failed to create Vulkan ImageView!"); }
-
-            SwapChain.ImageViews.push_back(std::move(*Result));
+            SwapChain.ImageViews.emplace_back(MakeShared<FVulkanImageView>(
+                Image,
+                EVulkanImageViewType::e2D,
+                EVulkanImageAspect::eColor));
         }
     }
 
