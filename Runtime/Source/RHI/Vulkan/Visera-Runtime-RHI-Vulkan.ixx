@@ -59,7 +59,8 @@ namespace Visera::RHI
             vk::Extent2D            Extent      {0U, 0U};
             TArray<TSharedPtr<FVulkanImageWrapper>> Images     {}; // SwapChain manages Images so do NOT use RAII here.
             TArray<TSharedPtr<FVulkanImageView>>    ImageViews {};
-            UInt8                       Cursor      {0};
+            UInt32                                  Cursor     {0};
+            TArray<vk::raii::Semaphore>             PresentSemaphores;
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
             vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
@@ -71,7 +72,8 @@ namespace Visera::RHI
             Bool                          bClipped       {True};
         }SwapChain;
 
-        FVulkanExtent2D ColorRTRes { 1920, 1080 };
+        const FVulkanExtent2D                   ColorRTRes { 1920, 1080 };
+        TArray<TUniquePtr<FVulkanFence>>        InFlightFences     {};
         TArray<TSharedPtr<FVulkanRenderTarget>> ColorRTs;
         vk::raii::CommandPool        GraphicsCommandPool {nullptr};
 
@@ -84,12 +86,12 @@ namespace Visera::RHI
         TArray<const char*> DeviceExtensions;
 
     public:
-        inline void
-        BeginFrame() {};
-        inline void
-        EndFrame() {};
-        inline void
-        Present()  {};
+        [[nodiscard]] inline Bool
+        BeginFrame();
+        [[nodiscard]] inline Bool
+        EndFrame();
+        [[nodiscard]] inline Bool
+        Present();
         inline void
         Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
                TUniqueRef<FVulkanFence>         I_Fence = FVulkanFence::Null);
@@ -291,6 +293,7 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroySwapChain()
     {
+        SwapChain.PresentSemaphores.clear();
         SwapChain.ImageViews.clear();
         SwapChain.Images.clear();
         SwapChain.Context.clear();
@@ -311,10 +314,8 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroyRenderTargets()
     {
-        for (auto& ColorRT : ColorRTs)
-        {
-            ColorRT.reset();
-        }
+        ColorRTs.clear();
+        InFlightFences.clear();
     }
 
     void FVulkanDriver::
@@ -349,6 +350,12 @@ namespace Visera::RHI
 
         if (!Fence->Wait())
         { LOG_FATAL("Failed to convert the layout of color render targets!"); }
+
+        InFlightFences.resize(ColorRTCount);
+        for (auto& InFlightFence : InFlightFences)
+        {
+            InFlightFence = std::move(CreateFence(True)); // Init as Signaled
+        }
     }
 
     void FVulkanDriver::
@@ -778,11 +785,11 @@ namespace Visera::RHI
                 for (auto& Image : SwapChain.Images)
                 {
                     Cmd->ConvertImageLayout(Image,
-                        EVulkanImageLayout::eTransferDstOptimal,
+                        EVulkanImageLayout::ePresentSrcKHR,
                         EVulkanPipelineStage::eTopOfPipe,
                         EVulkanAccess::eNone,
-                        EVulkanPipelineStage::eTransfer,
-                        EVulkanAccess::eTransferWrite
+                        EVulkanPipelineStage::eBottomOfPipe,
+                        EVulkanAccess::eNone
                     );
                 }
             }
@@ -800,6 +807,17 @@ namespace Visera::RHI
                 EVulkanImageViewType::e2D,
                 EVulkanImageAspect::eColor));
         }
+
+        // Create Present Semaphores
+        SwapChain.PresentSemaphores.reserve(SwapChain.Images.size());
+        for (auto& Image : SwapChain.Images)
+        {
+            auto Result = Device.Context.createSemaphore({});
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to create Vulkan Semaphore for swapchain presentation!"); }
+            else
+            { SwapChain.PresentSemaphores.emplace_back(std::move(*Result)); }
+        }
     }
 
     void FVulkanDriver::
@@ -815,6 +833,115 @@ namespace Visera::RHI
         ;
         if (GWindow->IsBootstrapped())
         { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
+    }
+
+    Bool FVulkanDriver::
+    BeginFrame()
+    {
+        auto& Fence = InFlightFences[SwapChain.Cursor];
+        if (!Fence->Wait())
+        {
+            LOG_ERROR("Failed to wait for the frame({})!", SwapChain.Cursor);
+            return False;
+        }
+        auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
+            .setSwapchain   (SwapChain.Context)
+            .setTimeout     (Math::UpperBound<UInt64>())
+            .setSemaphore   (SwapChain.PresentSemaphores[SwapChain.Cursor])
+            .setFence       (nullptr)
+            .setDeviceMask  (1)
+        ;
+        auto Result = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to acquire the next Vulkan SwapChain Image!"); }
+        auto Status = static_cast<vk::Result>(Result.value);
+        if (Status == vk::Result::eErrorOutOfDateKHR ||
+            Status == vk::Result::eSuboptimalKHR)
+        {
+            LOG_WARN("Failed to acquire next swapchain image -- RECREATION!");
+            return False;
+        }
+
+        return Fence->Reset();
+    }
+
+    Bool FVulkanDriver::
+    EndFrame()
+    {
+        auto& Fence = InFlightFences[SwapChain.Cursor];
+
+        auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
+        Cmd->Begin();
+        {
+            auto OldColorRTLayout   = ColorRTs[0]->GetLayout();
+            auto OldSwapChainLayout = SwapChain.Images[0]->GetLayout();
+
+            Cmd->ConvertImageLayout(
+                ColorRTs[0]->GetHandle(),
+                EVulkanImageLayout::eTransferSrcOptimal,
+                EVulkanPipelineStage::eTopOfPipe,
+                EVulkanAccess::eNone,
+                EVulkanPipelineStage::eTransfer,
+                EVulkanAccess::eTransferWrite
+            );
+
+            Cmd->ConvertImageLayout(
+                SwapChain.Images[0],
+                EVulkanImageLayout::eTransferDstOptimal,
+                EVulkanPipelineStage::eTopOfPipe,
+                EVulkanAccess::eNone,
+                EVulkanPipelineStage::eTransfer,
+                EVulkanAccess::eTransferWrite
+            );
+
+            Cmd->BlitImage(ColorRTs[0]->GetHandle(),
+                           SwapChain.Images[0]);
+
+            Cmd->ConvertImageLayout(
+                ColorRTs[0]->GetHandle(),
+                OldColorRTLayout,
+                EVulkanPipelineStage::eTopOfPipe,
+                EVulkanAccess::eNone,
+                EVulkanPipelineStage::eTransfer,
+                EVulkanAccess::eTransferWrite
+            );
+
+            Cmd->ConvertImageLayout(
+                SwapChain.Images[0],
+                OldSwapChainLayout,
+                EVulkanPipelineStage::eTopOfPipe,
+                EVulkanAccess::eNone,
+                EVulkanPipelineStage::eTransfer,
+                EVulkanAccess::eTransferWrite
+            );
+        }
+        Cmd->End();
+
+        Submit(Cmd, Fence);
+        return Fence->Wait();
+    }
+
+    Bool FVulkanDriver::
+    Present()
+    {
+        auto PresentInfo = vk::PresentInfoKHR{}
+            .setWaitSemaphoreCount  (0)
+            .setPWaitSemaphores     (nullptr)
+            .setSwapchainCount      (1)
+            .setPSwapchains         (&(*SwapChain.Context))
+            .setPImageIndices       (&SwapChain.Cursor)
+            .setPResults            (nullptr) // NOT necessary if using a single swapchain.
+        ;
+        const auto Result = Device.GraphicsQueue.presentKHR(PresentInfo);
+        if (Result == vk::Result::eErrorOutOfDateKHR ||
+            Result == vk::Result::eSuboptimalKHR)
+        {
+            LOG_WARN("Failed to present current swapchain image -- RECREATION!");
+            return False;
+        }
+
+        SwapChain.Cursor = (SwapChain.Cursor + 1) % SwapChain.Images.size();
+        return True;
     }
 
     void FVulkanDriver::

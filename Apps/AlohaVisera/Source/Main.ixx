@@ -53,7 +53,10 @@ export int main(int argc, char *argv[])
         auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
         auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
         auto RenderPass = Driver->CreateRenderPass(TEXT("TestPass"), VertModule, FragModule);
-        RenderPass->SetRenderArea({{0,0},{GWindow->GetWidth(),GWindow->GetHeight()}});
+        RenderPass->SetRenderArea({
+            {0,0},
+            {1920,1080}
+        });
 
         auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
         // auto RHIImage = Driver->CreateImage(
@@ -81,60 +84,22 @@ export int main(int argc, char *argv[])
         Cmd->Reset();
         if (Fence->Reset()){}
 
-        Cmd->Begin();
+        if (Driver->BeginFrame())
         {
-            auto OldColorRTLayout   = Driver->ColorRTs[0]->GetLayout();
-            auto OldSwapChainLayout = Driver->SwapChain.Images[0]->GetLayout();
-            Cmd->ConvertImageLayout(
-                Driver->ColorRTs[0]->GetHandle(),
-                RHI::EImageLayout::eTransferSrcOptimal,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
-            );
 
-            Cmd->ConvertImageLayout(
-                Driver->SwapChain.Images[0],
-                RHI::EImageLayout::eTransferDstOptimal,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
-            );
-
-            Cmd->BlitImage(Driver->ColorRTs[0]->GetHandle(),
-                           Driver->SwapChain.Images[0]);
-
-            Cmd->ConvertImageLayout(
-                Driver->ColorRTs[0]->GetHandle(),
-                OldColorRTLayout,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
-            );
-
-            Cmd->ConvertImageLayout(
-                Driver->SwapChain.Images[0],
-                OldSwapChainLayout,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
-            );
         }
-        Cmd->End();
-
-        Driver->Submit(Cmd, Fence);
-        if (Fence->Wait())
+        if (Driver->EndFrame())
         {
-            LOG_INFO("Blit to SwapChain Ok!");
+
+        }
+        if (Driver->Present())
+        {
+            GEngine->Run();
         }
 
         //LOG_FATAL("Exited for Development!");
         RenderPass.reset();
-        //GEngine->Run();
+
     }
     GEngine->Terminate();
     return EXIT_SUCCESS;

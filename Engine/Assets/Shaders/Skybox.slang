@@ -1,8 +1,15 @@
-const static float2 Vertices[3] =
+const static float2 Vertices2[3] =
 {
         { -1.0,  3.0 },
         { -1.0, -1.0 },
         {  3.0, -1.0 },
+};
+
+const static float2 Vertices[3] =
+{
+        { 0.0,   0.5 },
+        { -0.5, -0.5 },
+        {  0.5, -0.5 },
 };
 
 [shader("vertex")]
