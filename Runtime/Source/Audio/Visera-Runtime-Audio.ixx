@@ -14,14 +14,18 @@ namespace Visera
     export VISERA_RUNTIME_API class FAudio : IGlobalSingleton
     {
     public:
+        void inline
+        Tick() const { Engine->Tick(); }
+
+    private:
+        TUniquePtr<IAudioEngine> Engine;
+
+    public:
         FAudio() : IGlobalSingleton{"Audio"} {}
         void
         Bootstrap() override;
         void
         Terminate() override;
-
-    private:
-        TUniquePtr<IAudioEngine> Engine;
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FAudio>
@@ -32,7 +36,7 @@ namespace Visera
     {
         LOG_TRACE("Bootstrapping Audio.");
 
-        Engine = MakeUnique<FNullAudioEngine>();
+        Engine = MakeUnique<FWwiseAudioEngine>();
 
         Status = EStatus::Bootstrapped;
     }

@@ -38,6 +38,7 @@ namespace Visera
             while (!GWindow->ShouldClose())
             {
                 GWindow->PollEvents();
+                GAudio->Tick();
             }
         }
 

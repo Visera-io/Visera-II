@@ -18,7 +18,7 @@ macro(link_wwise in_target)
     # in the release version.
     target_compile_definitions(${in_target}
         PRIVATE
-        AK_OPTIMIZED=$<NOT:$<CONFIG:Debug>>)
+        $<$<NOT:$<CONFIG:Debug>>:AK_OPTIMIZED>)
 
     if(APPLE)
         target_link_libraries(${in_target}

@@ -15,6 +15,14 @@ namespace Visera
             Null,
             Wwise,
         };
+
+        virtual void
+        Tick() const = 0;
+
+    private:
+        EType Type {EType::Unknown};
+
+    public:
         explicit IAudioEngine() = delete;
         explicit IAudioEngine(EType I_Type) : Type{I_Type}
         {
@@ -28,8 +36,5 @@ namespace Visera
             LOG_INFO("Audio Engine: {}", AudioEngineName);
         }
         virtual ~IAudioEngine() = default;
-
-    private:
-        EType Type {EType::Unknown};
     };
 }

@@ -10,6 +10,10 @@ namespace Visera
     export VISERA_RUNTIME_API class FNullAudioEngine : public IAudioEngine
     {
     public:
+        void
+        Tick() const override {};
+
+    public:
         explicit FNullAudioEngine() : IAudioEngine{EType::Null}
         {
 
