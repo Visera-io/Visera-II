@@ -100,4 +100,20 @@ if(WWISE_BUILD_TYPE STREQUAL "Debug")
 target_link_libraries(Wwise INTERFACE Wwise_CommunicationCentral)
 endif()
 
-target_include_directories(Wwise INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+target_include_directories(Wwise INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/Include")
+
+add_library(WwiseSamples STATIC)
+if(WIN32)
+    file(GLOB_RECURSE WWISE_SAMPLES_PLATFORM "${CMAKE_CURRENT_SOURCE_DIR}/Include/AKSamples/SoundEngine/Win32/*.cpp")
+    set(WwiseSoundEngineIncludes "${CMAKE_CURRENT_SOURCE_DIR}/Include/AKSamples/SoundEngine/Win32")
+else()
+    file(GLOB_RECURSE WWISE_SAMPLES_PLATFORM "${CMAKE_CURRENT_SOURCE_DIR}/Include/AKSamples/SoundEngine/POSIX/*.cpp")
+    set(WwiseSoundEngineIncludes "${CMAKE_CURRENT_SOURCE_DIR}/Include/AKSamples/SoundEngine/POSIX")
+endif()
+file(GLOB_RECURSE WWISE_SAMPLES_COMMON "${CMAKE_CURRENT_SOURCE_DIR}/Include/AKSamples/SoundEngine/Common/*.cpp")
+target_include_directories(WwiseSamples PRIVATE ${WwiseSoundEngineIncludes})
+target_sources(WwiseSamples PRIVATE
+        ${WWISE_SAMPLES_COMMON}
+        ${WWISE_SAMPLES_PLATFORM}
+)
+target_link_libraries(WwiseSamples PRIVATE Wwise)

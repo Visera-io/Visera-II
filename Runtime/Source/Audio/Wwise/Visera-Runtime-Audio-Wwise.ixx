@@ -5,6 +5,7 @@ module;
 #include <AK/SoundEngine/Common/AkMemoryMgrModule.h>
 #include <AK/SoundEngine/Common/AkStreamMgrModule.h>
 #include <AK/Tools/Common/AkPlatformFuncs.h>
+#include <AKSamples/SoundEngine/Common/AkDefaultLowLevelIODispatcher.h>
 #if !defined(AK_OPTIMIZED)
 #include <AK/Comm/AkCommunication.h>
 #endif
@@ -123,7 +124,7 @@ namespace Visera
             {
                 AkBankID ID {AK_INVALID_BANK_ID};
                 auto Result = AK::SoundEngine::LoadBank(
-                "Main.bnk", ID);
+                "/Users/ljyc/Workspace/Programs/GitHub/Visera-II/Engine/Assets/Audio/Mac/Init.bnk", ID);
                 if (Result != AKRESULT::AK_Success)
                 {
                     switch (Result)

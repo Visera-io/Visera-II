@@ -9,7 +9,10 @@ macro(link_wwise in_target)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/Wwise)
     endif()
 
-    target_link_libraries(${in_target} PUBLIC Wwise)
+    target_link_libraries(${in_target} PUBLIC
+            Wwise
+            WwiseSamples
+    )
 
     # You must define the AK_OPTIMIZED symbol in the release configuration
     # of your project (it might be called "Ship", "Retail", or something
