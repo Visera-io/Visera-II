@@ -73,7 +73,7 @@ namespace Visera::RHI
         }SwapChain;
 
         const FVulkanExtent2D                   ColorRTRes { 1920, 1080 };
-        TArray<TUniquePtr<FVulkanFence>>        InFlightFences     {};
+        TArray<TSharedPtr<FVulkanFence>>        InFlightFences     {};
         TArray<TSharedPtr<FVulkanRenderTarget>> ColorRTs;
         vk::raii::CommandPool        GraphicsCommandPool {nullptr};
 
@@ -94,14 +94,14 @@ namespace Visera::RHI
         Present();
         inline void
         Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
-               TUniqueRef<FVulkanFence>         I_Fence = FVulkanFence::Null);
+               TSharedPtr<FVulkanFence>         I_Fence = {});
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
         CreateShaderModule(TSharedPtr<FShader> I_Shader);
         [[nodiscard]] TSharedPtr<FVulkanRenderPass>
         CreateRenderPass(const FText&                    I_Name,
                          TSharedRef<FVulkanShaderModule> I_VertexShader,
                          TSharedRef<FVulkanShaderModule> I_FragmentShader);
-        [[nodiscard]] TUniquePtr<FVulkanFence>
+        [[nodiscard]] TSharedPtr<FVulkanFence>
         CreateFence(Bool I_bSignaled);
         [[nodiscard]] TSharedPtr<FVulkanImage>
         CreateImage(EVulkanImageType       I_ImageType,
@@ -184,7 +184,7 @@ namespace Visera::RHI
         .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
         .setPEngineName         ("Visera")
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
-        .setApiVersion          (vk::ApiVersion14);
+        .setApiVersion          (vk::ApiVersion13);
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
         if (setenv("VK_ICD_FILENAMES",
@@ -946,12 +946,12 @@ namespace Visera::RHI
 
     void FVulkanDriver::
     Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
-           TUniqueRef<FVulkanFence>         I_Fence /* = FVulkanFence::Null */)
+           TSharedPtr<FVulkanFence>         I_Fence /* = {} */)
     {
         VISERA_ASSERT(I_CommandBuffer->IsReadyToSubmit());
 
         auto& CommandBuffer = I_CommandBuffer->GetHandle();
-        auto  Fence = I_Fence == FVulkanFence::Null? nullptr : *I_Fence->GetHandle();
+        auto  Fence = I_Fence? *I_Fence->GetHandle() : nullptr;
 
         auto SubmitInfo = vk::SubmitInfo{}
             .setCommandBufferCount(1)
@@ -986,11 +986,11 @@ namespace Visera::RHI
         return RenderPass;
     }
 
-    TUniquePtr<FVulkanFence> FVulkanDriver::
+    TSharedPtr<FVulkanFence> FVulkanDriver::
     CreateFence(Bool I_bSignaled)
     {
         LOG_TRACE("Creating a Vulkan Fence (signaled:{})", I_bSignaled);
-        return MakeUnique<FVulkanFence>(Device.Context, I_bSignaled);
+        return MakeShared<FVulkanFence>(Device.Context, I_bSignaled);
     }
 
     TSharedPtr<FVulkanImage> FVulkanDriver::

@@ -111,10 +111,10 @@ namespace Visera
                     switch (I_ErrorLevel)
                     {
                     case AK::Monitor::ErrorLevel::ErrorLevel_Message:
-                            LOG_DEBUG("Wwise: {}", I_ErrorMessage);
+                            LOG_DEBUG("Wwise: {}", reinterpret_cast<const char*>(I_ErrorMessage));
                             break;
                     case AK::Monitor::ErrorLevel::ErrorLevel_Error:
-                            LOG_ERROR("Wwise: {} (error: {}).", I_ErrorMessage, Int32(I_ErrorCode));
+                            LOG_ERROR("Wwise: {} (error: {}).", reinterpret_cast<const char*>(I_ErrorMessage), Int32(I_ErrorCode));
                             break;
                     default: LOG_FATAL("Wwise:Unknown Message!");
                     }

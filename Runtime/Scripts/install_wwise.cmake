@@ -23,6 +23,13 @@ macro(link_wwise in_target)
         PRIVATE
         $<$<NOT:$<CONFIG:Debug>>:AK_OPTIMIZED>)
 
+    if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_link_libraries(${in_target}
+            PRIVATE
+            Ws2_32 # Wwise Communication uses Windows Sockets (Winsock) API
+        )
+    endif()
+
     if(APPLE)
         target_link_libraries(${in_target}
             PRIVATE

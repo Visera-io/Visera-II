@@ -7,9 +7,9 @@ macro(link_vulkan in_target)
 
     if(NOT TARGET Vulkan::Vulkan)
         if(APPLE)
-            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328") # Vulkan Hpp
+            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328.0") # Vulkan Hpp
         else()
-            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328") # MoltenVk 1.4.0
+            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328.0") # MoltenVk 1.4.0
         endif()
 
         if(NOT DEFINED ENV{VULKAN_SDK})
@@ -35,7 +35,7 @@ macro(link_vulkan in_target)
             message(STATUS "Found VulkanSDK ${VULKAN_VERSION} on current system")
 
             if(VULKAN_VERSION VERSION_LESS ${VULKAN_REQUIRED_MINIMAL_VERSION})
-                message(FATAL_ERROR "VulkanSDK version is required >= 1.4.0, while current version is ${VULKAN_VERSION}")
+                message(FATAL_ERROR "VulkanSDK version is required >=  ${VULKAN_REQUIRED_MINIMAL_VERSION}, while current version is ${VULKAN_VERSION}")
             endif()
         else()
             message(FATAL_ERROR "Could not determine Vulkan SDK version.")

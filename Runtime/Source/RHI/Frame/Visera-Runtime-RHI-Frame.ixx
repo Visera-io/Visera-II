@@ -15,7 +15,7 @@ namespace Visera::RHI
         Wait() const { VISERA_UNIMPLEMENTED_API; auto R = Fence->Wait(Math::UpperBound<UInt64>()); }
 
     private:
-        TUniquePtr<FVulkanFence> Fence;
+        TSharedPtr<FVulkanFence> Fence;
 
     public:
         explicit FFrame() {};

@@ -11,8 +11,6 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanFence
     {
     public:
-        static TUniquePtr<FVulkanFence> Null;
-
         [[nodiscard]] inline Bool
         Wait(UInt64 I_Timeout = ~0U) const;
         [[nodiscard]] inline Bool
@@ -46,16 +44,14 @@ namespace Visera::RHI
         ~FVulkanFence() {}
     };
 
-    TUniquePtr<FVulkanFence> FVulkanFence::Null = nullptr;
-
     Bool FVulkanFence::
     Wait(UInt64 I_Timeout /* = ~0U */) const
     {
-        auto Result = Handle.getDevice().waitForFences(*Handle, vk::True, I_Timeout);
+        vk::Result Result = Handle.getDevice().waitForFences(*Handle, vk::True, I_Timeout);
         if (Result != vk::Result::eSuccess)
         {
             LOG_ERROR("Failed to wait fence (timeout: {}) -- {}!",
-                      I_Timeout, Result);
+                      I_Timeout, static_cast<Int32>(Result));
             return False;
         }
         return True;
