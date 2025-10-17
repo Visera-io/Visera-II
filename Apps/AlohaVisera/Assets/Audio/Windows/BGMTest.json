@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "169",
+  "SoundBanks": [
+   {
+    "Id": "2964610961",
+    "Type": "User",
+    "GUID": "{D66D5171-8D0E-4849-9469-C8FD79CAB57D}",
+    "Language": "SFX",
+    "Hash": "{4FDED1C9-ABD9-CB72-3412-952FB70646B0}",
+    "ObjectPath": "\\SoundBanks\\LJYCTest\\BGMTest",
+    "ShortName": "BGMTest",
+    "Path": "BGMTest.bnk",
+    "Media": [
+     {
+      "Id": "18504316",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Tavern Glow.wav",
+      "CachePath": "F8/{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "1691765453",
+      "Name": "Play_MainBGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_MainBGM",
+      "GUID": "{8D1E6F25-0AA4-4503-92DE-48B76FC30878}",
+      "DurationType": "OneShot",
+      "DurationMin": "139.91998",
+      "DurationMax": "139.91998",
+      "MediaRefs": [
+       {
+        "Id": "18504316"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{1E4B78B5-B75E-4FF7-3CB6-8E6C01B3A59D}"
+ }
+}
