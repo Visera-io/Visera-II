@@ -67,7 +67,7 @@ namespace Visera
         if (I_Source != EAssetSource::Any)
         {
             const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / PATH("Images") / I_File;
+            FPath Path = Root.GetRoot() / PATH("Image") / I_File;
             LOG_TRACE("Searching the image in \"{}\".", Path);
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
@@ -79,7 +79,7 @@ namespace Visera
         {
             for (const auto& [_, Root] : Roots)
             {
-                FPath Path = Root.GetRoot() / PATH("Images") / I_File;
+                FPath Path = Root.GetRoot() / PATH("Image") / I_File;
                 LOG_TRACE("Searching the image in \"{}\".", Path);
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
@@ -106,7 +106,7 @@ namespace Visera
         if (I_Source != EAssetSource::Any)
         {
             const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / PATH("Shaders") / I_File;
+            FPath Path = Root.GetRoot() / PATH("Shader") / I_File;
             LOG_TRACE("Searching the shader in \"{}\".", Path);
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
@@ -118,7 +118,7 @@ namespace Visera
         {
             for (const auto& [_, Root] : Roots)
             {
-                FPath Path = Root.GetRoot() / PATH("Shaders") / I_File;
+                FPath Path = Root.GetRoot() / PATH("Shader") / I_File;
                 LOG_TRACE("Searching the shader in \"{}\".", Path);
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
