@@ -338,13 +338,28 @@ namespace AK
 		virtual AkUniqueID GetAudioNodeID() const = 0;
 
 		/// Get the expected input of the audio device (sink) at the end of the bus pipeline from the caller's perspective.
-		/// When called from a bus, the bus hierarchy is traversed upward until the master bus is reached. The audio device connected to this master bus is the sink consulted.
-		/// When called from a source, the source's output bus is the starting point of the traversal.
-		/// When called from a sink, that sink is consulted.
-		/// \return AK_Success if the bus hierarchy traversal was successful and a sink was found, AK_Fail otherwise.
+		/// 
+		/// \deprecated This API call is deprecated in favor of \c GetOutputDeviceInfo.
 		virtual AKRESULT GetSinkChannelConfig(
 			AkChannelConfig& out_sinkConfig,           // The channel config of the sink; if set to "Objects", then the sink is in 3D audio mode. Any other config means 3D audio is not active.
 			Ak3DAudioSinkCapabilities& out_3dAudioCaps // When out_sinkConfig is set to Objects, inspect this struct to learn which 3D audio features are supported by the sink
+		) const = 0;
+
+		/// Retrieve information about the output (audio) device that the caller is routed to.
+		/// 
+		/// When called from a plug-in placed on a bus, the bus hierarchy is traversed upward until the master bus is reached. The audio device connected to this master bus is then queried.
+		/// When called from a source plug-in, the source's output bus is the starting point of the traversal.
+		/// When called from an audio device or audio device effect plug-in, that audio device is queried.
+		/// 
+		/// \akwarning During Init, the plug-in may not be connected to the pipeline yet. In this case, \c AK_DeviceNotFound is returned and device information will be zero'ed out.
+		/// To ensure valid information is retrieved, call this API during Execute.
+		/// \endakwarning
+		/// 
+		/// \return
+		/// - AK_Success: Device information is populated
+		/// - AK_DeviceNotFound: The plugin attached to the specified context is not routed to an output device yet. 
+		virtual AKRESULT GetOutputDeviceInfo(
+			AkOutputDeviceInfo& out_outputDeviceInfo   ///< Information about the output device.
 		) const = 0;
 	};
 
@@ -422,9 +437,16 @@ namespace AK
 		virtual AKRESULT SendToSidechainMix(AkUniqueID in_uSidechainId, AkUInt64 in_uSidechainScopeId, AkAudioBuffer* in_pAudioBuffer) = 0;
 
 		// Copies the mixed result of the sidechain, with the matching in_uSidechainScopeId, from the previous soundengine tick into the provided audio buffer.
-		// The provided audiobuffer must have a matching config, as well as a matching number of maxframes, and pre-allocated space for the sidechain storage.
-		// If the sidechain is not registered, or combination of sidechainId and extraId was not saved on the previous tick, returns AK_IDNotFound, and the audio buffer will be unmodified.
-		virtual AKRESULT ReceiveFromSidechainMix(AkUniqueID in_uSidechainId, AkUInt64 in_uSidechainScopeId, AkAudioBuffer* out_pAudioBuffer) = 0;
+		// The provided io_pAudioBuffer must:
+		// - have a matching channel config as the sidechain, as defined by IAkEffectPluginContext::GetSidechainMixChannelConfig
+		// - have the correct value for MaxFrames, as defined by IAkGlobalPluginContext::GetMaxBufferLength,
+		// - have pre-allocated space for the audio buffer, to copy the sidechain audio data into
+		// The ValidFrames on the audio buffer will be updated to match the MaxFrames if the copy of sidechain data completes successfully.
+		// 
+		// \return AK_UnsupportedChannelConfig if io_pAudioBuffer's channel config does not match the sidechain mix
+		// \return AK_InvalidParameter if io_pAudioBuffer's maxFrames does not match the sidechain mix
+		// \return AK_IDNotFound if the sidechain is not registered, or the combination of in_uSidechainId and in_uSidechainScopeId did not occur on the previous tick
+		virtual AKRESULT ReceiveFromSidechainMix(AkUniqueID in_uSidechainId, AkUInt64 in_uSidechainScopeId, AkAudioBuffer* io_pAudioBuffer) = 0;
 
 		//@}
 
@@ -1133,6 +1155,15 @@ namespace AK
 		
 		/// Returns the panning rule for the output device to which the sink plug-in is attached.
 		virtual AkPanningRule GetPanningRule() const = 0;
+
+		/// Associates a custom data pointer to the output device information to which the sink plug-in is attached.
+		/// 
+		/// This custom data pointer can then be queried by other plug-ins via AK::IAkPluginContextBase::GetOutputDeviceInfo.
+		/// 
+		/// If the pointer points to an object, this object must remain valid for the entirety of the sink's lifetime.
+		virtual void SetOutputDeviceInfoCustomData(
+			void* in_pCustomData   ///< Pointer to custom data. Can be NULL to unset data.
+		) = 0;
 	};
 
 	enum AkSinkPluginType

@@ -1,0 +1,55 @@
+module;
+#include <Visera-Runtime.hpp>
+#include <AK/SoundEngine/Common/AkSoundEngine.h>
+export module Visera.Runtime.AssetHub.Sound;
+#define VISERA_MODULE_NAME "Runtime.AssetHub"
+import Visera.Runtime.AssetHub.Asset;
+import Visera.Core.Log;
+
+namespace Visera
+{
+   export class VISERA_RUNTIME_API FSound : public IAsset
+   {
+   public:
+      [[nodiscard]] const FByte*
+      GetData() const override { VISERA_UNIMPLEMENTED_API; return nullptr; };
+      [[nodiscard]] UInt64
+      GetSize() const override { VISERA_UNIMPLEMENTED_API; return 0; };
+
+      [[nodiscard]] inline AkBankID
+      GetID() const { return ID; }
+
+   private:
+      AkBankID ID {AK_INVALID_BANK_ID};
+
+   public:
+      FSound() = delete;
+      FSound(const FName& I_Name, const FPath& I_Path);
+   };
+
+   FSound::
+   FSound(const FName& I_Name, const FPath& I_Path)
+   : IAsset(EType::Sound, I_Name, I_Path)
+   {
+      const FPath Extension = GetPath().GetExtension();
+
+      if (Extension == PATH(".bnk"))
+      {
+         VISERA_ASSERT(AK::SoundEngine::IsInitialized());
+         //auto WidePath = I_Path.GetNativePath().wstring();
+         auto Result = AK::SoundEngine::LoadBank(I_Path.GetNativePath().c_str(), ID);
+         switch (Result)
+         {
+         case AK_Success:            LOG_DEBUG("Bank loaded"); break;
+         case AK_BankAlreadyLoaded:  LOG_WARN("Bank already loaded!"); break;
+         default:                    LOG_FATAL("Unknown Error ({})!", Int32(Result)); break;
+         }
+      }
+      else
+      {
+         LOG_ERROR("Failed to load the sound \"{}\""
+                   "-- unsupported extension {}!", GetPath(), Extension);
+         return;
+      }
+   }
+}

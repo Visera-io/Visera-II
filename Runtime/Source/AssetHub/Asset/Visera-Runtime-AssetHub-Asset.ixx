@@ -17,6 +17,7 @@ namespace Visera
       {
          Unknown,
          Shader,
+         Sound,
          Image,
          Font,
       };

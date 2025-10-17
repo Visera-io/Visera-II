@@ -80,6 +80,12 @@ enum AkCommand
 	AkCommand_AddOutputCaptureMarker,              ///< See AkCmd_AddOutputCaptureMarker
 	AkCommand_ControlOfflineRendering,             ///< See AkCmd_ControlOfflineRendering
 	AkCommand_SetRandomSeed,                       ///< See AkCmd_SetRandomSeed
+	AkCommand_ControlEventStreamCache,             ///< See AkCmd_ControlEventStreamCache
+	AkCommand_ControlSuspendedState,               ///< See AkCmd_ControlSuspendedState
+	AkCommand_MuteBackgroundMusic,                 ///< See AkCmd_MuteBackgroundMusic
+	AkCommand_SendPluginCustomGameData,            ///< See AkCmd_SendPluginCustomGameData
+	AkCommand_SetSidechainMixConfig,               ///< See AkCmd_SetSidechainMixConfig
+	AkCommand_ResetGlobalValues,                   ///< See AkCmd_ResetGlobalValues
 
 	AkCommand_SA_Begin,                                 ///< Not a real command ID; defines the start of the SpatialAudio command range
 	AkCommand_SA_RegisterListener = AkCommand_SA_Begin, ///< See AkCmd_SA_RegisterListener
@@ -109,9 +115,13 @@ enum AkCommand
 	AkCommand_SA_SetReflectionsOrder,                   ///< See AkCmd_SA_SetReflectionsOrder
 	AkCommand_SA_SetDiffractionOrder,                   ///< See AkCmd_SA_SetDiffractionOrder
 	AkCommand_SA_SetMaxGlobalReflectionPaths,           ///< See AkCmd_SA_SetMaxGlobalReflectionPaths
+	AkCommand_SA_SetMaxEmitterRoomAuxSends,             ///< See AkCmd_SA_SetMaxEmitterRoomAuxSends
 	AkCommand_SA_SetMaxDiffractionPaths,                ///< See AkCmd_SA_SetMaxDiffractionPaths
 	AkCommand_SA_SetSmoothingConstant,                  ///< See AkCmd_SA_SetSmoothingConstant
 	AkCommand_SA_SetTransmissionOperation,              ///< See AkCmd_SA_SetTransmissionOperation
+	AkCommand_SA_SetNumberOfPrimaryRays,                ///< See AkCmd_SA_SetNumberOfPrimaryRays
+	AkCommand_SA_SetLoadBalancingSpread,                ///< See AkCmd_SA_SetLoadBalancingSpread
+	AkCommand_SA_ResetStochasticEngine,                 ///< See AkCmd_SA_ResetStochasticEngine
 
 	AkCommand_SA_End,                                   ///< Not a real command ID; defines the end of the SpatialAudio command range
 
@@ -219,7 +229,7 @@ struct AkCmd_Callback
 /// according to the interpolation curve.
 /// 
 /// This command can fail for the following reasons:
-/// - AK_InvalidParameter: \c gameObjectID specified and is outside the valid range
+/// - AK_InvalidParameter: \c gameObjectID specified and is outside the valid range or \c fadeCurve is not a valid AkCurveInterpolation value.
 /// - AK_IDNotFound: \c gameObjectID is not a registered game object ID.
 /// 
 /// \sa AkCommand_SetRTPC
@@ -230,8 +240,8 @@ struct AkCmd_SetRTPC
 	AkGameObjectID         gameObjectID;                     ///<(optional) Game Object ID; specify AK_INVALID_GAME_OBJECT for global scope or if using playingID
 	AkPlayingID            playingID;                        ///<(optional) Playing ID; specify AK_INVALID_PLAYING for global scope or if using gameObjectID
 	AkTimeMs               transitionTime;                   ///<(optional) Duration during which the game parameter is interpolated towards in_value, 0 for instant change
-	AkUInt32               fadeCurve;                        ///<(optional) Curve type to be used for the game parameter interpolation, see \ref AkCurveInterpolation
-	AkUInt32               bypassInternalValueInterpolation; ///<Not 0 if you want to bypass the internal "slew rate" or "over time filtering" specified by the sound designer. This is meant to be used when, for example, loading a level and you don't want the values to interpolate.
+	AkUInt16               fadeCurve;                        ///<(optional) Curve type to be used for the game parameter interpolation, see \ref AkCurveInterpolation
+	AkUInt16               bypassInternalValueInterpolation; ///<Not 0 if you want to bypass the internal "slew rate" or "over time filtering" specified by the sound designer. This is meant to be used when, for example, loading a level and you don't want the values to interpolate.
 };
 
 /// Resets the value of the game parameter to its default value, as specified in the Wwise project.
@@ -248,7 +258,7 @@ struct AkCmd_SetRTPC
 /// according to the interpolation curve.
 /// 
 /// This command can fail for the following reasons:
-/// - AK_InvalidParameter: \c gameObjectID specified and is outside the valid range
+/// - AK_InvalidParameter: \c gameObjectID specified and is outside the valid range or \c fadeCurve is not a valid AkCurveInterpolation value.
 /// - AK_IDNotFound: \c gameObjectID is not a registered game object ID.
 /// 
 /// \sa AkCommand_ResetRTPC
@@ -258,8 +268,8 @@ struct AkCmd_ResetRTPC
 	AkGameObjectID         gameObjectID;                     ///<(optional) Game Object ID; specify AK_INVALID_GAME_OBJECT for global scope or if using playingID
 	AkPlayingID            playingID;                        ///<(optional) Playing ID; specify AK_INVALID_PLAYING for global scope or if using gameObjectID
 	AkTimeMs               transitionTime;                   ///<(optional) Duration during which the game parameter is interpolated towards in_value, 0 for instant change
-	AkUInt32               fadeCurve;                        ///<(optional) Curve type to be used for the game parameter interpolation, see \ref AkCurveInterpolation
-	AkUInt32               bypassInternalValueInterpolation; ///<Not 0 if you want to bypass the internal "slew rate" or "over time filtering" specified by the sound designer. This is meant to be used when, for example, loading a level and you don't want the values to interpolate.
+	AkUInt16               fadeCurve;                        ///<(optional) Curve type to be used for the game parameter interpolation, see \ref AkCurveInterpolation
+	AkUInt16               bypassInternalValueInterpolation; ///<Not 0 if you want to bypass the internal "slew rate" or "over time filtering" specified by the sound designer. This is meant to be used when, for example, loading a level and you don't want the values to interpolate.
 };
 
 /// Sets the position of a game object.
@@ -567,7 +577,7 @@ struct AkCmd_StopAll
 /// Executes an action on all nodes that are referenced in the specified event in an action of type play.
 /// 
 /// This command can fail for the following reasons:
-/// - AK_InvalidParameter: \c eventID is invalid or \c actionType is not a valid action
+/// - AK_InvalidParameter: \c eventID is invalid, \c actionType is not a valid action or \c fadeCurve is not a valid AkCurveInterpolation value.
 /// - AK_IDNotFound: Event was not found or \c gameObjectID is specified but not a registered game object.
 /// 
 /// \sa
@@ -586,7 +596,7 @@ struct AkCmd_ExecuteActionOnEvent
 /// Executes an Action on the content associated to the specified playing ID.
 /// 
 /// This command can fail for the following reasons:
-/// - AK_InvalidParameter: \c playingID or \c actionType is invalid.
+/// - AK_InvalidParameter: \c playingID, \c actionType or \c fadeCurve is invalid.
 /// 
 /// \sa
 /// - <tt>AkActionOnEventType</tt>
@@ -640,7 +650,7 @@ struct AkCmd_ExecuteActionOnPlayingID
 ///		- If the specified time is greater than the destination segment's length, the modulo is taken.
 ///
 /// This command can fail for the following reasons:
-/// - AK_InvalidParameter: \c eventID is invalid.
+/// - AK_InvalidParameter: \c eventID is invalid or relative position is not in the valid range.
 /// - AK_IDNotFound: Event was not found, or \c gameObjectID is specified but not a registered game object.
 /// 
 /// \sa
@@ -962,6 +972,39 @@ struct AkCmd_ResetBusConfig
 	AkUniqueID             busID;         ///< Bus Short ID.
 };
 
+/// Resets all global changes made to the sound engine.
+/// This includes:
+/// - States
+/// - RTPCs in the global scope
+/// - Changes made on sound object by Event Actions like Set Volume, Set Pitch, etc or equivalent API calls.
+/// - Mute/solo status
+/// - Effects set dynamically through SetEffect or a Set Effect Action.
+/// - Random and Sequence containers histories (last played, etc)
+/// \note
+/// To reset Game Object specific values, use AK::SoundEngine::UnregisterGameObj or AK::SoundEngine::UnregisterAllGameObj 
+/// then AK::SoundEngine::RegisterGameObj if the game object is still needed.
+/// \sa
+/// - AK::SoundEngine::ResetGlobalValues
+struct AkCmd_ResetGlobalValues
+{
+	AkUInt32 unused;
+};
+
+/// Forces channel configuration for the specified Sidechain Mix.
+/// 
+/// This command can fail for the following reasons:
+/// - \c AK_InvalidParameter when \c sidechainMixID is an invalid ID.
+/// - \c AK_IDNotFound when the SidechainMix ID is not loaded.
+/// 
+/// \sa
+/// - AkCommand_SetSidechainMixConfig
+/// - AK::SoundEngine::SetSidechainMixConfig
+struct AkCmd_SetSidechainMixConfig
+{
+	AkUniqueID             sidechainMixID; ///< SidechainMix Short ID.
+	struct AkChannelConfig channelConfig;  ///< Desired channel configuration. An invalid configuration (from default constructor) means "as parent".
+};
+
 /// Sets an Effect ShareSet at the specified slot of a container, bus, or output device.
 /// 
 /// \aknote
@@ -1175,6 +1218,114 @@ struct AkCmd_ControlOfflineRendering
 struct AkCmd_SetRandomSeed
 {
 	AkUInt32 seedValue; ///< Seed value to use for random number generation
+};
+
+/// Allows streaming the first part of all streamed files referenced by an Event into a cache buffer. 
+/// 
+/// Caching streams are serviced when no other streams require the available bandwidth. 
+/// The files will remain cached until a command disables caching, or a higher priority 
+/// pinned file needs the space and the limit set by \c uMaxCachePinnedBytes is exceeded.  
+/// 
+/// \remarks The amount of data from the start of the file that will be pinned to cache is determined by the prefetch size. The prefetch size is set via the authoring tool and stored in the sound banks.  
+/// \remarks It is possible to override the prefetch size stored in the sound bank via the low level IO. For more information see <tt>AK::StreamMgr::IAkLowLevelIOHook::BatchOpen()</tt> and \c AkFileSystemFlags.
+/// \remarks If this function is called additional times with the same event, then the priority of the caching streams are updated. Note however that priority is passed down to the stream manager 
+///	on a file-by-file basis, and if another event is pinned to cache that references the same file but with a different priority, then the first priority will be updated with the most recent value.
+/// \remarks If the event references files that are chosen based on a State Group (via a switch container), all files in all states will be cached. Those in the current active state
+/// will get cached with active priority, while all other files will get cached with inactive priority.
+/// \remarks \c inactivePriority is only relevant for events that reference switch containers that are assigned to State Groups. This parameter is ignored for all other events, including events that only reference
+/// switch containers that are assigned to Switch Groups. Files that are chosen based on a Switch Group have a different switch value per game object, and are all effectively considered active by the pin-to-cache system.
+/// 
+/// This command can fail for the following reasons:
+/// - \c AK_InvalidParameter if \c eventID is invalid
+/// - \c AK_IDNotFound if \c eventID refers to an unknown event
+/// 
+/// \sa
+/// - AkCommand_ControlEventStreamCache
+/// - AK::SoundEngine::PinEventInStreamCache
+/// - AK::SoundEngine::UnpinEventInStreamCache
+/// - AK::SoundEngine::GetBufferStatusForPinnedEvent
+/// - AK::StreamMgr::IAkLowLevelIOHook::BatchOpen
+/// - AkFileSystemFlags
+struct AkCmd_ControlEventStreamCache
+{
+	AkUniqueID eventID;           ///< ID of event. Stream caching state will be updated for all streaming files referenced by this event.
+	AkUInt8    isCached;          ///< Activate or de-activate stream caching. When false, any cache buffers previously associated with the event are released.
+	AkPriority activePriority;    ///< Priority of active stream caching I/O
+	AkPriority inactivePriority;  ///< Priority of inactive stream caching I/O
+};
+
+/// Puts the sound engine in background mode, where audio isn't processed anymore. Required when the platform has a background mode or some suspended state.
+/// 
+/// When suspended, the sound engine will process API messages (like PostEvent and SetSwitch) only when \ref AK::SoundEngine::RenderAudio is called. 
+/// It is recommended to match the \c renderWhileSuspended parameter with the behavior of the rest of your game: 
+/// 
+/// - If your game still runs in background and you must keep some kind of coherent state between the audio engine and game, then allow rendering.
+/// - If you want to minimize CPU when in background, then don't allow rendering and never call RenderAudio from the game.
+/// 
+/// Use the same command with \c isSuspended set to false when your application receives the message from the OS that the process is back in foreground.
+///
+/// Consult \ref workingwithsdks_system_calls to learn when it is appropriate to call this function for each platform.
+/// 
+/// \sa
+/// - AkCommand_ControlSuspendedState
+/// - AK::SoundEngine::Suspend
+/// - AK::SoundEngine::WakeupFromSuspend
+/// - \ref workingwithsdks_system_calls
+struct AkCmd_ControlSuspendedState
+{
+	AkUInt8  isSuspended;           ///< Whether to suspend or wake up the Sound Engine.
+	AkUInt8  renderWhileSuspended;  ///< ///< If set to true, audio processing will still occur while suspended, but not outputted. When set to false, no audio will be processed at all, even when AK::SoundEngine::RenderAudio is called.
+	AkTimeMs transitionTime;        ///< Delay the transition. During transition to suspended state, a fade-out is applied to the audio output. When 0, the suspend takes effect immediately but audio may glitch.
+};
+
+/// Mutes/Unmutes the busses tagged as background music.
+/// 
+/// This is automatically called for platforms that have user-music support.
+/// This command is provided to give the same behavior on platforms that don't have user-music support.
+/// 
+/// \sa
+/// - AkCommand_MuteBackgroundMusic
+/// - AK::SoundEngine::MuteBackgroundMusic
+struct AkCmd_MuteBackgroundMusic
+{
+	AkUInt32 isMuted;  ///< Whether to mute BGM busses.
+};
+
+/// Sends custom game data to a plug-in that resides on a bus (effect plug-in) or a voice (source plug-in).
+/// 
+/// When \c dataSize is greater than 0, the Sound Engine expects binary data to follow this command. For example:
+/// 
+///     auto cmd = (AkCmd_SendPluginCustomGameData*)AK_CommandBuffer_Add(buffer, AkCmd_SendPluginCustomGameData);
+///     cmd->busID = myBusID;
+///     cmd->pluginType = AkPluginTypeEffect;
+///     cmd->companyID = myCompanyID;
+///     cmd->pluginID = myPluginID;
+///     cmd->dataSize = plugin_data.size();
+///     AK_CommandBuffer_AddArray(buffer, 1, plugin_data.size(), plugin_data.data());
+/// 
+/// Data will be copied and stored into a separate list.
+/// Previous entry is deleted when a new one is sent.
+/// Set \c dataSize to 0 to clear item from the list.
+/// 
+/// \aknote The plug-in type and ID are passed and matched with plugins set on the desired bus. 
+/// This means that multiple instances of the same plug-in on a given bus' effect chain will always receive the same data.
+/// \endaknote
+/// 
+/// This command can fail for the following reasons:
+/// - \c AK_InvalidParameter: \c pluginID is invalid, or there is less binary data following the command than what \c dataSize declares.
+/// - \c AK_InsufficientMemory: Not enough memory to complete the operation.
+/// 
+/// \sa
+/// - AkCommand_SendPluginCustomGameData
+/// - AK::SoundEngine::SendPluginCustomGameData
+struct AkCmd_SendPluginCustomGameData
+{
+	AkUniqueID     busID;           ///< Bus ID. For source plug-ins, specify AK_INVALID_UNIQUE_ID.
+	AkGameObjectID gameObjectID;    ///< Game Object ID. Pass AK_INVALID_GAME_OBJECT to send custom data with global scope. Game object scope supersedes global scope, as with RTPCs. 
+	AkUInt32       pluginType;      ///< Plug-in type (for example, source or effect). See \ref AkPluginType.
+	AkUInt32       companyID;       ///< Company identifier (as declared in the plug-in description XML file)
+	AkUInt32       pluginID;        ///< Plug-in identifier (as declared in the plug-in description XML file)
+	AkUInt32       dataSize;        ///< Size of data in bytes
 };
 
 /// Assign a game object as the Spatial Audio listener.  There can be only one Spatial Audio listener registered at any given time; <tt>gameObjectID</tt> will replace any previously set Spatial Audio listener.
@@ -1724,6 +1875,16 @@ struct AkCmd_SA_SetMaxGlobalReflectionPaths
 	AkUInt32 maxReflectionPaths; ///< Maximum number of reflection paths. Valid range [0..[
 };
 
+/// Set the maximum number of game-defined auxiliary sends that can originate from a single emitter. 
+/// Set to 1 to only allow emitters to send directly to their current room. Set to 0 to disable the limit.
+/// \sa
+/// - \ref AkCommand_SA_SetMaxEmitterRoomAuxSends
+/// - \ref AkSpatialAudioInitSettings::uMaxEmitterRoomAuxSends
+struct AkCmd_SA_SetMaxEmitterRoomAuxSends
+{
+	AkUInt32 maxEmitterRoomAuxSends;	///< The maximum number of room aux send connections.
+};
+
 /// Set the maximum number of computed diffraction paths. 
 /// Pass a valid Game Object ID to to \c gameObjectID to affect a specific game object and override the value set in <tt>AkSpatialAudioInitSettings::uMaxDiffractionPaths</tt>. 
 /// Pass \c AK_INVALID_GAME_OBJECT to apply the same limit to all Game Objects (that have not previously been passed to \c AkCmd_SA_SetMaxDiffractionPaths), 
@@ -1766,6 +1927,34 @@ struct AkCmd_SA_SetSmoothingConstant
 struct AkCmd_SA_SetTransmissionOperation
 {
 	AkUInt32 operation; ///< The operation to be used on all transmission paths. Possible values are listed in the \ref AkTransmissionOperation enum.
+};
+
+/// Set the number of primary rays cast from the listener by the stochastic ray casting engine.
+/// 
+/// \sa
+/// - \ref AkCommand_SA_SetNumberOfPrimaryRays
+struct AkCmd_SA_SetNumberOfPrimaryRays
+{
+	AkUInt32 uNbPrimaryRays; ///< Number of rays cast from the listener
+};
+
+/// Set the number of frames on which the path validation phase will be spread. Value between [1..[
+/// High values delay the validation of paths. A value of 1 indicates no spread at all.
+/// 
+/// \sa
+/// - \ref AkCommand_SA_SetLoadBalancingSpread
+struct AkCmd_SA_SetLoadBalancingSpread
+{
+	AkUInt32 uNbFrames; ///< Number of spread frames
+};
+
+/// Reset the stochastic engine state by re-initializing the random seeds.
+///
+/// \sa
+/// - \ref AkCommand_SA_ResetStochasticEngine
+struct AkCmd_SA_ResetStochasticEngine
+{
+	AkUInt32 uUnused;
 };
 
 /// Describes the data written at the beginning of any initialized command buffer.

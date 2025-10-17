@@ -37,9 +37,9 @@ if(MSVC)
     # set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}")
     target_sources(${VISERA_APP}
                    PRIVATE
-                   "${VISERA_APP_ASSETS_DIR}/Icons/App.ico.rc")
+                   "${VISERA_APP_ASSETS_DIR}/Icon/App.ico.rc")
 elseif(APPLE)
-    set(APP_ICON_MACOS "${VISERA_APP_ASSETS_DIR}/Icons/App.icns")
+    set(APP_ICON_MACOS "${VISERA_APP_ASSETS_DIR}/Icon/App.icns")
 
     set_source_files_properties(${APP_ICON_MACOS}
             PROPERTIES

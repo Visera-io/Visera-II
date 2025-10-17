@@ -6,6 +6,7 @@ macro(link_slang in_target)
     message(STATUS "\nLinking Slang (slang)")
     # Make sure that Version(VulkanSDK) >= "1.4.0"
     add_library(slang UNKNOWN IMPORTED)
+    message(STATUS "Using VulkanSDK $ENV{VULKAN_SDK}")
 
     if (WIN32)
         set_target_properties(slang
@@ -20,8 +21,6 @@ macro(link_slang in_target)
                 IMPORTED_LOCATION "$ENV{VULKAN_SDK}/lib/libslang.dylib"
                 INTERFACE_INCLUDE_DIRECTORIES "$ENV{VULKAN_SDK}/include/slang")
         target_link_libraries(${in_target} PUBLIC slang)
-
-        #elseif (LINUX)
     else()
         message(FATAL_ERROR "[Slang] Unsupported Platform!")
     endif()

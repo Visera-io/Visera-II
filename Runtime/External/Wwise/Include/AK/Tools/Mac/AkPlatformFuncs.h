@@ -80,6 +80,18 @@ namespace AKPLATFORM
 		AKVERIFY( semaphore_wait( in_event ) == noErr );
 	}
 	
+	// Returns true if event signaled, false if timed out
+	inline bool AkWaitForEvent( AkEvent & in_event, AkUInt32 in_dwMilliseconds )
+	{
+		AKASSERT( in_dwMilliseconds != 0xFFFFFFFF ); // does not support INFINITE
+
+		mach_timespec_t ts;
+		ts.tv_sec = in_dwMilliseconds / 1000;
+		ts.tv_nsec = (in_dwMilliseconds % 1000) * 1000000;
+
+		int kr = semaphore_timedwait( in_event, ts );
+		return kr == KERN_SUCCESS;
+	}
 
 	/// Platform Independent Helper
 	inline void AkSignalEvent( const AkEvent & in_event )

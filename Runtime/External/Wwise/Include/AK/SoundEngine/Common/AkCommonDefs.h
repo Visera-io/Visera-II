@@ -280,18 +280,6 @@ struct AkPositioningData
 	AkBehavioralPositioningData behavioral;			///< Positioning data inherited from sound structures and mix busses.
 };
 
-/// Structure containing information about system-level support for 3D audio.
-/// "3D Audio" refers to a system's ability to position sound sources in a virtual 3D space, pan them accordingly on a range of physical speakers, and produce a binaural mix where appropriate.
-/// We prefer "3D Audio" to "Spatial" to avoid ambiguity with spatial audio, which typically involves sound propagation and environment effects.
-struct Ak3DAudioSinkCapabilities
-{
-	AkChannelConfig channelConfig{};                              ///< Channel configuration of the main mix.
-	AkUInt32        uMaxSystemAudioObjects = 0;                   ///< Maximum number of System Audio Objects that can be active concurrently. A value of zero indicates the system does not support this feature.
-	AkUInt32        uAvailableSystemAudioObjects = 0;             ///< How many System Audio Objects can currently be sent to the sink. This value can change at runtime depending on what is playing. Can never be higher than uMaxSystemAudioObjects.
-	bool            bPassthrough = false;                         ///< Separate  pass-through mix is supported.
-	bool            bMultiChannelObjects = false;                 ///< Can handle multi-channel objects
-};
-
 /// Enum of the possible object destinations when reaching a 3D audio-capable sink
 enum class AkAudioObjectDestination
 {

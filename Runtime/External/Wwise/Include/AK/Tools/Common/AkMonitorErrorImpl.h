@@ -322,9 +322,13 @@ namespace AK
 			ERROR_CODE_DEF(AKTEXT("ErrorCode_InvalidCommand"), AKTEXT("Invalid Sound Engine command received. Command will be skipped. ID: %i (%s)")),
 			ERROR_CODE_DEF(AKTEXT("ErrorCode_PlayingIDAlreadyExists"), AKTEXT("Playing ID already exists. New playing IDs must be generated when posting events. ID: %i")),
 			ERROR_CODE_DEF(AKTEXT("ErrorCode_IOStreamLeak"), AKTEXT("I/O Error: Stream $m did not terminate normally (code %i). Memory leak detected.")),
+
+			ERROR_CODE_DEF(AKTEXT("ErrorCode_SetSidechainMixConfigInvalid"), AKTEXT("Invalid channel configuration specified for SetSidechainMixConfig. Audio Objects configuration is not supported.")),
+
+			ERROR_CODE_DEF(AKTEXT("ErrorCode_NodeNotCompatibleWithMidi"), AKTEXT("Container is not compatible with MIDI playback. This may be because the container is configured in continuous mode.")),
 		};
 
-		static_assert(AK::Monitor::Num_ErrorCodes == 225, "ARRAYSIZE(AK::Monitor::s_aszMonitorErrorInfos) is not matching AK::Monitor::Num_ErrorCodes, make sure they are maintained at the same time.");
+		static_assert(AK::Monitor::Num_ErrorCodes == 227, "ARRAYSIZE(AK::Monitor::s_aszMonitorErrorInfos) is not matching AK::Monitor::Num_ErrorCodes, make sure they are maintained at the same time.");
 	}
 
 }

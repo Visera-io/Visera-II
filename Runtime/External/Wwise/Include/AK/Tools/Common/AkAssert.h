@@ -52,9 +52,11 @@ the specific language governing permissions and limitations under the License.
 
 	#if defined( AK_ENABLE_ASSERTS )
 		// These platforms use a built-in g_pAssertHook (and do not fall back to the regular assert macro)
-		#define AKASSERT(Condition) (!(Condition) && g_pAssertHook != nullptr ? g_pAssertHook( #Condition, __FILE__, __LINE__) : ((void) 0) )
+		#define AKASSERT(Condition) (g_pAssertHook && !(Condition) ? g_pAssertHook( #Condition, __FILE__, __LINE__) : ((void) 0) )
 
-		#define AKVERIFY AKASSERT
+		#define AKVERIFY(Condition) (!(Condition) && g_pAssertHook != nullptr ? g_pAssertHook( #Condition, __FILE__, __LINE__) : ((void) 0) )
+
+		#define AK_IS_ASSERT_HOOKED (g_pAssertHook != nullptr)
 
 		#ifdef _DEBUG
 			#define AKASSERTD AKASSERT
@@ -67,6 +69,8 @@ the specific language governing permissions and limitations under the License.
 		#define AKASSERT(Condition) do { switch ( 0 ) { case 0: break; default: if ( !( Condition ) ) {} } } while ( 0 )
 
 		#define AKVERIFY(x) ((void)(x))
+
+		#define AK_IS_ASSERT_HOOKED (false)
 
 		#ifdef _DEBUG
 			#define AKASSERTD AKASSERT

@@ -411,3 +411,22 @@ enum AkChannelConfigType
 	AK_ChannelConfigType_UseDeviceMain = 0xE,           ///< Special setting for bus objects to use the audio device main configuration.
 	AK_ChannelConfigType_UseDevicePassthrough = 0xF     ///< Special setting for bus objects to use the audio device passthrough configuration.
 };
+
+/// Type of physical device being operated by Wwise Motion
+enum AkMotionDeviceType
+{
+	AkMotionDeviceType_Controller = 0,  ///< Internal motors/actuators of a standard game controller
+	AkMotionDeviceType_Mobile,          ///< Internal motors/actuators of mobile device (phone or tablet)
+
+	AkMotionDeviceType_Last
+};
+
+/// Input data profiles for Wwise Motion
+enum AkMotionInputProfile
+{
+	AkMotionInputProfile_GenericRumble = 0,        ///< Generic PCM for conversion to amplitude curve for low-resolution rumble
+	AkMotionInputProfile_GenericLoResHaptics,      ///< Generic PCM for linear actuators supporting < 1KHz sample rates
+	AkMotionInputProfile_GenericHiResHaptics,      ///< Generic PCM for linear actuators supporting >= 1KHz sample rates
+
+	AkMotionInputProfile_Last
+};

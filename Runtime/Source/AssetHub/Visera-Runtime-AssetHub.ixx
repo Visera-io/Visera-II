@@ -4,6 +4,7 @@ export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Runtime.AssetHub.Asset;
 import Visera.Runtime.AssetHub.Image;
+import Visera.Runtime.AssetHub.Sound;
 import Visera.Runtime.AssetHub.Shader;
 import Visera.Runtime.Platform;
 import Visera.Core.Log;
@@ -23,6 +24,8 @@ namespace Visera
         LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FShader>
         LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any);
+        [[nodiscard]] inline TSharedPtr<FSound>
+        LoadSound(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
 
     public:
         void Bootstrap() override;
@@ -68,7 +71,6 @@ namespace Visera
         {
             const auto& Root = Roots[I_Source];
             FPath Path = Root.GetRoot() / PATH("Image") / I_File;
-            LOG_TRACE("Searching the image in \"{}\".", Path);
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
             {
@@ -80,7 +82,6 @@ namespace Visera
             for (const auto& [_, Root] : Roots)
             {
                 FPath Path = Root.GetRoot() / PATH("Image") / I_File;
-                LOG_TRACE("Searching the image in \"{}\".", Path);
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
                 {
@@ -92,6 +93,9 @@ namespace Visera
 
         if (!Image)
         { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
+
+        LOG_DEBUG("Loaded the image \"{}\" (extend:[{},{}], sRGB:{}).",
+                  Image->GetPath(), Image->GetWidth(), Image->GetHeight(), Image->IsSRGB());
 
         return Image;
     }
@@ -107,7 +111,6 @@ namespace Visera
         {
             const auto& Root = Roots[I_Source];
             FPath Path = Root.GetRoot() / PATH("Shader") / I_File;
-            LOG_TRACE("Searching the shader in \"{}\".", Path);
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
             {
@@ -119,7 +122,6 @@ namespace Visera
             for (const auto& [_, Root] : Roots)
             {
                 FPath Path = Root.GetRoot() / PATH("Shader") / I_File;
-                LOG_TRACE("Searching the shader in \"{}\".", Path);
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
                 {
@@ -130,8 +132,66 @@ namespace Visera
         }
 
         if (!Shader)
-        { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
+        { LOG_ERROR("Failed to load the shader \"{}\"", I_File); }
+
+        LOG_DEBUG("Loaded the shader \"{}\" (stage:{}, entry_point:{}, size:{}).",
+                  Shader->GetPath(), Shader->GetStage(), Shader->GetEntryPoint(), Shader->GetSize());
 
         return Shader;
+    }
+
+    TSharedPtr<FSound> FAssetHub::
+    LoadSound(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
+    {
+        VISERA_ASSERT(IsBootstrapped());
+
+        TSharedPtr<FSound> Sound{};
+
+        if (I_Source != EAssetSource::Any)
+        {
+            const auto& Root = Roots[I_Source];
+            FPath Path = Root.GetRoot() / PATH("Sound") /
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+                PATH("Windows")
+#elif defined(VISERA_ON_APPLE_SYSTEM)
+                PATH("Mac")
+#else
+                VISERA_UNIMPLEMENTED_API;
+#endif
+                / I_File;
+
+            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+            {
+                Sound = MakeShared<FSound>(FName{Path.GetUTF8Path()}, Path);
+            }
+        }
+        else
+        {
+            for (const auto& [_, Root] : Roots)
+            {
+                FPath Path = Root.GetRoot() / PATH("Sound") /
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+                PATH("Windows")
+#elif defined(VISERA_ON_APPLE_SYSTEM)
+                PATH("Mac")
+#else
+                VISERA_UNIMPLEMENTED_API;
+#endif
+                / I_File;
+
+                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+                {
+                    Sound = MakeShared<FSound>(FName{Path.GetUTF8Path()}, Path);
+                    break;
+                }
+            }
+        }
+
+        if (!Sound)
+        { LOG_ERROR("Failed to load the sound \"{}\"", I_File); }
+
+        LOG_DEBUG("Loaded the sound \"{}\" (id:).",
+                  Sound->GetPath(), Sound->GetID());
+        return Sound;
     }
 }

@@ -35,10 +35,6 @@ the specific language governing permissions and limitations under the License.
 
 #include <limits.h>
 
-#ifndef __cplusplus
-	#include <wchar.h> // wchar_t not a built-in type in C
-#endif
-
 #if !defined(AK_WIN )
 	#define AK_WIN ///< Compiling for Windows
 #endif
@@ -89,6 +85,9 @@ the specific language governing permissions and limitations under the License.
 #endif
 
 #define AK_SUPPORT_WCHAR						///< Can support wchar
+#ifndef __cplusplus
+	#include <wchar.h> // wchar_t not a built-in type in C
+#endif
 #define AK_OS_WCHAR								///< Use wchar natively
 
 #define AK_SUPPORT_THREAD_LOCAL					///< Support thread_local C++11 keyword with no restrictions

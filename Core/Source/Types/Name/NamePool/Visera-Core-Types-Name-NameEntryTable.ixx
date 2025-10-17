@@ -11,7 +11,7 @@ import Visera.Core.Log;
 export namespace Visera
 {
 
-	class FNameEntryTable
+	class VISERA_CORE_API FNameEntryTable
 	{
 	public:
 		enum

@@ -5,7 +5,6 @@ module;
 #include <AK/SoundEngine/Common/AkMemoryMgrModule.h>
 #include <AK/SoundEngine/Common/AkStreamMgrModule.h>
 #include <AK/Tools/Common/AkPlatformFuncs.h>
-#include <AKSamples/SoundEngine/Common/AkDefaultLowLevelIODispatcher.h>
 #if !defined(AK_OPTIMIZED)
 #include <AK/Comm/AkCommunication.h>
 #endif
@@ -13,6 +12,7 @@ export module Visera.Runtime.Audio.Wwise;
 #define VISERA_MODULE_NAME "Runtime.Audio"
 import Visera.Runtime.Audio.Interface;
 import Visera.Runtime.Audio.Wwise.IO;
+import Visera.Core.Types.Text;
 import Visera.Core.Log;
 
 namespace Visera
@@ -21,7 +21,7 @@ namespace Visera
     {
     public:
         void
-        Tick() const override;
+        Tick(Float I_Seconds) const override;
 
         [[nodiscard]] inline const auto
         GetStreamManager() const { return AK::IAkStreamMgr::Get(); }
@@ -51,10 +51,10 @@ namespace Visera
                 if (!AK::StreamMgr::Create(StreamSettings))
                 { LOG_FATAL("Failed to initialize Wwise Stream Manager!"); }
 
-                if (AK::StreamMgr::SetCurrentLanguage(AKTEXT( "English(US)")) != AK_Success)
-                { LOG_FATAL("Failed to set current language as English(US)!"); }
-                else
-                { LOG_DEBUG("Wwise Stream Manager language is set as English(US)."); }
+                //if (AK::StreamMgr::SetCurrentLanguage(AKTEXT( "English(US)")) != AK_Success)
+                //{ LOG_FATAL("Failed to set current language as English(US)!"); }
+                //else
+                //{ LOG_DEBUG("Wwise Stream Manager language is set as English(US)."); }
 
                 AK::StreamMgr::SetFileLocationResolver(&IO);
             }
@@ -63,6 +63,9 @@ namespace Visera
             {
                 AkDeviceSettings DeviceSettings{};
                 AK::StreamMgr::GetDefaultDeviceSettings(DeviceSettings);
+                //DeviceSettings.uMaxConcurrentIO = 32;
+
+                IO.Initialize(DeviceSettings);
 
                 if (AK::StreamMgr::CreateDevice(DeviceSettings, &IO, DeviceID) != AK_Success)
                 { LOG_FATAL("Failed to create the Wwise streaming device!"); }
@@ -111,41 +114,18 @@ namespace Visera
                     switch (I_ErrorLevel)
                     {
                     case AK::Monitor::ErrorLevel::ErrorLevel_Message:
-                            LOG_DEBUG("Wwise: {}", reinterpret_cast<const char*>(I_ErrorMessage));
-                            break;
+                        LOG_DEBUG("Wwise: {}", FText::ToUTF8(I_ErrorMessage));
+                        break;
                     case AK::Monitor::ErrorLevel::ErrorLevel_Error:
-                            LOG_ERROR("Wwise: {} (error: {}).", reinterpret_cast<const char*>(I_ErrorMessage), Int32(I_ErrorCode));
-                            break;
+                        LOG_ERROR("Wwise: {} (error: {}).", FText::ToUTF8(I_ErrorMessage), Int32(I_ErrorCode));
+                        break;
                     default: LOG_FATAL("Wwise:Unknown Message!");
                     }
                 });
             }
-            // Load Main bank
-            {
-                AkBankID ID {AK_INVALID_BANK_ID};
-                auto Result = AK::SoundEngine::LoadBank(
-                "/Users/ljyc/Workspace/Programs/GitHub/Visera-II/Engine/Assets/Audio/Mac/Init.bnk", ID);
-                if (Result != AKRESULT::AK_Success)
-                {
-                    switch (Result)
-                    {
-                        case AK_Success:            LOG_DEBUG("Main bank loaded"); break;
-                        case AK_BankAlreadyLoaded:  LOG_WARN("Main bank already loaded!"); break;
-                        default:                    LOG_FATAL("Failed to load main bank (error:{})!", Int32(Result)); break;
-                    }
-                }
-            }
-
-
-            AkGameObjectID BGMGameObjID = 100;
-            if (AK::SoundEngine::RegisterGameObj(BGMGameObjID, "BGM") != AKRESULT::AK_Success)
-            { LOG_FATAL("Failed to register BGM (id:{})!", BGMGameObjID); }
-
-            auto PID = AK::SoundEngine::PostEvent("Play_BGM", BGMGameObjID);
-            LOG_INFO("Playing BGM (id:{}).", PID);
         }
 
-        ~FWwiseAudioEngine() override
+        ~FWwiseAudioEngine()
         {
             if (AK::SoundEngine::IsInitialized())
             {
@@ -179,8 +159,14 @@ namespace Visera
     };
 
     void FWwiseAudioEngine::
-    Tick() const
+    Tick(Float I_Seconds) const
     {
-        AK::SoundEngine::RenderAudio();
+        static Float Gap = 1.0 / 60.0;
+        Gap -= I_Seconds;
+        if (Gap < 0.0f)
+        {
+            AK::SoundEngine::RenderAudio();
+            Gap = 1.0 / 60.0;
+        }
     }
 }

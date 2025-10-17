@@ -48,6 +48,7 @@ the specific language governing permissions and limitations under the License.
 #include <AK/Plugin/AkTremoloFXFactory.h>            // Tremolo
 #include <AK/Plugin/AkHarmonizerFXFactory.h>         // Harmonizer
 #include <AK/Plugin/AkRecorderFXFactory.h>           // Recorder
+#include <AK/Plugin/AkRecorderADMFXFactory.h>        // Recorder (ADM)
 #include <AK/Plugin/Ak3DAudioBedMixerFXFactory.h>    // 3D Audio Bed Mixer
 #include <AK/Plugin/AkSidechainFXFactory.h>          // SidechainFX
 

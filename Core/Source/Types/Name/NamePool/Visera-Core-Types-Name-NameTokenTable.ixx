@@ -14,8 +14,7 @@ import Visera.Core.Math.Arithmetic;
 
 export namespace Visera
 {
-
-	class FNameTokenTable
+	class VISERA_CORE_API FNameTokenTable
 	{
 	public:
         enum
@@ -30,16 +29,15 @@ export namespace Visera
         FNameTokenTable(FNameEntryTable* _NameEntryTable) : LinkedNameEntryTable{ _NameEntryTable } {}
 
 	private: 
-		class FNameTokenTableSection
+		struct VISERA_CORE_API FNameTokenTableSection
 		{
-            friend class FNameTokenTable;
             enum
             {
                 InitNameTokens    = 1 << 8,
                 InitSectionSize   = InitNameTokens * sizeof(FNameToken), // Unaligned
             };
             static constexpr float GrowingThresh = 0.9;
-		public:
+
 			auto ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> I_Prediction) const -> const FNameToken&;
 			auto ClaimToken(const FNameToken* I_Token, FNameToken I_Value) { 
                 VISERA_ASSERT(!RWLock.TryToWrite() && !I_Token->IsClaimed());
@@ -51,11 +49,10 @@ export namespace Visera
             FNameTokenTableSection();
             ~FNameTokenTableSection();
 
-		private:
             mutable FRWLock RWLock;
-			FNameToken* Tokens;
-			UInt32      Capacity = 0;
-			UInt32      UseCount = 0;
+			FNameToken*     Tokens;
+			UInt32          Capacity = 0;
+			UInt32          UseCount = 0;
 		};
 
         FNameEntryTable* const LinkedNameEntryTable;

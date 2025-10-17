@@ -222,8 +222,10 @@ namespace Visera
     using UInt64 	    = std::uint64_t;
 	using UInt128       = std::pair<UInt64, UInt64>;
 
-    using FString       = std::string;
-    using FStringView   = std::string_view;
+    using FString         = std::string;
+    using FStringView     = std::string_view;
+	using FWideStringView = std::wstring_view;
+	using FUTF8StringView = std::u8string_view;
 
     using FByte         = UInt8;
     using FANSIChar	    = char;

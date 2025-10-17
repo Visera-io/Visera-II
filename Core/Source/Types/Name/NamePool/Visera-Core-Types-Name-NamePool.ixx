@@ -19,7 +19,7 @@ export namespace Visera
         Object,   // Game Object
     };
 
-    class FNamePool
+    class VISERA_CORE_API FNamePool
     {
         enum
         {

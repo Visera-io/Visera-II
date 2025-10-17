@@ -26,7 +26,7 @@ the specific language governing permissions and limitations under the License.
 
 #pragma once
 
-#include <AK/SoundEngine/Common/AkTypedefs.h>
+#include <AK/SoundEngine/Common/AkSoundEngineTypes.h>
 
 #ifdef __cplusplus
 extern "C" {

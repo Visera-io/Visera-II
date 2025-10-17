@@ -61,6 +61,40 @@ struct AkDeviceDescription
 	bool isDefaultDevice;                     ///< Identify default device. Always false when not supported.
 };
 
+/// Custom data about a Wwise Motion output device instance
+///
+/// This data can be retrieved via the \c customData member of AkOutputDeviceInfo.
+struct AkMotionDeviceData
+{
+	enum AkMotionDeviceType deviceType;         ///< Type of motion device
+	enum AkMotionInputProfile inputProfile;     ///< Indicates the ideal input data profile for this Motion device instance
+};
+
+/// Structure containing information about system-level support for 3D audio.
+/// "3D Audio" refers to a system's ability to position sound sources in a virtual 3D space, pan them accordingly on a range of physical speakers, and produce a binaural mix where appropriate.
+/// We prefer "3D Audio" to "Spatial" to avoid ambiguity with spatial audio, which typically involves sound propagation and environment effects.
+struct Ak3DAudioSinkCapabilities
+{
+	struct AkChannelConfig channelConfig;                         ///< Channel configuration of the main mix.
+	AkUInt32        uMaxSystemAudioObjects;                       ///< Maximum number of System Audio Objects that can be active concurrently. A value of zero indicates the system does not support this feature.
+	AkUInt32        uAvailableSystemAudioObjects;                 ///< How many System Audio Objects can currently be sent to the sink. This value can change at runtime depending on what is playing. Can never be higher than uMaxSystemAudioObjects.
+	bool            bPassthrough;                                 ///< Separate  pass-through mix is supported.
+	bool            bMultiChannelObjects;                         ///< Can handle multi-channel objects
+};
+
+/// Information about an output device instance.
+/// 
+/// This data can be retrieved by plug-ins via AK::IAkPluginContextBase::GetOutputDeviceInfo.
+struct AkOutputDeviceInfo
+{
+	AkPluginID pluginID;                            ///< Full plugin ID, including company ID and plugin type. See AKMAKECLASSID macro.
+	AkUniqueID audioDeviceShareset;                 ///< ID of shareset for this output device
+	AkUInt32 idDevice;                              ///< Device ID that was specified in the Output Settings for this output device
+	struct AkChannelConfig channelConfig;           ///< Channel configuration of the output device
+	struct Ak3DAudioSinkCapabilities capabilities;  ///< 3D Audio capabilities of the output device instance
+	void* customData;                               ///< Custom data containing additional information about the device. This is plug-in implementation-defined. For Wwise Motion, this can be cast to AkMotionDeviceData.
+};
+
 /// Obstruction/occlusion pair for a position
 struct AkObstructionOcclusionValues
 {

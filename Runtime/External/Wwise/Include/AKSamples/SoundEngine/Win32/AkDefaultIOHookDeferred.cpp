@@ -51,6 +51,7 @@ written agreement between you and Audiokinetic Inc.
 CAkDefaultIOHookDeferred::CAkDefaultIOHookDeferred()
 : m_deviceID( AK_INVALID_DEVICE_ID )
 {
+	
 }
 
 CAkDefaultIOHookDeferred::~CAkDefaultIOHookDeferred()

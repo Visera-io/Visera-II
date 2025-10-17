@@ -9,57 +9,60 @@ export namespace Visera
     class VISERA_CORE_API FText
     {
     public:
-        auto inline
-        GetData() const -> const FString& { return Data; }
+        template <typename T> [[nodiscard]] static inline FText
+        ToUTF8(const T* I_Text) { return FText{I_Text}; }
+
+        [[nodiscard]] const FString&
+        GetData() const { return Data; }
 
         //auto ToString() const -> StringView { return Data; }
         explicit operator FString()		const	{ return Data; }
         explicit operator const char*()	const	{ return Data.data(); }
-        explicit FText(const char8_t* I_Text)     : Data{ reinterpret_cast<const char *>(I_Text) } {}
-        explicit FText(std::u8string_view I_Text) : Data{ reinterpret_cast<const char *>(I_Text.data()) } {}
+        explicit FText(FStringView    I_Data) : Data{I_Data} {}
+        explicit FText(const char8_t* I_Text) : Data{ reinterpret_cast<const char *>(I_Text) } {}
+        explicit FText(FWideStringView I_Text);
+        explicit FText(FUTF8StringView I_Text) : Data{ reinterpret_cast<const char *>(I_Text.data()) } {}
 
     private:
         FString Data;
-        
-        explicit FText(const FString& I_Data) : Data{I_Data} {}
     };
 
-    // Convert std::wstring (UTF-16) to std::string (UTF-8)
-//     String FText::
-//     ToUTF8(WideStringView _Source)
-//     {
-//         if (_Source.empty()) { return {}; }
-// #if (VE_IS_WINDOWS_SYSTEM)
-//         int sizeNeeded = WideCharToMultiByte(
-//             CP_UTF8,
-//             0,
-//             _Source.data(),
-//             -1,
-//             nullptr,
-//             0,
-//             nullptr,
-//             nullptr);
-//         if (sizeNeeded <= 0) { return {}; }
-//
-//         String Sink(sizeNeeded - 1, 0); // -1 to exclude null terminator
-//         WideCharToMultiByte(
-//             CP_UTF8,
-//             0,
-//             _Source.data(),
-//             -1,
-//             Sink.data(),
-//             sizeNeeded,
-//             nullptr,
-//             nullptr);
-// #elif (VE_IS_APPLE_SYSTEM)
-//         size_t Size = wcstombs(nullptr, _Source.data(), 0);
-//         if (Size == static_cast<size_t>(-1)) { return {}; }
-//
-//         String Sink(Size, 0);
-//         wcstombs(Sink.data(), _Source.data(), Size);
-// #endif
-//         return Sink;
-//     }
+    FText::
+    FText(FWideStringView I_Text)
+    {
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+            int sizeNeeded = WideCharToMultiByte(
+                CP_UTF8,
+                0,
+                I_Text.data(),
+                -1,
+                nullptr,
+                0,
+                nullptr,
+                nullptr);
+            if (sizeNeeded <= 0) { return; }
+
+            Data.resize(sizeNeeded - 1, 0); // -1 to exclude null terminator
+            WideCharToMultiByte(
+                CP_UTF8,
+                0,
+                I_Text.data(),
+                -1,
+                Data.data(),
+                sizeNeeded,
+                nullptr,
+                nullptr);
+#elif defined(VISERA_ON_APPLE_SYSTEM)
+        VISERA_UNIMPLEMENTED_API;
+            // size_t Size = wcstombs(nullptr, _Source.data(), 0);
+            // if (Size == static_cast<size_t>(-1)) { return {}; }
+            //
+            // String Sink(Size, 0);
+            // wcstombs(Sink.data(), _Source.data(), Size);
+#else
+        VISERA_UNIMPLEMENTED_API;
+#endif
+    }
 }
 
 template <>

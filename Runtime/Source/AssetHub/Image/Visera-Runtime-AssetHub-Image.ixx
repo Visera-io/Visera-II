@@ -74,9 +74,6 @@ namespace Visera
                    "-- unsupported extension {}!", GetPath(), Extension);
          return;
       }
-
-      LOG_DEBUG("Loaded the image \"{}\" (extend:[{},{}], sRGB:{}).",
-                GetPath(), Wrapper->GetWidth(), Wrapper->GetHeight(), Wrapper->IsSRGB());
    }
 
    Bool FImage::

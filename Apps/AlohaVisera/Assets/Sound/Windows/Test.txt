@@ -1,0 +1,6 @@
+Event	ID	Name			Wwise Object Path	Notes
+	1691765453	Play_MainBGM			\Default Work Unit\Play_MainBGM	
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	19794180	Tavern Glow	.cache\F8\{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem		\Containers\Default Work Unit\Tavern Glow\Tavern Glow		26864732
+

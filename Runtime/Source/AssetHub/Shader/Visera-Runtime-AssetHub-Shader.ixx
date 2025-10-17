@@ -52,8 +52,5 @@ export namespace Visera
                       "-- unsupported extension {}!", GetPath(), Extension);
             return;
         }
-
-        LOG_DEBUG("Loaded the shader \"{}\" (stage:{}, entry_point:{}, size:{}).",
-                  GetPath(), Importer->GetShaderStage(), EntryPoint, Data.size());
     }
 }

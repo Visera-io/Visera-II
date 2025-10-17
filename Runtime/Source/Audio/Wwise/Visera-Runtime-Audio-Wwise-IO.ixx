@@ -16,6 +16,12 @@ namespace Visera
         : public AK::StreamMgr::IAkLowLevelIOHook,
           public AK::StreamMgr::IAkFileLocationResolver
     {
+    public:
+        void inline
+        Initialize(const AkDeviceSettings& I_DeviceSettings)
+        {
+            DefaultIO.Init(I_DeviceSettings);
+        }
     private:
         CAkDefaultIOHookDeferred DefaultIO; // Forward to Wwise's default blocking IO hook
     public:
@@ -34,14 +40,8 @@ namespace Visera
         void
         BatchWrite(AkUInt32 I_NumTransfers, BatchIoTransferItem* I_TransferItems) override { return DefaultIO.BatchWrite(I_NumTransfers, I_TransferItems); }
     public:
-        explicit FWwiseIO()
-        {
+        FWwiseIO() = default;
 
-        }
-
-        ~FWwiseIO() override
-        {
-
-        }
+        ~FWwiseIO() override = default;
     };
 }

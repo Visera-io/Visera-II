@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Mac",
+  "BasePlatform": "Mac",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "171",
+  "SoundBanks": [
+   {
+    "Id": "3157003241",
+    "Type": "User",
+    "GUID": "{4B1EFEA8-E6D8-42AE-9430-E6A7BC8A70B4}",
+    "Language": "SFX",
+    "Hash": "{92C062FE-B122-7DAF-222A-0181301B17CF}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\Test",
+    "ShortName": "Test",
+    "Path": "Test.bnk",
+    "Media": [
+     {
+      "Id": "19794180",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Tavern Glow.wav",
+      "CachePath": "F8/{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "1691765453",
+      "Name": "Play_MainBGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_MainBGM",
+      "GUID": "{687553B6-70AD-4E8D-A426-67C5BD2B7640}",
+      "DurationType": "OneShot",
+      "DurationMin": "139.91998",
+      "DurationMax": "139.91998",
+      "MediaRefs": [
+       {
+        "Id": "19794180"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{4957C776-7621-2706-A08B-35FF27DC717E}"
+ }
+}

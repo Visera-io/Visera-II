@@ -342,7 +342,9 @@ namespace Visera::RHI
                     EVulkanPipelineStage::eColorAttachmentOutput,
                     EVulkanAccess::eColorAttachmentWrite
                 );
-                ColorRTs.push_back(MakeShared<FVulkanRenderTarget>(RTImage));
+                auto ColorRT = ColorRTs.emplace_back(MakeShared<FVulkanRenderTarget>(RTImage));
+                ColorRT->SetLoadOp(EVulkanLoadOp::eClear)
+                       ->SetStoreOp(EVulkanStoreOp::eStore);
             }
         }
         Cmd->End();
@@ -587,18 +589,14 @@ namespace Visera::RHI
         auto ExtendedDynamicsStateFeatures = vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT{};
         ExtendedDynamicsStateFeatures.extendedDynamicState = vk::True;
 
-#if defined(VISERA_ON_APPLE_SYSTEM)
         auto Vulkan11Features =  vk::PhysicalDeviceVulkan11Features{};
         Vulkan11Features.shaderDrawParameters = vk::True;
-#endif
 
         vk::StructureChain FeatureChain{
             Feature2,
             Vulkan13Features,
             ExtendedDynamicsStateFeatures,
-#if defined(VISERA_ON_APPLE_SYSTEM)
-            Vulkan11Features,
-#endif
+            Vulkan11Features
         };
 
         const auto CreateInfo = vk::DeviceCreateInfo{}

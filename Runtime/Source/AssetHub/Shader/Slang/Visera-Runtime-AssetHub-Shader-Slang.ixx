@@ -69,9 +69,9 @@ export namespace Visera
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
 
-    		ShaderPaths.emplace_back((FPath(VISERA_APP_DIR)    / PATH("Assets/Shaders")).GetUTF8Path());
+    		ShaderPaths.emplace_back((FPath(VISERA_APP_DIR)    / PATH("Assets/Shader")).GetUTF8Path());
     		LOG_TRACE("Added a new shader path: {}", ShaderPaths.back());
-    		ShaderPaths.emplace_back((FPath(VISERA_ENGINE_DIR) / PATH("Assets/Shaders")).GetUTF8Path());
+    		ShaderPaths.emplace_back((FPath(VISERA_ENGINE_DIR) / PATH("Assets/Shader")).GetUTF8Path());
     		LOG_TRACE("Added a new shader path: {}", ShaderPaths.back());
     	}
 

@@ -264,7 +264,7 @@ struct AkMusicSyncCallbackInfo
 {
 	struct AkSegmentInfo  segmentInfo;      ///< Segment information corresponding to the segment triggering this callback.
 	enum AkCallbackType   musicSyncType;    ///< Would be either \ref AK_MusicSyncEntry, \ref AK_MusicSyncBeat, \ref AK_MusicSyncBar, \ref AK_MusicSyncExit, \ref AK_MusicSyncGrid, \ref AK_MusicSyncPoint or \ref AK_MusicSyncUserCue.
-	char*                 pszUserCueName;   ///< Cue name (UTF-8 string). Set for notifications AK_MusicSyncUserCue. NULL if cue has no name.
+	const char*           pszUserCueName;   ///< Cue name (UTF-8 string). Set for notifications AK_MusicSyncUserCue. NULL if cue has no name.
 };
 
 #ifdef __cplusplus
@@ -461,10 +461,10 @@ namespace AK
 {
 	// \deprecated Use AkAudioDeviceEvent in the global scope.
 	using ::AkAudioDeviceEvent;
-	const ::AkAudioDeviceEvent AkAudioDeviceEvent_Initialization = AkAudioDeviceEvent_Initialization;
-	const ::AkAudioDeviceEvent AkAudioDeviceEvent_Removal = AkAudioDeviceEvent_Removal;
-	const ::AkAudioDeviceEvent AkAudioDeviceEvent_SystemRemoval = AkAudioDeviceEvent_SystemRemoval;
-	const ::AkAudioDeviceEvent AkAudioDeviceEvent_Last = AkAudioDeviceEvent_Last;
+	const ::AkAudioDeviceEvent AkAudioDeviceEvent_Initialization = ::AkAudioDeviceEvent_Initialization;
+	const ::AkAudioDeviceEvent AkAudioDeviceEvent_Removal = ::AkAudioDeviceEvent_Removal;
+	const ::AkAudioDeviceEvent AkAudioDeviceEvent_SystemRemoval = ::AkAudioDeviceEvent_SystemRemoval;
+	const ::AkAudioDeviceEvent AkAudioDeviceEvent_Last = ::AkAudioDeviceEvent_Last;
 
 	using ::AkDeviceStatusCallbackFunc;
 }

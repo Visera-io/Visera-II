@@ -188,6 +188,13 @@ public class ak
 				/// <summary>Sent when an item is added to the log. This could be used to retrieve items added to the SoundBank generation log. To retrieve the complete log, see \ref ak_wwise_core_log_get.</summary>
 				public const string itemAdded = "ak.wwise.core.log.itemAdded";
 			}
+			public class mediaPool
+			{
+				/// <summary>Retrieve files from media pool. Use the return options to specify which properties of the files to return.</summary>
+				public const string get = "ak.wwise.core.mediaPool.get";
+				/// <summary>Retrieve all the fields known by the media pool. Use those fields to query the media pool. Some fields are discovered by media pool when scanning audio files. Some fields are always there, such as the WAV fields.</summary>
+				public const string getFields = "ak.wwise.core.mediaPool.getFields";
+			}
 			public class @object
 			{
 				/// <summary>Sent when an attenuation curve is changed.</summary>

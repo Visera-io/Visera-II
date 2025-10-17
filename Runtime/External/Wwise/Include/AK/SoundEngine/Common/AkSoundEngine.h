@@ -849,12 +849,12 @@ namespace AK
 
 		// \deprecated Use AkActionOnEventType in the global scope.
 		using ::AkActionOnEventType;
-		const AkActionOnEventType AkActionOnEventType_Stop = AkActionOnEventType_Stop;
-		const AkActionOnEventType AkActionOnEventType_Pause = AkActionOnEventType_Pause;
-		const AkActionOnEventType AkActionOnEventType_Resume = AkActionOnEventType_Resume;
-		const AkActionOnEventType AkActionOnEventType_Break = AkActionOnEventType_Break;
-		const AkActionOnEventType AkActionOnEventType_ReleaseEnvelope = AkActionOnEventType_ReleaseEnvelope;
-		const AkActionOnEventType AkActionOnEventType_Last = AkActionOnEventType_Last;
+		const ::AkActionOnEventType AkActionOnEventType_Stop = ::AkActionOnEventType_Stop;
+		const ::AkActionOnEventType AkActionOnEventType_Pause = ::AkActionOnEventType_Pause;
+		const ::AkActionOnEventType AkActionOnEventType_Resume = ::AkActionOnEventType_Resume;
+		const ::AkActionOnEventType AkActionOnEventType_Break = ::AkActionOnEventType_Break;
+		const ::AkActionOnEventType AkActionOnEventType_ReleaseEnvelope = ::AkActionOnEventType_ReleaseEnvelope;
+		const ::AkActionOnEventType AkActionOnEventType_Last = ::AkActionOnEventType_Last;
 
 		/// Executes an action on all nodes that are referenced in the specified event in an action of type play.
 		/// \return
@@ -1620,16 +1620,17 @@ namespace AK
 		//@}
 
 
-		/// Sends custom game data to a plug-in that resides on a bus (insert Effect or mixer plug-in).
+		/// Sends custom game data to a plug-in that resides on a bus (effect plug-in) or a voice (source plug-in).
 		/// Data will be copied and stored into a separate list.
 		/// Previous entry is deleted when a new one is sent.
 		/// Sets the data pointer to NULL to clear item from the list.
 		/// \aknote The plug-in type and ID are passed and matched with plugins set on the desired bus. 
-		/// This means that you cannot send different data to various instances of a plug-in on the same bus.\endaknote
+		/// This means that multiple instances of the same plug-in on a given bus' effect chain will always receive the same data.
+		/// \endaknote
 		/// \return AK_Success if data was sent successfully.
 		AK_EXTERNAPIFUNC( AKRESULT, SendPluginCustomGameData ) (
-			AkUniqueID in_busID,			///< Bus ID
-			AkGameObjectID in_busObjectID,	///< Bus Object ID. Pass AK_INVALID_GAME_OBJECT to send custom data with global scope. Game object scope supersedes global scope, as with RTPCs. 
+			AkUniqueID in_busID,			///< Bus ID. For source plug-ins, specify AK_INVALID_UNIQUE_ID.
+			AkGameObjectID in_gameObjectID,	///< Game Object ID. Pass AK_INVALID_GAME_OBJECT to send custom data with global scope. Game object scope supersedes global scope, as with RTPCs. 
 			AkPluginType in_eType,			///< Plug-in type (for example, source or effect)
 			AkUInt32 in_uCompanyID,		///< Company identifier (as declared in the plug-in description XML file)
 			AkUInt32 in_uPluginID,			///< Plug-in identifier (as declared in the plug-in description XML file)
@@ -4354,6 +4355,57 @@ namespace AK
 		AK_EXTERNAPIFUNC(AKRESULT, ResetBusConfig)(
 			const char* in_pszBusName					///< Bus name
 			);
+		
+		/// Forces channel configuration for the specified Sidechain Mix at run-time.
+		///  
+		/// Standard, ambisonic, and anonymous channel configs are supported.
+		/// If a channel config of type AK_ChannelConfigType_UseDeviceMain or AK_ChannelConfigType_UseDevicePassthrough are specified,
+		/// then the Primary Device's channel config for its Main Mix or Passthrough Mix is used, as appropriate.
+		/// Audio Object channel configs are not supported for Sidechain Mixes.
+		/// 
+		/// An invalid channel configuration (from default constructor) can be used to clear any previously-set config set via the soundengine API, and revert to what was loaded from soundbanks.
+		/// 
+		/// \return Always returns AK_Success
+		AK_EXTERNAPIFUNC(AKRESULT, SetSidechainMixConfig)(
+			AkUniqueID in_sidechainMixId,				///< SidechainMix Short ID.
+			AkChannelConfig in_channelConfig			///< Desired channel configuration. 
+			);
+
+#ifdef AK_SUPPORT_WCHAR
+		/// Forces channel configuration for the specified Sidechain Mix at run-time.
+		///  
+		/// Standard, ambisonic, and anonymous channel configs are supported.
+		/// If a channel config of type AK_ChannelConfigType_UseDeviceMain or AK_ChannelConfigType_UseDevicePassthrough are specified,
+		/// then the Primary Device's channel config for its Main Mix or Passthrough Mix is used, as appropriate.
+		/// Audio Object channel configs are not supported for Sidechain Mixes.
+		/// 
+		/// An invalid channel configuration (from default constructor) can be used to clear any previously-set config set via the soundengine API, and revert to what was loaded from soundbanks.
+		/// 
+		/// \returns 
+		/// - \c AK_Success when successful
+		/// - \c AK_InvalidID if in_pszSidechainMixName is null
+		AK_EXTERNAPIFUNC(AKRESULT, SetSidechainMixConfig)(
+			const wchar_t* in_pszSidechainMixName,		///< SidechainMix name
+			AkChannelConfig in_channelConfig			///< Desired channel configuration. An invalid configuration (from default constructor) means "as parent".
+			);
+#endif //AK_SUPPORT_WCHAR
+
+		/// Forces channel configuration for the specified Sidechain Mix at run-time.
+		///  
+		/// Standard, ambisonic, and anonymous channel configs are supported.
+		/// If a channel config of type AK_ChannelConfigType_UseDeviceMain or AK_ChannelConfigType_UseDevicePassthrough are specified,
+		/// then the Primary Device's channel config for its Main Mix or Passthrough Mix is used, as appropriate.
+		/// Audio Object channel configs are not supported for Sidechain Mixes.
+		/// 
+		/// An invalid channel configuration (from default constructor) can be used to clear any previously-set config set via the soundengine API, and revert to what was loaded from soundbanks.
+		/// 
+		/// \returns 
+		/// - \c AK_Success when successful
+		/// - \c AK_InvalidID if in_pszSidechainMixName is null
+		AK_EXTERNAPIFUNC(AKRESULT, SetSidechainMixConfig)(
+			const char* in_pszSidechainMixName,			///< SidechainMix name
+			AkChannelConfig in_channelConfig			///< Desired channel configuration. An invalid configuration (from default constructor) means "as parent".
+			);
 
 		/// Sets a game object's obstruction and occlusion levels. If SetMultiplePositions were used, values are set for all positions.
 		/// To assign a unique obstruction and occlusion value to each sound position, instead use AK::SoundEngine::SetMultipleObstructionAndOcclusion.
@@ -4806,6 +4858,19 @@ namespace AK
 		/// the sound engine since initialization. 
 		/// \return Sample count.
 		AK_EXTERNAPIFUNC(AkUInt64, GetSampleTick)();
+
+		/// Resets all global changes made to the sound engine.
+		/// This includes:
+		/// - States
+		/// - RTPCs in the global scope
+		/// - Changes made on sound object by Event Actions like Set Volume, Set Pitch, etc or equivalent API calls.
+		/// - Mute/solo status
+		/// - Effects set dynamically through SetEffect or a Set Effect Action.
+		/// - Random and Sequence containers histories (last played, etc)
+		/// \note
+		/// To reset Game Object specific values, use AK::SoundEngine::UnregisterGameObj or AK::SoundEngine::UnregisterAllGameObj
+		/// then AK::SoundEngine::RegisterGameObj if the game object is still needed.
+		AK_EXTERNAPIFUNC(AKRESULT, ResetGlobalValues());
 	}
 }
 

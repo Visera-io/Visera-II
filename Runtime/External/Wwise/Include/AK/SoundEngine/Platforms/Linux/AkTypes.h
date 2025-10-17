@@ -60,6 +60,9 @@ the specific language governing permissions and limitations under the License.
 
 #ifndef AK_LINUX_AOSP
 #define AK_SUPPORT_WCHAR						///< Can support wchar
+#ifndef __cplusplus
+	#include <wchar.h> // wchar_t not a built-in type in C
+#endif
 #define AK_ALSA
 #define AK_PULSEAUDIO
 #endif

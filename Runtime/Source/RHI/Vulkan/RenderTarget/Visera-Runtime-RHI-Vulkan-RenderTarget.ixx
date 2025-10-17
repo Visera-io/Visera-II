@@ -23,12 +23,12 @@ namespace Visera::RHI
         GetHandle() const { return TargetImage; }
         [[nodiscard]] inline EVulkanLoadOp
         GetLoadOp() const { return LoadOp; }
-        inline FVulkanRenderTarget&
-        SetLoadOp(EVulkanLoadOp I_LoadOp) { LoadOp = I_LoadOp; return *this; }
+        inline FVulkanRenderTarget*
+        SetLoadOp(EVulkanLoadOp I_LoadOp) { LoadOp = I_LoadOp; return this; }
         [[nodiscard]] inline EVulkanStoreOp
         GetStoreOp() const { return StoreOp; }
-        inline FVulkanRenderTarget&
-        SetStoreOp(EVulkanStoreOp I_StoreOp) { StoreOp = I_StoreOp; return *this; }
+        inline FVulkanRenderTarget*
+        SetStoreOp(EVulkanStoreOp I_StoreOp) { StoreOp = I_StoreOp; return this; }
         [[nodiscard]] inline const FVulkanClearColor&
         GetClearColor() const { return ClearColor; }
         inline FVulkanRenderTarget&

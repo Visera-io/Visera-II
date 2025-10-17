@@ -17,7 +17,7 @@ namespace Visera
         };
 
         virtual void
-        Tick() const = 0;
+        Tick(Float I_Seconds) const = 0;
 
     private:
         EType Type {EType::Unknown};
