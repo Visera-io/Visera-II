@@ -25,6 +25,7 @@ namespace Visera
    public:
       FSound() = delete;
       FSound(const FName& I_Name, const FPath& I_Path);
+      ~FSound();
    };
 
    FSound::
@@ -40,8 +41,8 @@ namespace Visera
          auto Result = AK::SoundEngine::LoadBank(I_Path.GetNativePath().c_str(), ID);
          switch (Result)
          {
-         case AK_Success:            LOG_DEBUG("Bank loaded"); break;
-         case AK_BankAlreadyLoaded:  LOG_WARN("Bank already loaded!"); break;
+         case AK_Success:            break;
+         case AK_BankAlreadyLoaded:  LOG_WARN("Bank \"{}\" already loaded!", I_Path); break;
          default:                    LOG_FATAL("Unknown Error ({})!", Int32(Result)); break;
          }
       }
@@ -51,5 +52,12 @@ namespace Visera
                    "-- unsupported extension {}!", GetPath(), Extension);
          return;
       }
+   }
+
+   FSound::
+   ~FSound()
+   {
+      if (AK::SoundEngine::UnloadBank(GetPath().GetNativePath().c_str(), nullptr) != AK_Success)
+      { LOG_ERROR("Failed to unload the sound \"{}\"!", GetPath()); }
    }
 }

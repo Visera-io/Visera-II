@@ -15,7 +15,7 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanRenderPass
     {
     public:
-        static constexpr auto ColorRTFormat = EVulkanFormat::eR8G8B8A8Unorm;
+        static constexpr auto ColorRTFormat = EVulkanFormat::eR8G8B8A8Srgb;
         static constexpr auto DepthRTFormat = EVulkanFormat::eD32Sfloat;
 
         [[nodiscard]] inline const vk::raii::RenderPass&

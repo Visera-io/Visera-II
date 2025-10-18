@@ -63,7 +63,6 @@ namespace Visera
             {
                 AkDeviceSettings DeviceSettings{};
                 AK::StreamMgr::GetDefaultDeviceSettings(DeviceSettings);
-                //DeviceSettings.uMaxConcurrentIO = 32;
 
                 IO.Initialize(DeviceSettings);
 
@@ -130,6 +129,8 @@ namespace Visera
             if (AK::SoundEngine::IsInitialized())
             {
                 LOG_TRACE("Terminating Wwise Sound Engine.");
+                if (AK::SoundEngine::ClearBanks() != AK_Success)
+                { LOG_ERROR("Failed to clear all banks!"); }
                 AK::SoundEngine::Term();
             }
 
@@ -142,6 +143,7 @@ namespace Visera
             {
                 LOG_TRACE("Destroying Wwise Streaming Device.");
                 AK::StreamMgr::DestroyDevice(DeviceID);
+                DeviceID = AK_INVALID_DEVICE_ID;
             }
 
             if (AK::IAkStreamMgr::Get())

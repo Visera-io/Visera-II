@@ -6,11 +6,11 @@
    "Generator": "2025.1.2.8976"
   },
   "RootPaths": {
-   "ProjectRoot": "../..",
-   "SourceFilesRoot": "../../.cache",
+   "ProjectRoot": "../../../../../../../../OneDrive/Documents/WwiseProjects/Lyshia-Windrise",
+   "SourceFilesRoot": "../../../../../../../../OneDrive/Documents/WwiseProjects/Lyshia-Windrise/.cache",
    "SoundBanksRoot": ".",
    "ExternalSourcesInputFile": "",
-   "ExternalSourcesOutputRoot": "."
+   "ExternalSourcesOutputRoot": "../../../../../../../../OneDrive/Documents/WwiseProjects/Lyshia-Windrise/GeneratedSoundBanks/Mac"
   },
   "DefaultAlign": "16",
   "Settings": {
@@ -33,6 +33,6 @@
    "PrintObjectPath": "true",
    "PrintObjectColor": "true"
   },
-  "FileHash": "{EBAF6EEE-D138-97B3-9FB4-249F39FB40CA}"
+  "FileHash": "{0FB74501-0A4F-7B7E-4B4C-6446FFC0EEF9}"
  }
 }

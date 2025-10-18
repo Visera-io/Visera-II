@@ -10,6 +10,7 @@ import Visera.Runtime.Audio.Null;
 import Visera.Runtime.Audio.Wwise;
 import Visera.Runtime.AssetHub.Sound;
 import Visera.Core.Types.Name;
+import Visera.Core.OS.Time;
 import Visera.Core.Log;
 
 namespace Visera
@@ -23,7 +24,17 @@ namespace Visera
         using FEventID = AkPlayingID;
 
         void inline
-        Tick() const { Sleep(1.0 / 60.0); LOG_DEBUG("Tick"); Engine->Tick(1); }
+        Tick() const
+        {
+            static FSystemClock Timer{};
+            static UInt64 Time{0};
+            Time = Timer.Elapsed().Milliseconds();
+            if (Time >= 16)
+            {
+                Engine->Tick(1);
+                Timer.Reset();
+            }
+        }
         [[nodiscard]] inline FToken
         Register(TSharedPtr<FSound> I_Sound);
         [[nodiscard]] inline FEventID
@@ -50,6 +61,13 @@ namespace Visera
         LOG_TRACE("Bootstrapping Audio.");
 
         Engine = MakeUnique<FWwiseAudioEngine>();
+        // Set Default Listeners
+        UInt64 MainID{0};
+        if (AK_Success != AK::SoundEngine::RegisterGameObj(MainID, "Player"))
+        {
+            LOG_FATAL("Failed to register Main Listener");
+        }
+        AK::SoundEngine::SetDefaultListeners(&MainID, 1);
 
         Status = EStatus::Bootstrapped;
     }
@@ -59,6 +77,11 @@ namespace Visera
     {
         LOG_TRACE("Terminating Audio.");
 
+        for (auto& [Name, PID] : Playlist)
+        {
+            if (AK::SoundEngine::UnregisterGameObj(PID) != AK_Success)
+            { LOG_ERROR("Failed to unregister {} (id:{})!", Name, PID); }
+        }
         Engine.reset();
 
         Status = EStatus::Terminated;
@@ -67,10 +90,9 @@ namespace Visera
     FAudio::FToken FAudio::
     Register(TSharedPtr<FSound> I_Sound)
     {
-        static UInt64 UUID{0};
-
         auto& Token = Playlist[I_Sound->GetName()];
 
+        static UInt64 UUID{1};
         if (AK_Success == AK::SoundEngine::RegisterGameObj(UUID, FName::FetchNameString(I_Sound->GetName()).data()))
         {
             LOG_DEBUG("Registered sound {} (token:{}).", I_Sound->GetPath(), UUID);

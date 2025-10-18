@@ -96,7 +96,7 @@ export int main(int argc, char *argv[])
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
 
-        ///GAudio->Register(BankInit);
+        GAudio->Register(BankInit);
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_MainBGM", ID);
 
