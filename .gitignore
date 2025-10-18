@@ -6,3 +6,5 @@ cmake-build*/
 *.lib
 
 .DS_Store
+*.pdb
+*.dll
