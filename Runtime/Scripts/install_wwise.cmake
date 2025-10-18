@@ -20,10 +20,10 @@ macro(link_wwise in_target)
     # This symbol is used in various places to avoid compiling unnecessary code
     # in the release version.
     target_compile_definitions(${in_target}
-        PRIVATE
-        $<$<NOT:$<CONFIG:Debug>>:AK_OPTIMIZED>)
+            PRIVATE
+            $<$<CONFIG:Release>:AK_OPTIMIZED>)
 
-    if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if(WIN32 AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         target_link_libraries(${in_target}
             PRIVATE
             Ws2_32 # Wwise Communication uses Windows Sockets (Winsock) API

@@ -1,7 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <slang/slang.h>
-#include <slang-com-ptr.h>
+#include <Slang/slang.h>
+#include <Slang/slang-com-ptr.h>
 export module Visera.Runtime.AssetHub.Shader.Slang;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Runtime.AssetHub.Shader.Compiler;

@@ -25,7 +25,7 @@ set(WWISE_SOUNDENGINE_LIB    "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PRE
 set(WWISE_MEMORYMGR_LIB      "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkMemoryMgr${LIB_EXTNAME}")
 set(WWISE_SPATIALAUDIO_LIB   "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkSpatialAudio${LIB_EXTNAME}")
 set(WWISE_STREAMMGR_LIB      "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}AkStreamMgr${LIB_EXTNAME}")
-if(WWISE_BUILD_TYPE STREQUAL "Debug")
+if(NOT WWISE_BUILD_TYPE STREQUAL "Release")
 set(WWISE_COMMUNICATIONCENTRAL_LIB "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}/${LIB_PREFIX}CommunicationCentral${LIB_EXTNAME}")
 endif()
 
@@ -50,7 +50,7 @@ endif()
 if(NOT EXISTS "${WWISE_STREAMMGR_LIB}")
     message(FATAL_ERROR "Wwise StreamMgr library not found: ${WWISE_STREAMMGR_LIB}")
 endif()
-if(WWISE_BUILD_TYPE STREQUAL "Debug")
+if(NOT WWISE_BUILD_TYPE STREQUAL "Release")
 if(NOT EXISTS "${WWISE_COMMUNICATIONCENTRAL_LIB}")
     message(FATAL_ERROR "Wwise CommunicationCentral library not found: ${WWISE_COMMUNICATIONCENTRAL_LIB}")
 endif()
@@ -77,10 +77,10 @@ set_target_properties(Wwise_StreamMgr PROPERTIES
     IMPORTED_LOCATION ${WWISE_STREAMMGR_LIB}
 )
 
-if(WWISE_BUILD_TYPE STREQUAL "Debug")
+if(NOT WWISE_BUILD_TYPE STREQUAL "Release")
 add_library(Wwise_CommunicationCentral STATIC IMPORTED)
 set_target_properties(Wwise_CommunicationCentral PROPERTIES
-        IMPORTED_LOCATION ${WWISE_COMMUNICATIONCENTRAL_LIB}
+    IMPORTED_LOCATION ${WWISE_COMMUNICATIONCENTRAL_LIB}
 )
 endif()
 
@@ -92,7 +92,7 @@ target_link_libraries(Wwise INTERFACE
     Wwise_SpatialAudio
     Wwise_StreamMgr
 )
-if(WWISE_BUILD_TYPE STREQUAL "Debug")
+if(NOT WWISE_BUILD_TYPE STREQUAL "Release")
 target_link_libraries(Wwise INTERFACE Wwise_CommunicationCentral)
 endif()
 

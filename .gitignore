@@ -4,5 +4,7 @@ Toolkit/CSharp/*App
 cmake-build*/
 *.a
 *.lib
+*/Windows/*
+*/MacOS/*
 
 .DS_Store

@@ -144,18 +144,8 @@ macro(link_dotnet in_target)
         message(FATAL_ERROR "Unsupported platform!")
     endif ()
 
-    target_include_directories(${in_target} PUBLIC ${VISERA_RUNTIME_EXTERNAL_DIR}/DotNET)
+    target_include_directories(${in_target} PRIVATE ${VISERA_RUNTIME_EXTERNAL_DIR}/DotNET)
     target_link_libraries(${in_target} PRIVATE ${NETHOST_LIBRARY})
-
-    if(WIN32)
-    add_custom_command(
-        TARGET ${in_target}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${NETHOST_DLL}
-            $<TARGET_FILE_DIR:${VISERA_APP}>
-    )
-    endif()
 
     add_custom_command(
         TARGET ${in_target}
@@ -164,5 +154,4 @@ macro(link_dotnet in_target)
         ${HOSTFXR_DLL}
         $<TARGET_FILE_DIR:${VISERA_APP}>
     )
-
 endmacro()

@@ -3,26 +3,27 @@ if(NOT VISERA_RUNTIME_EXTERNAL_DIR)
 endif()
 
 macro(link_slang in_target)
-    message(STATUS "\nLinking Slang (slang)")
-    # Make sure that Version(VulkanSDK) >= "1.4.0"
-    add_library(slang UNKNOWN IMPORTED)
-    message(STATUS "Using VulkanSDK $ENV{VULKAN_SDK}")
+    message(STATUS "\nLinking Slang (Slang)")
 
-    if (WIN32)
-        set_target_properties(slang
-                PROPERTIES
-                IMPORTED_LOCATION "$ENV{VULKAN_SDK}/Lib/slang.lib"
-                INTERFACE_INCLUDE_DIRECTORIES "$ENV{VULKAN_SDK}/Include/slang")
-        target_link_libraries(${in_target} PUBLIC slang)
-
-    elseif (APPLE) # MacOS
-        set_target_properties(slang
-                PROPERTIES
-                IMPORTED_LOCATION "$ENV{VULKAN_SDK}/lib/libslang.dylib"
-                INTERFACE_INCLUDE_DIRECTORIES "$ENV{VULKAN_SDK}/include/slang")
-        target_link_libraries(${in_target} PUBLIC slang)
-    else()
-        message(FATAL_ERROR "[Slang] Unsupported Platform!")
+    if(NOT TARGET Slang)
+        add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/Slang)
     endif()
 
+    target_link_libraries(${in_target} PUBLIC Slang)
+    add_custom_command(
+            TARGET ${in_target}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SLANG_DLL_PATH}
+            $<TARGET_FILE_DIR:${VISERA_APP}>
+    )
+    if(WIN32 AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_custom_command(
+        TARGET ${in_target}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${SLANG_PDB_PATH}
+        $<TARGET_FILE_DIR:${VISERA_APP}>
+    )
+    endif()
 endmacro()

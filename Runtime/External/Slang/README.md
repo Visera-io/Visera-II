@@ -1,2 +1,0 @@
-# Slang
-> Load from VulkanSDK.

@@ -28,10 +28,10 @@
     },
     "Slang" :
     {
-        "Version" : "Depends on VulkanSDK",
+        "Version" : "2025.19.1",
         "Dependencies" :
         [
-            "Vulkan"
+            
         ],
         "URL" : "https://github.com/shader-slang/slang"
     },
