@@ -31,34 +31,33 @@ export namespace Visera
     FText(FWideStringView I_Text)
     {
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-            int sizeNeeded = WideCharToMultiByte(
-                CP_UTF8,
-                0,
-                I_Text.data(),
-                -1,
-                nullptr,
-                0,
-                nullptr,
-                nullptr);
-            if (sizeNeeded <= 0) { return; }
+        int sizeNeeded = WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            I_Text.data(),
+            -1,
+            nullptr,
+            0,
+            nullptr,
+            nullptr);
+        if (sizeNeeded <= 0) { return; }
 
-            Data.resize(sizeNeeded - 1, 0); // -1 to exclude null terminator
-            WideCharToMultiByte(
-                CP_UTF8,
-                0,
-                I_Text.data(),
-                -1,
-                Data.data(),
-                sizeNeeded,
-                nullptr,
-                nullptr);
+        Data.resize(sizeNeeded - 1, 0); // -1 to exclude null terminator
+        WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            I_Text.data(),
+            -1,
+            Data.data(),
+            sizeNeeded,
+            nullptr,
+            nullptr);
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-        VISERA_UNIMPLEMENTED_API;
-            // size_t Size = wcstombs(nullptr, _Source.data(), 0);
-            // if (Size == static_cast<size_t>(-1)) { return {}; }
-            //
-            // String Sink(Size, 0);
-            // wcstombs(Sink.data(), _Source.data(), Size);
+        UInt64 Size = wcstombs(nullptr, I_Text.data(), 0);
+        if (Size == static_cast<UInt64>(-1)) { return; }
+
+        Data.resize(Size);
+        wcstombs(Data.data(), I_Text.data(), Size);
 #else
         VISERA_UNIMPLEMENTED_API;
 #endif

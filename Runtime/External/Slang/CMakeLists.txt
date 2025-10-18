@@ -46,7 +46,7 @@ add_library(Slang_Core SHARED IMPORTED)
 message(STATUS "Path: ${SLANG_LIB_PATH}")
 
 set_target_properties(Slang_Core PROPERTIES
-    IMPORTED_LOCATION             "${SLANG_DLL_PATH}"
+    IMPORTED_LOCATION_ALL         "${SLANG_DLL_PATH}"
     IMPORTED_IMPLIB               "${SLANG_LIB_PATH}"
     INTERFACE_INCLUDE_DIRECTORIES "${SLANG_INCLUDE_DIR}"
 )
