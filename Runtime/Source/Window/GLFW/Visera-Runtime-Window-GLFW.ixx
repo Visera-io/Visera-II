@@ -32,6 +32,10 @@ namespace Visera
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
         void inline
         SetPosition(Int32 I_X, Int32 I_Y) const override { glfwSetWindowPos(Handle, I_X, I_Y); }
+        [[nodiscard]] FStringView
+        GetTitle() const override { return glfwGetWindowTitle(Handle); }
+        void inline
+        SetTitle(FStringView I_Title) override { glfwSetWindowTitle(Handle, I_Title.data()); }
 
         FGLFWWindow() : IWindow(EType::GLFW) {}
 
@@ -61,7 +65,11 @@ namespace Visera
         //Create Window
         Handle = glfwCreateWindow(
             Width, Height, //[TODO] read from config (save the last scale).
-            static_cast<const char*>(Title),
+#if !defined(VISERA_RELEASE_MODE)
+            reinterpret_cast<const char*>(u8"Visera"),
+#else
+            reinterpret_cast<const char*>(VISERA_APP),
+#endif
             nullptr,
             nullptr);
         if (!Handle)
@@ -84,7 +92,7 @@ namespace Visera
 
         if (bMaximized)
         {
-            LOG_DEBUG("Maximizing the window (title: {})", Title);
+            LOG_DEBUG("Maximizing the window (title: {})", GetTitle());
             glfwMaximizeWindow(Handle);
         }
         else
@@ -94,7 +102,7 @@ namespace Visera
         }
 
         LOG_DEBUG("Created a new window (title:{}, extent:[{},{}], scales:[{},{}])",
-            Title, Width, Height, ScaleX, ScaleY);
+                  GetTitle(), Width, Height, ScaleX, ScaleY);
 
         Status = EStatus::Bootstrapped;
     }

@@ -2,7 +2,6 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.Window.Interface;
 #define VISERA_MODULE_NAME "Runtime.Window"
-import Visera.Core.Types.Text;
 
 namespace Visera
 {
@@ -28,6 +27,10 @@ namespace Visera
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) = 0;
         virtual void
         SetPosition(Int32 I_X, Int32 I_Y) const = 0;
+        [[nodiscard]] virtual FStringView
+        GetTitle() const = 0;
+        virtual void inline
+        SetTitle(FStringView I_Title) = 0;
 
         [[nodiscard]] inline UInt32
         GetWidth() const  { return Width; }
@@ -35,10 +38,6 @@ namespace Visera
         GetHeight() const { return Height; }
         [[nodiscard]] EType
         GetType() const { return Type; }
-        [[nodiscard]] const FText&
-        GetTitle() const { return Title; }
-        virtual void inline
-        SetTitle(const FText& I_Title) { Title = I_Title; }
         [[nodiscard]] inline Bool
         IsMaximized() const { return bMaximized; };
 
@@ -47,7 +46,6 @@ namespace Visera
 
     protected:
         EType Type   = EType::Unknown;
-        FText       Title  = TEXT("Visera");
         Int32       Width {900},  Height{600};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};

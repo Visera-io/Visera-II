@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.29)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(WWISE_BUILD_TYPE "Debug")
-else()
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(WWISE_BUILD_TYPE "Release")
+else()
+    set(WWISE_BUILD_TYPE "Debug")
 endif()
 
 if(WIN32)
@@ -61,27 +61,32 @@ add_library(Wwise_SoundEngine STATIC IMPORTED)
 set_target_properties(Wwise_SoundEngine PROPERTIES
     IMPORTED_LOCATION ${WWISE_SOUNDENGINE_LIB}
 )
+message(STATUS "Sound Engine: ${WWISE_SOUNDENGINE_LIB}")
 
 add_library(Wwise_MemoryMgr STATIC IMPORTED)
 set_target_properties(Wwise_MemoryMgr PROPERTIES
     IMPORTED_LOCATION ${WWISE_MEMORYMGR_LIB}
 )
+message(STATUS "Memory Manager: ${WWISE_MEMORYMGR_LIB}")
 
 add_library(Wwise_SpatialAudio STATIC IMPORTED)
 set_target_properties(Wwise_SpatialAudio PROPERTIES
     IMPORTED_LOCATION ${WWISE_SPATIALAUDIO_LIB}
 )
+message(STATUS "Spatial Audio: ${WWISE_SPATIALAUDIO_LIB}")
 
 add_library(Wwise_StreamMgr STATIC IMPORTED)
 set_target_properties(Wwise_StreamMgr PROPERTIES
     IMPORTED_LOCATION ${WWISE_STREAMMGR_LIB}
 )
+message(STATUS "Stream Manager: ${WWISE_STREAMMGR_LIB}")
 
 if(NOT WWISE_BUILD_TYPE STREQUAL "Release")
 add_library(Wwise_CommunicationCentral STATIC IMPORTED)
 set_target_properties(Wwise_CommunicationCentral PROPERTIES
     IMPORTED_LOCATION ${WWISE_COMMUNICATIONCENTRAL_LIB}
 )
+message(STATUS "Communication: ${WWISE_COMMUNICATIONCENTRAL_LIB}")
 endif()
 
 # Create a meta-target that links all Wwise components
@@ -92,7 +97,14 @@ target_link_libraries(Wwise INTERFACE
     Wwise_SpatialAudio
     Wwise_StreamMgr
 )
-if(NOT WWISE_BUILD_TYPE STREQUAL "Release")
+if(WWISE_BUILD_TYPE STREQUAL "Release")
+# You must define the AK_OPTIMIZED symbol in the release configuration
+# of your project (it might be called "Ship", "Retail", or something
+# similar in the configuration used to build the retail version of your game).
+# This symbol is used in various places to avoid compiling unnecessary code
+# in the release version.
+target_compile_definitions(Wwise INTERFACE AK_OPTIMIZED)
+else()
 target_link_libraries(Wwise INTERFACE Wwise_CommunicationCentral)
 endif()
 

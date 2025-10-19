@@ -13,21 +13,13 @@ macro(link_wwise in_target)
             Wwise
             WwiseSamples
     )
-
-    # You must define the AK_OPTIMIZED symbol in the release configuration
-    # of your project (it might be called "Ship", "Retail", or something
-    # similar in the configuration used to build the retail version of your game).
-    # This symbol is used in various places to avoid compiling unnecessary code
-    # in the release version.
-    target_compile_definitions(${in_target}
-            PRIVATE
-            $<$<CONFIG:Release>:AK_OPTIMIZED>)
-
-    if(WIN32 AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_link_libraries(${in_target}
-            PRIVATE
-            Ws2_32 # Wwise Communication uses Windows Sockets (Winsock) API
-        )
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        if(WIN32)
+            target_link_libraries(${in_target}
+                    PRIVATE
+                    Ws2_32 # Wwise Communication uses Windows Sockets (Winsock) API
+            )
+        endif()
     endif()
 
     if(APPLE)

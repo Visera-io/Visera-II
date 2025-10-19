@@ -34,6 +34,10 @@ namespace Visera
                 LOG_INFO("Off-Screen Mode.");
                 return;
             }
+            else
+            {
+
+            }
 
             while (!GWindow->ShouldClose())
             {
