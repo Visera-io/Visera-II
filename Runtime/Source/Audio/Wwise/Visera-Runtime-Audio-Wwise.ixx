@@ -77,7 +77,7 @@ namespace Visera
                 AK::Comm::GetDefaultInitSettings(CommunicationSettings );
                 AKPLATFORM::SafeStrCpy(
                     CommunicationSettings.szAppNetworkName,
-                    "Visera",
+                    reinterpret_cast<const char*>(VISERA_APP),
                     AK_COMM_SETTINGS_MAX_STRING_SIZE);
                 if (AK::Comm::Init(CommunicationSettings) != AK_Success)
                 { LOG_FATAL("Failed to initialize music communication!"); }
@@ -149,6 +149,9 @@ namespace Visera
             if (AK::IAkStreamMgr::Get())
             {
                 LOG_TRACE("Terminating Wwise Stream Manager.");
+
+                IO.Terminate();
+
                 AK::IAkStreamMgr::Get()->Destroy();
             }
 

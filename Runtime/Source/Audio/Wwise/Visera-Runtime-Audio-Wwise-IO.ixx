@@ -18,10 +18,9 @@ namespace Visera
     {
     public:
         void inline
-        Initialize(const AkDeviceSettings& I_DeviceSettings)
-        {
-            DefaultIO.Init(I_DeviceSettings);
-        }
+        Initialize(const AkDeviceSettings& I_DeviceSettings) { DefaultIO.Init(I_DeviceSettings); }
+        void inline
+        Terminate() { DefaultIO.Term(); }
     private:
         CAkDefaultIOHookDeferred DefaultIO; // Forward to Wwise's default blocking IO hook
     public:
