@@ -3,7 +3,7 @@ if(NOT VISERA_CORE_EXTERNAL_DIR)
 endif()
 
 macro(link_eigen in_target)
-    message(STATUS "\nLinking Eigen3 (Eigen)")
+    message(STATUS "\nLinking Eigen5 (Eigen)")
 
     if(NOT TARGET Eigen)
         file(GLOB_RECURSE EIGEN_MODULES ${VISERA_CORE_EXTERNAL_DIR}/Eigen)

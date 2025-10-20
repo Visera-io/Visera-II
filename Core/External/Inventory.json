@@ -19,12 +19,12 @@
     },
     "Eigen" : 
     {
-        "Version" : "3.4.0",
+        "Version" : "5.0.0",
         "Dependencies" : 
         [
 
         ],
-        "URL" : "https://gitlab.com/libeigen/eigen/-/releases/3.4.0"
+        "URL" : "https://gitlab.com/libeigen/eigen/-/releases/5.0.0"
     },
     "ZLib" : 
     {
