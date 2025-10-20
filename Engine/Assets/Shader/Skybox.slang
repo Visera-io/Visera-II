@@ -34,6 +34,13 @@ float4 FragmentMain2() : SV_Target
      float4 Position : SV_Position;
  };
 
+ struct PushConstants
+ {
+   float time;
+   float mouse_x, mouse_y;
+ };
+ [[vk::push_constant]] PushConstants IO;
+
  [shader("fragment")]
  float4 FragmentMain(PSInput input) : SV_Target
  {
@@ -60,7 +67,7 @@ float4 FragmentMain2() : SV_Target
      col += float3(0.8, 0.8, 1.0) * star * 1.5;
 
      // Add soft vignetting
-     col *= smoothstep(1.5, 0.3, r);
+     col *= smoothstep(1.5, 0.3, r) * sin(IO.time);
 
      return float4(col, 1.0);
  }

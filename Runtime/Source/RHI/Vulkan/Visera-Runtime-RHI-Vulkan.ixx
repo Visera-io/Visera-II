@@ -72,14 +72,17 @@ namespace Visera::RHI
             Bool                          bClipped       {True};
         }SwapChain;
 
+    private:
         const FVulkanExtent2D                   ColorRTRes { 1920, 1080 };
         TArray<TSharedPtr<FVulkanFence>>        InFlightFences     {};
         TArray<TSharedPtr<FVulkanRenderTarget>> ColorRTs;
-        vk::raii::CommandPool        GraphicsCommandPool {nullptr};
 
-        TUniquePtr<FVulkanPipelineCache> PipelineCache;
+        vk::raii::CommandPool                   GraphicsCommandPool {nullptr};
 
-    private:
+        TArray<TSharedPtr<FVulkanRenderPass>>   RenderPasses;
+        TUniquePtr<FVulkanPipelineCache>        PipelineCache;
+
+
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
         TArray<const char*> DeviceLayers;
@@ -852,12 +855,20 @@ namespace Visera::RHI
         auto Result = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
         if (!Result.has_value())
         { LOG_FATAL("Failed to acquire the next Vulkan SwapChain Image!"); }
+
         auto Status = static_cast<vk::Result>(Result.value);
         if (Status == vk::Result::eErrorOutOfDateKHR ||
             Status == vk::Result::eSuboptimalKHR)
         {
             LOG_WARN("Failed to acquire next swapchain image -- RECREATION!");
             return False;
+        }
+
+        // Switch Render Targets
+        auto& CurrentColorRT = ColorRTs[SwapChain.Cursor];
+        for (auto& RenderPass : RenderPasses)
+        {
+            RenderPass->SetColorRT(CurrentColorRT);
         }
 
         return Fence->Reset();
@@ -871,11 +882,13 @@ namespace Visera::RHI
         auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
         Cmd->Begin();
         {
-            auto OldColorRTLayout   = ColorRTs[0]->GetLayout();
-            auto OldSwapChainLayout = SwapChain.Images[0]->GetLayout();
+            auto& CurrentColorRT = ColorRTs[SwapChain.Cursor];
+            auto OldColorRTLayout   = CurrentColorRT->GetLayout();
+            auto& CurrentSwapChainImage = SwapChain.Images[SwapChain.Cursor];
+            auto OldSwapChainLayout = CurrentSwapChainImage->GetLayout();
 
             Cmd->ConvertImageLayout(
-                ColorRTs[0]->GetHandle(),
+                CurrentColorRT->GetImage(),
                 EVulkanImageLayout::eTransferSrcOptimal,
                 EVulkanPipelineStage::eTopOfPipe,
                 EVulkanAccess::eNone,
@@ -884,7 +897,7 @@ namespace Visera::RHI
             );
 
             Cmd->ConvertImageLayout(
-                SwapChain.Images[0],
+                CurrentSwapChainImage,
                 EVulkanImageLayout::eTransferDstOptimal,
                 EVulkanPipelineStage::eTopOfPipe,
                 EVulkanAccess::eNone,
@@ -892,11 +905,11 @@ namespace Visera::RHI
                 EVulkanAccess::eTransferWrite
             );
 
-            Cmd->BlitImage(ColorRTs[0]->GetHandle(),
-                           SwapChain.Images[0]);
+            Cmd->BlitImage(CurrentColorRT->GetImage(),
+                           CurrentSwapChainImage);
 
             Cmd->ConvertImageLayout(
-                ColorRTs[0]->GetHandle(),
+                CurrentColorRT->GetImage(),
                 OldColorRTLayout,
                 EVulkanPipelineStage::eTopOfPipe,
                 EVulkanAccess::eNone,
@@ -905,7 +918,7 @@ namespace Visera::RHI
             );
 
             Cmd->ConvertImageLayout(
-                SwapChain.Images[0],
+                CurrentSwapChainImage,
                 OldSwapChainLayout,
                 EVulkanPipelineStage::eTopOfPipe,
                 EVulkanAccess::eNone,
@@ -916,7 +929,9 @@ namespace Visera::RHI
         Cmd->End();
 
         Submit(Cmd, Fence);
-        return Fence->Wait();
+
+        SwapChain.Cursor = (SwapChain.Cursor + 1) % (SwapChain.Images.size());
+        return True;
     }
 
     Bool FVulkanDriver::
@@ -974,14 +989,12 @@ namespace Visera::RHI
     {
         LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{})",
                   I_Name, I_VertexShader->GetPath(), I_FragmentShader->GetPath());
-        auto RenderPass = MakeShared<FVulkanRenderPass>(
+        return RenderPasses.emplace_back(MakeShared<FVulkanRenderPass>(
                I_Name,
                Device.Context,
                I_VertexShader,
                I_FragmentShader,
-               PipelineCache);
-        RenderPass->SetColorRT(ColorRTs[SwapChain.Cursor]);
-        return RenderPass;
+               PipelineCache));
     }
 
     TSharedPtr<FVulkanFence> FVulkanDriver::

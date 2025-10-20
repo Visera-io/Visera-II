@@ -16,7 +16,13 @@ namespace Visera
 {
     class VISERA_RUNTIME_API FRuntime
     {
-        static FRuntime Runtime;
+    public:
+        [[nodiscard]] inline const FHiResClock&
+        GetTimer() const { return Timer; }
+
+    private:
+        FHiResClock Timer{};
+
     public:
         FRuntime()
         {
@@ -35,11 +41,8 @@ namespace Visera
             GLog->Terminate();
             LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
         }
-
-    private:
-        FHiResClock Timer{};
     };
 
-    FRuntime FRuntime::Runtime{};
-
+    export inline VISERA_RUNTIME_API TUniquePtr<FRuntime>
+    GRuntime = MakeUnique<FRuntime>();
 }

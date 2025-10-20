@@ -46,6 +46,11 @@ namespace Visera
 
     private:
         GLFWwindow* Handle = nullptr;
+
+    private:
+        static void MouseButtonCallback(GLFWwindow* I_Handle, Int32 I_Button, Int32 I_Action, Int32 I_Mods);
+        static void MouseCursorCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY);
+        static void MouseScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY);
     };
 
     void FGLFWWindow::
@@ -75,8 +80,19 @@ namespace Visera
         if (!Handle)
         { LOG_FATAL("Failed to create the window!"); return; }
 
+        if (bMaximized)
+        {
+            LOG_DEBUG("Maximizing the window (title: {})", GetTitle());
+            glfwMaximizeWindow(Handle);
+        }
+        else
+        {
+            SetSize(static_cast<Float>(Width)  / ScaleX,
+                    static_cast<Float>(Height) / ScaleY);
+        }
+
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        //SetPosition(400, 200);
+
 #else
         auto IconImage = GAssetHub->LoadImage(PATH("Visera.png"));
         VISERA_ASSERT(IconImage->HasAlpha());
@@ -90,16 +106,9 @@ namespace Visera
 #endif
         glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
 
-        if (bMaximized)
-        {
-            LOG_DEBUG("Maximizing the window (title: {})", GetTitle());
-            glfwMaximizeWindow(Handle);
-        }
-        else
-        {
-            SetSize(static_cast<Float>(Width)  / ScaleX,
-                    static_cast<Float>(Height) / ScaleY);
-        }
+        glfwSetMouseButtonCallback(Handle, FGLFWWindow::MouseButtonCallback);
+        glfwSetCursorPosCallback(Handle, FGLFWWindow::MouseCursorCallback);
+        glfwSetScrollCallback(Handle, FGLFWWindow::MouseScrollCallback);
 
         LOG_DEBUG("Created a new window (title:{}, extent:[{},{}], scales:[{},{}])",
                   GetTitle(), Width, Height, ScaleX, ScaleY);
@@ -139,5 +148,28 @@ namespace Visera
         }
         return PrimaryMonitor;
     }
+    void FGLFWWindow::
+    MouseButtonCallback(GLFWwindow* I_Handle, Int32 I_Button, Int32 I_Action, Int32 I_Mods)
+    {
+        const char* actionStr =
+            (I_Action == GLFW_PRESS)   ? "Pressed" :
+            (I_Action == GLFW_RELEASE) ? "Released" : "Repeated";
 
+        LOG_DEBUG("(WIP) Mouse Button {} {}", I_Button, actionStr);
+    }
+
+    void FGLFWWindow::
+    MouseCursorCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY)
+    {
+        Mouse.Cursor.Offset.X = I_PosX - Mouse.Cursor.Position.X;
+        Mouse.Cursor.Offset.Y = I_PosY - Mouse.Cursor.Position.Y;
+        Mouse.Cursor.Position.X = I_PosX;
+        Mouse.Cursor.Position.Y = I_PosY;
+    }
+
+    void FGLFWWindow::
+    MouseScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY)
+    {
+        LOG_DEBUG("(WIP) Mouse scrolled ({}, {})", I_OffsetX, I_OffsetY);
+    }
 }

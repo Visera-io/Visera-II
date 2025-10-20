@@ -22,6 +22,8 @@ namespace Visera::RHI
         GetHandle() const { return Handle; }
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetPipeline() const { return Pipeline; }
+        [[nodiscard]] inline const vk::raii::PipelineLayout&
+        GetPipelineLayout() const { return PipelineLayout; }
         [[nodiscard]] inline const FVulkanRect2D&
         GetRenderArea() const { return CurrentRenderArea; }
         inline FVulkanRenderPass*
@@ -136,9 +138,21 @@ namespace Visera::RHI
             .setAttachmentCount (1)
             .setPAttachments    (&ColorBlendAttachment)
         ;
+        struct alignas(16) FTestPushConstantRange
+        {
+            Float Time{0};
+            Float CursorX{0}, CursorY{0};
+        };
+        auto PushConstantRange = vk::PushConstantRange{}
+            .setStageFlags  (EVulkanShaderStage::eFragment)
+            .setOffset      (0)
+            .setSize        (sizeof(FTestPushConstantRange))
+        ;
         auto PipelineLayoutInfo = vk::PipelineLayoutCreateInfo{}
             .setSetLayoutCount          (0)
-            .setPushConstantRangeCount  (0)
+            .setPSetLayouts             (nullptr)
+            .setPushConstantRangeCount  (1)
+            .setPPushConstantRanges     (&PushConstantRange)
         ;
         // Create Pipeline Layout
         {
@@ -186,7 +200,7 @@ namespace Visera::RHI
     FVulkanRenderPass* FVulkanRenderPass::
     SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT)
     {
-        VISERA_ASSERT(I_ColorRT && I_ColorRT->GetHandle());
+        VISERA_ASSERT(I_ColorRT && I_ColorRT->GetImage());
         VISERA_ASSERT(I_ColorRT->GetFormat() == ColorRTFormat);
         CurrentColorRT = I_ColorRT;
         return this;
@@ -195,7 +209,7 @@ namespace Visera::RHI
     FVulkanRenderPass* FVulkanRenderPass::
     SetDepthRT(TSharedRef<FVulkanRenderTarget> I_DepthRT)
     {
-        VISERA_ASSERT(I_DepthRT && I_DepthRT->GetHandle());
+        VISERA_ASSERT(I_DepthRT && I_DepthRT->GetImage());
         VISERA_ASSERT(I_DepthRT->GetFormat() == DepthRTFormat);
         CurrentDepthRT = I_DepthRT;
         return this;
@@ -204,7 +218,7 @@ namespace Visera::RHI
     auto FVulkanRenderPass::
     GetRenderingInfo() const
     {
-        VISERA_ASSERT(CurrentColorRT && CurrentColorRT->GetHandle());
+        VISERA_ASSERT(CurrentColorRT && CurrentColorRT->GetImage());
 
         static vk::RenderingAttachmentInfo AttachmentInfo{};
         AttachmentInfo = CurrentColorRT->GetAttachmentInfo();

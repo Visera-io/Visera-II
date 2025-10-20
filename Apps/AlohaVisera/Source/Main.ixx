@@ -41,58 +41,6 @@ export int main(int argc, char *argv[])
 
     GEngine->Bootstrap();
     {
-        auto& Driver = GRHI->GetDriver();
-        //auto Fence = GRHI->GetDriver()->CreateFence(True);
-
-        auto Image = GAssetHub->LoadImage(PATH("Visera.png"));
-        // if (Image->Save())
-        // {
-        //     LOG_INFO("Successfully saved!");
-        // }
-
-        auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
-        auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
-        auto RenderPass = Driver->CreateRenderPass(TEXT("TestPass"), VertModule, FragModule);
-        RenderPass->SetRenderArea({
-            {0,0},
-            {1920,1080}
-        });
-
-        auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
-        // auto RHIImage = Driver->CreateImage(
-        //     RHI::EImageType::e2D,
-        //     {200, 400, 1},
-        //     RHI::EFormat::eR8G8B8A8Unorm,
-        //     RHI::EImageUsage::eColorAttachment
-        //     );
-
-        Cmd->Begin();
-        {
-            LOG_INFO("Beginning!");
-            Cmd->EnterRenderPass(RenderPass);
-            Cmd->Draw(3,1,0,0);
-            Cmd->LeaveRenderPass();
-        }
-        Cmd->End();
-        auto Fence = Driver->CreateFence(False);
-        Driver->Submit(Cmd, Fence);
-        if (Fence->Wait())
-        {
-            LOG_INFO("Rendering Ok!");
-        }
-
-        Cmd->Reset();
-        if (Fence->Reset()){}
-
-        if (Driver->BeginFrame())
-        {
-
-        }
-        if (Driver->EndFrame())
-        {
-
-        }
-
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
 
@@ -100,15 +48,7 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_MainBGM", ID);
 
-
-        if (Driver->Present())
-        {
-            GEngine->Run();
-        }
-
-        //LOG_FATAL("Exited for Development!");
-        RenderPass.reset();
-
+        GEngine->Run();
     }
     GEngine->Terminate();
     return EXIT_SUCCESS;

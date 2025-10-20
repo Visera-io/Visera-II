@@ -13,14 +13,14 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FVulkanRenderTarget
     {
     public:
+        [[nodiscard]] inline TSharedRef<FVulkanImage>
+        GetImage() const { return TargetImage; }
         [[nodiscard]] inline TSharedRef<FVulkanImageView>
-        GetView() const  { return TargetImageView; }
+        GetImageView() const  { return TargetImageView; }
         [[nodiscard]] inline EVulkanImageLayout
         GetLayout() const  { return TargetImage->GetLayout(); }
         [[nodiscard]] inline EVulkanFormat
         GetFormat() const  { return TargetImage->GetFormat(); }
-        [[nodiscard]] inline TSharedRef<FVulkanImage>
-        GetHandle() const { return TargetImage; }
         [[nodiscard]] inline EVulkanLoadOp
         GetLoadOp() const { return LoadOp; }
         inline FVulkanRenderTarget*
@@ -91,7 +91,7 @@ namespace Visera::RHI
     GetAttachmentInfo() const
     {
         auto AttachmentInfo = vk::RenderingAttachmentInfo{}
-            .setImageView   (GetView()->GetHandle())
+            .setImageView   (GetImageView()->GetHandle())
             .setImageLayout (GetLayout())
             .setLoadOp      (GetLoadOp())
             .setStoreOp     (GetStoreOp())

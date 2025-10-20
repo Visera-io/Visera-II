@@ -17,16 +17,18 @@ namespace Visera
         using EImageLayout      = EVulkanImageLayout;
         using EPipelineStage    = EVulkanPipelineStage;
         using EAccess           = EVulkanAccess;
+        using EShaderStage      = EVulkanShaderStage;
     }
 
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
     {
     public:
-        void
-        BeginFrame()  const { GetDriver()->BeginFrame(); };
-        void
-        EndFrame()    const { GetDriver()->EndFrame(); };
+        inline void
+        BeginFrame()  const { Driver->BeginFrame(); };
+        inline void
+        EndFrame()    const { Driver->EndFrame(); };
 
+        // Low-level API
         [[nodiscard]] inline const TUniquePtr<RHI::FVulkanDriver>&
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {

@@ -8,6 +8,7 @@ export namespace Visera::RHI
 {
     using EVulkanImageLayout   = vk::ImageLayout;
     using EVulkanPipelineStage = vk::PipelineStageFlagBits2;
+    using EVulkanShaderStage   = vk::ShaderStageFlagBits;
     using EVulkanAccess        = vk::AccessFlagBits2;
     using EVulkanQueue         = vk::QueueFlagBits;
     using EVulkanLoadOp        = vk::AttachmentLoadOp;

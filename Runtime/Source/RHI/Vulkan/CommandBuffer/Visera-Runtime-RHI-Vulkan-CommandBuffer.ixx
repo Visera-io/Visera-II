@@ -35,6 +35,11 @@ namespace Visera::RHI
         void inline
         EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass);
         void inline
+        PushConstants(EVulkanShaderStage I_ShaderStages,
+                      const void*        I_Data,
+                      UInt32             I_Offset,
+                      UInt32             I_Size);
+        void inline
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
         void inline
@@ -58,10 +63,10 @@ namespace Visera::RHI
         IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
 
     private:
-        vk::raii::CommandBuffer     Handle {nullptr};
-        TOptional<FVulkanViewport>  CurrentViewport;
-        TOptional<FVulkanRect2D>    CurrentScissor;
-        TWeakPtr<FVulkanRenderPass> CurrentRenderPass;
+        vk::raii::CommandBuffer       Handle {nullptr};
+        TOptional<FVulkanViewport>    CurrentViewport;
+        TOptional<FVulkanRect2D>      CurrentScissor;
+        TSharedPtr<FVulkanRenderPass> CurrentRenderPass;
 
         EStatus Status { EStatus::Idle };
 
@@ -153,13 +158,13 @@ namespace Visera::RHI
     EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass)
     {
         VISERA_ASSERT(IsRecording());
-        CurrentRenderPass = I_RenderPass;
+        CurrentRenderPass = std::move(I_RenderPass);
 
-        auto RenderingInfo = I_RenderPass->GetRenderingInfo();
+        auto RenderingInfo = CurrentRenderPass->GetRenderingInfo();
         Handle.beginRendering(RenderingInfo);
 
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                         I_RenderPass->GetPipeline());
+                         CurrentRenderPass->GetPipeline());
 
         if (!CurrentViewport.has_value())
         {
@@ -183,6 +188,25 @@ namespace Visera::RHI
         Handle.setScissor(0, CurrentScissor.value());
 
         Status = EStatus::InsideRenderPass;
+    }
+
+    void FVulkanCommandBuffer::
+    PushConstants(EVulkanShaderStage I_ShaderStages,
+                  const void*        I_Data,
+                  UInt32             I_Offset,
+                  UInt32             I_Size)
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+
+        vkCmdPushConstants(*Handle,
+            *CurrentRenderPass->GetPipelineLayout(),
+            Int32(I_ShaderStages),
+            I_Offset, I_Size, I_Data);
+        // Handle.pushConstants(
+        //     ,
+        //     I_ShaderStages,
+        //     I_Offset,
+        //     Data);
     }
 
     void FVulkanCommandBuffer::

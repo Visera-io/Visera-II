@@ -15,6 +15,16 @@ namespace Visera
             GLFW
         };
 
+        struct FMouse
+        {
+            struct FCursor
+            {
+                struct { Double X{0}, Y{0}; } Position;
+                struct { Double X{0}, Y{0}; } Offset;
+            };
+            FCursor Cursor{};
+        };
+
         [[nodiscard]] virtual void*
         GetHandle() const = 0;
         [[nodiscard]] virtual Bool
@@ -40,6 +50,8 @@ namespace Visera
         GetType() const { return Type; }
         [[nodiscard]] inline Bool
         IsMaximized() const { return bMaximized; };
+        [[nodiscard]] inline const FMouse&
+        GetMouse() const { return Mouse; }
 
         explicit IWindow() = delete;
         explicit IWindow(EType I_Type) : IGlobalSingleton("Window"), Type(I_Type) {}
@@ -49,5 +61,7 @@ namespace Visera
         Int32       Width {900},  Height{600};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};
+        
+        static inline FMouse Mouse;
     };
 }

@@ -39,10 +39,53 @@ namespace Visera
 
             }
 
+            auto& Driver = GRHI->GetDriver();
+            //auto Fence = GRHI->GetDriver()->CreateFence(True);
+
+            auto VertModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain"));
+            auto FragModule = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain"));
+            auto RenderPass = Driver->CreateRenderPass(TEXT("TestPass"), VertModule, FragModule);
+            RenderPass->SetRenderArea({
+                {0,0},
+                {1920,1080}
+            });
+
+            auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
+            // auto RHIImage = Driver->CreateImage(
+            //     RHI::EImageType::e2D,
+            //     {200, 400, 1},
+            //     RHI::EFormat::eR8G8B8A8Unorm,
+            //     RHI::EImageUsage::eColorAttachment
+            //     );
+
+            struct alignas(16) FTestPushConstantRange
+            {
+                Float Time{0};
+                Float CursorX{0}, CursorY{0};
+            };
+            static_assert(sizeof(FTestPushConstantRange) <= 128);
+            FTestPushConstantRange MouseContext{};
+
+
             while (!GWindow->ShouldClose())
             {
                 GWindow->PollEvents();
                 GAudio->Tick();
+
+                MouseContext.Time = GRuntime->GetTimer().Elapsed().Milliseconds() / 1000.0;
+
+                GRHI->BeginFrame();
+                {
+                    Cmd->Begin();
+                    {
+                        Cmd->EnterRenderPass(RenderPass);
+                        Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
+                        Cmd->Draw(3,1,0,0);
+                        Cmd->LeaveRenderPass();
+                    }
+                    Cmd->End();
+                }
+                GRHI->EndFrame();
             }
         }
 
@@ -64,6 +107,4 @@ namespace Visera
 
     export inline VISERA_ENGINE_API TUniquePtr<FEngine>
     GEngine = MakeUnique<FEngine>();
-
-
 }
