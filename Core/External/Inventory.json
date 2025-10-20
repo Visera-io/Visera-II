@@ -1,7 +1,7 @@
 {
     "Spdlog" : 
     {
-        "Version" : "1.15.3",
+        "Version" : "1.16.0",
         "Dependencies" : 
         [
 
