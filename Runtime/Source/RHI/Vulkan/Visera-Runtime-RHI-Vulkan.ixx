@@ -63,6 +63,7 @@ namespace Visera::RHI
             vk::Extent2D            Extent      {0U, 0U};
             TArray<TSharedPtr<FVulkanImageWrapper>> Images     {}; // SwapChain manages Images so do NOT use RAII here.
             TArray<TSharedPtr<FVulkanImageView>>    ImageViews {};
+            TArray<TSharedPtr<FVulkanSemaphore>>    ReadyToPresentSemaphores;
             UInt32                                  Cursor     {0};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
@@ -80,9 +81,7 @@ namespace Visera::RHI
             TSharedPtr<FVulkanFence>         Fence;
             TSharedPtr<FVulkanRenderTarget>  ColorRT;
             TSharedPtr<FVulkanCommandBuffer> DrawCalls;
-
             TSharedPtr<FVulkanSemaphore>     SwapChainImageAvailable;
-            TSharedPtr<FVulkanSemaphore>     RenderFinished;
         };
 
     public:
@@ -311,6 +310,7 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroySwapChain()
     {
+        SwapChain.ReadyToPresentSemaphores.clear();
         SwapChain.ImageViews.clear();
         SwapChain.Images.clear();
         SwapChain.Context.clear();
@@ -792,6 +792,13 @@ namespace Visera::RHI
                 EVulkanImageViewType::e2D,
                 EVulkanImageAspect::eColor));
         }
+        // Create Semaphores
+        SwapChain.ReadyToPresentSemaphores.resize(SwapChain.Images.size());
+        for (UInt8 Idx = 0; Idx < SwapChain.Images.size(); ++Idx)
+        {
+            SwapChain.ReadyToPresentSemaphores[Idx]
+            = CreateSemaphore(fmt::format("Ready to Present ({})", Idx));
+        }
     }
 
     void FVulkanDriver::
@@ -894,16 +901,27 @@ namespace Visera::RHI
                 EVulkanPipelineStage::eTransfer,
                 EVulkanAccess::eTransferWrite
             );
+
+            CurrentFrame.DrawCalls->End();
+
+            Submit(CurrentFrame.DrawCalls,
+                   CurrentFrame.SwapChainImageAvailable,
+                   SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
+                   CurrentFrame.Fence);
+
+            return True;
         }
+        else
+        {
+            CurrentFrame.DrawCalls->End();
 
-        CurrentFrame.DrawCalls->End();
+            Submit(CurrentFrame.DrawCalls,
+                   {},
+                   {},
+                   CurrentFrame.Fence);
 
-        Submit(CurrentFrame.DrawCalls,
-               CurrentFrame.SwapChainImageAvailable,
-               CurrentFrame.RenderFinished,
-               CurrentFrame.Fence);
-
-        return True;
+            return CurrentFrame.Fence->Wait();
+        }
     }
 
     Bool FVulkanDriver::
@@ -911,11 +929,9 @@ namespace Visera::RHI
     {
         if (!GWindow->IsBootstrapped()) { return False; }
 
-        auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
-
         auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
-            .setPWaitSemaphores     (&(*CurrentFrame.RenderFinished->GetHandle()))
+            .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor]->GetHandle()))
             .setSwapchainCount      (1)
             .setPSwapchains         (&(*SwapChain.Context))
             .setPImageIndices       (&SwapChain.Cursor)
@@ -1092,10 +1108,11 @@ namespace Visera::RHI
                 // Command Buffers
                 InFlightFrame.DrawCalls = CreateCommandBuffer(EVulkanQueue::eGraphics);
                 // Fences
-                InFlightFrame.Fence = CreateFence(True, fmt::format("In-Flight Fence ({})", InFlightFrameIndex));
+                InFlightFrame.Fence
+                = CreateFence(True, fmt::format("In-Flight Fence ({})", InFlightFrameIndex));
                 // Semaphores
-                InFlightFrame.SwapChainImageAvailable = CreateSemaphore(fmt::format("SwapChain Image Available Semaphore ({})", InFlightFrameIndex));
-                InFlightFrame.RenderFinished = CreateSemaphore(fmt::format("Render Finished Semaphore ({})", InFlightFrameIndex));
+                InFlightFrame.SwapChainImageAvailable
+                = CreateSemaphore(fmt::format("SwapChain Image Available ({})", InFlightFrameIndex));
 
                 InFlightFrameIndex = (InFlightFrameIndex + 1) % InFlightFrames.size();
             }

@@ -8,7 +8,6 @@ import Visera.Core.Log;
 #if defined VISERA_ON_WINDOWS_SYSTEM
 import Visera.Runtime.AssetHub;
 #endif
-import Visera.Runtime.Audio;
 
 namespace Visera
 {
@@ -155,12 +154,6 @@ namespace Visera
         const char* actionStr =
             (I_Action == GLFW_PRESS)   ? "Pressed" :
             (I_Action == GLFW_RELEASE) ? "Released" : "Repeated";
-
-        if (I_Action == GLFW_PRESS)
-        {
-            GAudio->PostEvent("Play_laser_effect", 1);
-            GMouse.Cursor.Offset.X = 1.0;
-        }
 
         LOG_DEBUG("(WIP) Mouse Button {} {}", I_Button, actionStr);
     }
