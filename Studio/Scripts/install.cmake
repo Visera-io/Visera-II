@@ -50,6 +50,9 @@ list(APPEND CMAKE_MODULE_PATH ${VISERA_STUDIO_SCRIPTS_DIR})
 include(install_imgui)
 link_imgui(${VISERA_STUDIO})
 
+include(install_freetype)
+link_freetype(${VISERA_STUDIO})
+
 #
 #
 #

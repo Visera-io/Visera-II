@@ -19,7 +19,6 @@ namespace Visera
          Shader,
          Sound,
          Image,
-         Font,
       };
       [[nodiscard]] virtual Bool
       Save() const { VISERA_UNIMPLEMENTED_API; return False; }

@@ -8,7 +8,7 @@ import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
 import Visera.Runtime.Scene;
-import Visera.Runtime.AssetHub.Font.FreeType;
+import Visera.Studio.Baker.Font.FreeType;
 using namespace Visera;
 
 class Foo : public VObject

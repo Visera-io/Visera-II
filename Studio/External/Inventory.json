@@ -8,5 +8,14 @@
             "GLFW"
         ],
         "URL" : "https://github.com/ocornut/imgui"
+    },
+    "FreeType" :
+    {
+        "Version" : "2.14.1",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://freetype.org"
     }
 }
