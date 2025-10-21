@@ -21,8 +21,8 @@ namespace Visera
             {
                 struct { Double X{0}, Y{0}; } Position;
                 struct { Double X{0}, Y{0}; } Offset;
-            };
-            FCursor Cursor{};
+            } Cursor{};
+            FMouse() : Cursor{} {}
         };
 
         [[nodiscard]] virtual void*
@@ -39,7 +39,7 @@ namespace Visera
         SetPosition(Int32 I_X, Int32 I_Y) const = 0;
         [[nodiscard]] virtual FStringView
         GetTitle() const = 0;
-        virtual void inline
+        virtual void
         SetTitle(FStringView I_Title) = 0;
 
         [[nodiscard]] inline UInt32

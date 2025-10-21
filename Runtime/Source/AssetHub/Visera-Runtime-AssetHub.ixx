@@ -187,10 +187,13 @@ namespace Visera
             }
         }
 
-        if (!Sound)
-        { LOG_ERROR("Failed to load the sound \"{}\"", I_File); }
+        if (!Sound || Sound->IsInvalid())
+        {
+            LOG_ERROR("Failed to load the sound \"{}\"!", I_File);
+            return {};
+        }
 
-        LOG_DEBUG("Loaded the sound \"{}\" (id:).",
+        LOG_DEBUG("Loaded the sound \"{}\" (id:{}).",
                   Sound->GetPath(), Sound->GetID());
         return Sound;
     }

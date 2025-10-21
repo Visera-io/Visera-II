@@ -18,6 +18,8 @@ namespace Visera
 
       [[nodiscard]] inline AkBankID
       GetID() const { return ID; }
+      [[nodiscard]] inline Bool
+      IsInvalid() const { return ID == AK_INVALID_BANK_ID; }
 
    private:
       AkBankID ID {AK_INVALID_BANK_ID};
@@ -43,6 +45,7 @@ namespace Visera
          {
          case AK_Success:            break;
          case AK_BankAlreadyLoaded:  LOG_WARN("Bank \"{}\" already loaded!", I_Path); break;
+         case AK_WrongBankVersion:   LOG_ERROR("Wrong bank version!"); break;
          default:                    LOG_FATAL("Unknown Error ({})!", Int32(Result)); break;
          }
       }
