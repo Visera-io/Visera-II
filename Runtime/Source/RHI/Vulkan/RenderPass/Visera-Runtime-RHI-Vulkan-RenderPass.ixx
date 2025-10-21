@@ -142,6 +142,7 @@ namespace Visera::RHI
         {
             Float Time{0};
             Float CursorX{0}, CursorY{0};
+            Float OffsetX{0}, OffsetY{0};
         };
         auto PushConstantRange = vk::PushConstantRange{}
             .setStageFlags  (EVulkanShaderStage::eFragment)

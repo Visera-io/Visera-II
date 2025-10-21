@@ -65,7 +65,7 @@ namespace Visera::RHI
     {
         VISERA_ASSERT(TargetImage && TargetImage->GetHandle());
         VISERA_ASSERT(TargetImage->GetLayout() != EVulkanImageLayout::eUndefined &&
-                      "Convert layout before creation!");
+                      "Convert layout before creation for creating view!");
         EVulkanImageViewType RTViewType{};
         switch (TargetImage->GetType())
         {

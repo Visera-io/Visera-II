@@ -8,7 +8,6 @@ import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
 import Visera.Runtime.Scene;
-import Visera.Studio.Baker.Font.FreeType;
 using namespace Visera;
 
 class Foo : public VObject
@@ -37,8 +36,6 @@ export int main(int argc, char *argv[])
     //Demos
     //{ Demos::Compression Demo; }
 
-    FFreeType Ft{};
-
     GEngine->Bootstrap();
     {
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
@@ -46,7 +43,7 @@ export int main(int argc, char *argv[])
 
         GAudio->Register(BankInit);
         auto ID = GAudio->Register(MainBGM);
-        GAudio->PostEvent("Play_MainBGM", ID);
+        GAudio->PostEvent("Play_Galaxy", ID);
 
         GEngine->Run();
     }

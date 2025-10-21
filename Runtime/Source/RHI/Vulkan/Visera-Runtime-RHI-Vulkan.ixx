@@ -1,6 +1,9 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
+#if defined(CreateSemaphore)
+#undef CreateSemaphore
+#endif
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 export module Visera.Runtime.RHI.Vulkan;
@@ -9,6 +12,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.Loader;
        import Visera.Runtime.RHI.Vulkan.Allocator;
        import Visera.Runtime.RHI.Vulkan.Fence;
+       import Visera.Runtime.RHI.Vulkan.Semaphore;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
        import Visera.Runtime.RHI.Vulkan.PipelineCache;
        import Visera.Runtime.RHI.Vulkan.RenderPass;
@@ -60,7 +64,6 @@ namespace Visera::RHI
             TArray<TSharedPtr<FVulkanImageWrapper>> Images     {}; // SwapChain manages Images so do NOT use RAII here.
             TArray<TSharedPtr<FVulkanImageView>>    ImageViews {};
             UInt32                                  Cursor     {0};
-            TArray<vk::raii::Semaphore>             PresentSemaphores;
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
             vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
@@ -72,32 +75,30 @@ namespace Visera::RHI
             Bool                          bClipped       {True};
         }SwapChain;
 
-    private:
-        const FVulkanExtent2D                   ColorRTRes { 1920, 1080 };
-        TArray<TSharedPtr<FVulkanFence>>        InFlightFences     {};
-        TArray<TSharedPtr<FVulkanRenderTarget>> ColorRTs;
+        struct FInFlightFrame
+        {
+            TSharedPtr<FVulkanFence>         Fence;
+            TSharedPtr<FVulkanRenderTarget>  ColorRT;
+            TSharedPtr<FVulkanCommandBuffer> DrawCalls;
 
-        vk::raii::CommandPool                   GraphicsCommandPool {nullptr};
-
-        TArray<TSharedPtr<FVulkanRenderPass>>   RenderPasses;
-        TUniquePtr<FVulkanPipelineCache>        PipelineCache;
-
-
-        TArray<const char*> InstanceLayers;
-        TArray<const char*> InstanceExtensions;
-        TArray<const char*> DeviceLayers;
-        TArray<const char*> DeviceExtensions;
+            TSharedPtr<FVulkanSemaphore>     SwapChainImageAvailable;
+            TSharedPtr<FVulkanSemaphore>     RenderFinished;
+        };
 
     public:
         [[nodiscard]] inline Bool
         BeginFrame();
+        [[nodiscard]] inline const FInFlightFrame&
+        GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex]; }
         [[nodiscard]] inline Bool
         EndFrame();
         [[nodiscard]] inline Bool
         Present();
         inline void
-        Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
-               TSharedPtr<FVulkanFence>         I_Fence = {});
+        Submit(TSharedRef<FVulkanCommandBuffer> I_CommandBuffer,
+               TSharedRef<FVulkanSemaphore>     I_WaitSemaphore,
+               TSharedRef<FVulkanSemaphore>     I_SignalSemaphore,
+               TSharedRef<FVulkanFence>         I_Fence = {});
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
         CreateShaderModule(TSharedPtr<FShader> I_Shader);
         [[nodiscard]] TSharedPtr<FVulkanRenderPass>
@@ -105,7 +106,10 @@ namespace Visera::RHI
                          TSharedRef<FVulkanShaderModule> I_VertexShader,
                          TSharedRef<FVulkanShaderModule> I_FragmentShader);
         [[nodiscard]] TSharedPtr<FVulkanFence>
-        CreateFence(Bool I_bSignaled);
+        CreateFence(Bool        I_bSignaled,
+                    FStringView I_Description);
+        [[nodiscard]] TSharedPtr<FVulkanSemaphore>
+        CreateSemaphore(FStringView I_Name);
         [[nodiscard]] TSharedPtr<FVulkanImage>
         CreateImage(EVulkanImageType       I_ImageType,
                     const FVulkanExtent3D& I_Extent,
@@ -121,6 +125,22 @@ namespace Visera::RHI
         GetNativeDevice() const { return Device.Context; };
 
     private:
+        const FVulkanExtent2D                       ColorRTRes { 1920, 1080 };
+        TArray<FInFlightFrame>                      InFlightFrames;
+        UInt8                                       InFlightFrameIndex {0};
+
+        TMap<FString, TSharedPtr<FVulkanSemaphore>> SemaphorePool;
+        vk::raii::CommandPool                       GraphicsCommandPool {nullptr};
+
+        TArray<TSharedPtr<FVulkanRenderPass>>       RenderPasses;
+        TUniquePtr<FVulkanPipelineCache>            PipelineCache;
+
+        TArray<const char*> InstanceLayers;
+        TArray<const char*> InstanceExtensions;
+        TArray<const char*> DeviceLayers;
+        TArray<const char*> DeviceExtensions;
+
+    private:
         void inline CreateInstance();       void inline DestroyInstance();
         void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
         void inline CreateSurface();        void inline DestroySurface();
@@ -129,7 +149,8 @@ namespace Visera::RHI
         void inline CreateSwapChain();      void inline DestroySwapChain();
         void inline CreateCommandPools();   void inline DestroyCommandPools();
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
-        void inline CreateRenderTargets();  void inline DestroyRenderTargets();
+        void inline CreateInFlightFrames(); void inline DestroyInFlightFrames();
+        void inline CreateOtherResource();  void inline DestroyOtherResource();
 
         inline FVulkanDriver*
         AddInstanceLayer(const char* I_Layer)           { InstanceLayers.emplace_back(I_Layer);         return this; }
@@ -151,26 +172,16 @@ namespace Visera::RHI
                       const vk::DebugUtilsMessengerCallbackDataEXT* I_CallbackData,
                       void*)
         {
-            if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose)
-            {
-                LOG_TRACE("{}", I_CallbackData->pMessage);
-            }
-            else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
-            {
-                LOG_DEBUG("{}", I_CallbackData->pMessage);
-            }
+            if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+            { LOG_ERROR("{}", I_CallbackData->pMessage); }
             else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
-            {
-                LOG_WARN("{}", I_CallbackData->pMessage);
-            }
-            else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
-            {
-                LOG_ERROR("{}", I_CallbackData->pMessage);
-            }
+            { LOG_WARN("{}", I_CallbackData->pMessage); }
+            else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
+            { LOG_DEBUG("{}", I_CallbackData->pMessage); }
+            else if (I_Severity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose)
+            { LOG_TRACE("{}", I_CallbackData->pMessage); }
             else
-            {
-                LOG_ERROR("Unknown Vulkan Debug Message Severity {}", static_cast<Int32>(I_Severity));
-            }
+            { LOG_ERROR("Unknown Vulkan Debug Message Severity {}", static_cast<Int32>(I_Severity)); }
             return vk::False; // Always return VK_FALSE
         }
 
@@ -183,9 +194,9 @@ namespace Visera::RHI
     FVulkanDriver()
     {
         AppInfo = vk::ApplicationInfo{}
-        .setPApplicationName    ("Visera")
+        .setPApplicationName    (reinterpret_cast<const char*>(VISERA_APP))
         .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
-        .setPEngineName         ("Visera")
+        .setPEngineName         (reinterpret_cast<const char*>(u8"Visera"))
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
         .setApiVersion          (vk::ApiVersion13);
 
@@ -233,9 +244,11 @@ namespace Visera::RHI
             CreateSwapChain();
         }
 
-        CreateRenderTargets();
-
         CreatePipelineCache();
+
+        CreateInFlightFrames();
+
+        CreateOtherResource();
     };
 
     FVulkanDriver::
@@ -243,9 +256,11 @@ namespace Visera::RHI
     {
         Device.Context.waitIdle();
 
-        DestroyPipelineCache();
+        DestroyOtherResource();
 
-        DestroyRenderTargets();
+        DestroyInFlightFrames();
+
+        DestroyPipelineCache();
 
         DestroyCommandPools();
 
@@ -296,7 +311,6 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroySwapChain()
     {
-        SwapChain.PresentSemaphores.clear();
         SwapChain.ImageViews.clear();
         SwapChain.Images.clear();
         SwapChain.Context.clear();
@@ -315,52 +329,22 @@ namespace Visera::RHI
     }
 
     void FVulkanDriver::
-    DestroyRenderTargets()
+    DestroyOtherResource()
     {
-        ColorRTs.clear();
-        InFlightFences.clear();
+        SemaphorePool.clear();
+        RenderPasses.clear();
     }
 
     void FVulkanDriver::
-    CreateRenderTargets()
+    DestroyInFlightFrames()
     {
-        UInt8 ColorRTCount = Math::Max(SwapChain.Images.size(), static_cast<size_t>(1));
-        LOG_DEBUG("Creating Color Render Targets (count: {}, extent:[{},{}]).",
-                  ColorRTCount, ColorRTRes.width, ColorRTRes.height);
+        InFlightFrames.clear();
+    }
 
-        auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
-        auto Fence = CreateFence(False);
-        Cmd->Begin();
-        {
-            for (UInt8 Idx = 0; Idx < ColorRTCount; ++Idx)
-            {
-                auto RTImage = CreateImage(EVulkanImageType::e2D,
-                    {ColorRTRes.width, ColorRTRes.height, 1},
-                    FVulkanRenderPass::ColorRTFormat,
-                    vk::ImageUsageFlagBits::eColorAttachment |
-                    vk::ImageUsageFlagBits::eTransferSrc);
-                Cmd->ConvertImageLayout(RTImage, EVulkanImageLayout::eColorAttachmentOptimal,
-                    EVulkanPipelineStage::eTopOfPipe,
-                    EVulkanAccess::eNone,
-                    EVulkanPipelineStage::eColorAttachmentOutput,
-                    EVulkanAccess::eColorAttachmentWrite
-                );
-                auto ColorRT = ColorRTs.emplace_back(MakeShared<FVulkanRenderTarget>(RTImage));
-                ColorRT->SetLoadOp(EVulkanLoadOp::eClear)
-                       ->SetStoreOp(EVulkanStoreOp::eStore);
-            }
-        }
-        Cmd->End();
-        Submit(Cmd, Fence);
+    void FVulkanDriver::
+    CreateOtherResource()
+    {
 
-        if (!Fence->Wait())
-        { LOG_FATAL("Failed to convert the layout of color render targets!"); }
-
-        InFlightFences.resize(ColorRTCount);
-        for (auto& InFlightFence : InFlightFences)
-        {
-            InFlightFence = std::move(CreateFence(True)); // Init as Signaled
-        }
     }
 
     void FVulkanDriver::
@@ -779,7 +763,7 @@ namespace Visera::RHI
         // Convert Swapchain Images' layout
         {
             auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
-            auto Fence = CreateFence(False);
+            auto Fence = CreateFence(False, "convert swapchain image layout");
 
             Cmd->Begin();
             {
@@ -795,7 +779,7 @@ namespace Visera::RHI
                 }
             }
             Cmd->End();
-            Submit(Cmd, Fence);
+            Submit(Cmd, {}, {}, Fence);
 
             if (!Fence->Wait())
             { LOG_FATAL("Failed to wait for convert swapchain image layouts!"); }
@@ -807,17 +791,6 @@ namespace Visera::RHI
                 Image,
                 EVulkanImageViewType::e2D,
                 EVulkanImageAspect::eColor));
-        }
-
-        // Create Present Semaphores
-        SwapChain.PresentSemaphores.reserve(SwapChain.Images.size());
-        for (auto& Image : SwapChain.Images)
-        {
-            auto Result = Device.Context.createSemaphore({});
-            if (!Result.has_value())
-            { LOG_FATAL("Failed to create Vulkan Semaphore for swapchain presentation!"); }
-            else
-            { SwapChain.PresentSemaphores.emplace_back(std::move(*Result)); }
         }
     }
 
@@ -839,55 +812,51 @@ namespace Visera::RHI
     Bool FVulkanDriver::
     BeginFrame()
     {
-        auto& Fence = InFlightFences[SwapChain.Cursor];
-        if (!Fence->Wait())
-        {
-            LOG_ERROR("Failed to wait for the frame({})!", SwapChain.Cursor);
-            return False;
-        }
-        auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
-            .setSwapchain   (SwapChain.Context)
-            .setTimeout     (Math::UpperBound<UInt64>())
-            .setSemaphore   (SwapChain.PresentSemaphores[SwapChain.Cursor])
-            .setFence       (nullptr)
-            .setDeviceMask  (1)
-        ;
-        auto Result = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
-        if (!Result.has_value())
-        { LOG_FATAL("Failed to acquire the next Vulkan SwapChain Image!"); }
+        auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
+        if (!CurrentFrame.Fence->Wait()) { return False; }
 
-        auto Status = static_cast<vk::Result>(Result.value);
-        if (Status == vk::Result::eErrorOutOfDateKHR ||
-            Status == vk::Result::eSuboptimalKHR)
+        CurrentFrame.DrawCalls->Reset();
+        CurrentFrame.DrawCalls->Begin();
+
+        if (GWindow->IsBootstrapped())
         {
-            LOG_WARN("Failed to acquire next swapchain image -- RECREATION!");
-            return False;
+            auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
+                .setSwapchain   (SwapChain.Context)
+                .setTimeout     (Math::UpperBound<UInt64>())
+                .setSemaphore   (CurrentFrame.SwapChainImageAvailable->GetHandle())
+                .setFence       (nullptr)
+                .setDeviceMask  (1)
+            ;
+            auto NextImageIndex = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
+            if (!NextImageIndex.has_value())
+            { LOG_FATAL("Failed to acquire the next Vulkan SwapChain Image!"); }
+
+            SwapChain.Cursor = *NextImageIndex;
         }
 
         // Switch Render Targets
-        auto& CurrentColorRT = ColorRTs[SwapChain.Cursor];
+        auto& CurrentColorRT = CurrentFrame.ColorRT;
         for (auto& RenderPass : RenderPasses)
         {
             RenderPass->SetColorRT(CurrentColorRT);
         }
 
-        return Fence->Reset();
+        return CurrentFrame.Fence->Reset();
     }
 
     Bool FVulkanDriver::
     EndFrame()
     {
-        auto& Fence = InFlightFences[SwapChain.Cursor];
+        auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
 
-        auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
-        Cmd->Begin();
+        if (GWindow->IsBootstrapped())
         {
-            auto& CurrentColorRT = ColorRTs[SwapChain.Cursor];
+            auto& CurrentColorRT = CurrentFrame.ColorRT;
             auto OldColorRTLayout   = CurrentColorRT->GetLayout();
             auto& CurrentSwapChainImage = SwapChain.Images[SwapChain.Cursor];
             auto OldSwapChainLayout = CurrentSwapChainImage->GetLayout();
 
-            Cmd->ConvertImageLayout(
+            CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentColorRT->GetImage(),
                 EVulkanImageLayout::eTransferSrcOptimal,
                 EVulkanPipelineStage::eTopOfPipe,
@@ -896,7 +865,7 @@ namespace Visera::RHI
                 EVulkanAccess::eTransferWrite
             );
 
-            Cmd->ConvertImageLayout(
+            CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentSwapChainImage,
                 EVulkanImageLayout::eTransferDstOptimal,
                 EVulkanPipelineStage::eTopOfPipe,
@@ -905,10 +874,10 @@ namespace Visera::RHI
                 EVulkanAccess::eTransferWrite
             );
 
-            Cmd->BlitImage(CurrentColorRT->GetImage(),
+            CurrentFrame.DrawCalls->BlitImage(CurrentColorRT->GetImage(),
                            CurrentSwapChainImage);
 
-            Cmd->ConvertImageLayout(
+            CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentColorRT->GetImage(),
                 OldColorRTLayout,
                 EVulkanPipelineStage::eTopOfPipe,
@@ -917,7 +886,7 @@ namespace Visera::RHI
                 EVulkanAccess::eTransferWrite
             );
 
-            Cmd->ConvertImageLayout(
+            CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentSwapChainImage,
                 OldSwapChainLayout,
                 EVulkanPipelineStage::eTopOfPipe,
@@ -926,20 +895,27 @@ namespace Visera::RHI
                 EVulkanAccess::eTransferWrite
             );
         }
-        Cmd->End();
 
-        Submit(Cmd, Fence);
+        CurrentFrame.DrawCalls->End();
 
-        SwapChain.Cursor = (SwapChain.Cursor + 1) % (SwapChain.Images.size());
+        Submit(CurrentFrame.DrawCalls,
+               CurrentFrame.SwapChainImageAvailable,
+               CurrentFrame.RenderFinished,
+               CurrentFrame.Fence);
+
         return True;
     }
 
     Bool FVulkanDriver::
     Present()
     {
+        if (!GWindow->IsBootstrapped()) { return False; }
+
+        auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
+
         auto PresentInfo = vk::PresentInfoKHR{}
-            .setWaitSemaphoreCount  (0)
-            .setPWaitSemaphores     (nullptr)
+            .setWaitSemaphoreCount  (1)
+            .setPWaitSemaphores     (&(*CurrentFrame.RenderFinished->GetHandle()))
             .setSwapchainCount      (1)
             .setPSwapchains         (&(*SwapChain.Context))
             .setPImageIndices       (&SwapChain.Cursor)
@@ -953,24 +929,43 @@ namespace Visera::RHI
             return False;
         }
 
-        SwapChain.Cursor = (SwapChain.Cursor + 1) % SwapChain.Images.size();
+        InFlightFrameIndex = (InFlightFrameIndex + 1) % (InFlightFrames.size());
         return True;
     }
 
     void FVulkanDriver::
-    Submit(TSharedPtr<FVulkanCommandBuffer> I_CommandBuffer,
-           TSharedPtr<FVulkanFence>         I_Fence /* = {} */)
+    Submit(TSharedRef<FVulkanCommandBuffer> I_CommandBuffer,
+           TSharedRef<FVulkanSemaphore>     I_WaitSemaphore,
+           TSharedRef<FVulkanSemaphore>     I_SignalSemaphore,
+           TSharedRef<FVulkanFence>         I_Fence /* = {} */)
     {
         VISERA_ASSERT(I_CommandBuffer->IsReadyToSubmit());
 
-        auto& CommandBuffer = I_CommandBuffer->GetHandle();
-        auto  Fence = I_Fence? *I_Fence->GetHandle() : nullptr;
+        auto CommandBuffer = I_CommandBuffer? *I_CommandBuffer->GetHandle() : nullptr;
+        auto WaitSemaphore = I_WaitSemaphore? *I_WaitSemaphore->GetHandle() : nullptr;
+        auto SignalSemaphore = I_SignalSemaphore? *I_SignalSemaphore->GetHandle() : nullptr;
+        auto Fence = I_Fence? *I_Fence->GetHandle() : nullptr;
 
-        auto SubmitInfo = vk::SubmitInfo{}
-            .setCommandBufferCount(1)
-            .setPCommandBuffers(&(*CommandBuffer))
+        auto WaitSemaphoreInfo = vk::SemaphoreSubmitInfo{}
+            .setSemaphore(WaitSemaphore)
+            .setStageMask(EVulkanPipelineStage::eColorAttachmentOutput)
         ;
-        Device.GraphicsQueue.submit(SubmitInfo, Fence);
+        auto SignalSemaphoreInfo = vk::SemaphoreSubmitInfo{}
+            .setSemaphore(SignalSemaphore)
+            .setStageMask(EVulkanPipelineStage::eColorAttachmentOutput)
+        ;
+        auto CommandBufferInfo = vk::CommandBufferSubmitInfo{}
+            .setCommandBuffer(CommandBuffer)
+        ;
+        auto SubmitInfo = vk::SubmitInfo2{}
+            .setWaitSemaphoreInfoCount  (WaitSemaphore? 1 : 0)
+            .setPWaitSemaphoreInfos     (&WaitSemaphoreInfo)
+            .setSignalSemaphoreInfoCount(SignalSemaphore? 1 : 0)
+            .setPSignalSemaphoreInfos   (&SignalSemaphoreInfo)
+            .setCommandBufferInfoCount  (1)
+            .setPCommandBufferInfos    (&CommandBufferInfo)
+        ;
+        Device.GraphicsQueue.submit2(SubmitInfo, Fence);
     }
 
     TSharedPtr<FVulkanShaderModule> FVulkanDriver::
@@ -987,7 +982,7 @@ namespace Visera::RHI
                      TSharedRef<FVulkanShaderModule> I_VertexShader,
                      TSharedRef<FVulkanShaderModule> I_FragmentShader)
     {
-        LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{})",
+        LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{}).",
                   I_Name, I_VertexShader->GetPath(), I_FragmentShader->GetPath());
         return RenderPasses.emplace_back(MakeShared<FVulkanRenderPass>(
                I_Name,
@@ -998,10 +993,25 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanFence> FVulkanDriver::
-    CreateFence(Bool I_bSignaled)
+    CreateFence(Bool        I_bSignaled,
+                FStringView I_Description)
     {
-        LOG_TRACE("Creating a Vulkan Fence (signaled:{})", I_bSignaled);
-        return MakeShared<FVulkanFence>(Device.Context, I_bSignaled);
+        LOG_DEBUG("Creating a Vulkan Fence (description:{}, signaled:{}).", I_Description, I_bSignaled);
+        return MakeShared<FVulkanFence>(Device.Context, I_bSignaled, I_Description);
+    }
+
+    TSharedPtr<FVulkanSemaphore> FVulkanDriver::
+    CreateSemaphore(FStringView I_Name)
+    {
+        LOG_DEBUG("Creating a Vulkan Semaphore (name: {}).", I_Name);
+
+        auto& Semaphore = SemaphorePool[I_Name.data()];
+        if (Semaphore == nullptr)
+        { Semaphore = MakeShared<FVulkanSemaphore>(Device.Context); }
+        else
+        { LOG_FATAL("Semaphore \"{}\" already exists!", I_Name); }
+
+        return Semaphore;
     }
 
     TSharedPtr<FVulkanImage> FVulkanDriver::
@@ -1011,7 +1021,7 @@ namespace Visera::RHI
                 EVulkanImageUsage      I_Usages)
     {
         VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
-        LOG_TRACE("Creating a Vulkan Image (extent:[{},{},{}]).",
+        LOG_DEBUG("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
         return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
     }
@@ -1044,6 +1054,57 @@ namespace Visera::RHI
                 GPlatform->GetExecutableDirectory() / PATH("VulkanPipelines.cache")
             );
         }
+    }
+
+    void FVulkanDriver::
+    CreateInFlightFrames()
+    {
+        InFlightFrames.resize(Math::Max(SwapChain.Images.size(), static_cast<size_t>(1)));
+
+        LOG_DEBUG("Creating {} in-flght frames (extent: [{},{}]).",
+                  InFlightFrames.size(), ColorRTRes.width, ColorRTRes.height);
+
+        auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
+        auto Fence = CreateFence(False, "convert render targets layout");
+        Cmd->Begin();
+        {
+            UInt8 Index{0};
+            for (auto& InFlightFrame : InFlightFrames)
+            {
+                auto TargetImage = CreateImage(
+                    EVulkanImageType::e2D,
+                    {ColorRTRes.width, ColorRTRes.height, 1},
+                    FVulkanRenderPass::ColorRTFormat,
+                    vk::ImageUsageFlagBits::eColorAttachment |
+                    vk::ImageUsageFlagBits::eTransferSrc);
+
+                Cmd->ConvertImageLayout(TargetImage,
+                    EVulkanImageLayout::eColorAttachmentOptimal,
+                    EVulkanPipelineStage::eTopOfPipe,
+                    EVulkanAccess::eNone,
+                    EVulkanPipelineStage::eColorAttachmentOutput,
+                    EVulkanAccess::eColorAttachmentWrite
+                );
+                InFlightFrame.ColorRT = MakeShared<FVulkanRenderTarget>(TargetImage);
+                InFlightFrame.ColorRT->SetLoadOp(EVulkanLoadOp::eClear)
+                                     ->SetStoreOp(EVulkanStoreOp::eStore);
+
+                // Command Buffers
+                InFlightFrame.DrawCalls = CreateCommandBuffer(EVulkanQueue::eGraphics);
+                // Fences
+                InFlightFrame.Fence = CreateFence(True, fmt::format("In-Flight Fence ({})", InFlightFrameIndex));
+                // Semaphores
+                InFlightFrame.SwapChainImageAvailable = CreateSemaphore(fmt::format("SwapChain Image Available Semaphore ({})", InFlightFrameIndex));
+                InFlightFrame.RenderFinished = CreateSemaphore(fmt::format("Render Finished Semaphore ({})", InFlightFrameIndex));
+
+                InFlightFrameIndex = (InFlightFrameIndex + 1) % InFlightFrames.size();
+            }
+        }
+        Cmd->End();
+        Submit(Cmd, {}, {}, Fence);
+
+        if (!Fence->Wait())
+        { LOG_FATAL("Failed to convert the layout of color render targets!"); }
     }
 
     TSharedPtr<FVulkanCommandBuffer> FVulkanDriver::

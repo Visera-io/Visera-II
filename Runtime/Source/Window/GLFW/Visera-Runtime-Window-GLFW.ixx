@@ -8,6 +8,7 @@ import Visera.Core.Log;
 #if defined VISERA_ON_WINDOWS_SYSTEM
 import Visera.Runtime.AssetHub;
 #endif
+import Visera.Runtime.Audio;
 
 namespace Visera
 {
@@ -155,16 +156,22 @@ namespace Visera
             (I_Action == GLFW_PRESS)   ? "Pressed" :
             (I_Action == GLFW_RELEASE) ? "Released" : "Repeated";
 
+        if (I_Action == GLFW_PRESS)
+        {
+            GAudio->PostEvent("Play_laser_effect", 1);
+            GMouse.Cursor.Offset.X = 1.0;
+        }
+
         LOG_DEBUG("(WIP) Mouse Button {} {}", I_Button, actionStr);
     }
 
     void FGLFWWindow::
     MouseCursorCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY)
     {
-        Mouse.Cursor.Offset.X = I_PosX - Mouse.Cursor.Position.X;
-        Mouse.Cursor.Offset.Y = I_PosY - Mouse.Cursor.Position.Y;
-        Mouse.Cursor.Position.X = I_PosX;
-        Mouse.Cursor.Position.Y = I_PosY;
+        GMouse.Cursor.Offset.X   = I_PosX - GMouse.Cursor.Position.X;
+        GMouse.Cursor.Offset.Y   = I_PosY - GMouse.Cursor.Position.Y;
+        GMouse.Cursor.Position.X = I_PosX;
+        GMouse.Cursor.Position.Y = I_PosY;
     }
 
     void FGLFWWindow::

@@ -24,9 +24,11 @@ namespace Visera
     {
     public:
         inline void
-        BeginFrame()  const { Driver->BeginFrame(); };
+        BeginFrame()  const { Driver->BeginFrame(); }
         inline void
-        EndFrame()    const { Driver->EndFrame(); };
+        EndFrame()    const { Driver->EndFrame(); }
+        inline void
+        Present()     const { Driver->Present(); }
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<RHI::FVulkanDriver>&

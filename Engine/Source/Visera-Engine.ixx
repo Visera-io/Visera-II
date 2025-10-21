@@ -50,7 +50,6 @@ namespace Visera
                 {1920,1080}
             });
 
-            auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
             // auto RHIImage = Driver->CreateImage(
             //     RHI::EImageType::e2D,
             //     {200, 400, 1},
@@ -62,6 +61,7 @@ namespace Visera
             {
                 Float Time{0};
                 Float CursorX{0}, CursorY{0};
+                Float OffsetX{0}, OffsetY{0};
             };
             static_assert(sizeof(FTestPushConstantRange) <= 128);
             FTestPushConstantRange MouseContext{};
@@ -72,20 +72,26 @@ namespace Visera
                 GWindow->PollEvents();
                 GAudio->Tick();
 
+                static Float LastSec {0};
+                LastSec = MouseContext.Time;
                 MouseContext.Time = GRuntime->GetTimer().Elapsed().Milliseconds() / 1000.0;
+                MouseContext.CursorX = GWindow->GetMouse().Cursor.Position.X / GWindow->GetWidth();
+                MouseContext.CursorY = 1.0 - (GWindow->GetMouse().Cursor.Position.Y / GWindow->GetHeight());
+                GWindow->GetMouse().Cursor.Offset.X -= std::min(1.0f, MouseContext.Time - LastSec);
+                if (GWindow->GetMouse().Cursor.Offset.X <= 0) GWindow->GetMouse().Cursor.Offset.X = 0;
+                MouseContext.OffsetX = GWindow->GetMouse().Cursor.Offset.X; // As a Time
 
                 GRHI->BeginFrame();
                 {
-                    Cmd->Begin();
-                    {
-                        Cmd->EnterRenderPass(RenderPass);
-                        Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
-                        Cmd->Draw(3,1,0,0);
-                        Cmd->LeaveRenderPass();
-                    }
-                    Cmd->End();
+                    auto& Cmd = Driver->GetCurrentFrame().DrawCalls;
+
+                    Cmd->EnterRenderPass(RenderPass);
+                    Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
+                    Cmd->Draw(3,1,0,0);
+                    Cmd->LeaveRenderPass();
                 }
                 GRHI->EndFrame();
+                GRHI->Present();
             }
         }
 

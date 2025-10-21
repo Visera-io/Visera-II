@@ -5,8 +5,20 @@ export module Visera.Runtime.Window.Interface;
 
 namespace Visera
 {
+    struct VISERA_RUNTIME_API FMouse
+    {
+        struct
+        {
+            struct { Double X{0}, Y{0}; } Position;
+            struct { Double X{0}, Y{0}; } Offset;
+        } Cursor{};
+    };
+    export inline VISERA_RUNTIME_API FMouse
+    GMouse{};
+
     export class VISERA_RUNTIME_API IWindow : public IGlobalSingleton
     {
+    protected:
         Bool bInitialized = False;
     public:
         enum class EType
@@ -14,16 +26,8 @@ namespace Visera
             Unknown,
             GLFW
         };
-
-        struct FMouse
-        {
-            struct FCursor
-            {
-                struct { Double X{0}, Y{0}; } Position;
-                struct { Double X{0}, Y{0}; } Offset;
-            } Cursor{};
-            FMouse() : Cursor{} {}
-        };
+        [[nodiscard]] static inline FMouse&
+        GetMouse() {  return GMouse; }
 
         [[nodiscard]] virtual void*
         GetHandle() const = 0;
@@ -50,18 +54,14 @@ namespace Visera
         GetType() const { return Type; }
         [[nodiscard]] inline Bool
         IsMaximized() const { return bMaximized; };
-        [[nodiscard]] inline const FMouse&
-        GetMouse() const { return Mouse; }
 
         explicit IWindow() = delete;
         explicit IWindow(EType I_Type) : IGlobalSingleton("Window"), Type(I_Type) {}
 
     protected:
-        EType Type   = EType::Unknown;
+        EType       Type { EType::Unknown };
         Int32       Width {900},  Height{600};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};
-        
-        static inline FMouse Mouse;
     };
 }

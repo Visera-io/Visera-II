@@ -18,18 +18,23 @@ namespace Visera::RHI
 
         [[nodiscard]] inline const vk::raii::Fence&
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline FStringView
+        GetDescription() const { return Description; }
 
         [[nodiscard]] Bool
         IsTimeout() const { return Handle.getStatus() == vk::Result::eTimeout;  };
         [[nodiscard]] Bool
         IsNotReady() const { return Handle.getStatus() == vk::Result::eNotReady;  };
-
     private:
         vk::raii::Fence Handle {nullptr};
+        FString         Description;
 
     public:
         FVulkanFence() = default;
-        FVulkanFence(const vk::raii::Device& I_Device, Bool I_bSignaled)
+        FVulkanFence(const vk::raii::Device& I_Device,
+                     Bool                    I_bSignaled,
+                     FStringView             I_Description)
+        : Description(I_Description)
         {
             auto CreateInfo = vk::FenceCreateInfo{};
             if (I_bSignaled)
@@ -37,7 +42,8 @@ namespace Visera::RHI
 
             auto Result = I_Device.createFence(CreateInfo);
             if (!Result.has_value())
-            { LOG_ERROR("Failed to create Vulkan Fence: {}", static_cast<Int32>(Result->getStatus())); }
+            { LOG_ERROR("Failed to create Vulkan Fence \"{}\" (error: {})!",
+                        Description, static_cast<Int32>(Result->getStatus())); }
             else
             { Handle = std::move(*Result); }
         }
@@ -50,8 +56,8 @@ namespace Visera::RHI
         vk::Result Result = Handle.getDevice().waitForFences(*Handle, vk::True, I_Timeout);
         if (Result != vk::Result::eSuccess)
         {
-            LOG_ERROR("Failed to wait fence (timeout: {}) -- {}!",
-                      I_Timeout, static_cast<Int32>(Result));
+            LOG_ERROR("Failed to wait fence \"{}\" (timeout: {}, error: {})!",
+                      Description, I_Timeout, static_cast<Int32>(Result));
             return False;
         }
         return True;
@@ -63,7 +69,7 @@ namespace Visera::RHI
         auto Result = Handle.getDevice().resetFences(1, &(*Handle));
         if (Result != vk::Result::eSuccess)
         {
-            LOG_ERROR("Failed to reset fence -- {}!", Result);
+            LOG_ERROR("Failed to reset fence \"{}\" (error:{})!", Description, Result);
             return False;
         }
         return True;
