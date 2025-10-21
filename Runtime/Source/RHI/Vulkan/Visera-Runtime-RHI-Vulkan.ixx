@@ -18,6 +18,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.RenderPass;
        import Visera.Runtime.RHI.Vulkan.CommandBuffer;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
+       import Visera.Runtime.RHI.Vulkan.DescriptorSet;
        import Visera.Runtime.RHI.Vulkan.Image;
        import Visera.Runtime.AssetHub.Shader;
        import Visera.Runtime.Platform;
@@ -82,6 +83,7 @@ namespace Visera::RHI
             TSharedPtr<FVulkanRenderTarget>  ColorRT;
             TSharedPtr<FVulkanCommandBuffer> DrawCalls;
             TSharedPtr<FVulkanSemaphore>     SwapChainImageAvailable;
+
         };
 
     public:
@@ -129,6 +131,7 @@ namespace Visera::RHI
         UInt8                                       InFlightFrameIndex {0};
 
         TMap<FString, TSharedPtr<FVulkanSemaphore>> SemaphorePool;
+        vk::raii::DescriptorPool                    DescriptorPool      {nullptr};
         vk::raii::CommandPool                       GraphicsCommandPool {nullptr};
 
         TArray<TSharedPtr<FVulkanRenderPass>>       RenderPasses;
@@ -147,6 +150,7 @@ namespace Visera::RHI
         void inline CreateDevice();         void inline DestroyDevice();
         void inline CreateSwapChain();      void inline DestroySwapChain();
         void inline CreateCommandPools();   void inline DestroyCommandPools();
+        void inline CreateDescriptorSets(); void inline DestroyDescriptorSets();
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
         void inline CreateInFlightFrames(); void inline DestroyInFlightFrames();
         void inline CreateOtherResource();  void inline DestroyOtherResource();
@@ -229,6 +233,8 @@ namespace Visera::RHI
         Loader->Load(Device.Context);
 
         CreateCommandPools();
+        
+        CreateDescriptorSets();
 
         GVulkanAllocator = MakeUnique<FVulkanAllocator>
         (
@@ -260,6 +266,8 @@ namespace Visera::RHI
         DestroyInFlightFrames();
 
         DestroyPipelineCache();
+
+        DestroyDescriptorSets();
 
         DestroyCommandPools();
 
@@ -339,6 +347,60 @@ namespace Visera::RHI
     DestroyInFlightFrames()
     {
         InFlightFrames.clear();
+    }
+
+    void FVulkanDriver::
+    DestroyDescriptorSets()
+    {
+        DescriptorPool.clear();
+    }
+
+    void FVulkanDriver::
+    CreateDescriptorSets()
+    {
+        enum : UInt32 { SampledImage, UniformBuffer, MaxDescriptorType };
+
+        vk::DescriptorPoolSize PoolSizes[MaxDescriptorType];
+        PoolSizes[SampledImage]
+        .setType            (EVulkanDescriptorType::eSampledImage)
+        .setDescriptorCount (100);
+        PoolSizes[UniformBuffer]
+        .setType            (EVulkanDescriptorType::eUniformBuffer)
+        .setDescriptorCount (100);
+
+        auto CreateInfo = vk::DescriptorPoolCreateInfo()
+            .setMaxSets         (GPU.Context.getProperties().limits.maxBoundDescriptorSets)
+            .setPoolSizeCount   (MaxDescriptorType)
+            .setPPoolSizes      (PoolSizes)
+        ;
+        auto Result = Device.Context.createDescriptorPool(CreateInfo);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to create the Vulkan Descriptor Pool!"); }
+        else
+        { DescriptorPool = std::move(*Result); }
+
+        LOG_DEBUG("Created a Vulkan Descriptor Pool: (max_sets:{})",
+                  CreateInfo.maxSets);
+
+        TArray<vk::DescriptorSetLayoutBinding>
+        DescriptorSetBindings{};
+        DescriptorSetBindings.emplace_back()
+            .setBinding         (0)
+            .setDescriptorType  ()
+            .setDescriptorCount (1)
+        ;
+        auto DescriptorSetLayout = vk::DescriptorSetLayoutCreateInfo{}
+        .setBindingCount    (DescriptorSetBindings.size())
+        .setPBindings       (DescriptorSetBindings.data())
+    ;
+        auto AllocateInfo = vk::DescriptorSetAllocateInfo{}
+        .setDescriptorPool(I_DescriptorPool)
+    ;
+        auto Result = I_Device.allocateDescriptorSets(AllocateInfo);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to allocate descriptor sets!"); }
+        else
+        { Handle = std::move(*Result); }
     }
 
     void FVulkanDriver::

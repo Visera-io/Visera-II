@@ -21,6 +21,7 @@ export namespace Visera::RHI
     using EVulkanSharingMode   = vk::SharingMode;
     using EVulkanSamplingRate  = vk::SampleCountFlagBits;
     using EVulkanImageTiling   = vk::ImageTiling;
+    using EVulkanDescriptorType= vk::DescriptorType;
 
     using FVulkanExtent2D      = vk::Extent2D;
     using FVulkanExtent3D      = vk::Extent3D;

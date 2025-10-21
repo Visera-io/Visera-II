@@ -11,7 +11,7 @@ namespace Visera
 {
     class VISERA_ENGINE_API FEngine : public IGlobalSingleton
     {
-        constexpr Bool bOffScreen = False;
+        Bool bOffScreen = False;
     public:
         void Bootstrap() override
         {
