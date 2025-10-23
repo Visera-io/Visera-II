@@ -11,7 +11,7 @@
         #define VISERA_ENGINE_API __declspec(dllimport)
     #endif
 #else
-    #define VISERA_ENGINE_API
+    #define VISERA_ENGINE_API __attribute__((visibility("default")))
 #endif
 
 namespace Visera

@@ -47,8 +47,10 @@ target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Runtime)
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_STUDIO_SCRIPTS_DIR})
 
+if(NOT ${VISERA_OFFSCREEN_MODE})
 include(install_imgui)
 link_imgui(${VISERA_STUDIO})
+endif()
 
 include(install_freetype)
 link_freetype(${VISERA_STUDIO})

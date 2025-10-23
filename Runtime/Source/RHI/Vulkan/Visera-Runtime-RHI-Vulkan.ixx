@@ -4,8 +4,10 @@ module;
 #if defined(CreateSemaphore)
 #undef CreateSemaphore
 #endif
+#if !defined(VISERA_OFFSCREEN_MODE)
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#endif
 export module Visera.Runtime.RHI.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Vulkan.Common;
@@ -37,8 +39,9 @@ namespace Visera::RHI
 
         vk::raii::Instance               Instance        {nullptr};
         vk::raii::DebugUtilsMessengerEXT DebugMessenger  {nullptr};
-
+#if !defined(VISERA_OFFSCREEN_MODE)
         vk::raii::SurfaceKHR             Surface         {nullptr};
+#endif
 
         struct
         {
@@ -57,6 +60,7 @@ namespace Visera::RHI
 
         TUniquePtr<FVulkanLoader>    Loader;
 
+#if !defined(VISERA_OFFSCREEN_MODE)
         struct
         {
             vk::raii::SwapchainKHR  Context     {nullptr};
@@ -76,14 +80,16 @@ namespace Visera::RHI
             vk::CompositeAlphaFlagBitsKHR CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                          bClipped       {True};
         }SwapChain;
+#endif
 
         struct FInFlightFrame
         {
             TSharedPtr<FVulkanFence>         Fence;
             TSharedPtr<FVulkanRenderTarget>  ColorRT;
             TSharedPtr<FVulkanCommandBuffer> DrawCalls;
+#if !defined(VISERA_OFFSCREEN_MODE)
             TSharedPtr<FVulkanSemaphore>     SwapChainImageAvailable;
-
+#endif
         };
 
     public:
@@ -118,12 +124,18 @@ namespace Visera::RHI
                     EVulkanImageUsage      I_Usages);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(EVulkanQueue I_Queue);
+        [[nodiscard]] const vk::raii::DescriptorPool&
+        GetDescriptorPool() const { return DescriptorPool; }
+        [[nodiscard]] const TUniqueRef<FVulkanPipelineCache>
+        GetPipelineCache() const { return PipelineCache; }
         [[nodiscard]] UInt32
-        GetFrameCount() const { return SwapChain.Images.size(); }
+        GetFrameCount() const { return InFlightFrames.size(); }
         [[nodiscard]] inline const vk::raii::Instance&
         GetNativeInstance() const { return Instance;       };
         [[nodiscard]] inline const vk::raii::Device&
         GetNativeDevice() const { return Device.Context; };
+        void inline
+        WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
     private:
         const FVulkanExtent2D                       ColorRTRes { 1920, 1080 };
@@ -213,29 +225,17 @@ namespace Visera::RHI
 #endif
 
         Loader = MakeUnique<FVulkanLoader>();
-
         CollectInstanceLayersAndExtensions();
-
         CreateInstance();
         Loader->Load(Instance);
-
         CreateDebugMessenger();
-
-        if (GWindow->IsBootstrapped())
-        {
-            CreateSurface();
-        }
-
+        CreateSurface();
         CollectDeviceLayersAndExtensions();
-
         PickPhysicalDevice();
         CreateDevice();
         Loader->Load(Device.Context);
-
         CreateCommandPools();
-        
         CreateDescriptorSets();
-
         GVulkanAllocator = MakeUnique<FVulkanAllocator>
         (
             AppInfo.apiVersion,
@@ -243,51 +243,27 @@ namespace Visera::RHI
             GPU.Context,
             Device.Context
         );
-
-        if (GWindow->IsBootstrapped())
-        {
-            CreateSwapChain();
-        }
-
+        CreateSwapChain();
         CreatePipelineCache();
-
         CreateInFlightFrames();
-
         CreateOtherResource();
     };
 
     FVulkanDriver::
     ~FVulkanDriver()
     {
-        Device.Context.waitIdle();
-
+        WaitIdle();
         DestroyOtherResource();
-
         DestroyInFlightFrames();
-
         DestroyPipelineCache();
-
         DestroyDescriptorSets();
-
         DestroyCommandPools();
-
-        if (GWindow->IsBootstrapped())
-        {
-            DestroySwapChain();
-        }
-
+        DestroySwapChain();
         DestroyDevice();
-
         GVulkanAllocator.reset();
-
-        if (GWindow->IsBootstrapped())
-        {
-            DestroySurface();
-        }
-
+        DestroySurface();
         DestroyDebugMessenger();
         DestroyInstance();
-
         Loader.reset();
     }
 
@@ -306,7 +282,9 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroySurface()
     {
+#if !defined(VISERA_OFFSCREEN_MODE)
         Surface.clear();
+#endif
     }
 
     void FVulkanDriver::
@@ -318,10 +296,12 @@ namespace Visera::RHI
     void FVulkanDriver::
     DestroySwapChain()
     {
+#if !defined(VISERA_OFFSCREEN_MODE)
         SwapChain.ReadyToPresentSemaphores.clear();
         SwapChain.ImageViews.clear();
         SwapChain.Images.clear();
         SwapChain.Context.clear();
+#endif
     }
 
     void FVulkanDriver::
@@ -382,25 +362,25 @@ namespace Visera::RHI
         LOG_DEBUG("Created a Vulkan Descriptor Pool: (max_sets:{})",
                   CreateInfo.maxSets);
 
-        TArray<vk::DescriptorSetLayoutBinding>
-        DescriptorSetBindings{};
-        DescriptorSetBindings.emplace_back()
-            .setBinding         (0)
-            .setDescriptorType  ()
-            .setDescriptorCount (1)
-        ;
-        auto DescriptorSetLayout = vk::DescriptorSetLayoutCreateInfo{}
-        .setBindingCount    (DescriptorSetBindings.size())
-        .setPBindings       (DescriptorSetBindings.data())
-    ;
-        auto AllocateInfo = vk::DescriptorSetAllocateInfo{}
-        .setDescriptorPool(I_DescriptorPool)
-    ;
-        auto Result = I_Device.allocateDescriptorSets(AllocateInfo);
-        if (!Result.has_value())
-        { LOG_FATAL("Failed to allocate descriptor sets!"); }
-        else
-        { Handle = std::move(*Result); }
+    //     TArray<vk::DescriptorSetLayoutBinding>
+    //     DescriptorSetBindings{};
+    //     DescriptorSetBindings.emplace_back()
+    //         .setBinding         (0)
+    //         .setDescriptorType  ()
+    //         .setDescriptorCount (1)
+    //     ;
+    //     auto DescriptorSetLayout = vk::DescriptorSetLayoutCreateInfo{}
+    //     .setBindingCount    (DescriptorSetBindings.size())
+    //     .setPBindings       (DescriptorSetBindings.data())
+    // ;
+    //     auto AllocateInfo = vk::DescriptorSetAllocateInfo{}
+    //     .setDescriptorPool(I_DescriptorPool)
+    // ;
+    //     auto Result = I_Device.allocateDescriptorSets(AllocateInfo);
+    //     if (!Result.has_value())
+    //     { LOG_FATAL("Failed to allocate descriptor sets!"); }
+    //     else
+    //     { Handle = std::move(*Result); }
     }
 
     void FVulkanDriver::
@@ -494,6 +474,7 @@ namespace Visera::RHI
     void FVulkanDriver::
     CreateSurface()
     {
+#if defined(CreateSemaphore)
         VkSurfaceKHR SurfaceHandle {nullptr};
 
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
@@ -506,6 +487,7 @@ namespace Visera::RHI
         { LOG_FATAL("Failed to create Vulkan Surface!"); }
 
         Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
+#endif
     }
 
     void FVulkanDriver::
@@ -567,13 +549,12 @@ namespace Visera::RHI
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
                 { GPU.TransferQueueFamilies.insert(Idx); }
 
-                if (GWindow->IsBootstrapped())
-                {
-                    VISERA_ASSERT(Surface != nullptr);
-                    auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
-                    if (Result.has_value())
-                    { GPU.PresentQueueFamilies.insert(std::move(*Result)); }
-                }
+#if !defined(VISERA_OFFSCREEN_MODE)
+                VISERA_ASSERT(Surface != nullptr);
+                auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
+                if (Result.has_value())
+                { GPU.PresentQueueFamilies.insert(std::move(*Result)); }
+#endif
             }
             bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
                         !GPU.ComputeQueueFamilies.empty()  &&
@@ -696,24 +677,24 @@ namespace Visera::RHI
 #endif
         ;
 
-        if (GWindow->IsBootstrapped())
+#if !defined(VISERA_OFFSCREEN_MODE)
+        if (!glfwVulkanSupported())
+        { LOG_FATAL("The Window does NOT support Vulkan!"); }
+
+        UInt32 WindowExtensionCount = 0;
+        auto WindowExtensions = glfwGetRequiredInstanceExtensions(&WindowExtensionCount);
+
+        for (UInt32 Idx = 0; Idx < WindowExtensionCount; ++Idx)
         {
-            if (!glfwVulkanSupported())
-            { LOG_FATAL("The Window does NOT support Vulkan!"); }
-
-            UInt32 WindowExtensionCount = 0;
-            auto WindowExtensions = glfwGetRequiredInstanceExtensions(&WindowExtensionCount);
-
-            for (UInt32 Idx = 0; Idx < WindowExtensionCount; ++Idx)
-            {
-                this->AddInstanceExtension(WindowExtensions[Idx]);
-            }
+            this->AddInstanceExtension(WindowExtensions[Idx]);
         }
+#endif
     }
 
     void FVulkanDriver::
     CreateSwapChain()
     {
+#if !defined(VISERA_OFFSCREEN_MODE)
         VISERA_ASSERT(Surface != nullptr);
 
         // Check Present Mode
@@ -861,6 +842,7 @@ namespace Visera::RHI
             SwapChain.ReadyToPresentSemaphores[Idx]
             = CreateSemaphore(fmt::format("Ready to Present ({})", Idx));
         }
+#endif
     }
 
     void FVulkanDriver::
@@ -887,22 +869,20 @@ namespace Visera::RHI
         CurrentFrame.DrawCalls->Reset();
         CurrentFrame.DrawCalls->Begin();
 
-        if (GWindow->IsBootstrapped())
-        {
-            auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
-                .setSwapchain   (SwapChain.Context)
-                .setTimeout     (Math::UpperBound<UInt64>())
-                .setSemaphore   (CurrentFrame.SwapChainImageAvailable->GetHandle())
-                .setFence       (nullptr)
-                .setDeviceMask  (1)
-            ;
-            auto NextImageIndex = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
-            if (!NextImageIndex.has_value())
-            { LOG_FATAL("Failed to acquire the next Vulkan SwapChain Image!"); }
+#if !defined(VISERA_OFFSCREEN_MODE)
+        auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
+            .setSwapchain   (SwapChain.Context)
+            .setTimeout     (Math::UpperBound<UInt64>())
+            .setSemaphore   (CurrentFrame.SwapChainImageAvailable->GetHandle())
+            .setFence       (nullptr)
+            .setDeviceMask  (1)
+        ;
+        auto NextImageIndex = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
+        if (!NextImageIndex.has_value())
+        { LOG_FATAL("Failed to acquire the next Vulkan SwapChain Image!"); }
 
-            SwapChain.Cursor = *NextImageIndex;
-        }
-
+        SwapChain.Cursor = *NextImageIndex;
+#endif
         // Switch Render Targets
         auto& CurrentColorRT = CurrentFrame.ColorRT;
         for (auto& RenderPass : RenderPasses)
@@ -918,79 +898,75 @@ namespace Visera::RHI
     {
         auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
 
-        if (GWindow->IsBootstrapped())
-        {
-            auto& CurrentColorRT = CurrentFrame.ColorRT;
-            auto OldColorRTLayout   = CurrentColorRT->GetLayout();
-            auto& CurrentSwapChainImage = SwapChain.Images[SwapChain.Cursor];
-            auto OldSwapChainLayout = CurrentSwapChainImage->GetLayout();
+#if !defined(VISERA_OFFSCREEN_MODE)
+        auto& CurrentColorRT = CurrentFrame.ColorRT;
+        auto OldColorRTLayout   = CurrentColorRT->GetLayout();
+        auto& CurrentSwapChainImage = SwapChain.Images[SwapChain.Cursor];
+        auto OldSwapChainLayout = CurrentSwapChainImage->GetLayout();
 
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentColorRT->GetImage(),
-                EVulkanImageLayout::eTransferSrcOptimal,
-                EVulkanPipelineStage::eTopOfPipe,
-                EVulkanAccess::eNone,
-                EVulkanPipelineStage::eTransfer,
-                EVulkanAccess::eTransferWrite
-            );
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentColorRT->GetImage(),
+            EVulkanImageLayout::eTransferSrcOptimal,
+            EVulkanPipelineStage::eTopOfPipe,
+            EVulkanAccess::eNone,
+            EVulkanPipelineStage::eTransfer,
+            EVulkanAccess::eTransferWrite
+        );
 
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentSwapChainImage,
-                EVulkanImageLayout::eTransferDstOptimal,
-                EVulkanPipelineStage::eTopOfPipe,
-                EVulkanAccess::eNone,
-                EVulkanPipelineStage::eTransfer,
-                EVulkanAccess::eTransferWrite
-            );
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentSwapChainImage,
+            EVulkanImageLayout::eTransferDstOptimal,
+            EVulkanPipelineStage::eTopOfPipe,
+            EVulkanAccess::eNone,
+            EVulkanPipelineStage::eTransfer,
+            EVulkanAccess::eTransferWrite
+        );
 
-            CurrentFrame.DrawCalls->BlitImage(CurrentColorRT->GetImage(),
-                           CurrentSwapChainImage);
+        CurrentFrame.DrawCalls->BlitImage(CurrentColorRT->GetImage(),
+                       CurrentSwapChainImage);
 
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentColorRT->GetImage(),
-                OldColorRTLayout,
-                EVulkanPipelineStage::eTopOfPipe,
-                EVulkanAccess::eNone,
-                EVulkanPipelineStage::eTransfer,
-                EVulkanAccess::eTransferWrite
-            );
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentColorRT->GetImage(),
+            OldColorRTLayout,
+            EVulkanPipelineStage::eTopOfPipe,
+            EVulkanAccess::eNone,
+            EVulkanPipelineStage::eTransfer,
+            EVulkanAccess::eTransferWrite
+        );
 
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentSwapChainImage,
-                OldSwapChainLayout,
-                EVulkanPipelineStage::eTopOfPipe,
-                EVulkanAccess::eNone,
-                EVulkanPipelineStage::eTransfer,
-                EVulkanAccess::eTransferWrite
-            );
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentSwapChainImage,
+            OldSwapChainLayout,
+            EVulkanPipelineStage::eTopOfPipe,
+            EVulkanAccess::eNone,
+            EVulkanPipelineStage::eTransfer,
+            EVulkanAccess::eTransferWrite
+        );
 
-            CurrentFrame.DrawCalls->End();
+        CurrentFrame.DrawCalls->End();
 
-            Submit(CurrentFrame.DrawCalls,
-                   CurrentFrame.SwapChainImageAvailable,
-                   SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
-                   CurrentFrame.Fence);
+        Submit(CurrentFrame.DrawCalls,
+               CurrentFrame.SwapChainImageAvailable,
+               SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
+               CurrentFrame.Fence);
 
-            return True;
-        }
-        else
-        {
-            CurrentFrame.DrawCalls->End();
+        return True;
+#else
+        CurrentFrame.DrawCalls->End();
 
-            Submit(CurrentFrame.DrawCalls,
-                   {},
-                   {},
-                   CurrentFrame.Fence);
+        Submit(CurrentFrame.DrawCalls,
+               {},
+               {},
+               CurrentFrame.Fence);
 
-            return CurrentFrame.Fence->Wait();
-        }
+        return CurrentFrame.Fence->Wait();
+#endif
     }
 
     Bool FVulkanDriver::
     Present()
     {
-        if (!GWindow->IsBootstrapped()) { return False; }
-
+#if !defined(VISERA_OFFSCREEN_MODE)
         auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
             .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor]->GetHandle()))
@@ -1009,6 +985,9 @@ namespace Visera::RHI
 
         InFlightFrameIndex = (InFlightFrameIndex + 1) % (InFlightFrames.size());
         return True;
+#else
+        return False;
+#endif
     }
 
     void FVulkanDriver::
@@ -1074,14 +1053,14 @@ namespace Visera::RHI
     CreateFence(Bool        I_bSignaled,
                 FStringView I_Description)
     {
-        LOG_DEBUG("Creating a Vulkan Fence (description:{}, signaled:{}).", I_Description, I_bSignaled);
+        LOG_TRACE("Creating a Vulkan Fence (description:{}, signaled:{}).", I_Description, I_bSignaled);
         return MakeShared<FVulkanFence>(Device.Context, I_bSignaled, I_Description);
     }
 
     TSharedPtr<FVulkanSemaphore> FVulkanDriver::
     CreateSemaphore(FStringView I_Name)
     {
-        LOG_DEBUG("Creating a Vulkan Semaphore (name: {}).", I_Name);
+        LOG_TRACE("Creating a Vulkan Semaphore (name: {}).", I_Name);
 
         auto& Semaphore = SemaphorePool[I_Name.data()];
         if (Semaphore == nullptr)
@@ -1137,7 +1116,11 @@ namespace Visera::RHI
     void FVulkanDriver::
     CreateInFlightFrames()
     {
-        InFlightFrames.resize(Math::Max(SwapChain.Images.size(), static_cast<size_t>(1)));
+#if !defined(VISERA_OFFSCREEN_MODE)
+        InFlightFrames.resize(SwapChain.Images.size());
+#else
+        InFlightFrames.resize(1);
+#endif
 
         LOG_DEBUG("Creating {} in-flght frames (extent: [{},{}]).",
                   InFlightFrames.size(), ColorRTRes.width, ColorRTRes.height);
@@ -1173,9 +1156,10 @@ namespace Visera::RHI
                 InFlightFrame.Fence
                 = CreateFence(True, fmt::format("In-Flight Fence ({})", InFlightFrameIndex));
                 // Semaphores
+#if !defined(VISERA_OFFSCREEN_MODE)
                 InFlightFrame.SwapChainImageAvailable
                 = CreateSemaphore(fmt::format("SwapChain Image Available ({})", InFlightFrameIndex));
-
+#endif
                 InFlightFrameIndex = (InFlightFrameIndex + 1) % InFlightFrames.size();
             }
         }

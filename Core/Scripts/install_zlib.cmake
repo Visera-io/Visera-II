@@ -8,8 +8,8 @@ macro(link_zlib in_target)
     if(NOT TARGET zlib)    
         option(ZLIB_BUILD_EXAMPLES "Enable Zlib Examples" OFF)
 
-        set(ZLIB_BUILD_STATIC_LIBS ON   CACHE BOOL " " FORCE)
-        set(ZLIB_BUILD_SHARED_LIBS OFF  CACHE BOOL " " FORCE)
+        set(ZLIB_BUILD_STATIC_LIBS OFF   CACHE BOOL " " FORCE)
+        set(ZLIB_BUILD_SHARED_LIBS ON    CACHE BOOL " " FORCE)
         add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/ZLib)
 
         #set_property(TARGET zlib PROPERTY FOLDER "dependencies")
@@ -24,11 +24,11 @@ macro(link_zlib in_target)
 
     target_link_libraries(${in_target} PUBLIC ZLIB::ZLIB)
 
-#    add_custom_command(
-#        TARGET ${in_target}
-#        POST_BUILD
-#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#        $<TARGET_FILE:ZLIB::ZLIB>
-#        $<TARGET_FILE_DIR:${VISERA_APP}>
-#    )
+    add_custom_command(
+        TARGET ${in_target}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:ZLIB::ZLIB>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
+    )
 endmacro()

@@ -17,6 +17,8 @@ set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
+option(ViseraOffScreenMode      "Build Visera in the Off-Screen Mode"       ON)
+
 option(BuildSharedViseraCore    "Build Visera::Core as a shared library"    ON)
 option(BuildSharedViseraRuntime "Build Visera::Runtime as a shared library" ON)
 option(BuildSharedViseraEngine  "Build Visera::Engine as a shared library"  ON)
@@ -33,6 +35,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         -Wno-extra-semi                      # some headers (GLSL, SPIR-V) produce these
         -Wno-deprecated-declarations         # prevents spam from deprecated macOS APIs
     )
+endif()
+
+if(${ViseraOffScreenMode})
+    message(STATUS "Off-Screen Mode")
+    add_compile_definitions (VISERA_OFFSCREEN_MODE)
 endif()
 
 if(MSVC)

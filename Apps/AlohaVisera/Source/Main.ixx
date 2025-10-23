@@ -7,6 +7,7 @@ import Visera.Demos;
 import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
+import Visera.Studio;
 import Visera.Runtime.Scene;
 using namespace Visera;
 
@@ -45,7 +46,9 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_Galaxy", ID);
 
+        GStudio->Bootstrap();
         GEngine->Run();
+        GStudio->Terminate();
     }
     GEngine->Terminate();
     return EXIT_SUCCESS;

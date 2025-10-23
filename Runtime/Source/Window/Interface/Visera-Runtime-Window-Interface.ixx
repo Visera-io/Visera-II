@@ -24,6 +24,7 @@ namespace Visera
         enum class EType
         {
             Unknown,
+            Null,
             GLFW
         };
         [[nodiscard]] static inline FMouse&

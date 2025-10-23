@@ -11,7 +11,7 @@
         #define VISERA_RUNTIME_API __declspec(dllimport)
     #endif
 #else
-    #define VISERA_RUNTIME_API
+    #define VISERA_RUNTIME_API __attribute__((visibility("default")))
 #endif
 
 namespace Visera

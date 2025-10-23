@@ -1,10 +1,14 @@
 module;
 #include <Visera-Studio.hpp>
+#if !defined(VISERA_OFFSCREEN_MODE)
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#endif
 export module Visera.Studio;
 #define VISERA_MODULE_NAME "Studio"
+import Visera.Core.Log;
+import Visera.Runtime;
 
 namespace Visera
 {
@@ -12,78 +16,165 @@ namespace Visera
     {
     public:
         void inline
+        BeginFrame()
+        {
+#if !defined(VISERA_OFFSCREEN_MODE)
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            ImGui::Begin("Hello World");
+            ImGui::End();
+#endif
+        }
+        void inline
+        EndFrame()
+        {
+#if !defined(VISERA_OFFSCREEN_MODE)
+            static auto& Driver = GRHI->GetDriver();
+            if (bVisible)
+            {
+                ImGui::Render();
+
+                auto CommandBuffer = *Driver->GetCurrentFrame().DrawCalls->GetHandle();
+                auto Extent = Driver->SwapChain.Extent;
+                auto ImageView = Driver->GetCurrentFrame().ColorRT->GetImageView();
+
+                VkRenderingAttachmentInfo colorAttachment {
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                    .imageView = *ImageView->GetHandle(),
+                    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                };
+
+                VkRenderingInfo renderingInfo {
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                    .renderArea = { {0, 0}, Extent },
+                    .layerCount = 1,
+                    .colorAttachmentCount = 1,
+                    .pColorAttachments = &colorAttachment,
+                };
+
+                vkCmdBeginRendering(CommandBuffer, &renderingInfo);
+
+                ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), CommandBuffer);
+
+                vkCmdEndRendering(CommandBuffer);
+            }
+            ImGui::EndFrame();
+#endif
+        }
+
+        void inline
         Bootstrap();
         void inline
         Terminate();
 
     private:
-
+        Bool bVisible = True;
     };
 
-    export inline VISERA_STUDIO_API
-    TUniquePtr<FStudio> GStudio = MakeUnique<FStudio>();
+    export inline VISERA_STUDIO_API TUniquePtr<FStudio>
+    GStudio = MakeUnique<FStudio>();
 
     void FStudio::
     Bootstrap()
     {
+#if !defined(VISERA_OFFSCREEN_MODE)
+        static bool bImGuiInitialized = false;
+        if (bImGuiInitialized)
+        {
+            LOG_WARN("ImGui already initialized — skipping Bootstrap.");
+            return;
+        }
+        //GRuntime->StudioBeginFrame = [this](){ BeginFrame(); };
+        //GRuntime->StudioEndFrame = [this](){ EndFrame(); };
+
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         auto& IO = ImGui::GetIO();
 
-        // Configuration
-        // FileSystem::CreateFileIfNotExists(FPath{LayoutFilePath.c_str()});
-        // IO.IniFilename =  LayoutFilePath.c_str();
-        // IO.ConfigFlags |= Configurations;
-        //
-        // ImFont* EditorFont = IO.Fonts->AddFontFromFileTTF(VISERA_ENGINE_FONTS_DIR"/HelveticaNeueMedium.ttf", 14);
-        //
-        // ImGui::StyleColorsDark();
-        // //ImGui::StyleColorsLight();
-        //
-        // auto* API = RHI::GetAPI();
-        // auto& QueueFamily = API->GetDevice().GetQueueFamily(RHI::EQueueFamily::Graphics);
-        //
-        // ImGui_ImplVulkan_InitInfo CreateInfo
-        // {
-        //     .Instance		= API->GetInstance().GetHandle(),
-        //     .PhysicalDevice = API->GetGPU().GetHandle(),
-        //     .Device			= API->GetDevice().GetHandle(),
-        //     .QueueFamily	= QueueFamily.Index,
-        //     .Queue			= QueueFamily.Queues[0],
-        //     .DescriptorPool	= RHI::GetGlobalDescriptorPool()->GetHandle(),
-        //     .RenderPass		= EditorRenderPass->GetHandle(), // Ignored if using dynamic rendering
-				    //
-        //     .MinImageCount	= UInt32(RHI::GetSwapchainFrameCount()),
-        //     .ImageCount		= UInt32(RHI::GetSwapchainFrameCount()),
-        //     .MSAASamples	= VK_SAMPLE_COUNT_1_BIT,
-        //
-        //     .PipelineCache	= API->GetGraphicsPipelineCache().GetHandle(),
-        //     .Subpass		= 0,
-        //
-        //     .DescriptorPoolSize = 0,
-        //
-        //     .Allocator		= API->GetAllocationCallbacks(),
-        //     .CheckVkResultFn = [](VkResult Err)
-        //     {
-        //         if (Err != VK_SUCCESS)
-        //         { VE_LOG_ERROR("ImGUI Vulkan Error Code: {}", UInt32(Err)); }
-        //     },
-        // };
-        //
-        // ImGui_ImplGlfw_InitForVulkan(Window::GetHandle(), True); // Install callbacks via ImGUI
-			     //
-        // auto VulkanInstanceHandle = API->GetInstance().GetHandle();
-        // ImGui_ImplVulkan_Init(&CreateInfo);
-        //
-        // ImGuiDescriptorSetLayout = RHI::CreateDescriptorSetLayout()
-        //     ->AddBinding(0, RHI::EDescriptorType::CombinedImageSampler, 1, RHI::EShaderStage::Fragment)
-        //     ->Build();
+        IO.DisplaySize = ImVec2(
+            GWindow->GetWidth(),
+            GWindow->GetHeight()
+        );
+        IO.DisplayFramebufferScale = ImVec2(1.0, 1.0f);
+
+        //FileSystem::CreateFileIfNotExists(FPath{LayoutFilePath.c_str()});
+        //IO.IniFilename =  LayoutFilePath.c_str();
+        //IO.ConfigFlags |= Configurations;
+
+        //ImFont* EditorFont = IO.Fonts->AddFontFromFileTTF(VISERA_ENGINE_FONTS_DIR"/HelveticaNeueMedium.ttf", 14);
+
+        ImGui::StyleColorsDark();
+
+        auto& Vulkan = GRHI->GetDriver();
+
+        auto& QueueFamily = *Vulkan->GPU.GraphicsQueueFamilies.begin();
+        auto& Queue = Vulkan->Device.GraphicsQueue;
+
+        VkFormat StudioRTFormat = static_cast<VkFormat>(Vulkan->SwapChain.ImageFormat);
+        ImGui_ImplVulkan_InitInfo CreateInfo
+        {
+            .Instance		= *Vulkan->Instance,
+            .PhysicalDevice = *Vulkan->GPU.Context,
+            .Device			= *Vulkan->Device.Context,
+            .QueueFamily	= QueueFamily,
+            .Queue			= *Queue,
+            .DescriptorPool	= *Vulkan->GetDescriptorPool(),
+            .DescriptorPoolSize = 0,
+
+            .MinImageCount	= Vulkan->SwapChain.MinimalImageCount,
+            .ImageCount		= Vulkan->GetFrameCount(),
+            .PipelineCache	= *Vulkan->GetPipelineCache()->GetHandle(),
+
+            .RenderPass		= nullptr, // Ignored if using dynamic rendering
+            .Subpass		= 0,
+            .MSAASamples	= VK_SAMPLE_COUNT_1_BIT,
+
+            .UseDynamicRendering = True,
+            .PipelineRenderingCreateInfo = VkPipelineRenderingCreateInfo
+            {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+                .colorAttachmentCount    = 1,
+                .pColorAttachmentFormats = &StudioRTFormat,
+            },
+            .Allocator		= nullptr,
+            .CheckVkResultFn = [](VkResult I_Error)
+            {
+                if (I_Error != VK_SUCCESS)
+                { LOG_FATAL("ImGUI Vulkan backend Error Code: {}", static_cast<UInt32>(I_Error)); }
+            },
+        };
+
+        VISERA_ASSERT(GWindow->IsBootstrapped() &&
+                      GWindow->GetType() == EWindowType::GLFW);
+        LOG_TRACE("Initializing Dear ImGUI GLFW backend.");
+        if (!ImGui_ImplGlfw_InitForVulkan(
+            static_cast<GLFWwindow*>(GWindow->GetHandle()),
+            True // Install callbacks via ImGUI
+        ))
+        { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
+
+        LOG_TRACE("Initializing Dear ImGUI Vulkan backend.");
+        if (!ImGui_ImplVulkan_Init(&CreateInfo))
+        { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
+#endif
     }
 
     void FStudio::
     Terminate()
     {
+#if !defined(VISERA_OFFSCREEN_MODE)
+        GRHI->GetDriver()->WaitIdle();
+        LOG_TRACE("Terminating Dear ImGUI Vulkan backend.");
+        ImGui_ImplVulkan_Shutdown();
+        LOG_TRACE("Terminating Dear ImGUI GLFW backend.");
+        ImGui_ImplGlfw_Shutdown();
 
+        ImGui::DestroyContext();
+#endif
     }
 
 }

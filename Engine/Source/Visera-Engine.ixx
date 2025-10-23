@@ -11,14 +11,13 @@ namespace Visera
 {
     class VISERA_ENGINE_API FEngine : public IGlobalSingleton
     {
-        Bool bOffScreen = False;
     public:
         void Bootstrap() override
         {
             LOG_TRACE("Bootstrapping Engine.");
 
             GAssetHub->Bootstrap();
-            if (!bOffScreen) { GWindow->Bootstrap(); }
+            GWindow->Bootstrap();
             GRHI->Bootstrap();
             GAudio->Bootstrap();
             GScene->Bootstrap();
@@ -32,7 +31,7 @@ namespace Visera
 
             if (!GWindow->IsBootstrapped())
             {
-                LOG_INFO("Off-Screen Mode.");
+                LOG_INFO("Visera Off-Screen Mode.");
                 GRHI->BeginFrame();
                 {
 
@@ -104,7 +103,7 @@ namespace Visera
             GScene->Terminate();
             GAudio->Terminate();
             GRHI->Terminate();
-            if (!bOffScreen) { GWindow->Terminate(); }
+            GWindow->Terminate();
             GAssetHub->Terminate();
 
             Status = EStatus::Terminated;

@@ -1,6 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
+#if !defined(VISERA_OFFSCREEN_MODE)
 #include <GLFW/glfw3.h>
+#endif
 export module Visera.Runtime.Window.GLFW;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Window.Interface;
@@ -11,12 +13,10 @@ import Visera.Runtime.AssetHub;
 
 namespace Visera
 {
+#if !defined(VISERA_OFFSCREEN_MODE)
     export class VISERA_RUNTIME_API FGLFWWindow : public IWindow
     {
     public:
-    //     void inline
-    //     Initialize() { if (!glfwInit()) { LOG_FATAL("Failed to initialize GLFW!"); return; }; bInitialized = True; };
-
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor();
 
@@ -56,7 +56,7 @@ namespace Visera
     void FGLFWWindow::
     Bootstrap()
     {
-        LOG_TRACE("Bootstrapping Window.");
+        LOG_TRACE("Bootstrapping GLFW Window.");
 
         if (!glfwInit())
         { LOG_FATAL("Failed to initialize GLFW!"); }
@@ -78,11 +78,11 @@ namespace Visera
             nullptr,
             nullptr);
         if (!Handle)
-        { LOG_FATAL("Failed to create the window!"); return; }
+        { LOG_FATAL("Failed to create the GLFW Window!"); return; }
 
         if (bMaximized)
         {
-            LOG_DEBUG("Maximizing the window (title: {})", GetTitle());
+            LOG_DEBUG("Maximizing the GLFW Window (title: {})", GetTitle());
             glfwMaximizeWindow(Handle);
         }
         else
@@ -110,7 +110,7 @@ namespace Visera
         glfwSetCursorPosCallback(Handle, FGLFWWindow::MouseCursorCallback);
         glfwSetScrollCallback(Handle, FGLFWWindow::MouseScrollCallback);
 
-        LOG_DEBUG("Created a new window (title:{}, extent:[{},{}], scales:[{},{}])",
+        LOG_DEBUG("Created a new GLFW Window (title:{}, extent:[{},{}], scales:[{},{}])",
                   GetTitle(), Width, Height, ScaleX, ScaleY);
 
         Status = EStatus::Bootstrapped;
@@ -119,7 +119,7 @@ namespace Visera
     void FGLFWWindow::
     Terminate()
     {
-        LOG_TRACE("Terminating Window.");
+        LOG_TRACE("Terminating GLFW Window.");
         glfwDestroyWindow(Handle);
         glfwTerminate();
         Handle = nullptr;
@@ -172,4 +172,5 @@ namespace Visera
     {
         LOG_DEBUG("(WIP) Mouse scrolled ({}, {})", I_OffsetX, I_OffsetY);
     }
+#endif
 }

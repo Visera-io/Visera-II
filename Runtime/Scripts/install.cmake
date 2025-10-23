@@ -49,8 +49,10 @@ list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 include(install_dotnet)
 link_dotnet(${VISERA_RUNTIME})
 
+if(NOT ${VISERA_OFFSCREEN_MODE})
 include(install_glfw)
 link_glfw(${VISERA_RUNTIME})
+endif()
 
 include(install_vma)
 link_vma(${VISERA_RUNTIME})
