@@ -474,7 +474,7 @@ namespace Visera::RHI
     void FVulkanDriver::
     CreateSurface()
     {
-#if defined(CreateSemaphore)
+#if !defined(VISERA_OFFSCREEN_MODE)
         VkSurfaceKHR SurfaceHandle {nullptr};
 
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);

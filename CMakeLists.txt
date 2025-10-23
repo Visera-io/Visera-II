@@ -7,17 +7,15 @@ SET(VISERA_VERSION "${VISERA_VERSION_MAJOR}.${VISERA_VERSION_MINOR}.${VISERA_VER
 
 set(VISERA "Visera")
 project("${VISERA} (${VISERA_VERSION})"
-        VERSION         "${VISERA_VERSION}"
-        HOMEPAGE_URL    "www.visera.io"
-        LANGUAGES       CXX
+    VERSION         "${VISERA_VERSION}"
+    HOMEPAGE_URL    "www.visera.io"
+    LANGUAGES       CXX
 )
 message("Installing ${PROJECT_NAME}")
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
-
-option(ViseraOffScreenMode      "Build Visera in the Off-Screen Mode"       ON)
 
 option(BuildSharedViseraCore    "Build Visera::Core as a shared library"    ON)
 option(BuildSharedViseraRuntime "Build Visera::Runtime as a shared library" ON)
@@ -37,7 +35,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     )
 endif()
 
-if(${ViseraOffScreenMode})
+if(VISERA_OFFSCREEN_MODE)
     message(STATUS "Off-Screen Mode")
     add_compile_definitions (VISERA_OFFSCREEN_MODE)
 endif()
