@@ -51,6 +51,10 @@ namespace Visera
         GetWidth() const  { return Width; }
         [[nodiscard]] inline UInt32
         GetHeight() const { return Height; }
+        [[nodiscard]] inline Float
+        GetScaleX() const  { return ScaleX; }
+        [[nodiscard]] inline Float
+        GetScaleY() const { return ScaleY; }
         [[nodiscard]] EType
         GetType() const { return Type; }
         [[nodiscard]] inline Bool
@@ -61,7 +65,7 @@ namespace Visera
 
     protected:
         EType       Type { EType::Unknown };
-        Int32       Width {900},  Height{600};
+        Int32       Width {1920},  Height{1080};
         Float       ScaleX{1.0f}, ScaleY{1.0f};
         Bool        bMaximized{False};
     };

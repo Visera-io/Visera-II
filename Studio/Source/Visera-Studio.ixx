@@ -23,8 +23,7 @@ namespace Visera
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            ImGui::Begin("Hello World");
-            ImGui::End();
+            ImGui::ShowDemoWindow();
 #endif
         }
         void inline
@@ -40,23 +39,23 @@ namespace Visera
                 auto Extent = Driver->SwapChain.Extent;
                 auto ImageView = Driver->GetCurrentFrame().ColorRT->GetImageView();
 
-                VkRenderingAttachmentInfo colorAttachment {
+                VkRenderingAttachmentInfo ColorAttachment {
                     .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                    .imageView = *ImageView->GetHandle(),
+                    .imageView   = *ImageView->GetHandle(),
                     .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
+                    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
                 };
 
-                VkRenderingInfo renderingInfo {
+                VkRenderingInfo RenderingInfo {
                     .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
                     .renderArea = { {0, 0}, Extent },
                     .layerCount = 1,
-                    .colorAttachmentCount = 1,
-                    .pColorAttachments = &colorAttachment,
+                    .colorAttachmentCount   = 1,
+                    .pColorAttachments      = &ColorAttachment,
                 };
 
-                vkCmdBeginRendering(CommandBuffer, &renderingInfo);
+                vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 
                 ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), CommandBuffer);
 
@@ -88,8 +87,8 @@ namespace Visera
             LOG_WARN("ImGui already initialized — skipping Bootstrap.");
             return;
         }
-        //GRuntime->StudioBeginFrame = [this](){ BeginFrame(); };
-        //GRuntime->StudioEndFrame = [this](){ EndFrame(); };
+        GRuntime->StudioBeginFrame = [this](){ BeginFrame(); };
+        GRuntime->StudioEndFrame   = [this](){ EndFrame(); };
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -99,8 +98,10 @@ namespace Visera
             GWindow->GetWidth(),
             GWindow->GetHeight()
         );
-        IO.DisplayFramebufferScale = ImVec2(1.0, 1.0f);
-
+        IO.DisplayFramebufferScale = ImVec2(
+            GWindow->GetScaleX(),
+            GWindow->GetScaleY()
+        );
         //FileSystem::CreateFileIfNotExists(FPath{LayoutFilePath.c_str()});
         //IO.IniFilename =  LayoutFilePath.c_str();
         //IO.ConfigFlags |= Configurations;

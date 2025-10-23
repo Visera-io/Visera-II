@@ -67,7 +67,6 @@ namespace Visera
             static_assert(sizeof(FTestPushConstantRange) <= 128);
             FTestPushConstantRange MouseContext{};
 
-
             while (!GWindow->ShouldClose())
             {
                 GWindow->PollEvents();
@@ -90,6 +89,9 @@ namespace Visera
                     Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
                     Cmd->Draw(3,1,0,0);
                     Cmd->LeaveRenderPass();
+
+                    GRuntime->StudioBeginFrame();
+                    GRuntime->StudioEndFrame();
                 }
                 GRHI->EndFrame();
                 GRHI->Present();

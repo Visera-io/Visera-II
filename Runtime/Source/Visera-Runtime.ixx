@@ -20,6 +20,9 @@ namespace Visera
         [[nodiscard]] inline const FHiResClock&
         GetTimer() const { return Timer; }
 
+        std::function<void()> StudioBeginFrame = [](){};
+        std::function<void()> StudioEndFrame   = [](){};
+
     private:
         FHiResClock Timer{};
 
