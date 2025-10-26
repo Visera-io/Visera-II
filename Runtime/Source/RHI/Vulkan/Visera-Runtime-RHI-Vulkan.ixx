@@ -349,6 +349,7 @@ namespace Visera::RHI
         .setDescriptorCount (100);
 
         auto CreateInfo = vk::DescriptorPoolCreateInfo()
+            .setFlags           (vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
             .setMaxSets         (GPU.Context.getProperties().limits.maxBoundDescriptorSets)
             .setPoolSizeCount   (MaxDescriptorType)
             .setPPoolSizes      (PoolSizes)

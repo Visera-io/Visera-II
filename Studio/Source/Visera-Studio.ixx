@@ -1,5 +1,7 @@
 module;
 #include <Visera-Studio.hpp>
+
+#include "imgui_freetype.h"
 #if !defined(VISERA_OFFSCREEN_MODE)
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -24,6 +26,8 @@ namespace Visera
             ImGui::NewFrame();
 
             ImGui::ShowDemoWindow();
+            ImGui::Begin("こんにちは");
+            ImGui::End();
 #endif
         }
         void inline
@@ -71,7 +75,8 @@ namespace Visera
         Terminate();
 
     private:
-        Bool bVisible = True;
+        FPath Font;
+        Bool  bVisible = True;
     };
 
     export inline VISERA_STUDIO_API TUniquePtr<FStudio>
@@ -81,18 +86,27 @@ namespace Visera
     Bootstrap()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        static bool bImGuiInitialized = false;
-        if (bImGuiInitialized)
-        {
-            LOG_WARN("ImGui already initialized — skipping Bootstrap.");
-            return;
-        }
+        VISERA_ASSERT(GAssetHub->IsBootstrapped());
+        Font = GAssetHub->GetAssetDirectory(EAssetSource::Studio) / PATH("Font/TsangerYunHei.ttf");
+
         GRuntime->StudioBeginFrame = [this](){ BeginFrame(); };
         GRuntime->StudioEndFrame   = [this](){ EndFrame(); };
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         auto& IO = ImGui::GetIO();
+
+        /*[FreeType Blending]
+        FreeType assumes blending in linear space rather than gamma space.
+        For correct results you need to be using sRGB and convert to linear space in the pixel shader output.
+        The default Dear ImGui styles will be impacted by this change (alpha values will need tweaking).
+        [FT_Render_Glyph](https://freetype.org/freetype2/docs/reference/ft2-glyph_retrieval.html#ft_render_glyph)
+        */
+        ImFontConfig FontConfig;
+        //FontConfig.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+        if (!IO.Fonts->AddFontFromFileTTF(Font.GetUTF8Path().c_str()))
+        { LOG_ERROR("Failed to load the font \"{}\"!", Font); }
+        { LOG_DEBUG("Using font: {}", Font); }
 
         IO.DisplaySize = ImVec2(
             GWindow->GetWidth(),

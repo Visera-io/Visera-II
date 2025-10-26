@@ -27,6 +27,9 @@ namespace Visera
         [[nodiscard]] inline TSharedPtr<FSound>
         LoadSound(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
 
+        [[nodiscard]] inline const FPath&
+        GetAssetDirectory(EAssetSource I_Source) const { VISERA_ASSERT(I_Source != EAssetSource::Any); return Roots.at(I_Source).GetRoot(); }
+
     public:
         void Bootstrap() override;
         void Terminate() override;

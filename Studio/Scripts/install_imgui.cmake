@@ -15,6 +15,10 @@ macro(link_imgui in_target)
             message(FATAL_ERROR "GLFW is required by ImGui!")
         endif()
 
+        if(NOT TARGET freetype)
+            message(FATAL_ERROR "FreeType is required by ImGui!")
+        endif()
+
         file(GLOB_RECURSE IMGUI_HEADER_FILES "${VISERA_STUDIO_EXTERNAL_DIR}/ImGui/*h")
         file(GLOB_RECURSE IMGUI_SOURCE_FILES "${VISERA_STUDIO_EXTERNAL_DIR}/ImGui/*cpp")
         add_library(ImGui
@@ -22,10 +26,15 @@ macro(link_imgui in_target)
                     ${IMGUI_HEADER_FILES}
                     ${IMGUI_SOURCE_FILES})
 
+        message(STATUS "Rasterizer: FreeType")
+        target_compile_definitions(ImGui PRIVATE IMGUI_ENABLE_FREETYPE)
+
         target_link_libraries(ImGui
                               PRIVATE
                               Vulkan::Vulkan
-                              glfw)
+                              glfw
+                              freetype
+        )
     endif()
 
     target_link_libraries(${in_target} PUBLIC ImGui)

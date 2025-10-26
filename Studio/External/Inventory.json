@@ -1,14 +1,4 @@
 {
-    "ImGui" :
-    {
-        "Version" : "v1.92.3-docking",
-        "Dependencies" : 
-        [
-            "Vulkan",
-            "GLFW"
-        ],
-        "URL" : "https://github.com/ocornut/imgui"
-    },
     "FreeType" :
     {
         "Version" : "2.14.1",
@@ -17,5 +7,16 @@
 
         ],
         "URL" : "https://freetype.org"
+    },
+    "ImGui" :
+    {
+        "Version" : "v1.92.3-docking",
+        "Dependencies" :
+        [
+            "Vulkan",
+            "GLFW",
+            "FreeType"
+        ],
+        "URL" : "https://github.com/ocornut/imgui"
     }
 }
