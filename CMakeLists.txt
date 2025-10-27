@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 4.0.0 FATAL_ERROR)
 
 SET(VISERA_VERSION_MAJOR 1)
 SET(VISERA_VERSION_MINOR 0)

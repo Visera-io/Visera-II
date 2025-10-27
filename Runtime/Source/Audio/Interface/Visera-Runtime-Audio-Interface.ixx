@@ -6,7 +6,7 @@ import Visera.Core.Log;
 
 namespace Visera
 {
-    export VISERA_RUNTIME_API class IAudioEngine
+    export class VISERA_RUNTIME_API IAudioEngine
     {
     public:
         enum class EType

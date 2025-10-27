@@ -12,7 +12,7 @@ import Visera.Core.Log;
 
 namespace Visera
 {
-    export VISERA_RUNTIME_API class FWwiseIO
+    export class VISERA_RUNTIME_API FWwiseIO
         : public AK::StreamMgr::IAkLowLevelIOHook,
           public AK::StreamMgr::IAkFileLocationResolver
     {

@@ -31,6 +31,8 @@ macro(link_wwise in_target)
             "-framework AVFoundation"
             "-framework CoreMIDI"
             "-framework CoreServices"
+            "-framework Foundation"
+            "-framework CoreFoundation"
         )
     endif()
 endmacro()

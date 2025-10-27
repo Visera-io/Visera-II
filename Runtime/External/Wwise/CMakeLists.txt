@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 4.0.0)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(WWISE_BUILD_TYPE "Release")

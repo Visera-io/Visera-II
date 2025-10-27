@@ -5,7 +5,7 @@ export module Visera.Runtime.Event.Signal;
 
 namespace Visera
 {
-    export VISERA_RUNTIME_API class FSignal
+    export class VISERA_RUNTIME_API FSignal
     {
     public:
         [[nodiscard]] Bool

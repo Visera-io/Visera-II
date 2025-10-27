@@ -17,7 +17,7 @@ import Visera.Core.Log;
 
 namespace Visera
 {
-    export VISERA_RUNTIME_API class FWwiseAudioEngine : public IAudioEngine
+    export class VISERA_RUNTIME_API FWwiseAudioEngine : public IAudioEngine
     {
     public:
         void

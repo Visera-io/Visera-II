@@ -1,9 +1,8 @@
 module;
 #include <Visera-Studio.hpp>
-
-#include "imgui_freetype.h"
 #if !defined(VISERA_OFFSCREEN_MODE)
 #include <imgui.h>
+#include <imgui_freetype.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #endif

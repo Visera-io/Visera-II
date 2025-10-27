@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 4.0.0)
 
 message(STATUS "Version 2025.19.1")
 

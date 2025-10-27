@@ -80,6 +80,8 @@ namespace Visera
         if (!Handle)
         { LOG_FATAL("Failed to create the GLFW Window!"); return; }
 
+        glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
+
         if (bMaximized)
         {
             LOG_DEBUG("Maximizing the GLFW Window (title: {})", GetTitle());
@@ -104,8 +106,6 @@ namespace Visera
 
         glfwSetWindowIcon(Handle, 1, &Icon);
 #endif
-        glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
-
         glfwSetMouseButtonCallback(Handle, FGLFWWindow::MouseButtonCallback);
         glfwSetCursorPosCallback(Handle, FGLFWWindow::MouseCursorCallback);
         glfwSetScrollCallback(Handle, FGLFWWindow::MouseScrollCallback);

@@ -9,7 +9,7 @@ export import Visera.Core.Types.Path;
 
 namespace Visera
 {
-   export VISERA_RUNTIME_API class IAsset
+   export class VISERA_RUNTIME_API IAsset
       : public Attribute::SharedOnly<IAsset>
    {
    public:
