@@ -16,6 +16,8 @@ namespace Visera
         LoadLibrary(const FPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
         [[nodiscard]] const FPath&
         GetExecutableDirectory() const override { return ExecutableDirectory; }
+        [[nodiscard]] Bool
+        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 
     private:
         FPath ExecutableDirectory;
@@ -34,6 +36,21 @@ namespace Visera
         Buffer.resize(Size);
 
         ExecutableDirectory = FPath{Buffer}.GetParent();
+    }
+
+    Bool FWindowsPlatform::
+    SetEnvironmentVariable(FStringView I_Variable,
+                           FStringView I_Value) const
+    {
+        if (!SetEnvironmentVariableA(I_Variable.data(), I_Value.data()))
+        {
+            LOG_ERROR("Failed to set environment variable \"{}\" as \"{}\"!",
+                      I_Variable, I_Value);
+            return False;
+        }
+        LOG_DEBUG("Set environment variable \"{}\" as \"{}\".",
+                  I_Variable, I_Value);
+        return True;
     }
 #endif
 }

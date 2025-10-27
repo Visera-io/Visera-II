@@ -162,7 +162,7 @@ namespace Visera::RHI
         void inline CreateDevice();         void inline DestroyDevice();
         void inline CreateSwapChain();      void inline DestroySwapChain();
         void inline CreateCommandPools();   void inline DestroyCommandPools();
-        void inline CreateDescriptorSets(); void inline DestroyDescriptorSets();
+        void inline CreateDescriptorPools(); void inline DestroyDescriptorPools();
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
         void inline CreateInFlightFrames(); void inline DestroyInFlightFrames();
         void inline CreateOtherResource();  void inline DestroyOtherResource();
@@ -216,12 +216,14 @@ namespace Visera::RHI
         .setApiVersion          (vk::ApiVersion13);
 
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        if (setenv("VK_ICD_FILENAMES",
-                   VISERA_VULKAN_SDK_PATH "/share/vulkan/icd.d/MoltenVK_icd.json", True) != 0)
-        { LOG_ERROR("Failed to set \"VK_ICD_FILENAMES\"!"); }
-        if (setenv("VK_LAYER_PATH",
-                   VISERA_VULKAN_SDK_PATH "/share/vulkan/explicit_layer.d", True) != 0)
-        { LOG_ERROR("Failed to set \"VK_LAYER_PATH\"!"); }
+        if (!GPlatform->SetEnvironmentVariable(
+            "VK_ICD_FILENAMES",
+            VISERA_VULKAN_SDK_PATH "/share/vulkan/icd.d/MoltenVK_icd.json"))
+        { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\"!"); }
+        if (!GPlatform->SetEnvironmentVariable(
+            "VK_LAYER_PATH",
+            VISERA_VULKAN_SDK_PATH "/share/vulkan/explicit_layer.d"))
+        { LOG_FATAL("Failed to set \"VK_LAYER_PATH\"!"); }
 #endif
 
         Loader = MakeUnique<FVulkanLoader>();
@@ -235,7 +237,7 @@ namespace Visera::RHI
         CreateDevice();
         Loader->Load(Device.Context);
         CreateCommandPools();
-        CreateDescriptorSets();
+        CreateDescriptorPools();
         GVulkanAllocator = MakeUnique<FVulkanAllocator>
         (
             AppInfo.apiVersion,
@@ -256,7 +258,7 @@ namespace Visera::RHI
         DestroyOtherResource();
         DestroyInFlightFrames();
         DestroyPipelineCache();
-        DestroyDescriptorSets();
+        DestroyDescriptorPools();
         DestroyCommandPools();
         DestroySwapChain();
         DestroyDevice();
@@ -330,19 +332,22 @@ namespace Visera::RHI
     }
 
     void FVulkanDriver::
-    DestroyDescriptorSets()
+    DestroyDescriptorPools()
     {
         DescriptorPool.clear();
     }
 
     void FVulkanDriver::
-    CreateDescriptorSets()
+    CreateDescriptorPools()
     {
-        enum : UInt32 { SampledImage, UniformBuffer, MaxDescriptorType };
+        enum : UInt32 { SampledImage, CombinedImageSampler, UniformBuffer, MAX_DESCRIPTOR_ENUM };
 
-        vk::DescriptorPoolSize PoolSizes[MaxDescriptorType];
+        vk::DescriptorPoolSize PoolSizes[MAX_DESCRIPTOR_ENUM];
         PoolSizes[SampledImage]
         .setType            (EVulkanDescriptorType::eSampledImage)
+        .setDescriptorCount (100);
+        PoolSizes[CombinedImageSampler]
+        .setType            (EVulkanDescriptorType::eCombinedImageSampler)
         .setDescriptorCount (100);
         PoolSizes[UniformBuffer]
         .setType            (EVulkanDescriptorType::eUniformBuffer)
@@ -351,7 +356,7 @@ namespace Visera::RHI
         auto CreateInfo = vk::DescriptorPoolCreateInfo()
             .setFlags           (vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
             .setMaxSets         (GPU.Context.getProperties().limits.maxBoundDescriptorSets)
-            .setPoolSizeCount   (MaxDescriptorType)
+            .setPoolSizeCount   (MAX_DESCRIPTOR_ENUM)
             .setPPoolSizes      (PoolSizes)
         ;
         auto Result = Device.Context.createDescriptorPool(CreateInfo);
@@ -362,26 +367,6 @@ namespace Visera::RHI
 
         LOG_DEBUG("Created a Vulkan Descriptor Pool: (max_sets:{})",
                   CreateInfo.maxSets);
-
-    //     TArray<vk::DescriptorSetLayoutBinding>
-    //     DescriptorSetBindings{};
-    //     DescriptorSetBindings.emplace_back()
-    //         .setBinding         (0)
-    //         .setDescriptorType  ()
-    //         .setDescriptorCount (1)
-    //     ;
-    //     auto DescriptorSetLayout = vk::DescriptorSetLayoutCreateInfo{}
-    //     .setBindingCount    (DescriptorSetBindings.size())
-    //     .setPBindings       (DescriptorSetBindings.data())
-    // ;
-    //     auto AllocateInfo = vk::DescriptorSetAllocateInfo{}
-    //     .setDescriptorPool(I_DescriptorPool)
-    // ;
-    //     auto Result = I_Device.allocateDescriptorSets(AllocateInfo);
-    //     if (!Result.has_value())
-    //     { LOG_FATAL("Failed to allocate descriptor sets!"); }
-    //     else
-    //     { Handle = std::move(*Result); }
     }
 
     void FVulkanDriver::

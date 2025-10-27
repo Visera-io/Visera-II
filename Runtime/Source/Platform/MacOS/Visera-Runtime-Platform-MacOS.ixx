@@ -19,6 +19,8 @@ namespace Visera
         LoadLibrary(const FPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
         [[nodiscard]] const FPath&
         GetExecutableDirectory() const override { return ExecutableDirectory; }
+        [[nodiscard]] Bool
+        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 
     private:
         FPath ExecutableDirectory;
@@ -38,6 +40,21 @@ namespace Visera
             ExecutableDirectory = FPath{reinterpret_cast<char8_t*>(Path)}.GetParent();
         }
         else { LOG_FATAL("Failed to get executable path!"); }
+    }
+
+    Bool FMacOSPlatform::
+    SetEnvironmentVariable(FStringView I_Variable,
+                           FStringView I_Value) const
+    {
+        if (setenv(I_Variable.data(), I_Value.data(), True) != 0)
+        {
+            LOG_ERROR("Failed to set environment variable \"{}\" as \"{}\"!",
+                      I_Variable, I_Value);
+            return False;
+        }
+        LOG_DEBUG("Set environment variable \"{}\" as \"{}\".",
+                  I_Variable, I_Value);
+        return True;
     }
 #endif
 }

@@ -12,14 +12,15 @@ import Visera.Runtime.Platform;
 namespace Visera
 {
 
-    export class FDotNET
+    export class VISERA_RUNTIME_API FDotNET
     {
     public:
 
 
     private:
-        const char*    ConfigPath = "Visera.DotNETConfig.json";
-        hostfxr_handle Context      {nullptr};
+        FPath          DotNETRoot    {DOTNET_ROOT};
+        FPath          ConfigPath    {VISERA_RUNTIME_DIR "/Global/Visera-DotNETConfig.json"};
+        hostfxr_handle Context       {nullptr};
 
         TSharedPtr<ILibrary> HostFXR;
         hostfxr_initialize_for_runtime_config_fn  Fn_InitializeRuntime{nullptr};
@@ -31,16 +32,14 @@ namespace Visera
         FDotNET()
         {
             LOG_DEBUG("Initializing .NET");
+
             LoadHostFXR();
 
-            if (!Fn_InitializeRuntime(ConfigPath, nullptr, &Context) || !Context)
-            { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
-
             // Get the load assembly function pointer
-            if (!Fn_GetRuntimeDelegate(
+            if (Fn_GetRuntimeDelegate(
                 Context,
                 hdt_get_function_pointer,
-                reinterpret_cast<void**>(&Fn_GetAssemblyAndGetFunctionPointer)) ||
+                reinterpret_cast<void**>(&Fn_GetAssemblyAndGetFunctionPointer)) != 0 ||
                 !Fn_GetAssemblyAndGetFunctionPointer)
             { LOG_FATAL("Failed to get delegate!"); }
         }
@@ -53,7 +52,7 @@ namespace Visera
         }
 
     private:
-        [[nodiscard]] inline void
+        inline void
         LoadHostFXR()
         {
             LOG_TRACE("Loading HostFXR");
@@ -67,6 +66,16 @@ namespace Visera
                 (HostFXR->LoadFunction("hostfxr_get_runtime_delegate"));
             Fn_FinalizeRuntime = reinterpret_cast<hostfxr_close_fn>
                 (HostFXR->LoadFunction("hostfxr_close"));
+
+            auto HostFXRInitInfo = hostfxr_initialize_parameters
+            {
+                .dotnet_root = DotNETRoot.GetNativePath().c_str(),
+            };
+            if (Fn_InitializeRuntime(
+                ConfigPath.GetNativePath().c_str(),
+                &HostFXRInitInfo,
+                &Context) != 0 || !Context)
+            { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
         }
     };
 

@@ -39,8 +39,9 @@ export namespace Visera
         FPath& operator=(const FPath& I_Path)     { Data = I_Path.Data; return *this; }
         FPath& operator=(FPath&& I_Path) noexcept { Data = I_Path.Data; return *this; }
         FPath(const FText& I_Path): Data{ I_Path.GetData() } { Data.make_preferred(); }
-        FPath(std::u8string_view I_Path): Data{ I_Path }     { Data.make_preferred(); }
-        FPath(std::wstring_view  I_Path): Data{ I_Path }     { Data.make_preferred(); }
+        FPath(FStringView     I_Path): Data{ I_Path } { Data.make_preferred(); }
+        FPath(FUTF8StringView I_Path): Data{ I_Path } { Data.make_preferred(); }
+        FPath(FWideStringView I_Path): Data{ I_Path } { Data.make_preferred(); }
 
     private:
         std::filesystem::path Data;

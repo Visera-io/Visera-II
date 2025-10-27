@@ -47,6 +47,7 @@
 	#undef TEXT
     #undef LoadImage
 	#undef LoadLibrary
+	#undef SetEnvironmentVariable
 
 	#define PLATFORM_ASSERT(expression) ((void)(                                                       \
 		(!!(expression)) ||                                                               \

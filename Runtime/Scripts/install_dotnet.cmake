@@ -136,10 +136,16 @@ macro(link_dotnet in_target)
     find_nethost_library()
     find_hostfxr_library()
 
+    #set(DOTNET_CORE_APP_PATH "${DOTNET_ROOT_DIR}/shared/Microsoft.NETCore.App/${DOTNETCORE_RUNTIME_VERSION}")
+    #message(STATUS Found .NETCore.App: ${DOTNET_CORE_APP_PATH})
+    target_compile_definitions(${in_target} PRIVATE
+            DOTNET_ROOT="${DOTNET_ROOT_DIR}")
     if(WIN32)
-        add_compile_definitions(HOSTFXR_LIBRARY_NAME=u8"hostfxr.dll")
+    target_compile_definitions(${in_target} PRIVATE
+        HOSTFXR_LIBRARY_NAME="hostfxr.dll")
     elseif(APPLE)
-        add_compile_definitions(HOSTFXR_LIBRARY_NAME=u8"libhostfxr.dylib")
+    target_compile_definitions(${in_target} PRIVATE
+        HOSTFXR_LIBRARY_NAME="libhostfxr.dylib")
     else()
         message(FATAL_ERROR "Unsupported platform!")
     endif ()
