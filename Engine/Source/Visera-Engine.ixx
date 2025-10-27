@@ -16,6 +16,7 @@ namespace Visera
         {
             LOG_TRACE("Bootstrapping Engine.");
 
+            GScripting->Bootstrap();
             GAssetHub->Bootstrap();
             GWindow->Bootstrap();
             GRHI->Bootstrap();
@@ -107,6 +108,7 @@ namespace Visera
             GRHI->Terminate();
             GWindow->Terminate();
             GAssetHub->Terminate();
+            GScripting->Terminate();
 
             Status = EStatus::Terminated;
         }

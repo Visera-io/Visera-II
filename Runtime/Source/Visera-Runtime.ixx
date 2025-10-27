@@ -4,6 +4,7 @@ export module Visera.Runtime;
 #define VISERA_MODULE_NAME "Runtime"
 export import Visera.Runtime.AssetHub;
 export import Visera.Runtime.Platform;
+export import Visera.Runtime.Scripting;
 export import Visera.Runtime.Audio;
 export import Visera.Runtime.Window;
 export import Visera.Runtime.Event;

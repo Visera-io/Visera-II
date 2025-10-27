@@ -1,8 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <nethost.h>
-#include <coreclr_delegates.h>
 #include <hostfxr.h>
+#include <coreclr_delegates.h>
 export module Visera.Runtime.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Runtime.Scripting"
 import Visera.Core.Log;
@@ -14,34 +14,49 @@ namespace Visera
 
     export class FDotNET
     {
+    public:
+
+
+    private:
+        const char*    ConfigPath = "Visera.DotNETConfig.json";
+        hostfxr_handle Context      {nullptr};
+
         TSharedPtr<ILibrary> HostFXR;
-        hostfxr_initialize_for_runtime_config_fn Fn_InitializeRuntime{nullptr};
-        hostfxr_get_runtime_delegate_fn          Fn_GetRuntimeDelegate{nullptr};
-        hostfxr_close_fn                         Fn_FinalizeRuntime{nullptr};
+        hostfxr_initialize_for_runtime_config_fn  Fn_InitializeRuntime{nullptr};
+        hostfxr_get_runtime_delegate_fn           Fn_GetRuntimeDelegate{nullptr};
+        load_assembly_and_get_function_pointer_fn Fn_GetAssemblyAndGetFunctionPointer{nullptr};
+        hostfxr_close_fn                          Fn_FinalizeRuntime{nullptr};
 
     public:
         FDotNET()
         {
-            //LOG_DEBUG("Initializing .NET");
-            Initialize();
-        }
+            LOG_DEBUG("Initializing .NET");
+            LoadHostFXR();
 
-        void Initialize()
+            if (!Fn_InitializeRuntime(ConfigPath, nullptr, &Context) || !Context)
+            { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
+
+            // Get the load assembly function pointer
+            if (!Fn_GetRuntimeDelegate(
+                Context,
+                hdt_get_function_pointer,
+                reinterpret_cast<void**>(&Fn_GetAssemblyAndGetFunctionPointer)) ||
+                !Fn_GetAssemblyAndGetFunctionPointer)
+            { LOG_FATAL("Failed to get delegate!"); }
+        }
+        ~FDotNET()
         {
-            if (!Fn_InitializeRuntime(nullptr, nullptr, nullptr))
-            {
-                LOG_ERROR("Failed to initialize HostFXR runtime");
-            }
+            LOG_DEBUG("Terminating .NET");
+
             if (!Fn_FinalizeRuntime(nullptr))
-            {
-                LOG_ERROR("Failed to finalize HostFXR runtime");
-            }
+            { LOG_ERROR("Failed to finalize HostFXR runtime"); }
         }
 
     private:
         [[nodiscard]] inline void
         LoadHostFXR()
         {
+            LOG_TRACE("Loading HostFXR");
             // Using the nethost library, discover the location of hostfxr and get exports
             HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
             if (!HostFXR) { LOG_FATAL("Failed to load HostFXR"); }
@@ -53,33 +68,6 @@ namespace Visera
             Fn_FinalizeRuntime = reinterpret_cast<hostfxr_close_fn>
                 (HostFXR->LoadFunction("hostfxr_close"));
         }
-
-        // // Load and initialize .NET Core and get desired function pointer for scenario
-        // load_assembly_and_get_function_pointer_fn
-        // get_dotnet_load_assembly(const char_t *config_path)
-        // {
-        //     // Load .NET Core
-        //     void *load_assembly_and_get_function_pointer = nullptr;
-        //     hostfxr_handle cxt = nullptr;
-        //     auto rc = hostfxr_initialize_for_runtime_config_fn(config_path, nullptr, &cxt);
-        //     if (rc != 0 || cxt == nullptr)
-        //     {
-        //         std::cerr << "Init failed: " << std::hex << std::showbase << rc << std::endl;
-        //         hostfxr_close_fn(cxt);
-        //         return nullptr;
-        //     }
-        //
-        //     // Get the load assembly function pointer
-        //     rc = hostfxr_get_runtime_delegate_fn(
-        //         cxt,
-        //         hdt_load_assembly_and_get_function_pointer,
-        //         &load_assembly_and_get_function_pointer);
-        //     if (rc != 0 || load_assembly_and_get_function_pointer == nullptr)
-        //         std::cerr << "Get delegate failed: " << std::hex << std::showbase << rc << std::endl;
-        //
-        //     hostfxr_close_fn(cxt);
-        //     return (load_assembly_and_get_function_pointer_fn)load_assembly_and_get_function_pointer;
-        // }
     };
 
 }
