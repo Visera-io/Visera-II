@@ -141,11 +141,17 @@ macro(link_dotnet in_target)
     target_compile_definitions(${in_target} PRIVATE
             DOTNET_ROOT="${DOTNET_ROOT_DIR}")
     if(WIN32)
-    target_compile_definitions(${in_target} PRIVATE
-        HOSTFXR_LIBRARY_NAME="hostfxr.dll")
+        target_compile_definitions(${in_target} PRIVATE
+            HOSTFXR_LIBRARY_NAME="hostfxr.dll")
+#        add_custom_command(
+#            TARGET ${in_target} POST_BUILD
+#            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#            ${NETHOST_DLL}
+#            $<TARGET_FILE_DIR:${VISERA_APP}>
+#        )
     elseif(APPLE)
-    target_compile_definitions(${in_target} PRIVATE
-        HOSTFXR_LIBRARY_NAME="libhostfxr.dylib")
+        target_compile_definitions(${in_target} PRIVATE
+            HOSTFXR_LIBRARY_NAME="libhostfxr.dylib")
     else()
         message(FATAL_ERROR "Unsupported platform!")
     endif ()

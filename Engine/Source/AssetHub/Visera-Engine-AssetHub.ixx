@@ -1,11 +1,10 @@
 module;
-#include <Visera-Runtime.hpp>
-export module Visera.Runtime.AssetHub;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Asset;
-import Visera.Runtime.AssetHub.Image;
-import Visera.Runtime.AssetHub.Sound;
-import Visera.Runtime.AssetHub.Shader;
+#include <Visera-Engine.hpp>
+export module Visera.Engine.AssetHub;
+#define VISERA_MODULE_NAME "Engine.AssetHub"
+import Visera.Engine.AssetHub.Asset;
+import Visera.Engine.AssetHub.Sound;
+import Visera.Engine.AssetHub.Shader;
 import Visera.Runtime.Platform;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
@@ -17,11 +16,11 @@ namespace Visera
     export enum class EAssetSource : UInt8
     { App, Studio, Engine, Any, };
 
-    class VISERA_RUNTIME_API FAssetHub : public IGlobalSingleton
+    class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton
     {
     public:
-        [[nodiscard]] inline TSharedPtr<FImage>
-        LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
+        // [[nodiscard]] inline TSharedPtr<FImage>
+        // LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FShader>
         LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FSound>
@@ -40,7 +39,7 @@ namespace Visera
         TMap<EAssetSource, FFileSystem> Roots;
     };
 
-    export inline VISERA_RUNTIME_API auto
+    export inline VISERA_ENGINE_API auto
     GAssetHub = MakeUnique<FAssetHub>();
 
     void FAssetHub::
@@ -63,45 +62,45 @@ namespace Visera
         Status = EStatus::Terminated;
     }
 
-    TSharedPtr<FImage> FAssetHub::
-    LoadImage(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
-    {
-        VISERA_ASSERT(IsBootstrapped());
-
-        TSharedPtr<FImage> Image{};
-
-        if (I_Source != EAssetSource::Any)
-        {
-            const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / PATH("Image") / I_File;
-
-            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-            {
-                Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
-            }
-        }
-        else
-        {
-            for (const auto& [_, Root] : Roots)
-            {
-                FPath Path = Root.GetRoot() / PATH("Image") / I_File;
-
-                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-                {
-                    Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
-                    break;
-                }
-            }
-        }
-
-        if (!Image)
-        { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
-
-        LOG_DEBUG("Loaded the image \"{}\" (extend:[{},{}], sRGB:{}).",
-                  Image->GetPath(), Image->GetWidth(), Image->GetHeight(), Image->IsSRGB());
-
-        return Image;
-    }
+    //TSharedPtr<FImage> FAssetHub::
+    //LoadImage(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
+    // {
+    //     VISERA_ASSERT(IsBootstrapped());
+    //
+    //     TSharedPtr<FImage> Image{};
+    //
+    //     if (I_Source != EAssetSource::Any)
+    //     {
+    //         const auto& Root = Roots[I_Source];
+    //         FPath Path = Root.GetRoot() / PATH("Image") / I_File;
+    //
+    //         if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+    //         {
+    //             Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (const auto& [_, Root] : Roots)
+    //         {
+    //             FPath Path = Root.GetRoot() / PATH("Image") / I_File;
+    //
+    //             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+    //             {
+    //                 Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
+    //                 break;
+    //             }
+    //         }
+    //     }
+    //
+    //     if (!Image)
+    //     { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
+    //
+    //     LOG_DEBUG("Loaded the image \"{}\" (extend:[{},{}], sRGB:{}).",
+    //               Image->GetPath(), Image->GetWidth(), Image->GetHeight(), Image->IsSRGB());
+    //
+    //     return Image;
+    // }
 
     TSharedPtr<FShader> FAssetHub::
     LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source /* = EAssetSource::Any */)

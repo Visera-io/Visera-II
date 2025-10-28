@@ -2,23 +2,14 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Vulkan;
-import Visera.Core.Log;
+export import Visera.Runtime.RHI.Common;
+       import Visera.Runtime.RHI.SPIRV;
+       import Visera.Runtime.RHI.Vulkan;
+       import Visera.Core.Types.Name;
+       import Visera.Core.Log;
 
 namespace Visera
 {
-    export namespace RHI
-    {
-        using EQueue            = EVulkanQueue;
-        using EImageType        = EVulkanImageType;
-        using EFormat           = EVulkanFormat;
-        using EImageUsage       = EVulkanImageUsage;
-        using EImageLayout      = EVulkanImageLayout;
-        using EPipelineStage    = EVulkanPipelineStage;
-        using EAccess           = EVulkanAccess;
-        using EShaderStage      = EVulkanShaderStage;
-    }
-
     class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
     {
     public:
@@ -28,6 +19,20 @@ namespace Visera
         EndFrame()    const { Driver->EndFrame(); }
         inline void
         Present()     const { Driver->Present(); }
+
+        [[nodiscard]] inline Bool
+        CreateRenderPass(const FName&                  I_Name,
+                         TSharedRef<RHI::FSPIRVShader> I_VertexShader,
+                         TSharedRef<RHI::FSPIRVShader> I_FragmentShader)
+        {
+            VISERA_ASSERT(I_VertexShader->IsVertexShader());
+            VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
+            //LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{}).",
+             //         I_Name, I_VertexShader->GetPath(), I_FragmentShader->GetPath());
+        //VISERA_ASSERT(VertexShader->IsVertexShader());
+        //(FragmentShader->IsFragmentShader());
+            return True;
+        }
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<RHI::FVulkanDriver>&
@@ -59,17 +64,7 @@ namespace Visera
     Bootstrap()
     {
         LOG_TRACE("Bootstrapping RHI.");
-
-        try
-        {
-            Driver = MakeUnique<RHI::FVulkanDriver>();
-            Frames.resize(Driver->GetFrameCount());
-            LOG_TRACE("Created {} frames.", Frames.size());
-        }
-        catch (const SRuntimeError& Error)
-        {
-            LOG_FATAL("{}", Error.what());
-        }
+        Driver = MakeUnique<RHI::FVulkanDriver>();
 
         Status = EStatus::Bootstrapped;
     }

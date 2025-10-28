@@ -1,7 +1,7 @@
 module;
-#include <Visera-Runtime.hpp>
-export module Visera.Runtime.AssetHub.Asset;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
+#include <Visera-Engine.hpp>
+export module Visera.Engine.AssetHub.Asset;
+#define VISERA_MODULE_NAME "Engine.AssetHub"
 export import Visera.Core.Types.Name;
 export import Visera.Core.Types.Path;
        import Visera.Core.Attribute;
@@ -9,8 +9,8 @@ export import Visera.Core.Types.Path;
 
 namespace Visera
 {
-   export class VISERA_RUNTIME_API IAsset
-      : public Attribute::SharedOnly<IAsset>
+   export class VISERA_ENGINE_API IAsset
+   : public Attribute::SharedOnly<IAsset>
    {
    public:
       enum class EType
@@ -18,7 +18,7 @@ namespace Visera
          Unknown,
          Shader,
          Sound,
-         Image,
+         Texture2D,
       };
       [[nodiscard]] virtual Bool
       Save() const { VISERA_UNIMPLEMENTED_API; return False; }

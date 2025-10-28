@@ -22,12 +22,13 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
        import Visera.Runtime.RHI.Vulkan.DescriptorSet;
        import Visera.Runtime.RHI.Vulkan.Image;
-       import Visera.Runtime.AssetHub.Shader;
+       import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
+       import Visera.Core.Types.Name;
 
 namespace Visera::RHI
 {
@@ -107,9 +108,9 @@ namespace Visera::RHI
                TSharedRef<FVulkanSemaphore>     I_SignalSemaphore,
                TSharedRef<FVulkanFence>         I_Fence = {});
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
-        CreateShaderModule(TSharedPtr<FShader> I_Shader);
+        CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader);
         [[nodiscard]] TSharedPtr<FVulkanRenderPass>
-        CreateRenderPass(const FText&                    I_Name,
+        CreateRenderPass(const FName&                    I_Name,
                          TSharedRef<FVulkanShaderModule> I_VertexShader,
                          TSharedRef<FVulkanShaderModule> I_FragmentShader);
         [[nodiscard]] TSharedPtr<FVulkanFence>
@@ -1012,21 +1013,19 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanShaderModule> FVulkanDriver::
-    CreateShaderModule(TSharedPtr<FShader> I_Shader)
+    CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader)
     {
         VISERA_ASSERT(!I_Shader->IsEmpty());
-        LOG_TRACE("Creating a Vulkan Shader Module (shader:{})",
-                  I_Shader->GetName());
+        LOG_TRACE("Creating a Vulkan Shader Module.");
         return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
     }
 
     TSharedPtr<FVulkanRenderPass> FVulkanDriver::
-    CreateRenderPass(const FText&                    I_Name,
+    CreateRenderPass(const FName&                    I_Name,
                      TSharedRef<FVulkanShaderModule> I_VertexShader,
                      TSharedRef<FVulkanShaderModule> I_FragmentShader)
     {
-        LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{}).",
-                  I_Name, I_VertexShader->GetPath(), I_FragmentShader->GetPath());
+        LOG_TRACE("Creating a Vulkan Render Pass (name:{}).", I_Name);
         return RenderPasses.emplace_back(MakeShared<FVulkanRenderPass>(
                I_Name,
                Device.Context,

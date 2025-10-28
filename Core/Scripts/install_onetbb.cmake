@@ -14,10 +14,10 @@ macro(link_onetbb in_target)
     target_link_libraries(${in_target} PUBLIC TBB::tbb)
 
     add_custom_command(
-            TARGET ${in_target}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:TBB::tbb>
-            $<TARGET_FILE_DIR:${VISERA_APP}>
+        TARGET ${in_target}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:TBB::tbb>
+        $<TARGET_FILE_DIR:${VISERA_APP}>
     )
 endmacro()

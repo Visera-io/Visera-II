@@ -1,12 +1,12 @@
 module;
-#include <Visera-Runtime.hpp>
-export module Visera.Runtime.Audio.Interface;
-#define VISERA_MODULE_NAME "Runtime.Audio"
+#include <Visera-Engine.hpp>
+export module Visera.Engine.Audio.Interface;
+#define VISERA_MODULE_NAME "Engine.Audio"
 import Visera.Core.Log;
 
 namespace Visera
 {
-    export class VISERA_RUNTIME_API IAudioEngine
+    export class VISERA_ENGINE_API IAudioEngine
     {
     public:
         enum class EType

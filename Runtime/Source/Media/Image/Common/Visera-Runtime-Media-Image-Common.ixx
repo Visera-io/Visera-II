@@ -1,7 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.AssetHub.Image.Common;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
+export module Visera.Runtime.Media.Image.Common;
+#define VISERA_MODULE_NAME "Runtime.Media"
 
 export namespace Visera
 {

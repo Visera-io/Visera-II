@@ -28,11 +28,11 @@ macro(link_libpng in_target)
     endif()
     
     add_custom_command(
-            TARGET ${in_target}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:png>
-            $<TARGET_FILE_DIR:${in_target}>
+        TARGET ${in_target}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:png>
+        $<TARGET_FILE_DIR:${in_target}>
     )
     target_link_libraries(${in_target} PUBLIC png)
 endmacro()

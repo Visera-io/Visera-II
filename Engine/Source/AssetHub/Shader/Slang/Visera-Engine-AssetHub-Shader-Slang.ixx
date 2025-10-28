@@ -1,24 +1,28 @@
 module;
-#include <Visera-Runtime.hpp>
+#include <Visera-Engine.hpp>
 #include <Slang/slang.h>
 #include <Slang/slang-com-ptr.h>
 export module Visera.Runtime.RHI.Slang;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.SPIRV;
+import Visera.Core.Types.Path;
 import Visera.Core.Log;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FSlangShaderCompiler
+    class VISERA_ENGINE_API FSlangShaderCompiler
     {
     public:
-        [[nodiscard]] inline TArray<FByte>
+    	[[nodiscard]] static inline Bool
+    	AddSearchPath(const FPath& I_Path);
+        [[nodiscard]] inline TSharedPtr<RHI::FSPIRVShader>
     	Compile(const FPath& I_Path, FStringView I_EntryPoint);
 
     private:
     	static inline Slang::ComPtr<slang::IGlobalSession>
     	Context {nullptr}; //[Note] Currently, the global session type is not thread-safe. Applications that wish to compile on multiple threads will need to ensure that each concurrent thread compiles with a distinct global session.
-    	static inline TArray<FString>
-    	ShaderPaths{};
+    	static inline TSet<FString>
+    	SearchPaths{};
 
     	struct FSession
         {
@@ -30,32 +34,39 @@ export namespace Visera
 
     public:
         FSlangShaderCompiler();
-    	~FSlangShaderCompiler() override;
+    	~FSlangShaderCompiler();
 
     private:
     	[[nodiscard]] Bool
     	CreateSession();
-    	[[nodiscard]] Bool
-    	Process(const FPath& I_File, FStringView I_EntryPoint);
+    	[[nodiscard]] TSharedPtr<RHI::FSPIRVShader>
+    	Process(const FPath&  I_File, FStringView   I_EntryPoint);
     };
 
-    TArray<FByte> FSlangShaderCompiler::
+	Bool FSlangShaderCompiler::
+	AddSearchPath(const FPath& I_Path)
+	{
+		auto Path = I_Path.GetUTF8Path();
+		if (!SearchPaths.contains(Path))
+		{
+			SearchPaths.emplace(std::move(Path));
+			LOG_DEBUG("Added a new shader path: {}", I_Path);
+			return True;
+		}
+		LOG_ERROR("Failed to add shader path: {}", I_Path);
+		return False;
+	}
+
+    TSharedPtr<RHI::FSPIRVShader> FSlangShaderCompiler::
     Compile(const FPath& I_Path, FStringView I_EntryPoint)
     {
-    	TArray<FByte> ShaderData;
-
-    	FPath WorkingDirectory = I_Path.GetParent();
-
-    	if (Process(I_Path.GetFileName(), I_EntryPoint))
+		auto SPIRVShader = Process(I_Path.GetFileName(), I_EntryPoint);
+    	if (!SPIRVShader)
     	{
-    		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
-    		ShaderData = TArray<FByte>(Buffer,
-    			                       Buffer + Session->CompiledCode->getBufferSize());
-    		Session->CompiledCode.setNull();
+    		LOG_ERROR("Failed to compile the shader \"{}\"!", I_Path);
+    		return nullptr;
     	}
-		else { LOG_ERROR("Failed to compile the shader \"{}\"!", I_Path); }
-
-        return ShaderData;
+        return SPIRVShader;
     }
 
     FSlangShaderCompiler::
@@ -68,10 +79,8 @@ export namespace Visera
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
 
-    		ShaderPaths.emplace_back((FPath(VISERA_APP_DIR)    / PATH("Assets/Shader")).GetUTF8Path());
-    		LOG_TRACE("Added a new shader path: {}", ShaderPaths.back());
-    		ShaderPaths.emplace_back((FPath(VISERA_ENGINE_DIR) / PATH("Assets/Shader")).GetUTF8Path());
-    		LOG_TRACE("Added a new shader path: {}", ShaderPaths.back());
+    		if (!AddSearchPath(FPath{VISERA_APP_DIR "/Assets/Shader"}))
+    		{ VISERA_ASSERT(False, "Failed to add App shader path!"); }
     	}
 
     	if (!CreateSession())
@@ -99,17 +108,16 @@ export namespace Visera
 			.profile = Context->findProfile("glsl_450"),
 		};
 
-    	TArray<const char*> SearchPaths(ShaderPaths.size());
-    	for (UInt32 Idx = 0; Idx < ShaderPaths.size(); ++Idx)
-    	{
-    		SearchPaths[Idx] = ShaderPaths[Idx].data();
-    	}
+    	TArray<const char*> SlangSearchPaths;
+		SlangSearchPaths.reserve(SearchPaths.size());
+		for (const auto& Path : SearchPaths)
+    	{ SlangSearchPaths.emplace_back(Path.data()); }
 
     	slang::SessionDesc SessionCreateInfo
 		{
 			.targets		 = &Session->Description,
 			.targetCount	 = 1,
-			.searchPaths	 = SearchPaths.data(),
+			.searchPaths	 = SlangSearchPaths.data(),
 			.searchPathCount = static_cast<UInt32>(SearchPaths.size()),
 		};
 
@@ -122,8 +130,8 @@ export namespace Visera
     	return True;
     }
 
-     Bool FSlangShaderCompiler::
-	 Process(const FPath& I_File, FStringView I_EntryPoint)
+     TSharedPtr<RHI::FSPIRVShader> FSlangShaderCompiler::
+	 Process(const FPath& I_File, FStringView  I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);
 
@@ -139,7 +147,7 @@ export namespace Visera
 	 	if (Diagnostics)
 	 	{
 	 		LOG_ERROR("Failed to create the Shader Module: {}!", Diagnostics->getBufferPointer());
-			return False;
+			return {};
 	 	}
 
 	 	// Create Shader Program
@@ -150,7 +158,7 @@ export namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to find the EntryPoint({}) from Shader({})!",
 	 		          I_EntryPoint.data(), I_File);
-			return False;
+			return {};
 	 	}
 
 	 	slang::IComponentType* const ShaderComponents[2]
@@ -167,7 +175,7 @@ export namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to create the Shader({}): {}!",
 	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
-	 		return False;
+	 		return {};
 	 	}
 
 	 	if (ShaderProgram->getEntryPointCode(
@@ -178,7 +186,7 @@ export namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to obtain compiled code from {}: {}!",
 	 		          I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
-	 		return False;
+	 		return {};
 	 	}
 
 	 	// Reflect Shader
@@ -187,18 +195,28 @@ export namespace Visera
 		{
 	 		LOG_ERROR("Failed to get reflection info from Shader({}): {}!",
 	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
-	 		return False;
+	 		return {};
 		}
 
 	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
 
+		auto ShaderType { RHI::FSPIRVShader::EType::Unknown };
 	 	switch (EntryPointRef->getStage())
 	 	{
-	 		case SLANG_STAGE_VERTEX:	ShaderStage = EShaderStage::Vertex;   break;
-	 		case SLANG_STAGE_FRAGMENT:	ShaderStage = EShaderStage::Fragment; break;
+	 		case SLANG_STAGE_VERTEX:	ShaderType = RHI::FSPIRVShader::EType::Vertex;   break;
+	 		case SLANG_STAGE_FRAGMENT:	ShaderType = RHI::FSPIRVShader::EType::Fragment; break;
 	 		default: LOG_ERROR("Unsupported Shader Stage!");
 	 	}
 
-		return True;
+		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
+		auto ShaderCode = TArray<FByte>(
+			Buffer,
+			Buffer + Session->CompiledCode->getBufferSize());
+		Session->CompiledCode.setNull();
+
+		return MakeShared<RHI::FSPIRVShader>(
+			ShaderType,
+			"main",
+			ShaderCode);
 	 }
 }

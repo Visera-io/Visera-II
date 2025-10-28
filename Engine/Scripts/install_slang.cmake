@@ -1,4 +1,4 @@
-if(NOT VISERA_RUNTIME_EXTERNAL_DIR)
+if(NOT VISERA_ENGINE_EXTERNAL_DIR)
     message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
 endif()
 
@@ -6,7 +6,7 @@ macro(link_slang in_target)
     message(STATUS "\nLinking Slang (Slang)")
 
     if(NOT TARGET Slang)
-        add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/Slang)
+        add_subdirectory(${VISERA_ENGINE_EXTERNAL_DIR}/Slang)
     endif()
 
     target_link_libraries(${in_target} PUBLIC Slang)

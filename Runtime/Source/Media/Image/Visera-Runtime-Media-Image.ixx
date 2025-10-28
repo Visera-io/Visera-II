@@ -6,22 +6,23 @@ module;
 #include <stb_image_resize2.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-export module Visera.Runtime.AssetHub.Image;
+export module Visera.Runtime.Media.Image;
 #define VISERA_MODULE_NAME "Runtime.Media"
-import Visera.Runtime.AssetHub.Asset;
 import Visera.Runtime.Media.Image.Wrapper;
 import Visera.Runtime.Media.Image.PNG;
 import Visera.Core.Log;
 
 namespace Visera
 {
-   export class VISERA_RUNTIME_API FImage : public IAsset
+   export class VISERA_RUNTIME_API FImage
    {
    public:
-      [[nodiscard]] const FByte*
-      GetData() const override { return Data.data(); }
-      [[nodiscard]] UInt64
-      GetSize() const override { return Data.size(); }
+      [[nodiscard]] inline const FPath&
+      GetPath() const { return Path; }
+      [[nodiscard]] inline const FByte*
+      GetData() const { return Data.data(); }
+      [[nodiscard]] inline UInt64
+      GetSize() const { return Data.size(); }
       [[nodiscard]] inline UInt32
       GetWidth() const { return Wrapper->GetWidth(); }
       [[nodiscard]] inline UInt32
@@ -47,31 +48,32 @@ namespace Visera
       Access() { return Data.data(); }
 
    private:
-      TArray<FByte> Data;
+      FPath         Path;
       EImageFormat  Format { EImageFormat::Invalid };
+      TArray<FByte> Data;
       TUniquePtr<IImageWrapper> Wrapper;
 
    public:
       FImage() = delete;
-      FImage(const FName& I_Name, const FPath& I_Path);
+      FImage(const FPath& I_Path);
    };
 
    FImage::
-   FImage(const FName& I_Name, const FPath& I_Path)
-   : IAsset(EType::Image, I_Name, I_Path)
+   FImage(const FPath& I_Path)
+   : Path{I_Path}
    {
-      const FPath Extension = GetPath().GetExtension();
+      const FPath Extension = Path.GetExtension();
 
       if (Extension == PATH(".png"))
       {
          Wrapper = MakeUnique<FPNGImageWrapper>();
-         Data = Wrapper->Import(GetPath());
+         Data = Wrapper->Import(Path);
          Format = EImageFormat::PNG;
       }
       else
       {
          LOG_ERROR("Failed to load the image \"{}\""
-                   "-- unsupported extension {}!", GetPath(), Extension);
+                   "-- unsupported extension {}!", Path, Extension);
          return;
       }
    }

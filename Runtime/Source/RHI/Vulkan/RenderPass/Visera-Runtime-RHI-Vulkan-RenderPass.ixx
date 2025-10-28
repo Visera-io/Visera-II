@@ -7,7 +7,7 @@ import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.PipelineCache;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Runtime.RHI.Vulkan.RenderTarget;
-import Visera.Core.Types.Text;
+import Visera.Core.Types.Name;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -36,7 +36,7 @@ namespace Visera::RHI
         GetRenderingInfo() const;
 
     private:
-        FText                     Name;
+        FName                     Name;
         vk::raii::RenderPass      Handle         {nullptr};
         vk::raii::PipelineLayout  PipelineLayout {nullptr};
         vk::raii::Pipeline        Pipeline       {nullptr};
@@ -58,7 +58,7 @@ namespace Visera::RHI
         Bool         bColorBlendEnabled { False };
     public:
         FVulkanRenderPass() = delete;
-        FVulkanRenderPass(const FText&                     I_Name,
+        FVulkanRenderPass(const FName&                     I_Name,
                           const vk::raii::Device&          I_Device,
                           TSharedPtr<FVulkanShaderModule>  I_VertexShader,
                           TSharedPtr<FVulkanShaderModule>  I_FragmentShader,
@@ -66,7 +66,7 @@ namespace Visera::RHI
     };
 
     FVulkanRenderPass::
-    FVulkanRenderPass(const FText&                     I_Name,
+    FVulkanRenderPass(const FName&                     I_Name,
                       const vk::raii::Device&          I_Device,
                       TSharedPtr<FVulkanShaderModule>  I_VertexShader,
                       TSharedPtr<FVulkanShaderModule>  I_FragmentShader,
@@ -75,28 +75,25 @@ namespace Visera::RHI
       VertexShader   (std::move(I_VertexShader)),
       FragmentShader (std::move(I_FragmentShader))
     {
-        VISERA_ASSERT(VertexShader->IsVertexShader());
-        VISERA_ASSERT(FragmentShader->IsFragmentShader());
-
         vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
         ShaderStageCreateInfos[0]
-            .setStage(vk::ShaderStageFlagBits::eVertex)
-            .setPName(VertexShader->GetEntryPoint())
-            .setModule(VertexShader->GetHandle())
+            .setStage  (vk::ShaderStageFlagBits::eVertex)
+            .setPName  (VertexShader->GetEntryPoint())
+            .setModule (VertexShader->GetHandle())
         ;
         ShaderStageCreateInfos[1]
-            .setStage(vk::ShaderStageFlagBits::eFragment)
-            .setPName(FragmentShader->GetEntryPoint())
-            .setModule(FragmentShader->GetHandle())
+            .setStage  (vk::ShaderStageFlagBits::eFragment)
+            .setPName  (FragmentShader->GetEntryPoint())
+            .setModule (FragmentShader->GetHandle())
         ;
         auto DynamicStateCreateInfo = vk::PipelineDynamicStateCreateInfo{}
-            .setDynamicStateCount   (MAX_DYNAMIC_STATE)
-            .setPDynamicStates      (DynamicStates)
+            .setDynamicStateCount (MAX_DYNAMIC_STATE)
+            .setPDynamicStates    (DynamicStates)
         ;
         auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
             ;
         auto InputAssembly = vk::PipelineInputAssemblyStateCreateInfo{}
-            .setTopology(vk::PrimitiveTopology::eTriangleList)
+            .setTopology (vk::PrimitiveTopology::eTriangleList)
         ;
         auto ViewportState = vk::PipelineViewportStateCreateInfo{}
             .setViewportCount   (1)
@@ -190,9 +187,7 @@ namespace Visera::RHI
         {
             auto Result = I_Device.createGraphicsPipeline(I_PipelineCache->GetHandle(), PipelineCreateInfo);
             if (!Result.has_value())
-            {
-                LOG_FATAL("Failed to create the pipeline!");
-            }
+            { LOG_FATAL("Failed to create the pipeline!"); }
             else
             { Pipeline = std::move(*Result); }
         }

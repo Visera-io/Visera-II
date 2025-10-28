@@ -1,9 +1,9 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <png.h>
-export module Visera.Runtime.AssetHub.Image.PNG;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Image.Wrapper;
+export module Visera.Runtime.Media.Image.PNG;
+#define VISERA_MODULE_NAME "Runtime.Media"
+import Visera.Runtime.Media.Image.Wrapper;
 import Visera.Core.Log;
 
 namespace Visera

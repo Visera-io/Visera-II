@@ -16,19 +16,19 @@ add_library(Visera::Studio ALIAS ${VISERA_STUDIO})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
 add_custom_command(
-        TARGET Visera::Studio
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Visera::Studio>
-        $<TARGET_FILE_DIR:${VISERA_APP}>)
+    TARGET Visera::Studio
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:Visera::Studio>
+    $<TARGET_FILE_DIR:${VISERA_APP}>)
 if(MSVC)
-    add_custom_command(
-            TARGET Visera::Studio
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Studio>>,
-            copy_if_different
-            $<TARGET_PDB_FILE:Visera::Studio>
-            $<TARGET_FILE_DIR:${VISERA_APP}>)
+add_custom_command(
+    TARGET Visera::Studio
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Studio>>,
+    copy_if_different
+    $<TARGET_PDB_FILE:Visera::Studio>
+    $<TARGET_FILE_DIR:${VISERA_APP}>)
 endif()
 
 if(NOT TARGET Visera::Core)

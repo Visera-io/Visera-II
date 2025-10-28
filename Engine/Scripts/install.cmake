@@ -17,19 +17,19 @@ add_library(Visera::Engine ALIAS ${VISERA_ENGINE})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
 add_custom_command(
-        TARGET Visera::Engine
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Visera::Engine>
-        $<TARGET_FILE_DIR:${VISERA_APP}>)
+    TARGET Visera::Engine
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:Visera::Engine>
+    $<TARGET_FILE_DIR:${VISERA_APP}>)
 if(MSVC)
-    add_custom_command(
-            TARGET Visera::Engine
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Engine>>,
-            copy_if_different
-            $<TARGET_PDB_FILE:Visera::Engine>
-            $<TARGET_FILE_DIR:${VISERA_APP}>)
+add_custom_command(
+    TARGET Visera::Engine
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Engine>>,
+    copy_if_different
+    $<TARGET_PDB_FILE:Visera::Engine>
+    $<TARGET_FILE_DIR:${VISERA_APP}>)
 endif()
 
 if(NOT TARGET Visera::Core)
@@ -56,6 +56,10 @@ link_dotnet(${VISERA_ENGINE})
 
 include(install_wwise)
 link_wwise(${VISERA_ENGINE})
+
+include(install_slang)
+link_slang(${VISERA_ENGINE})
+
 #
 #
 #

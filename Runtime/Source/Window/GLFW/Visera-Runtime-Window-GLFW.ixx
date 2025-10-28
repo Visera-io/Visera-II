@@ -7,8 +7,9 @@ export module Visera.Runtime.Window.GLFW;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Window.Interface;
 import Visera.Core.Log;
-#if defined VISERA_ON_WINDOWS_SYSTEM
-import Visera.Runtime.AssetHub;
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+import Visera.Core.Types.Path;
+import Visera.Runtime.Media.Image;
 #endif
 
 namespace Visera
@@ -93,16 +94,14 @@ namespace Visera
                     static_cast<Float>(Height) / ScaleY);
         }
 
-#if defined(VISERA_ON_APPLE_SYSTEM)
-
-#else
-        auto IconImage = GAssetHub->LoadImage(PATH("Visera.png"));
-        VISERA_ASSERT(IconImage->HasAlpha());
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+        FImage IconImage{ FPath{VISERA_ENGINE_DIR "/Assets/Image/Visera.png"} };
+        VISERA_ASSERT(IconImage.HasAlpha());
 
         GLFWimage Icon;
-        Icon.width  = IconImage->GetWidth();
-        Icon.height = IconImage->GetHeight();
-        Icon.pixels = IconImage->Access();
+        Icon.width  = IconImage.GetWidth();
+        Icon.height = IconImage.GetHeight();
+        Icon.pixels = IconImage.Access();
 
         glfwSetWindowIcon(Handle, 1, &Icon);
 #endif

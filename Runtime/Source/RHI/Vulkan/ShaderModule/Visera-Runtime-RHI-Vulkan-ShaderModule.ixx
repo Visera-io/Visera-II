@@ -3,7 +3,7 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.ShaderModule;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.AssetHub.Shader;
+import Visera.Runtime.RHI.SPIRV;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -13,43 +13,30 @@ namespace Visera::RHI
     public:
         [[nodiscard]] inline const char*
         GetEntryPoint() const { return "main"/*Shader->GetEntryPoint().data()*/; }
-        [[nodiscard]] inline const auto&
-        GetName() const { return Shader->GetName(); }
-        [[nodiscard]] inline const auto&
-        GetPath() const { return Shader->GetPath(); }
         [[nodiscard]] inline const vk::raii::ShaderModule&
         GetHandle() const { return Handle; }
 
-        [[nodiscard]] inline Bool
-        IsVertexShader() const { return Shader->GetStage() == EShaderStage::Vertex; }
-        [[nodiscard]] inline Bool
-        IsFragmentShader() const { return Shader->GetStage() == EShaderStage::Fragment; }
-
     private:
         vk::raii::ShaderModule Handle {nullptr};
-        TSharedPtr<FShader>    Shader;
 
     public:
         FVulkanShaderModule() = delete;
-        FVulkanShaderModule(const vk::raii::Device& I_Device,
-                            TSharedPtr<FShader>     I_Shader);
+        FVulkanShaderModule(const vk::raii::Device&  I_Device,
+                            TSharedRef<FSPIRVShader> I_SPIRVShader);
         ~FVulkanShaderModule();
     };
 
     FVulkanShaderModule::
-    FVulkanShaderModule(const vk::raii::Device& I_Device,
-                        TSharedPtr<FShader>     I_Shader)
-    : Shader{ std::move(I_Shader) }
+    FVulkanShaderModule(const vk::raii::Device&  I_Device,
+                        TSharedRef<FSPIRVShader> I_SPIRVShader)
     {
         auto CreateInfo = vk::ShaderModuleCreateInfo{}
-            .setPCode    (reinterpret_cast<const uint32_t*>(Shader->GetData()))
-            .setCodeSize (Shader->GetSize() * sizeof(FByte))
+            .setPCode    (reinterpret_cast<const UInt32*>(I_SPIRVShader->GetShaderCode().data()))
+            .setCodeSize (I_SPIRVShader->GetSize() * sizeof(FByte))
         ;
         auto Result = I_Device.createShaderModule(CreateInfo);
         if (!Result.has_value())
-        {
-            LOG_FATAL("Failed to create a shader module from {}!", I_Shader->GetPath());
-        }
+        { LOG_FATAL("Failed to create a Vulkan Shader Module!"); }
         else
         { Handle = std::move(*Result); }
     }
@@ -57,6 +44,6 @@ namespace Visera::RHI
     FVulkanShaderModule::
     ~FVulkanShaderModule()
     {
-
+        Handle.clear();
     }
 }

@@ -85,8 +85,7 @@ namespace Visera
     Bootstrap()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        VISERA_ASSERT(GAssetHub->IsBootstrapped());
-        Font = GAssetHub->GetAssetDirectory(EAssetSource::Studio) / PATH("Font/TsangerYunHei.ttf");
+        Font = FPath{VISERA_STUDIO_DIR "/Assets/Font/TsangerYunHei.ttf"};
 
         GRuntime->StudioBeginFrame = [this](){ BeginFrame(); };
         GRuntime->StudioEndFrame   = [this](){ EndFrame(); };

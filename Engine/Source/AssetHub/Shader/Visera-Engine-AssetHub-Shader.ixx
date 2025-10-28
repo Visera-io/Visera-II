@@ -1,16 +1,15 @@
 module;
-#include <Visera-Runtime.hpp>
-export module Visera.Runtime.AssetHub.Shader;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
-export import Visera.Runtime.AssetHub.Shader.Common;
-       import Visera.Runtime.AssetHub.Asset;
-       import Visera.Runtime.AssetHub.Shader.Compiler;
-       import Visera.Runtime.AssetHub.Shader.Slang;
+#include <Visera-Engine.hpp>
+export module Visera.Engine.AssetHub.Shader;
+#define VISERA_MODULE_NAME "Engine.AssetHub"
+export import Visera.Engine.AssetHub.Shader.Common;
+       import Visera.Engine.AssetHub.Asset;
+       import Visera.Runtime.RHI;
        import Visera.Core.Log;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FShader : public IAsset
+    class VISERA_ENGINE_API FShader : public IAsset
     {
     public:
         [[nodiscard]] const FByte*
@@ -18,16 +17,17 @@ export namespace Visera
         [[nodiscard]] UInt64
         GetSize() const override { return Data.size(); }
         [[nodiscard]] EShaderLanguage
-        GetLanguage() const { return Importer->GetLanguage(); }
+        GetLanguage() const { return Language; }
         [[nodiscard]] EShaderStage
-        GetStage() const { return Importer->GetShaderStage(); }
+        GetStage() const { return ShaderStage; }
         [[nodiscard]] FStringView
         GetEntryPoint() const { return EntryPoint; }
 
     private:
         const FString   EntryPoint;
         TArray<FByte>   Data;
-        TUniquePtr<IShaderCompiler> Importer;
+        EShaderLanguage Language;
+        EShaderStage    ShaderStage;
 
     public:
         FShader() = delete;
@@ -43,8 +43,9 @@ export namespace Visera
 
         if (Extension == PATH(".slang"))
         {
-            Importer = MakeUnique<FSlangShaderCompiler>(); //[TODO]: Shared Session
-            Data = Importer->Compile(GetPath(), EntryPoint);
+            VISERA_UNIMPLEMENTED_API;
+            //Importer = MakeUnique<FSlangShaderCompiler>(); //[TODO]: Shared Session
+            //Data = Importer->Compile(GetPath(), EntryPoint);
         }
         else
         {

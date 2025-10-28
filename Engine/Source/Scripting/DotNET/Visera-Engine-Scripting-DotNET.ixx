@@ -7,7 +7,7 @@ export module Visera.Engine.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Engine.Scripting"
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
-import Visera.Engine.Platform;
+import Visera.Runtime.Platform;
 
 namespace Visera
 {
@@ -25,7 +25,8 @@ namespace Visera
         TSharedPtr<ILibrary> HostFXR;
         hostfxr_initialize_for_runtime_config_fn  Fn_InitializeRuntime{nullptr};
         hostfxr_get_runtime_delegate_fn           Fn_GetRuntimeDelegate{nullptr};
-        load_assembly_and_get_function_pointer_fn Fn_GetAssemblyAndGetFunctionPointer{nullptr};
+        load_assembly_and_get_function_pointer_fn Fn_LoadAssemblyAndGetFunctionPointer{nullptr};
+        component_entry_point_fn                  Fn_GetComponentEntryPoint{nullptr};
         hostfxr_close_fn                          Fn_FinalizeRuntime{nullptr};
 
     public:
@@ -34,20 +35,12 @@ namespace Visera
             LOG_DEBUG("Initializing .NET");
 
             LoadHostFXR();
-
-            // Get the load assembly function pointer
-            if (Fn_GetRuntimeDelegate(
-                Context,
-                hdt_get_function_pointer,
-                reinterpret_cast<void**>(&Fn_GetAssemblyAndGetFunctionPointer)) != 0 ||
-                !Fn_GetAssemblyAndGetFunctionPointer)
-            { LOG_FATAL("Failed to get delegate!"); }
         }
         ~FDotNET()
         {
             LOG_DEBUG("Terminating .NET");
 
-            if (!Fn_FinalizeRuntime(nullptr))
+            if (!Fn_FinalizeRuntime(Context))
             { LOG_ERROR("Failed to finalize HostFXR runtime"); }
         }
 
@@ -76,6 +69,42 @@ namespace Visera
                 &HostFXRInitInfo,
                 &Context) != 0 || !Context)
             { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
+
+            // Get the load assembly function pointer
+            if (Fn_GetRuntimeDelegate(
+                Context,
+                hdt_get_function_pointer,
+                reinterpret_cast<void**>(&Fn_LoadAssemblyAndGetFunctionPointer)) != 0 ||
+                !Fn_LoadAssemblyAndGetFunctionPointer)
+            { LOG_FATAL("Failed to get delegate!"); }
+
+            // Function pointer to managed delegate
+            component_entry_point_fn hello = nullptr;
+            int rc = Fn_LoadAssemblyAndGetFunctionPointer(
+                L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/DotNetLib/bin/Release/net9.0/DotNetLib.dll",
+                L"DotNetLib.Lib, DotNetLib",
+                L"Hello",
+                nullptr /*delegate_type_name*/,
+                nullptr,
+                (void**)&hello);
+            assert(rc == 0 && hello != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+            struct lib_args
+            {
+                const char_t *message;
+                int number;
+            };
+            for (int i = 0; i < 3; ++i)
+            {
+                // <SnippetCallManaged>
+                lib_args args
+                {
+                    L"from Visera!",
+                    i
+                };
+
+                hello(&args, sizeof(args));
+                // </SnippetCallManaged>
+            }
         }
     };
 

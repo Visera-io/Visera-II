@@ -24,32 +24,32 @@ public:
 
 export int main(int argc, char *argv[])
 {
-
-    FHiResClock Clock{};
-    for (int i = 0; i < 1; ++i)
-    {
-        auto Instance = GScene->CreateObject<Foo>(FName(Format("Foo_{}", i)));
-        LOG_DEBUG("[{}] {}", Instance->GetID(), Instance->GetName());
-        Instance->Update(1.02);
-    }
-    LOG_DEBUG("Test Time: {}ms", Clock.Elapsed().Milliseconds());
-
-    //Demos
-    //{ Demos::Compression Demo; }
-
-    GEngine->Bootstrap();
-    {
-        auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
-        auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
-
-        GAudio->Register(BankInit);
-        auto ID = GAudio->Register(MainBGM);
-        GAudio->PostEvent("Play_Galaxy", ID);
-
-        GStudio->Bootstrap();
-        GEngine->Run();
-        GStudio->Terminate();
-    }
-    GEngine->Terminate();
+    //
+    // FHiResClock Clock{};
+    // for (int i = 0; i < 1; ++i)
+    // {
+    //     auto Instance = GScene->CreateObject<Foo>(FName(Format("Foo_{}", i)));
+    //     LOG_DEBUG("[{}] {}", Instance->GetID(), Instance->GetName());
+    //     Instance->Update(1.02);
+    // }
+    // LOG_DEBUG("Test Time: {}ms", Clock.Elapsed().Milliseconds());
+    //
+    // //Demos
+    // //{ Demos::Compression Demo; }
+    //
+    // GEngine->Bootstrap();
+    // {
+    //     auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
+    //     auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
+    //
+    //     GAudio->Register(BankInit);
+    //     auto ID = GAudio->Register(MainBGM);
+    //     GAudio->PostEvent("Play_Galaxy", ID);
+    //
+    //     GStudio->Bootstrap();
+    //     GEngine->Run();
+    //     GStudio->Terminate();
+    // }
+    // GEngine->Terminate();
     return EXIT_SUCCESS;
 }
