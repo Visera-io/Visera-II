@@ -6,7 +6,7 @@
     "framework":
     {
       "name": "Microsoft.NETCore.App",
-      "version": "9.0.10"
+      "version": "9.0.0"
     }
   }
 }

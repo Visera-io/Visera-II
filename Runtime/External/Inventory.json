@@ -35,15 +35,6 @@
         ],
         "URL" : "https://github.com/shader-slang/slang"
     },
-    ".NET" :
-    {
-        "Version" : "9.X.X",
-        "Dependencies" :
-        [
-
-        ],
-        "URL" : "https://dotnet.microsoft.com/"
-    },
     "LibPNG" :
     {
         "Version" : "1.6.50",
@@ -52,14 +43,5 @@
             "ZLib"
         ],
         "URL" : "https://libpng.sourceforge.io/"
-    },
-    "Wwise" :
-    {
-        "Version" : "2025.1.2.8976 (Beta)",
-        "Dependencies" :
-        [
-
-        ],
-        "URL" : "https://www.audiokinetic.com"
     }
 }

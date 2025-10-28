@@ -1,4 +1,4 @@
-if(NOT VISERA_RUNTIME_EXTERNAL_DIR)
+if(NOT VISERA_ENGINE_EXTERNAL_DIR)
     message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
 endif()
 
@@ -6,7 +6,7 @@ macro(link_wwise in_target)
     message(STATUS "\nLinking Wwise (Wwise)")
 
     if(NOT TARGET Wwise)
-        add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/Wwise)
+        add_subdirectory(${VISERA_ENGINE_EXTERNAL_DIR}/Wwise)
     endif()
 
     target_link_libraries(${in_target} PUBLIC

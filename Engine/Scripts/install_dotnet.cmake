@@ -1,4 +1,4 @@
-if(NOT VISERA_RUNTIME_EXTERNAL_DIR)
+if(NOT VISERA_ENGINE_EXTERNAL_DIR)
     message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
 endif()
 
@@ -150,7 +150,7 @@ macro(link_dotnet in_target)
         message(FATAL_ERROR "Unsupported platform!")
     endif ()
 
-    target_include_directories(${in_target} PRIVATE ${VISERA_RUNTIME_EXTERNAL_DIR}/DotNET)
+    target_include_directories(${in_target} PRIVATE ${VISERA_ENGINE_EXTERNAL_DIR}/DotNET)
     target_link_libraries(${in_target} PRIVATE ${NETHOST_LIBRARY})
 
     add_custom_command(

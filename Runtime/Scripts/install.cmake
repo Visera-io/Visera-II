@@ -45,10 +45,6 @@ list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
 # Link Zlib from Core first since other libraries depend on it
 # Note: We don't call link_zlib here because it's already linked through Core
-
-include(install_dotnet)
-link_dotnet(${VISERA_RUNTIME})
-
 if(NOT VISERA_OFFSCREEN_MODE)
 include(install_glfw)
 link_glfw(${VISERA_RUNTIME})
@@ -65,9 +61,6 @@ link_slang(${VISERA_RUNTIME})
 
 include(install_libpng)
 link_libpng(${VISERA_RUNTIME})
-
-include(install_wwise)
-link_wwise(${VISERA_RUNTIME})
 
 #
 #
