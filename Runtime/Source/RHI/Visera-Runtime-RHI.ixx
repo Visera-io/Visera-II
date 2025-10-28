@@ -3,7 +3,6 @@ module;
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
-import Visera.Runtime.RHI.Frame;
 import Visera.Core.Log;
 
 namespace Visera
@@ -43,7 +42,6 @@ namespace Visera
 
     private:
         TUniquePtr<RHI::FVulkanDriver> Driver;
-        TArray<RHI::FFrame>            Frames;
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}

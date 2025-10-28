@@ -7,10 +7,10 @@ module;
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 export module Visera.Runtime.AssetHub.Image;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
+#define VISERA_MODULE_NAME "Runtime.Media"
 import Visera.Runtime.AssetHub.Asset;
-import Visera.Runtime.AssetHub.Image.Wrapper;
-import Visera.Runtime.AssetHub.Image.PNG;
+import Visera.Runtime.Media.Image.Wrapper;
+import Visera.Runtime.Media.Image.PNG;
 import Visera.Core.Log;
 
 namespace Visera

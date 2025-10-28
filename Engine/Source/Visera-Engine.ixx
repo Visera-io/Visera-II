@@ -2,11 +2,11 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine;
 #define VISERA_MODULE_NAME "Engine"
+import Visera.Engine.Scripting;
 import Visera.Engine.Render;
 import Visera.Engine.UI;
-import Visera.Runtime;
 import Visera.Core.Log;
-
+import Visera.Runtime;
 namespace Visera
 {
     class VISERA_ENGINE_API FEngine : public IGlobalSingleton

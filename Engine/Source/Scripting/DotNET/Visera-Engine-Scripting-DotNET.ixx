@@ -1,25 +1,25 @@
 module;
-#include <Visera-Runtime.hpp>
+#include <Visera-Engine.hpp>
 #include <nethost.h>
 #include <hostfxr.h>
 #include <coreclr_delegates.h>
-export module Visera.Runtime.Scripting.DotNET;
-#define VISERA_MODULE_NAME "Runtime.Scripting"
+export module Visera.Engine.Scripting.DotNET;
+#define VISERA_MODULE_NAME "Engine.Scripting"
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
-import Visera.Runtime.Platform;
+import Visera.Engine.Platform;
 
 namespace Visera
 {
 
-    export class VISERA_RUNTIME_API FDotNET
+    export class VISERA_ENGINE_API FDotNET
     {
     public:
 
 
     private:
         FPath          DotNETRoot    {DOTNET_ROOT};
-        FPath          ConfigPath    {VISERA_RUNTIME_DIR "/Global/Visera-DotNETConfig.json"};
+        FPath          ConfigPath    {VISERA_ENGINE_DIR "/Global/Visera-DotNETConfig.json"};
         hostfxr_handle Context       {nullptr};
 
         TSharedPtr<ILibrary> HostFXR;

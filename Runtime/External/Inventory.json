@@ -43,5 +43,14 @@
             "ZLib"
         ],
         "URL" : "https://libpng.sourceforge.io/"
+    },
+    "MiniAudio" :
+    {
+        "Version" : "0.11.23",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/mackron/miniaudio"
     }
 }

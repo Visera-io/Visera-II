@@ -2,18 +2,17 @@ module;
 #include <Visera-Runtime.hpp>
 #include <Slang/slang.h>
 #include <Slang/slang-com-ptr.h>
-export module Visera.Runtime.AssetHub.Shader.Slang;
-#define VISERA_MODULE_NAME "Runtime.AssetHub"
-import Visera.Runtime.AssetHub.Shader.Compiler;
+export module Visera.Runtime.RHI.Slang;
+#define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FSlangShaderCompiler : public IShaderCompiler
+    class VISERA_RUNTIME_API FSlangShaderCompiler
     {
     public:
-        [[nodiscard]] auto
-    	Compile(const FPath& I_Path, FStringView I_EntryPoint) -> TArray<FByte> override;
+        [[nodiscard]] inline TArray<FByte>
+    	Compile(const FPath& I_Path, FStringView I_EntryPoint);
 
     private:
     	static inline Slang::ComPtr<slang::IGlobalSession>

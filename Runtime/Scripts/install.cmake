@@ -62,6 +62,9 @@ link_slang(${VISERA_RUNTIME})
 include(install_libpng)
 link_libpng(${VISERA_RUNTIME})
 
+include(install_miniaudio)
+link_miniaudio(${VISERA_RUNTIME})
+
 #
 #
 #

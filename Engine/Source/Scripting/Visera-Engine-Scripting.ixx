@@ -1,13 +1,13 @@
 module;
-#include <Visera-Runtime.hpp>
-export module Visera.Runtime.Scripting;
-#define VISERA_MODULE_NAME "Runtime.Scripting"
-import Visera.Runtime.Scripting.DotNET;
+#include <Visera-Engine.hpp>
+export module Visera.Engine.Scripting;
+#define VISERA_MODULE_NAME "Engine.Scripting"
+import Visera.Engine.Scripting.DotNET;
 
 namespace Visera
 {
 
-    class VISERA_RUNTIME_API FScripting : IGlobalSingleton
+    class VISERA_ENGINE_API FScripting : IGlobalSingleton
     {
     public:
 
@@ -23,7 +23,7 @@ namespace Visera
 
     };
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FScripting>
+    export inline VISERA_ENGINE_API TUniquePtr<FScripting>
     GScripting = MakeUnique<FScripting>();
 
 }
