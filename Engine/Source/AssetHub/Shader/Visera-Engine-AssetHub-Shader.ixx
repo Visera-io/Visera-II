@@ -3,31 +3,35 @@ module;
 export module Visera.Engine.AssetHub.Shader;
 #define VISERA_MODULE_NAME "Engine.AssetHub"
 export import Visera.Engine.AssetHub.Shader.Common;
+       import Visera.Engine.AssetHub.Shader.Slang;
        import Visera.Engine.AssetHub.Asset;
        import Visera.Runtime.RHI;
        import Visera.Core.Log;
 
-export namespace Visera
+namespace Visera
 {
-    class VISERA_ENGINE_API FShader : public IAsset
+    export class VISERA_ENGINE_API FShader : public IAsset
     {
     public:
         [[nodiscard]] const FByte*
-        GetData() const override { return Data.data(); }
+        GetData() const override { return SPIRVCode->GetShaderCode().data(); }
         [[nodiscard]] UInt64
-        GetSize() const override { return Data.size(); }
-        [[nodiscard]] EShaderLanguage
+        GetSize() const override { return SPIRVCode->GetSize(); }
+        [[nodiscard]] inline EShaderLanguage
         GetLanguage() const { return Language; }
-        [[nodiscard]] EShaderStage
+        [[nodiscard]] inline EShaderStage
         GetStage() const { return ShaderStage; }
-        [[nodiscard]] FStringView
+        [[nodiscard]] inline FStringView
         GetEntryPoint() const { return EntryPoint; }
+        [[nodiscard]] inline TSharedRef<RHI::FSPIRVShader>
+        GetSPIRVCode() const { VISERA_ASSERT(SPIRVCode && "Compiled"); return SPIRVCode; }
 
     private:
-        const FString   EntryPoint;
-        TArray<FByte>   Data;
-        EShaderLanguage Language;
-        EShaderStage    ShaderStage;
+        static inline TUniquePtr<FSlangCompiler> SlangCompiler;
+        const FString                   EntryPoint;
+        EShaderLanguage                 Language;
+        EShaderStage                    ShaderStage;
+        TSharedPtr<RHI::FSPIRVShader>   SPIRVCode;
 
     public:
         FShader() = delete;
@@ -43,9 +47,9 @@ export namespace Visera
 
         if (Extension == PATH(".slang"))
         {
-            VISERA_UNIMPLEMENTED_API;
-            //Importer = MakeUnique<FSlangShaderCompiler>(); //[TODO]: Shared Session
-            //Data = Importer->Compile(GetPath(), EntryPoint);
+            if (!SlangCompiler) { SlangCompiler = MakeUnique<FSlangCompiler>(); }
+            SPIRVCode = SlangCompiler->Compile(GetPath(), EntryPoint);
+            VISERA_ASSERT(SPIRVCode);
         }
         else
         {

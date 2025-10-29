@@ -2,15 +2,15 @@ module;
 #include <Visera-Engine.hpp>
 #include <Slang/slang.h>
 #include <Slang/slang-com-ptr.h>
-export module Visera.Runtime.RHI.Slang;
-#define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.SPIRV;
-import Visera.Core.Types.Path;
-import Visera.Core.Log;
+export module Visera.Engine.AssetHub.Shader.Slang;
+#define VISERA_MODULE_NAME "Engine.AssetHub"
+export import Visera.Runtime.RHI.SPIRV;
+       import Visera.Core.Types.Path;
+       import Visera.Core.Log;
 
-export namespace Visera
+namespace Visera
 {
-    class VISERA_ENGINE_API FSlangShaderCompiler
+    export class VISERA_ENGINE_API FSlangCompiler
     {
     public:
     	[[nodiscard]] static inline Bool
@@ -33,8 +33,8 @@ export namespace Visera
         TUniquePtr<FSession>               Session;
 
     public:
-        FSlangShaderCompiler();
-    	~FSlangShaderCompiler();
+        FSlangCompiler();
+    	~FSlangCompiler();
 
     private:
     	[[nodiscard]] Bool
@@ -43,7 +43,7 @@ export namespace Visera
     	Process(const FPath&  I_File, FStringView   I_EntryPoint);
     };
 
-	Bool FSlangShaderCompiler::
+	Bool FSlangCompiler::
 	AddSearchPath(const FPath& I_Path)
 	{
 		auto Path = I_Path.GetUTF8Path();
@@ -57,7 +57,7 @@ export namespace Visera
 		return False;
 	}
 
-    TSharedPtr<RHI::FSPIRVShader> FSlangShaderCompiler::
+    TSharedPtr<RHI::FSPIRVShader> FSlangCompiler::
     Compile(const FPath& I_Path, FStringView I_EntryPoint)
     {
 		auto SPIRVShader = Process(I_Path.GetFileName(), I_EntryPoint);
@@ -69,8 +69,8 @@ export namespace Visera
         return SPIRVShader;
     }
 
-    FSlangShaderCompiler::
-    FSlangShaderCompiler()
+    FSlangCompiler::
+    FSlangCompiler()
     {
     	if (Context == nullptr)
     	{
@@ -79,23 +79,25 @@ export namespace Visera
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
 
+    		if (!AddSearchPath(FPath{VISERA_ENGINE_DIR "/Assets/Shader"}))
+    		{ VISERA_ASSERT(False && "Failed to add Engine shader path!"); }
     		if (!AddSearchPath(FPath{VISERA_APP_DIR "/Assets/Shader"}))
-    		{ VISERA_ASSERT(False, "Failed to add App shader path!"); }
+    		{ VISERA_ASSERT(False && "Failed to add App shader path!"); }
     	}
 
     	if (!CreateSession())
     	{ LOG_FATAL("Failed to create the Slang Session!"); }
     }
 
-	FSlangShaderCompiler::
-	~FSlangShaderCompiler()
+	FSlangCompiler::
+	~FSlangCompiler()
     {
     	Session->CompiledCode.setNull();
 		Session->Handle.setNull();
     	Session.reset();
     }
 
-	Bool FSlangShaderCompiler::
+	Bool FSlangCompiler::
 	CreateSession()
     {
     	LOG_TRACE("Creating a new slang session.");
@@ -130,7 +132,7 @@ export namespace Visera
     	return True;
     }
 
-     TSharedPtr<RHI::FSPIRVShader> FSlangShaderCompiler::
+     TSharedPtr<RHI::FSPIRVShader> FSlangCompiler::
 	 Process(const FPath& I_File, FStringView  I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);

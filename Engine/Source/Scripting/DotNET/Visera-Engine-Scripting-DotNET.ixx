@@ -16,7 +16,6 @@ namespace Visera
     {
     public:
 
-
     private:
         FPath          DotNETRoot    {DOTNET_ROOT};
         FPath          ConfigPath    {VISERA_ENGINE_DIR "/Global/Visera-DotNETConfig.json"};
@@ -27,8 +26,14 @@ namespace Visera
         hostfxr_get_runtime_delegate_fn           Fn_GetRuntimeDelegate{nullptr};
         load_assembly_and_get_function_pointer_fn Fn_LoadAssemblyAndGetFunctionPointer{nullptr};
         component_entry_point_fn                  Fn_GetComponentEntryPoint{nullptr};
+        hostfxr_run_app_fn                        Fn_RunApp{nullptr};
         hostfxr_close_fn                          Fn_FinalizeRuntime{nullptr};
 
+        // https://github.com/dotnet/runtime/blob/main/docs/design/features/host-error-codes.md
+        enum EStatus
+        {
+            Success = 0,
+        };
     public:
         FDotNET()
         {
@@ -40,7 +45,7 @@ namespace Visera
         {
             LOG_DEBUG("Terminating .NET");
 
-            if (!Fn_FinalizeRuntime(Context))
+            if (Fn_FinalizeRuntime(Context) != Success)
             { LOG_ERROR("Failed to finalize HostFXR runtime"); }
         }
 
@@ -48,7 +53,7 @@ namespace Visera
         inline void
         LoadHostFXR()
         {
-            LOG_TRACE("Loading HostFXR");
+            LOG_TRACE("Loading HostFXR.");
             // Using the nethost library, discover the location of hostfxr and get exports
             HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
             if (!HostFXR) { LOG_FATAL("Failed to load HostFXR"); }
@@ -57,9 +62,23 @@ namespace Visera
                 (HostFXR->LoadFunction("hostfxr_initialize_for_runtime_config"));
             Fn_GetRuntimeDelegate = reinterpret_cast<hostfxr_get_runtime_delegate_fn>
                 (HostFXR->LoadFunction("hostfxr_get_runtime_delegate"));
+            Fn_RunApp = reinterpret_cast<hostfxr_run_app_fn>
+                (HostFXR->LoadFunction("hostfxr_run_app"));
             Fn_FinalizeRuntime = reinterpret_cast<hostfxr_close_fn>
                 (HostFXR->LoadFunction("hostfxr_close"));
 
+            using hostfxr_set_error_writer_fn = void (*)(hostfxr_error_writer_fn);
+            auto Fn_SetErrorWriter = reinterpret_cast<hostfxr_set_error_writer_fn>(
+                HostFXR->LoadFunction("hostfxr_set_error_writer"));
+
+            if (Fn_SetErrorWriter)
+            {
+                Fn_SetErrorWriter([](const char_t* I_Message)
+                { LOG_ERROR("HostFXR: {}", I_Message); });
+            }
+            else { LOG_ERROR("Failed to set the HostFXR error messenger!"); }
+
+            LOG_TRACE("Initializing HostFXR.");
             auto HostFXRInitInfo = hostfxr_initialize_parameters
             {
                 .dotnet_root = DotNETRoot.GetNativePath().c_str(),
@@ -67,44 +86,47 @@ namespace Visera
             if (Fn_InitializeRuntime(
                 ConfigPath.GetNativePath().c_str(),
                 &HostFXRInitInfo,
-                &Context) != 0 || !Context)
+                &Context) != Success || !Context)
             { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
 
-            // Get the load assembly function pointer
+            LOG_TRACE("Extracting HostFXR delegate.");
             if (Fn_GetRuntimeDelegate(
                 Context,
                 hdt_get_function_pointer,
-                reinterpret_cast<void**>(&Fn_LoadAssemblyAndGetFunctionPointer)) != 0 ||
+                reinterpret_cast<void**>(&Fn_LoadAssemblyAndGetFunctionPointer)) != Success ||
                 !Fn_LoadAssemblyAndGetFunctionPointer)
-            { LOG_FATAL("Failed to get delegate!"); }
+            { LOG_FATAL("Failed to extract HostFXR delegate!"); }
+
+            LOG_TRACE("Running HostFXR App.");
+            Fn_RunApp(Context);
 
             // Function pointer to managed delegate
             component_entry_point_fn hello = nullptr;
-            int rc = Fn_LoadAssemblyAndGetFunctionPointer(
-                L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/DotNetLib/bin/Release/net9.0/DotNetLib.dll",
-                L"DotNetLib.Lib, DotNetLib",
-                L"Hello",
-                nullptr /*delegate_type_name*/,
-                nullptr,
-                (void**)&hello);
-            assert(rc == 0 && hello != nullptr && "Failure: load_assembly_and_get_function_pointer()");
-            struct lib_args
-            {
-                const char_t *message;
-                int number;
-            };
-            for (int i = 0; i < 3; ++i)
-            {
-                // <SnippetCallManaged>
-                lib_args args
-                {
-                    L"from Visera!",
-                    i
-                };
-
-                hello(&args, sizeof(args));
-                // </SnippetCallManaged>
-            }
+            // int rc = Fn_LoadAssemblyAndGetFunctionPointer(
+            //     L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/DotNetLib/bin/Release/net9.0/DotNetLib.dll",
+            //     L"DotNetLib.Lib, DotNetLib",
+            //     L"Hello",
+            //     nullptr /*delegate_type_name*/,
+            //     nullptr,
+            //     (void**)&hello);
+            // assert(rc == 0 && hello != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+            // struct lib_args
+            // {
+            //     const char_t *message;
+            //     int number;
+            // };
+            // for (int i = 0; i < 3; ++i)
+            // {
+            //     // <SnippetCallManaged>
+            //     lib_args args
+            //     {
+            //         L"from Visera!",
+            //         i
+            //     };
+            //
+            //     hello(&args, sizeof(args));
+            //     // </SnippetCallManaged>
+            // }
         }
     };
 
