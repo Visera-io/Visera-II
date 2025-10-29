@@ -22,6 +22,7 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
        import Visera.Runtime.RHI.Vulkan.DescriptorSet;
        import Visera.Runtime.RHI.Vulkan.Image;
+       import Visera.Runtime.RHI.Vulkan.Buffer;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
@@ -123,6 +124,10 @@ namespace Visera::RHI
                     const FVulkanExtent3D& I_Extent,
                     EVulkanFormat          I_Format,
                     EVulkanImageUsage      I_Usages);
+        [[nodiscard]] TSharedPtr<FVulkanBuffer>
+        CreateBuffer(UInt64             I_Size,
+                     EVulkanBufferUsage I_Usage,
+                     );
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(EVulkanQueue I_Queue);
         [[nodiscard]] const vk::raii::DescriptorPool&
@@ -1066,6 +1071,15 @@ namespace Visera::RHI
         LOG_DEBUG("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
         return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
+    }
+
+    TSharedPtr<FVulkanBuffer>
+    CreateBuffer(UInt64             I_Size,
+                 EVulkanBufferUsage I_Usage)
+    {
+        VISERA_ASSERT(I_Size != 0);
+        LOG_DEBUG("Creating a Vulkan Buffer ({} bytes).", I_Size);
+        return MakeShared<FVulkanBuffer>(I_Size, I_Usage);
     }
 
     void FVulkanDriver::
