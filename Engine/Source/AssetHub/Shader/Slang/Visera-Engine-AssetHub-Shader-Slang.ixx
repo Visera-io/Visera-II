@@ -202,11 +202,11 @@ namespace Visera
 
 	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
 
-		auto ShaderType { RHI::FSPIRVShader::EType::Unknown };
+		auto ShaderType { RHI::FSPIRVShader::EStage::Unknown };
 	 	switch (EntryPointRef->getStage())
 	 	{
-	 		case SLANG_STAGE_VERTEX:	ShaderType = RHI::FSPIRVShader::EType::Vertex;   break;
-	 		case SLANG_STAGE_FRAGMENT:	ShaderType = RHI::FSPIRVShader::EType::Fragment; break;
+	 		case SLANG_STAGE_VERTEX:	ShaderType = RHI::FSPIRVShader::EStage::Vertex;   break;
+	 		case SLANG_STAGE_FRAGMENT:	ShaderType = RHI::FSPIRVShader::EStage::Fragment; break;
 	 		default: LOG_ERROR("Unsupported Shader Stage!");
 	 	}
 

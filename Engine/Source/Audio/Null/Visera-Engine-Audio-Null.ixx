@@ -11,7 +11,7 @@ namespace Visera
     {
     public:
         void
-        Tick(Float I_Seconds) const override {};
+        Tick(Float I_Seconds) override {};
 
     public:
         explicit FNullAudioEngine() : IAudioEngine{EType::Null}

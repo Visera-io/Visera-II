@@ -8,11 +8,12 @@
 #endif
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-	#if defined(VISERA_CORE_BUILD_SHARED)
-		#define VISERA_CORE_API __declspec(dllexport)
-	#else
-		#define VISERA_CORE_API __declspec(dllimport)
-	#endif
+	#define VISERA_CORE_API __declspec(dllexport)
+	// #if defined(VISERA_CORE_BUILD_SHARED)
+	// 	#define VISERA_CORE_API __declspec(dllexport)
+	// #else
+	// 	#define VISERA_CORE_API __declspec(dllimport)
+	// #endif
 #else
 	#define VISERA_CORE_API __attribute__((visibility("default")))
 #endif
@@ -296,8 +297,7 @@ namespace Visera
 
     template<typename T>
     using TSharedPtr   = std::shared_ptr<T>;
-    template<typename T, typename... Args>
-    TSharedPtr<T>
+    template<typename T, typename... Args> TSharedPtr<T>
     MakeShared(Args &&...args) { return std::make_shared<T>(std::forward<Args>(args)...); }
 
 	template<typename T>
@@ -307,18 +307,17 @@ namespace Visera
 
     template<typename T>
     using TUniquePtr   = std::unique_ptr<T>;
-    template<typename T, typename... Args>
-    TUniquePtr<T>
+    template<typename T, typename... Args> TUniquePtr<T>
     MakeUnique(Args &&...args) { return std::make_unique<T>(std::forward<Args>(args)...); }
 
 	template<typename T>
 	using TUniqueRef   = const TUniquePtr<T>&;
 
-	class VISERA_CORE_API IGlobalSingleton
+    template<typename T>
+    class VISERA_CORE_API IGlobalSingleton
     {
     public:
-    	enum EStatus { Disabled, Bootstrapped, Terminated  };
-
+		enum class EStatus { Disabled, Bootstrapped, Terminated };
     	[[nodiscard]] FStringView
 		GetDebugName() const { return Name; }
 
@@ -332,24 +331,23 @@ namespace Visera
     	[[nodiscard]] inline Bool
 		IsTerminated() const   { return Status == EStatus::Terminated; }
 
-    	IGlobalSingleton() = delete;
-    	explicit IGlobalSingleton(const char* I_Name) : Name(I_Name) {}
     	virtual ~IGlobalSingleton()
     	{
     		if (IsBootstrapped())
-    		{
-    			std::cerr << "[WARNING] " << Name << " was NOT terminated properly!\n";
-    		}
+    		{ std::cerr << "[WARNING] " << Name << " was NOT terminated properly!\n"; }
     	}
+
+    protected:
+    	const char* Name;
+    	mutable EStatus Status = EStatus::Disabled;
+
+    	IGlobalSingleton() = delete;
+    	explicit IGlobalSingleton(const char* I_Name) : Name(I_Name) {}
 
     	IGlobalSingleton(const IGlobalSingleton&)			 = delete;
     	IGlobalSingleton& operator=(const IGlobalSingleton&) = delete;
     	IGlobalSingleton(IGlobalSingleton&&)				 = delete;
     	IGlobalSingleton& operator=(IGlobalSingleton&&)      = delete;
-
-    protected:
-    	const char* Name;
-    	mutable EStatus Status = EStatus::Disabled;
     };
 
 	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)

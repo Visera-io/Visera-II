@@ -12,7 +12,7 @@ export import Visera.Runtime.Scene;
 
 namespace Visera
 {
-    class VISERA_RUNTIME_API FRuntime
+    export class VISERA_RUNTIME_API FRuntime : public IGlobalSingleton<FRuntime>
     {
     public:
         [[nodiscard]] inline const FHiResClock&
@@ -25,23 +25,37 @@ namespace Visera
         FHiResClock Timer{};
 
     public:
-        FRuntime()
+        void Bootstrap() override
         {
             LOG_INFO("Initializing Runtime.");
+            GPlatform   ->Bootstrap();
+            GWindow     ->Bootstrap();
+            GRHI        ->Bootstrap();
+            GScene      ->Bootstrap();
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
             SetConsoleOutputCP(65001); // Set console output code page to UTF-8
             SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
 #endif
 
-            GLog->Bootstrap();
+            Status = EStatus::Bootstrapped;
+        }
+        void Terminate() override
+        {
+            LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
+            GScene      ->Terminate();
+            GRHI        ->Terminate();
+            GWindow     ->Terminate();
+            GPlatform   ->Terminate();
+
+            Status = EStatus::Terminated;
         }
 
-        ~FRuntime()
-        {
-            GLog->Terminate();
-            LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
-        }
+        FRuntime() : IGlobalSingleton("Runtime")
+        { GLog->Bootstrap(); }
+
+        ~FRuntime() override
+        { GLog->Terminate(); }
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FRuntime>

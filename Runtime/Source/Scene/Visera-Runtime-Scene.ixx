@@ -9,7 +9,7 @@ export import Visera.Runtime.Scene.Object;
 
 namespace Visera
 {
-    class VISERA_RUNTIME_API FScene : IGlobalSingleton
+    export class VISERA_RUNTIME_API FScene : public IGlobalSingleton<FScene>
     {
     public:
         template<Concepts::Object T, typename... Args> TSharedPtr<T>
@@ -60,7 +60,7 @@ namespace Visera
         void Terminate() override;
     };
 
-    export VISERA_RUNTIME_API TUniquePtr<FScene>
+    export inline VISERA_RUNTIME_API TUniquePtr<FScene>
     GScene = MakeUnique<FScene>();
 
     void FScene::

@@ -11,6 +11,9 @@ module;
 export module Visera.Runtime.RHI.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Vulkan.Common;
+export import Visera.Runtime.RHI.Vulkan.CommandBuffer;
+export import Visera.Runtime.RHI.Vulkan.Image;
+export import Visera.Runtime.RHI.Vulkan.Buffer;
        import Visera.Runtime.RHI.Vulkan.Loader;
        import Visera.Runtime.RHI.Vulkan.Allocator;
        import Visera.Runtime.RHI.Vulkan.Fence;
@@ -18,11 +21,8 @@ export import Visera.Runtime.RHI.Vulkan.Common;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
        import Visera.Runtime.RHI.Vulkan.PipelineCache;
        import Visera.Runtime.RHI.Vulkan.RenderPass;
-       import Visera.Runtime.RHI.Vulkan.CommandBuffer;
        import Visera.Runtime.RHI.Vulkan.RenderTarget;
        import Visera.Runtime.RHI.Vulkan.DescriptorSet;
-       import Visera.Runtime.RHI.Vulkan.Image;
-       import Visera.Runtime.RHI.Vulkan.Buffer;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
@@ -33,6 +33,8 @@ export import Visera.Runtime.RHI.Vulkan.Common;
 
 namespace Visera::RHI
 {
+    export using EVulkanMemoryPoolFlag = EVulkanMemoryPoolFlagBits;
+
     export class VISERA_RUNTIME_API FVulkanDriver
     {
     public:
@@ -125,9 +127,9 @@ namespace Visera::RHI
                     EVulkanFormat          I_Format,
                     EVulkanImageUsage      I_Usages);
         [[nodiscard]] TSharedPtr<FVulkanBuffer>
-        CreateBuffer(UInt64             I_Size,
-                     EVulkanBufferUsage I_Usage,
-                     );
+        CreateBuffer(UInt64                I_Size,
+                     EVulkanBufferUsage    I_Usage,
+                     EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(EVulkanQueue I_Queue);
         [[nodiscard]] const vk::raii::DescriptorPool&
@@ -468,7 +470,7 @@ namespace Visera::RHI
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
         VkSurfaceKHR SurfaceHandle {nullptr};
-
+        auto& W = GWindow;
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
 
         if(glfwCreateWindowSurface(
@@ -832,7 +834,7 @@ namespace Visera::RHI
         for (UInt8 Idx = 0; Idx < SwapChain.Images.size(); ++Idx)
         {
             SwapChain.ReadyToPresentSemaphores[Idx]
-            = CreateSemaphore(fmt::format("Ready to Present ({})", Idx));
+            = CreateSemaphore(Format("Ready to Present ({})", Idx));
         }
 #endif
     }
@@ -1073,13 +1075,14 @@ namespace Visera::RHI
         return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
     }
 
-    TSharedPtr<FVulkanBuffer>
-    CreateBuffer(UInt64             I_Size,
-                 EVulkanBufferUsage I_Usage)
+    TSharedPtr<FVulkanBuffer> FVulkanDriver::
+    CreateBuffer(UInt64                I_Size,
+                 EVulkanBufferUsage    I_Usage,
+                 EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
     {
         VISERA_ASSERT(I_Size != 0);
         LOG_DEBUG("Creating a Vulkan Buffer ({} bytes).", I_Size);
-        return MakeShared<FVulkanBuffer>(I_Size, I_Usage);
+        return MakeShared<FVulkanBuffer>(I_Size, I_Usage, I_MemoryPoolFlags);
     }
 
     void FVulkanDriver::
@@ -1153,11 +1156,11 @@ namespace Visera::RHI
                 InFlightFrame.DrawCalls = CreateCommandBuffer(EVulkanQueue::eGraphics);
                 // Fences
                 InFlightFrame.Fence
-                = CreateFence(True, fmt::format("In-Flight Fence ({})", InFlightFrameIndex));
+                = CreateFence(True, Format("In-Flight Fence ({})", InFlightFrameIndex));
                 // Semaphores
 #if !defined(VISERA_OFFSCREEN_MODE)
                 InFlightFrame.SwapChainImageAvailable
-                = CreateSemaphore(fmt::format("SwapChain Image Available ({})", InFlightFrameIndex));
+                = CreateSemaphore(Format("SwapChain Image Available ({})", InFlightFrameIndex));
 #endif
                 InFlightFrameIndex = (InFlightFrameIndex + 1) % InFlightFrames.size();
             }

@@ -5,7 +5,7 @@ export module Visera.Runtime.Window.Interface;
 
 namespace Visera
 {
-    struct VISERA_RUNTIME_API FMouse
+    export struct VISERA_RUNTIME_API FMouse
     {
         struct
         {
@@ -16,7 +16,7 @@ namespace Visera
     export inline VISERA_RUNTIME_API FMouse
     GMouse{};
 
-    export class VISERA_RUNTIME_API IWindow : public IGlobalSingleton
+    export class VISERA_RUNTIME_API IWindow
     {
     protected:
         Bool bInitialized = False;
@@ -27,8 +27,8 @@ namespace Visera
             Null,
             GLFW
         };
-        [[nodiscard]] static inline FMouse&
-        GetMouse() {  return GMouse; }
+        [[nodiscard]] inline FMouse&
+        GetMouse() { return GMouse; }
 
         [[nodiscard]] virtual void*
         GetHandle() const = 0;
@@ -61,7 +61,8 @@ namespace Visera
         IsMaximized() const { return bMaximized; };
 
         explicit IWindow() = delete;
-        explicit IWindow(EType I_Type) : IGlobalSingleton("Window"), Type(I_Type) {}
+        explicit IWindow(EType I_Type) : Type(I_Type) {}
+        virtual ~IWindow() = default;
 
     protected:
         EType       Type { EType::Unknown };

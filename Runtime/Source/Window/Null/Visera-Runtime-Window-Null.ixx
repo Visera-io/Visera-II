@@ -27,27 +27,19 @@ namespace Visera
         void inline
         SetTitle(FStringView I_Title) override { VISERA_UNIMPLEMENTED_API; }
 
-        FNullWindow() : IWindow(EType::Null) {}
-
-        void inline
-        Bootstrap() override;
-        void inline
-        Terminate() override;
+        FNullWindow();
+        ~FNullWindow() override;
     };
 
-    void FNullWindow::
-    Bootstrap()
+    FNullWindow::
+    FNullWindow() : IWindow(EType::Null)
     {
         LOG_TRACE("Bootstrapping Null Window.");
-
-        // Status = EStatus::Bootstrapped;
     }
 
-    void FNullWindow::
-    Terminate()
+    FNullWindow::
+    ~FNullWindow()
     {
         LOG_TRACE("Terminating Null Window.");
-
-        // Status = EStatus::Terminated;
     }
 }

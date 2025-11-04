@@ -1,6 +1,5 @@
 module;
 #include <Visera.hpp>
-#include "Visera-Runtime.hpp"
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Demos;
@@ -8,7 +7,6 @@ import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
 import Visera.Studio;
-import Visera.Runtime.Scene;
 using namespace Visera;
 
 class Foo : public VObject
@@ -37,6 +35,7 @@ export int main(int argc, char *argv[])
     // //Demos
     // //{ Demos::Compression Demo; }
     //
+    GLog->Bootstrap();
     GEngine->Bootstrap();
     {
         GStudio->Bootstrap();

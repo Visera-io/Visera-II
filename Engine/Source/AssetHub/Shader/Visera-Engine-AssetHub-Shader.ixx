@@ -44,7 +44,7 @@ namespace Visera
       EntryPoint{I_EntryPoint}
     {
         const FPath Extension = GetPath().GetExtension();
-
+        
         if (Extension == PATH(".slang"))
         {
             if (!SlangCompiler) { SlangCompiler = MakeUnique<FSlangCompiler>(); }
@@ -56,6 +56,13 @@ namespace Visera
             LOG_ERROR("Failed to load the shader \"{}\""
                       "-- unsupported extension {}!", GetPath(), Extension);
             return;
+        }
+
+        switch (SPIRVCode->GetStage())
+        {
+        case RHI::FSPIRVShader::EStage::Vertex:   ShaderStage = EShaderStage::Vertex;   break;
+        case RHI::FSPIRVShader::EStage::Fragment: ShaderStage = EShaderStage::Fragment; break;
+        default: LOG_FATAL("Unknown shader stage!");
         }
     }
 }

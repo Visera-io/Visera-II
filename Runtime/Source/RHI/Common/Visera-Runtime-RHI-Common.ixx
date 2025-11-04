@@ -18,5 +18,9 @@ export namespace Visera
         using EPipelineStage    = EVulkanPipelineStage;
         using EAccess           = EVulkanAccess;
         using EShaderStage      = EVulkanShaderStage;
+        using EMemoryPoolFlag   = EVulkanMemoryPoolFlag;
+        using EBufferUsage      = EVulkanBufferUsage;
+
+        using FBuffer           = FVulkanBuffer;
     }
 }

@@ -8,16 +8,43 @@ import Visera.Runtime.Platform.Windows;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
 import Visera.Runtime.Platform.MacOS;
 #endif
+import Visera.Core.Log;
 
 namespace Visera
 {
-    export using EPlatform = EPlatform;
+    export class VISERA_RUNTIME_API FPlatform : public IGlobalSingleton<FPlatform>
+    {
+    public:
+        [[nodiscard]] inline TSharedPtr<ILibrary>
+        LoadLibrary(const FPath& I_Path) const { return Platform->LoadLibrary(I_Path); }
+        [[nodiscard]] inline const FPath&
+        GetExecutableDirectory() const { return Platform->GetExecutableDirectory(); }
+        [[nodiscard]] inline Bool
+        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const { return Platform->SetEnvironmentVariable(I_Variable, I_Value); }
 
+        [[nodiscard]] inline EPlatform
+        GetType() const { return Platform->GetType(); }
+
+    private:
+        TUniquePtr<IPlatform> Platform;
+
+    public:
+        FPlatform() : IGlobalSingleton("Platform") {}
+        void Bootstrap() override
+        {
+            LOG_TRACE("Bootstrapping Platform.");
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-    export inline VISERA_RUNTIME_API TUniquePtr<IPlatform>
-    GPlatform = MakeUnique<FWindowsPlatform>();
+            Platform = MakeUnique<FWindowsPlatform>();
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-    export inline VISERA_RUNTIME_API TUniquePtr<IPlatform>
-    GPlatform = MakeUnique<FMacOSPlatform>();
+            Platform = MakeUnique<FMacOSPlatform>();
 #endif
+        }
+        void Terminate() override
+        {
+            LOG_TRACE("Terminating Platform.");
+        }
+    };
+
+    export inline VISERA_RUNTIME_API TUniquePtr<FPlatform>
+    GPlatform = MakeUnique<FPlatform>();
 }

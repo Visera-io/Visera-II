@@ -22,14 +22,14 @@ add_custom_command(
         copy_if_different
         $<TARGET_FILE:Visera::Runtime>
         $<TARGET_FILE_DIR:${VISERA_APP}>)
-if(MSVC)
-    add_custom_command(
-        TARGET Visera::Runtime
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Runtime>>,
-        copy_if_different
-        $<TARGET_PDB_FILE:Visera::Runtime>
-        $<TARGET_FILE_DIR:${VISERA_APP}>)
+if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+add_custom_command(
+    TARGET Visera::Runtime
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_PDB_FILE:Visera::Runtime>"
+    "$<TARGET_FILE_DIR:${VISERA_APP}>"
+)
 endif()
 
 if(NOT TARGET Visera::Core)
@@ -40,11 +40,8 @@ target_link_libraries(${VISERA_RUNTIME} PRIVATE Visera::Core)
 #
 # << Install External Packages >>
 #
-
 list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
-# Link Zlib from Core first since other libraries depend on it
-# Note: We don't call link_zlib here because it's already linked through Core
 if(NOT VISERA_OFFSCREEN_MODE)
 include(install_glfw)
 link_glfw(${VISERA_RUNTIME})
@@ -55,6 +52,7 @@ link_vma(${VISERA_RUNTIME})
 
 include(install_vulkan)
 link_vulkan(${VISERA_RUNTIME})
+
 include(install_libpng)
 link_libpng(${VISERA_RUNTIME})
 

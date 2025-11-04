@@ -74,7 +74,7 @@ namespace Visera
             if (Fn_SetErrorWriter)
             {
                 Fn_SetErrorWriter([](const char_t* I_Message)
-                { LOG_ERROR("HostFXR: {}", I_Message); });
+                { LOG_ERROR("HostFXR: {}", FText::ToUTF8(I_Message)); });
             }
             else { LOG_ERROR("Failed to set the HostFXR error messenger!"); }
 

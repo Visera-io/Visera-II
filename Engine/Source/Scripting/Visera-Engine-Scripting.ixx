@@ -6,8 +6,7 @@ import Visera.Engine.Scripting.DotNET;
 
 namespace Visera
 {
-
-    class VISERA_ENGINE_API FScripting : IGlobalSingleton
+    export class VISERA_ENGINE_API FScripting : public IGlobalSingleton<FScripting>
     {
     public:
 
@@ -17,13 +16,11 @@ namespace Visera
     public:
         FScripting() : IGlobalSingleton{"Scripting"} {}
         void inline
-        Bootstrap() override { DotNET = MakeUnique<FDotNET>(); };
+        Bootstrap() override { DotNET = MakeUnique<FDotNET>(); Status = EStatus::Bootstrapped; }
         void inline
-        Terminate() override {};
-
+        Terminate() override { Status = EStatus::Terminated; }
     };
 
     export inline VISERA_ENGINE_API TUniquePtr<FScripting>
     GScripting = MakeUnique<FScripting>();
-
 }

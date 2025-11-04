@@ -9,8 +9,10 @@ namespace Visera::RHI
     export class VISERA_RUNTIME_API FSPIRVShader
     {
     public:
-        enum class EType { Unknown, Vertex, Fragment };
+        enum class EStage { Unknown, Vertex, Fragment };
 
+        [[nodiscard]] inline EStage
+        GetStage()      const { return Stage; }
         [[nodiscard]] inline UInt64
         GetSize()       const { return ShaderCode.size(); }
         [[nodiscard]] inline FStringView
@@ -21,31 +23,31 @@ namespace Visera::RHI
         [[nodiscard]] inline Bool
         IsEmpty()           const { return ShaderCode.empty(); }
         [[nodiscard]] inline Bool
-        IsVertexShader()    const { return Type == EType::Vertex; }
+        IsVertexShader()    const { return Stage == EStage::Vertex; }
         [[nodiscard]] inline Bool
-        IsFragmentShader()  const { return Type == EType::Fragment; }
+        IsFragmentShader()  const { return Stage == EStage::Fragment; }
 
     private:
-        EType         Type        {EType::Unknown};
+        EStage        Stage        {EStage::Unknown};
         FString       EntryPoint;
         TArray<FByte> ShaderCode;
 
     public:
         FSPIRVShader() = delete;
-        FSPIRVShader(EType                I_Type,
+        FSPIRVShader(EStage               I_Stage,
                      FStringView          I_EntryPoint,
                      const TArray<FByte>& I_ShaderCode);
         ~FSPIRVShader() = default;
     };
 
     FSPIRVShader::
-    FSPIRVShader(EType                I_Type,
+    FSPIRVShader(EStage               I_Stage,
                  FStringView          I_EntryPoint,
                  const TArray<FByte>& I_ShaderCode)
-    : Type       (I_Type),
+    : Stage       (I_Stage),
       EntryPoint (I_EntryPoint),
       ShaderCode (I_ShaderCode)
     {
-        VISERA_ASSERT(Type != EType::Unknown && !IsEmpty());
+        VISERA_ASSERT(Stage != EStage::Unknown && !IsEmpty());
     }
 }

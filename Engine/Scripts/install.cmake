@@ -22,14 +22,14 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_FILE:Visera::Engine>
     $<TARGET_FILE_DIR:${VISERA_APP}>)
-if(MSVC)
+if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 add_custom_command(
     TARGET Visera::Engine
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Engine>>,
-    copy_if_different
-    $<TARGET_PDB_FILE:Visera::Engine>
-    $<TARGET_FILE_DIR:${VISERA_APP}>)
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_PDB_FILE:Visera::Engine>"
+    "$<TARGET_FILE_DIR:${VISERA_APP}>"
+)
 endif()
 
 if(NOT TARGET Visera::Core)
@@ -45,7 +45,6 @@ target_link_libraries(${VISERA_ENGINE} PRIVATE Visera::Runtime)
 #
 # << Install External Packages >>
 #
-
 list(APPEND CMAKE_MODULE_PATH ${VISERA_ENGINE_SCRIPTS_DIR})
 
 include(install_bvh)
@@ -73,5 +72,3 @@ target_sources(${VISERA_ENGINE}
                PUBLIC
                FILE_SET "visera_engine_modules" TYPE CXX_MODULES
                FILES ${VISERA_ENGINE_MODULES})
-
-               # Find the Windows resource compiler

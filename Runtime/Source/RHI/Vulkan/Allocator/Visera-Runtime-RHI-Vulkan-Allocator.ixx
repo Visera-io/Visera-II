@@ -9,15 +9,14 @@ import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    export enum EVulkanMemoryPoolFlag
+    export enum EVulkanMemoryPoolFlagBits : VmaAllocationCreateFlags
     {
-        //[TODO]: Define in Common
-        None                           = 0,
-
-        Mapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
-        HostAccessAllowTransferInstead = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
-        HostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+        eNone                           = 0,
+        eMapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        eHostAccessAllowTransferInstead = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
+        eHostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
     };
+    export using EVulkanMemoryPoolFlags = VmaAllocationCreateFlags;
 
     export class VISERA_RUNTIME_API FVulkanAllocator
     {
@@ -97,9 +96,9 @@ namespace Visera::RHI
 
     protected:
         inline void
-        Allocate(void*       I_Handle,
-                 const void* I_CreateInfo,
-                 EPoolFlag   I_PoolFlags = EPoolFlag::None);
+        Allocate(void*                 I_Handle,
+                 const void*           I_CreateInfo,
+                 EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         inline void
         Release(void* I_Handle);
 
@@ -114,13 +113,13 @@ namespace Visera::RHI
     };
 
     void IVulkanResource::
-    Allocate(void*       I_Handle,
-             const void* I_CreateInfo,
-             EPoolFlag   I_PoolFlags /* = EPoolFlag::None*/)
+    Allocate(void*                 I_Handle,
+             const void*           I_CreateInfo,
+             EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
     {
         VmaAllocationCreateInfo AllocationCreateInfo
         {
-            .flags          = static_cast<VmaAllocationCreateFlags>(I_PoolFlags),
+            .flags          = I_MemoryPoolFlags,
             .usage          = VMA_MEMORY_USAGE_AUTO,
             .requiredFlags  = 0x0,
             .preferredFlags = 0x0,

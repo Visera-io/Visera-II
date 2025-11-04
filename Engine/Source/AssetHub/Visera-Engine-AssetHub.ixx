@@ -16,7 +16,7 @@ namespace Visera
     export enum class EAssetSource : UInt8
     { App, Studio, Engine, Any, };
 
-    class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton
+    export class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton<FAssetHub>
     {
     public:
         // [[nodiscard]] inline TSharedPtr<FImage>
@@ -39,7 +39,7 @@ namespace Visera
         TMap<EAssetSource, FFileSystem> Roots;
     };
 
-    export inline VISERA_ENGINE_API auto
+    export inline VISERA_ENGINE_API TUniquePtr<FAssetHub>
     GAssetHub = MakeUnique<FAssetHub>();
 
     void FAssetHub::

@@ -10,7 +10,9 @@ export import Visera.Runtime.RHI.Common;
 
 namespace Visera
 {
-    class VISERA_RUNTIME_API FRHI : public IGlobalSingleton
+    using namespace RHI;
+
+    export class VISERA_RUNTIME_API FRHI : public IGlobalSingleton<FRHI>
     {
     public:
         inline void
@@ -20,11 +22,15 @@ namespace Visera
         inline void
         Present()     const { Driver->Present(); }
 
+        [[nodiscard]] inline TSharedPtr<FBuffer>
+        CreateStagingBuffer(UInt64 I_Size);
+
         [[nodiscard]] inline Bool
         CreateRenderPass(const FName&                  I_Name,
                          TSharedRef<RHI::FSPIRVShader> I_VertexShader,
                          TSharedRef<RHI::FSPIRVShader> I_FragmentShader)
         {
+            VISERA_UNIMPLEMENTED_API;
             VISERA_ASSERT(I_VertexShader->IsVertexShader());
             VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
             //LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{}).",
@@ -83,6 +89,18 @@ namespace Visera
     {
         if (IsBootstrapped())
         { LOG_WARN("RHI must be terminated properly!"); }
+    }
+
+
+    TSharedPtr<FBuffer> FRHI::
+    CreateStagingBuffer(UInt64 I_Size)
+    {
+        LOG_DEBUG("Creating a staging buffer ({} bytes).", I_Size);
+        return Driver->CreateBuffer(
+            I_Size,
+            EBufferUsage::eTransferSrc,
+            EMemoryPoolFlag::eHostAccessAllowTransferInstead |
+            EMemoryPoolFlag::eHostAccessSequentialWrite);
     }
 
 }

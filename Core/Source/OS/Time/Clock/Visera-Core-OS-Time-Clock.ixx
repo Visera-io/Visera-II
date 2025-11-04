@@ -9,7 +9,7 @@ import Visera.Core.OS.Time.Duration;
 //[Alias]		FHiResClock
 //[Alias]		FSystemClock
 
-namespace Visera
+export namespace Visera
 {
     template<Concepts::Clock T>
     class VISERA_CORE_API TClock
@@ -45,6 +45,6 @@ namespace Visera
         TTimePoint<T> LastTickTimePoint;
     };
 
-    export using FHiResClock  = TClock<std::chrono::high_resolution_clock>;
-    export using FSystemClock = TClock<std::chrono::system_clock>;
+    using FHiResClock  = TClock<std::chrono::high_resolution_clock>;
+    using FSystemClock = TClock<std::chrono::system_clock>;
 }

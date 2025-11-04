@@ -21,7 +21,7 @@ namespace Visera
     {
     public:
         void
-        Tick(Float I_Seconds) const override;
+        Tick(Float I_Seconds) override;
 
         [[nodiscard]] inline const auto
         GetStreamManager() const { return AK::IAkStreamMgr::Get(); }
@@ -164,7 +164,7 @@ namespace Visera
     };
 
     void FWwiseAudioEngine::
-    Tick(Float I_Seconds) const
+    Tick(Float I_Seconds)
     {
         static Float Gap = 1.0 / 60.0;
         Gap -= I_Seconds;

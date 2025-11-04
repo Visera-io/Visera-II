@@ -21,14 +21,14 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_FILE:Visera::Studio>
     $<TARGET_FILE_DIR:${VISERA_APP}>)
-if(MSVC)
+if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 add_custom_command(
     TARGET Visera::Studio
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E $<IF:$<BOOL:$<TARGET_PDB_FILE:Visera::Studio>>,
-    copy_if_different
-    $<TARGET_PDB_FILE:Visera::Studio>
-    $<TARGET_FILE_DIR:${VISERA_APP}>)
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_PDB_FILE:Visera::Studio>"
+    "$<TARGET_FILE_DIR:${VISERA_APP}>"
+)
 endif()
 
 if(NOT TARGET Visera::Core)

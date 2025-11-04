@@ -20,18 +20,18 @@ namespace Visera::RHI
 
     public:
         FVulkanBuffer() : IVulkanResource{EType::Buffer} {}
-        FVulkanBuffer(UInt64             I_Size,
-                      EVulkanBufferUsage I_Usage,
-                      EPoolFlag          I_PoolFlag = EPoolFlag::None);
+        FVulkanBuffer(UInt64                I_Size,
+                      EVulkanBufferUsage    I_Usage,
+                      EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         ~FVulkanBuffer() override;
         FVulkanBuffer(const FVulkanBuffer&)            = delete;
         FVulkanBuffer& operator=(const FVulkanBuffer&) = delete;
     };
     
     FVulkanBuffer::
-    FVulkanBuffer(UInt64             I_Size,
-                  EVulkanBufferUsage I_Usage,
-                  EPoolFlag          I_PoolFlag /* = EPoolFlag::None */)
+    FVulkanBuffer(UInt64                I_Size,
+                  EVulkanBufferUsage    I_Usage,
+                  EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
     : IVulkanResource {EType::Buffer}
     {
         auto CreateInfo = vk::BufferCreateInfo{}
@@ -41,7 +41,7 @@ namespace Visera::RHI
             .setQueueFamilyIndexCount   (0)
             .setPQueueFamilyIndices     (nullptr)
         ;
-        Allocate(&Handle, &CreateInfo, I_PoolFlag);
+        Allocate(&Handle, &CreateInfo, I_MemoryPoolFlags);
     }
 
     FVulkanBuffer::

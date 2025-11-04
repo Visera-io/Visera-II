@@ -38,12 +38,8 @@ namespace Visera
         void inline
         SetTitle(FStringView I_Title) override { glfwSetWindowTitle(Handle, I_Title.data()); }
 
-        FGLFWWindow() : IWindow(EType::GLFW) {}
-
-        void inline
-        Bootstrap() override;
-        void inline
-        Terminate() override;
+        FGLFWWindow();
+        ~FGLFWWindow() override;
 
     private:
         GLFWwindow* Handle = nullptr;
@@ -54,11 +50,9 @@ namespace Visera
         static void MouseScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY);
     };
 
-    void FGLFWWindow::
-    Bootstrap()
+    FGLFWWindow::
+    FGLFWWindow() : IWindow(EType::GLFW)
     {
-        LOG_TRACE("Bootstrapping GLFW Window.");
-
         if (!glfwInit())
         { LOG_FATAL("Failed to initialize GLFW!"); }
 
@@ -111,19 +105,15 @@ namespace Visera
 
         LOG_DEBUG("Created a new GLFW Window (title:{}, extent:[{},{}], scales:[{},{}])",
                   GetTitle(), Width, Height, ScaleX, ScaleY);
-
-        Status = EStatus::Bootstrapped;
     }
 
-    void FGLFWWindow::
-    Terminate()
+    FGLFWWindow::
+    ~FGLFWWindow()
     {
         LOG_TRACE("Terminating GLFW Window.");
         glfwDestroyWindow(Handle);
         glfwTerminate();
         Handle = nullptr;
-
-        Status = EStatus::Terminated;
     }
 
     GLFWmonitor* FGLFWWindow::

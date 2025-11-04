@@ -1,8 +1,8 @@
 module;
 #include <Visera-Engine.hpp>
-#include "AK/SoundEngine/Common/AkConstants.h"
-#include "AK/SoundEngine/Common/AkSoundEngine.h"
-#include "AK/SoundEngine/Common/AkTypedefs.h"
+#include <AK/SoundEngine/Common/AkConstants.h>
+#include <AK/SoundEngine/Common/AkSoundEngine.h>
+#include <AK/SoundEngine/Common/AkTypedefs.h>
 export module Visera.Engine.Audio;
 #define VISERA_MODULE_NAME "Engine.Audio"
 import Visera.Engine.Audio.Interface;
@@ -17,14 +17,14 @@ namespace Visera
 {
     export using EAudioEngine = IAudioEngine::EType;
 
-    class VISERA_ENGINE_API FAudio : IGlobalSingleton
+    export class VISERA_ENGINE_API FAudio : public IGlobalSingleton<FAudio>
     {
     public:
         using FToken   = AkGameObjectID;
         using FEventID = AkPlayingID;
 
         void inline
-        Tick() const
+        Tick()
         {
             static FSystemClock Timer{};
             static UInt64 Time{0};
@@ -45,7 +45,7 @@ namespace Visera
         TMap<FName, FToken>      Playlist;
 
     public:
-        FAudio() : IGlobalSingleton{"Audio"} {}
+        FAudio() : IGlobalSingleton("Audio") {}
         void
         Bootstrap() override;
         void

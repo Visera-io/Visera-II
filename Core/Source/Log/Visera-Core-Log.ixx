@@ -18,7 +18,7 @@ namespace Visera
 		Fatal	= VISERA_LOG_LEVEL_FATAL,
 	};
 
-	class VISERA_CORE_API FLog : public IGlobalSingleton
+	export class VISERA_CORE_API FLog : public IGlobalSingleton<FLog>
 	{
 	public:
 		template<typename... Args>
@@ -120,7 +120,7 @@ namespace Visera
 			localtime_r(&Time, &LocalTime);
 #endif
 			auto ThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
-			auto Message = fmt::format(I_Fmt, std::forward<Args>(I_Args)...);
+			auto Message = Format(I_Fmt, std::forward<Args>(I_Args)...);
 
 			fmt::println(I_Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
 						 I_Level,
