@@ -82,27 +82,27 @@ namespace Visera
             else { LOG_ERROR("Failed to set the HostFXR error messenger!"); }
 
             LOG_TRACE("Initializing HostFXR.");
-            TArray<const char_t*> Args
+            /*TArray<const char_t*> Args
             {
                 L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/bin/Release/net10.0/Script.dll",
                 L"app_arg_1",
                 L"app_arg_2",
-            };
-
-            auto HostFXRInitInfo = hostfxr_initialize_parameters
-            {
-                .dotnet_root = DotNETRoot.GetNativePath().c_str(),
-            };
-
-            auto AppRC = init_for_cmd_line_fptr(
-                Args.size(),
-                Args.data(),
-                &HostFXRInitInfo,
-                &Context);
-            if (AppRC != Success || !Context)
-            {std::cerr << "Init failed: " << std::hex << std::showbase << AppRC << std::endl;
-                LOG_FATAL("Failed to initialize App (error:{})!", AppRC);
-            }
+            };*/
+            //
+            // auto HostFXRInitInfo = hostfxr_initialize_parameters
+            // {
+            //     .dotnet_root = DotNETRoot.GetNativePath().c_str(),
+            // };
+            //
+            // auto AppRC = init_for_cmd_line_fptr(
+            //     Args.size(),
+            //     Args.data(),
+            //     &HostFXRInitInfo,
+            //     &Context);
+            // if (AppRC != Success || !Context)
+            // {std::cerr << "Init failed: " << std::hex << std::showbase << AppRC << std::endl;
+            //     LOG_FATAL("Failed to initialize App (error:{})!", AppRC);
+            // }
 
             // if (Fn_InitializeRuntime(
             //     ConfigPath.GetNativePath().c_str(),

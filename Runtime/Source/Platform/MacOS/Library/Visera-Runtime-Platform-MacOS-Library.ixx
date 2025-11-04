@@ -41,13 +41,11 @@ namespace Visera
     FMacOSLibrary(const FPath& I_Path)
     : ILibrary{I_Path}
     {
-        LOG_TRACE("Loading MacOS library {}", Path);
+        LOG_TRACE("Loading MacOS library {}", Path.GetNativePath().c_str());
 
-        Handle = dlopen(I_Path.GetNativePath().c_str(), RTLD_LAZY);
+        Handle = dlopen(I_Path.GetNativePath().c_str(), RTLD_NOW | RTLD_GLOBAL);
         if (!Handle)
-        {
-            LOG_ERROR("Failed to load the library \"{}\"", Path);
-        }
+        { LOG_ERROR("Failed to load the library \"{}\"", Path); }
     }
 
     FMacOSLibrary::
