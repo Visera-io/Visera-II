@@ -66,6 +66,9 @@ namespace Visera
                 (HostFXR->LoadFunction("hostfxr_run_app"));
             Fn_FinalizeRuntime = reinterpret_cast<hostfxr_close_fn>
                 (HostFXR->LoadFunction("hostfxr_close"));
+            auto init_for_cmd_line_fptr = reinterpret_cast<hostfxr_initialize_for_dotnet_command_line_fn>
+                (HostFXR->LoadFunction("hostfxr_initialize_for_dotnet_command_line"));
+
 
             using hostfxr_set_error_writer_fn = void (*)(hostfxr_error_writer_fn);
             auto Fn_SetErrorWriter = reinterpret_cast<hostfxr_set_error_writer_fn>(
@@ -79,37 +82,54 @@ namespace Visera
             else { LOG_ERROR("Failed to set the HostFXR error messenger!"); }
 
             LOG_TRACE("Initializing HostFXR.");
+            TArray<const char_t*> Args
+            {
+                L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/bin/Release/net10.0/Script.dll",
+                L"app_arg_1",
+                L"app_arg_2",
+            };
+
             auto HostFXRInitInfo = hostfxr_initialize_parameters
             {
                 .dotnet_root = DotNETRoot.GetNativePath().c_str(),
             };
-            if (Fn_InitializeRuntime(
-                ConfigPath.GetNativePath().c_str(),
+
+            auto AppRC = init_for_cmd_line_fptr(
+                Args.size(),
+                Args.data(),
                 &HostFXRInitInfo,
-                &Context) != Success || !Context)
-            { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
+                &Context);
+            if (AppRC != Success || !Context)
+            {std::cerr << "Init failed: " << std::hex << std::showbase << AppRC << std::endl;
+                LOG_FATAL("Failed to initialize App (error:{})!", AppRC);
+            }
+
+            // if (Fn_InitializeRuntime(
+            //     ConfigPath.GetNativePath().c_str(),
+            //     &HostFXRInitInfo,
+            //     &Context) != Success || !Context)
+            // { LOG_FATAL("Failed to initialize HostFXR runtime!"); }
 
             LOG_TRACE("Extracting HostFXR delegate.");
+            get_function_pointer_fn Fn_GetFunction;
             if (Fn_GetRuntimeDelegate(
                 Context,
                 hdt_get_function_pointer,
-                reinterpret_cast<void**>(&Fn_LoadAssemblyAndGetFunctionPointer)) != Success ||
-                !Fn_LoadAssemblyAndGetFunctionPointer)
+                reinterpret_cast<void**>(&Fn_GetFunction)) != Success ||
+                !Fn_GetFunction)
             { LOG_FATAL("Failed to extract HostFXR delegate!"); }
 
-            LOG_TRACE("Running HostFXR App.");
-            Fn_RunApp(Context);
-
-            // Function pointer to managed delegate
-            component_entry_point_fn hello = nullptr;
-            // int rc = Fn_LoadAssemblyAndGetFunctionPointer(
-            //     L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/DotNetLib/bin/Release/net9.0/DotNetLib.dll",
-            //     L"DotNetLib.Lib, DotNetLib",
+            // // Function pointer to managed delegate
+            // component_entry_point_fn hello = nullptr;
+            // int rc = Fn_GetFunction(
+            //     //L"D:/Programs/ViseraEngine/Visera-II/Apps/AlohaVisera/Assets/Script/DotNetLib/bin/Release/net10.0/Script.dll",
+            //     L"App, App",
             //     L"Hello",
-            //     nullptr /*delegate_type_name*/,
+            //     UNMANAGEDCALLERSONLY_METHOD /*delegate_type_name*/,
+            //     nullptr,
             //     nullptr,
             //     (void**)&hello);
-            // assert(rc == 0 && hello != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+            // VISERA_ASSERT(rc == Success && hello != nullptr && "Failure: load_assembly_and_get_function_pointer()");
             // struct lib_args
             // {
             //     const char_t *message;
@@ -127,6 +147,9 @@ namespace Visera
             //     hello(&args, sizeof(args));
             //     // </SnippetCallManaged>
             // }
+
+            LOG_TRACE("Running HostFXR App.");
+            Fn_RunApp(Context);
         }
     };
 
