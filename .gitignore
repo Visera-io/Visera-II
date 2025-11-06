@@ -9,3 +9,7 @@ cmake-build*/
 *.pdb
 *.dll
 *.dylib
+<<<<<<< Updated upstream
+=======
+/Apps/AlohaVisera/Assets/Binaries
+>>>>>>> Stashed changes

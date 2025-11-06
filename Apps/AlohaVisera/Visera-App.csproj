@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+      <OutputType>Library</OutputType>
+      <TargetFramework>net9.0</TargetFramework>
+      <AssemblyName>Visera-App</AssemblyName>
+      <RootNamespace>Visera.App</RootNamespace>
+      <Nullable>enable</Nullable>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+      <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    </PropertyGroup>
+
+  <!-- Grab everything under Assets/Script/ recursively -->
+  <ItemGroup>
+    <Compile Include="Assets/Script/*.cs" />
+  </ItemGroup>
+</Project>

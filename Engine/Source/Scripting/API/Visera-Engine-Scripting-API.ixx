@@ -12,9 +12,17 @@ extern "C"
 export namespace Visera
 {
     CAPI(void)
-    Log(const char* I_Message)
+    Print(ELogLevel I_Level, const char* I_Module, const char* I_Message)
     {
-        LOG_WARN("{}", I_Message);
+        switch (I_Level)
+        {
+        case ELogLevel::Trace: GLog->Trace ("[M:{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Debug: GLog->Debug ("[M:{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Info:  GLog->Info  ("[M:{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Warn:  GLog->Warn  ("[M:{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Error: GLog->Error ("[M:{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Fatal: GLog->Fatal ("[M:{}] {}", I_Module, I_Message); break;
+        }
     }
 
     CAPI(void)
