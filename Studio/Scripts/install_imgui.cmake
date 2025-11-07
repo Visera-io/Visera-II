@@ -35,6 +35,7 @@ macro(link_imgui in_target)
                               glfw
                               freetype
         )
+        set_target_properties(ImGui PROPERTIES FOLDER "Visera/Studio/External/ImGui")
     endif()
 
     target_link_libraries(${in_target} PUBLIC ImGui)

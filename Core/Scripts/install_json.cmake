@@ -9,6 +9,7 @@ macro(link_json in_target)
         file(GLOB_RECURSE NOLOHMANN_MODULES ${VISERA_CORE_EXTERNAL_DIR}/NlohmannJSON)
         add_library(NlohmannJSON INTERFACE)
         target_include_directories(NlohmannJSON INTERFACE ${VISERA_CORE_EXTERNAL_DIR}/NlohmannJSON)
+        set_target_properties(NlohmannJSON PROPERTIES FOLDER "Visera/Core/External/NlohmannJSON")
     endif()
     
     target_link_libraries(${in_target} PUBLIC NlohmannJSON)

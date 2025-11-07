@@ -9,6 +9,7 @@ macro(link_eigen in_target)
         file(GLOB_RECURSE EIGEN_MODULES ${VISERA_CORE_EXTERNAL_DIR}/Eigen)
         add_library(Eigen INTERFACE)
         target_include_directories(Eigen INTERFACE ${VISERA_CORE_EXTERNAL_DIR}/Eigen)
+        set_target_properties(Eigen PROPERTIES FOLDER "Visera/Core/External/Eigen")
     endif()
 
     target_link_libraries(${in_target} PUBLIC Eigen)

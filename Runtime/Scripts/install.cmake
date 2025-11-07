@@ -72,3 +72,5 @@ target_sources(${VISERA_RUNTIME}
         PUBLIC
         FILE_SET "visera_runtime_modules" TYPE CXX_MODULES
         FILES ${VISERA_RUNTIME_MODULES})
+
+set_target_properties(${VISERA_RUNTIME} PROPERTIES FOLDER "Visera/Runtime")

@@ -72,3 +72,5 @@ target_sources(${VISERA_ENGINE}
                PUBLIC
                FILE_SET "visera_engine_modules" TYPE CXX_MODULES
                FILES ${VISERA_ENGINE_MODULES})
+
+set_target_properties(${VISERA_ENGINE} PROPERTIES FOLDER "Visera/Engine")

@@ -7,6 +7,7 @@ macro(link_vma in_target)
 
     if(NOT TARGET GPUOpen::VulkanMemoryAllocator)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/VMA)
+        set_target_properties(VulkanMemoryAllocator PROPERTIES FOLDER "Visera/Runtime/External/VMA")
     endif()
 
     target_link_libraries(${in_target} PUBLIC GPUOpen::VulkanMemoryAllocator)

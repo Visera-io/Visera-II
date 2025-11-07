@@ -14,6 +14,7 @@ macro(link_freetype in_target)
         set(SKIP_INSTALL_ALL TRUE CACHE BOOL "Skip FreeType install rules" FORCE)
 
         add_subdirectory(${VISERA_STUDIO_EXTERNAL_DIR}/FreeType)
+        set_target_properties(freetype PROPERTIES FOLDER "Visera/Studio/External/FreeType")
     endif()
 
     target_link_libraries(${in_target} PUBLIC freetype)

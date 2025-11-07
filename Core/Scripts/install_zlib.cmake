@@ -19,7 +19,8 @@ macro(link_zlib in_target)
         # libpng expects zlib to be a modern CMake package, let's make an alias for it
         add_library(ZLIB::ZLIB ALIAS zlib)
         target_include_directories(zlib PUBLIC "${VISERA_CORE_EXTERNAL_DIR}/ZLib")
-
+        set_target_properties(zlib PROPERTIES FOLDER "Visera/Core/External/ZLib")
+        set_target_properties(zlibstatic PROPERTIES FOLDER "Visera/Core/External/ZLib")
     endif()
 
     target_link_libraries(${in_target} PUBLIC ZLIB::ZLIB)

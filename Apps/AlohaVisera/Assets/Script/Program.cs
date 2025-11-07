@@ -33,7 +33,6 @@ internal static class Log
     Fatal(string I_Module, string I_Message) => Print(ELevel.Fatal, I_Module, I_Message);
 }
 
-
 class Program
 {
     static int Main()

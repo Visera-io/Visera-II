@@ -156,8 +156,11 @@ macro(link_dotnet in_target)
         message(FATAL_ERROR "Unsupported platform!")
     endif ()
 
-    target_include_directories(${in_target} PRIVATE ${VISERA_ENGINE_EXTERNAL_DIR}/DotNET)
+    target_include_directories(${in_target} PRIVATE "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET")
     target_link_libraries(${in_target} PRIVATE ${NETHOST_LIBRARY})
+
+    add_custom_target(DotNET)
+    set_target_properties(DotNET PROPERTIES FOLDER "Visera/Engine/External/.NET")
 
     add_custom_command(
         TARGET ${in_target}

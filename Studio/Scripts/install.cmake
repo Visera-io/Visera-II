@@ -66,3 +66,5 @@ target_sources(${VISERA_STUDIO}
                PUBLIC
                FILE_SET "visera_studio_modules" TYPE CXX_MODULES
                FILES ${VISERA_STUDIO_MODULES})
+
+set_target_properties(${VISERA_STUDIO} PROPERTIES FOLDER "Visera/Studio")

@@ -7,6 +7,7 @@ macro(link_ankerl in_target)
 
     if(NOT TARGET unordered_dense::unordered_dense)
         add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/Ankerl)
+        set_target_properties(unordered_dense PROPERTIES FOLDER "Visera/Core/External/Ankerl")
     endif()
     target_link_libraries(${in_target} PUBLIC unordered_dense::unordered_dense)
 endmacro()

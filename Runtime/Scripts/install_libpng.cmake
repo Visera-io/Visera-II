@@ -25,6 +25,8 @@ macro(link_libpng in_target)
         
         # Ensure LibPNG can find the Zlib target from Core
         target_link_libraries(png PRIVATE ZLIB::ZLIB)
+        set_target_properties(png PROPERTIES FOLDER "Visera/Runtime/External/LibPNG")
+        set_target_properties(png_genfiles PROPERTIES FOLDER "Visera/Runtime/External/LibPNG")
     endif()
     
     add_custom_command(

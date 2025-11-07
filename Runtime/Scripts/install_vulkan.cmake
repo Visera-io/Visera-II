@@ -40,6 +40,9 @@ macro(link_vulkan in_target)
         else()
             message(FATAL_ERROR "Could not determine Vulkan SDK version.")
         endif()
+
+        add_custom_target(Vulkan)
+        set_target_properties(Vulkan PROPERTIES FOLDER "Visera/Runtime/External/Vulkan")
     endif()
 
     find_package(Vulkan REQUIRED)

@@ -7,6 +7,8 @@ macro(link_wwise in_target)
 
     if(NOT TARGET Wwise)
         add_subdirectory(${VISERA_ENGINE_EXTERNAL_DIR}/Wwise)
+        set_target_properties(Wwise PROPERTIES FOLDER "Visera/Engine/External/Wwise")
+        set_target_properties(WwiseSamples PROPERTIES FOLDER "Visera/Engine/External/Wwise")
     endif()
 
     target_link_libraries(${in_target} PUBLIC

@@ -7,8 +7,12 @@ macro(link_glfw in_target)
     
     if(NOT TARGET glfw)
         option(BUILD_SHARED_LIBS "Build shared libraries"       ON) # Call GLFW in Many Modules
-        option(GLFW_BUILD_DOCS   "Build the GLFW documentation" ON)
+        option(GLFW_BUILD_DOCS   "Build the GLFW documentation" OFF)
+        option(GLFW_INSTALL "Generate installation target"      OFF)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/GLFW)
+        set_target_properties(glfw PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
+        set_target_properties(uninstall PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
+        set_target_properties(update_mappings PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
     endif()
 
     target_link_libraries(${in_target} PUBLIC glfw)

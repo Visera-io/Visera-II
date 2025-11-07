@@ -7,6 +7,7 @@ macro(link_bvh in_target)
 
     if(NOT TARGET bvh)
         add_subdirectory(${VISERA_ENGINE_EXTERNAL_DIR}/BVH)
+        set_target_properties(bvh PROPERTIES FOLDER "Visera/Engine/External/BVH")
     endif()
 
     target_link_libraries(${in_target} PUBLIC bvh)
