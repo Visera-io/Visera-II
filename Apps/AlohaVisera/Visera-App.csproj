@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+      <AssemblyName>Visera-App</AssemblyName>
       <OutputType>Library</OutputType>
       <TargetFramework>net9.0</TargetFramework>
-      <AssemblyName>Visera-App</AssemblyName>
-      <RootNamespace>Visera.App</RootNamespace>
+      <!-- RootNamespace>Visera.App</RootNamespace -->
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
       <Nullable>enable</Nullable>
       <ImplicitUsings>enable</ImplicitUsings>
       <EnableDefaultCompileItems>false</EnableDefaultCompileItems>

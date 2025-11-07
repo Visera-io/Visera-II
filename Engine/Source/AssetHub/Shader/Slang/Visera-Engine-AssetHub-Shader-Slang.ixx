@@ -92,6 +92,7 @@ namespace Visera
 	FSlangCompiler::
 	~FSlangCompiler()
     {
+        Session->Handle.setNull();
     	Session.reset();
 		slang::shutdown();
     }

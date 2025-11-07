@@ -6,6 +6,7 @@ import Visera.Demos;
 import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
+import Visera.Engine.Scripting.DotNET;
 import Visera.Studio;
 using namespace Visera;
 
@@ -47,13 +48,25 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_Galaxy", ID);
 
-        auto App = GScripting->CreateCommandLineApp(
-{
-            PATH("Test/Foo/bin/Debug/net10.0/Foo.dll"),
-            PATH("LJYC"),
+        FDotNETComponent AppLib{};
+        auto HelloWorld = AppLib.GetFunction(PLATFORM_STRING("HelloWorld"));
+        if (!HelloWorld)
+        { LOG_FATAL("Failed to load the \"HelloWorld\"!"); }
+
+        FWideString Author = PLATFORM_STRING("LJYC");
+        for (UInt32 Idx = 0; Idx < 1024; ++Idx)
+        {
+            FWideString Name = FWideString(L"LJYC ") + std::to_wstring(Idx+1);
+            HelloWorld(Name.data(), Name.size());
         }
-        );
-        App->Run();
+
+//         auto App = GScripting->CreateCommandLineApp(
+// {
+//             PATH("Test/Foo/bin/Debug/net10.0/Foo.dll"),
+//             PATH("LJYC"),
+//         }
+//         );
+//         App->Run();
 
         GEngine->Run();
 

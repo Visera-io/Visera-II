@@ -33,17 +33,17 @@ internal static class Log
     Fatal(string I_Module, string I_Message) => Print(ELevel.Fatal, I_Module, I_Message);
 }
 
-class Program
+public static class App
 {
-    static int Main()
+    //[UnmanagedCallersOnly]
+    public static int
+    HelloWorld(IntPtr Data, int Size) // https://github.com/dotnet/docs/issues/31796?utm_source=chatgpt.com
     {
-        for(int i = 0; i < 1; ++i)
-        {
-            Log.Info("C#", $"Hello World {i}!");
-        }
-        Visera.SetWindowTitle("Hello World");
+        string Author = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                        ? Marshal.PtrToStringUni(Data)
+                        : Marshal.PtrToStringUTF8(Data);
 
-
+        Log.Info("C#", $"Hello World! - {Author}");
         return 0;
     }
 }

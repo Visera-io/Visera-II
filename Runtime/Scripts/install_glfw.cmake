@@ -11,7 +11,6 @@ macro(link_glfw in_target)
         option(GLFW_INSTALL "Generate installation target"      OFF)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/GLFW)
         set_target_properties(glfw PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
-        set_target_properties(uninstall PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
         set_target_properties(update_mappings PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
     endif()
 
