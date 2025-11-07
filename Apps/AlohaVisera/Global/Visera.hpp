@@ -1,5 +1,5 @@
 #pragma once
-#include <Visera-Core.hpp>
-#if defined(VISERA_CORE_API)
-#undef VISERA_CORE_API
+#include <Visera-Engine.hpp>
+#if defined(VISERA_ENGINE_API)
+#undef VISERA_ENGINE_API
 #endif

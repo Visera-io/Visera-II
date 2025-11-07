@@ -47,6 +47,14 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_Galaxy", ID);
 
+        auto App = GScripting->CreateCommandLineApp(
+{
+            PATH("Test/Foo/bin/Debug/net10.0/Foo.dll"),
+            PATH("LJYC"),
+        }
+        );
+        App->Run();
+
         GEngine->Run();
 
         GStudio->Terminate();
