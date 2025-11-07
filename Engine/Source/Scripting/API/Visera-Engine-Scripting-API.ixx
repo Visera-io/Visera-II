@@ -26,13 +26,15 @@ export namespace Visera
     }
 
     CAPI(void)
-    Fatal(const char* I_Message)\
-    { LOG_FATAL("{}", I_Message); }
-
-    CAPI(void)
     SetWindowTitle(const char* I_Title)
     {
         GWindow->SetTitle(I_Title);
+    }
+
+    CAPI(void)
+    ResizeWindow(Int32 I_Width, Int32 I_Height)
+    {
+        GWindow->SetSize(I_Width, I_Height);
     }
 }
 }

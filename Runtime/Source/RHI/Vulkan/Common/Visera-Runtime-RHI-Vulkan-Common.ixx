@@ -23,6 +23,8 @@ export namespace Visera::RHI
     using EVulkanImageTiling   = vk::ImageTiling;
     using EVulkanDescriptorType= vk::DescriptorType;
     using EVulkanBufferUsage   = vk::BufferUsageFlagBits;
+    using EVulkanPresentMode   = vk::PresentModeKHR;
+    using EVulkanColorSpace    = vk::ColorSpaceKHR;
 
     using FVulkanExtent2D      = vk::Extent2D;
     using FVulkanExtent3D      = vk::Extent3D;
@@ -66,6 +68,37 @@ struct fmt::formatter<RHI::EVulkanImageLayout>
         case RHI::EVulkanImageLayout::eTransferSrcOptimal:                Name = "TransferSource"; break;
         case RHI::EVulkanImageLayout::eTransferDstOptimal:                Name = "TransferDestination"; break;
         case RHI::EVulkanImageLayout::ePresentSrcKHR:                     Name = "Present"; break;
+        default: break;
+        }
+        return fmt::format_to(I_Context.out(),"{}", Name);
+    }
+};
+
+
+template <>
+struct fmt::formatter<RHI::EVulkanPresentMode>
+{
+    // Parse format specifiers (if any)
+    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
+    {
+        return I_Context.begin();  // No custom formatting yet
+    }
+
+    // Corrected format function with const-correctness
+    template <typename FormatContext>
+    auto format(RHI::EVulkanPresentMode I_ImageLayout, FormatContext& I_Context) const
+    -> decltype(I_Context.out())
+    {
+        const char* Name = "Unknown";
+        switch (I_ImageLayout)
+        {
+        case RHI::EVulkanPresentMode::eImmediate:               Name = "Immediate"; break;
+        case RHI::EVulkanPresentMode::eMailbox:                 Name = "Mailbox"; break;
+        case RHI::EVulkanPresentMode::eFifo:                    Name = "FIFO"; break;
+        case RHI::EVulkanPresentMode::eFifoRelaxed:             Name = "FIFO Relaxed"; break;
+        case RHI::EVulkanPresentMode::eSharedDemandRefresh:     Name = "Shared Demand Refresh"; break;
+        case RHI::EVulkanPresentMode::eSharedContinuousRefresh: Name = "Shared Continuous Refresh"; break;
+        case RHI::EVulkanPresentMode::eFifoLatestReady:         Name = "FIFO Latest Ready"; break;
         default: break;
         }
         return fmt::format_to(I_Context.out(),"{}", Name);

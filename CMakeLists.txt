@@ -89,3 +89,11 @@ add_subdirectory(${VISERA_RUNTIME_DIR})
 add_subdirectory(${VISERA_ENGINE_DIR})
 add_subdirectory(${VISERA_STUDIO_DIR})
 add_subdirectory(${VISERA_APP_DIR})
+
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+message(STATUS "Configuring Visual Studio properties...")
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR}
+    PROPERTY VS_STARTUP_PROJECT ${VISERA_APP})
+set_property(TARGET ${VISERA_APP}
+    PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+endif()

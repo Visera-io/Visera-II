@@ -76,11 +76,11 @@ namespace Visera::RHI
             UInt32                                  Cursor     {0};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
-            vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
-            vk::ColorSpaceKHR       ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
+            vk::Format              ImageFormat {EVulkanFormat::eB8G8R8A8Srgb};
+            vk::ColorSpaceKHR       ColorSpace  {EVulkanColorSpace::eSrgbNonlinear};
             UInt32                  MinimalImageCount{3};
-            vk::PresentModeKHR      PresentMode {vk::PresentModeKHR::eFifo};
-            vk::SharingMode         SharingMode {vk::SharingMode::eExclusive};
+            vk::PresentModeKHR      PresentMode {EVulkanPresentMode::eMailbox};
+            vk::SharingMode         SharingMode {EVulkanSharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                          bClipped       {True};
         }SwapChain;
@@ -705,7 +705,11 @@ namespace Visera::RHI
                 { bFoundRequiredPresentMode = True; break; }
             }
             if (!bFoundRequiredPresentMode)
-            { LOG_FATAL("Failed to find required present mode for SwapChain!"); }
+            {
+                LOG_ERROR("Failed to find required present mode \"{}\" for SwapChain!"
+                          "-- Using FIFO present mode by default.", SwapChain.PresentMode);
+                SwapChain.PresentMode = EVulkanPresentMode::eFifo;
+            }
         }
 
         // Check Image Format and Color Space

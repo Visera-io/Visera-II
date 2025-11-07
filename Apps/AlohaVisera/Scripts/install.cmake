@@ -30,7 +30,7 @@ target_link_libraries(${VISERA_APP}
         Visera::Studio
 )
 
-# App Icon
+# <<App Icon>>
 if(MSVC)
     enable_language(RC)
     # Optional: Set icon path variable (if you want to make it configurable)
