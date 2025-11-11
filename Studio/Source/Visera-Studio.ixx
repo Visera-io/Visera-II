@@ -13,7 +13,7 @@ import Visera.Runtime;
 
 namespace Visera
 {
-    class VISERA_STUDIO_API FStudio
+    export class VISERA_STUDIO_API FStudio
     {
     public:
         void inline

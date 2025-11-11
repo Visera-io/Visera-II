@@ -6,7 +6,7 @@ import Visera.Core.Log;
 
 namespace Visera
 {
-    class VISERA_ENGINE_API FUI
+    export class VISERA_ENGINE_API FUI
     {
 
     };

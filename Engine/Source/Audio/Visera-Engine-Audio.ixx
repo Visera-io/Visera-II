@@ -36,7 +36,7 @@ namespace Visera
             }
         }
         [[nodiscard]] inline FToken
-        Register(TSharedPtr<FSound> I_Sound);
+        Register(TSharedRef<FSound> I_Sound);
         [[nodiscard]] inline FEventID
         PostEvent(FStringView I_Event, FToken I_Token);
 
@@ -88,7 +88,7 @@ namespace Visera
     }
 
     FAudio::FToken FAudio::
-    Register(TSharedPtr<FSound> I_Sound)
+    Register(TSharedRef<FSound> I_Sound)
     {
         auto& Token = Playlist[I_Sound->GetName()];
 
