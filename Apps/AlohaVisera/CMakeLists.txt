@@ -23,9 +23,12 @@ add_custom_target(
     COMMAND
     ${DOTNET_EXECUTABLE} build "Visera-App.csproj"
     -c $<IF:$<CONFIG:Release>,Release,Debug>
+
+    -p:VISERA_ENGINE_APIS=${VISERA_ENGINE_DIR}/APIs/
+
     -p:OutputPath=$<TARGET_FILE_DIR:${VISERA_APP}>/
-    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/DotNET/
-    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/DotNET/
+    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
+    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
 
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

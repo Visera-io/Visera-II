@@ -24,6 +24,24 @@ public:
 export int main(int argc, char *argv[])
 {
     GLog->Bootstrap();
+
+    LOG_WARN("Practicing C#.");
+    {
+        GPlatform->Bootstrap();
+        GScripting->Bootstrap();
+
+        if (auto AppMain = GScripting->GetFunction(PLATFORM_STRING("Main")))
+        {
+            AppMain(nullptr, 0);
+        }
+        else LOG_FATAL("Failed to load the \"Main\"!");
+
+        GScripting->Terminate();
+        GPlatform->Terminate();
+        GLog->Terminate();
+        return 0;
+    }
+
     GEngine->Bootstrap();
     {
         GStudio->Bootstrap();
@@ -35,8 +53,7 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_Galaxy", ID);
 
-        FDotNETComponent AppLib{};
-        auto HelloWorld = AppLib.GetFunction(PLATFORM_STRING("HelloWorld"));
+        auto HelloWorld = GScripting->GetFunction(PLATFORM_STRING("HelloWorld"));
         if (HelloWorld)
         {
             FPlatformString Author = PLATFORM_STRING("LJYC");
@@ -47,11 +64,6 @@ export int main(int argc, char *argv[])
             }
         }
         else {LOG_WARN("Failed to load the \"HelloWorld\"!");}
-
-        if (auto AppMain = AppLib.GetFunction(PLATFORM_STRING("Main")))
-        {
-            AppMain(nullptr, 0);
-        }
 
         GEngine->Run();
         GStudio->Terminate();

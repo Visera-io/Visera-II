@@ -7,6 +7,7 @@ export module Visera.Engine.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Engine.Scripting"
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
+import Visera.Core.OS.FileSystem;
 import Visera.Runtime.Platform;
 
 namespace Visera
@@ -43,13 +44,16 @@ namespace Visera
 
     private:
         hostfxr_handle          Context             {nullptr};
+        FPath                   DLLPath;
         FPath                   RuntimeConfigPath;
         TMap<FPlatformString, FFunction> Functions;
         load_assembly_and_get_function_pointer_fn
         LoadAssemblyAndGetFunctionPointer {nullptr};
 
     public:
-        FDotNETComponent();
+        FDotNETComponent() = delete;
+        FDotNETComponent(const FPath& I_DLLPath,
+                         const FPath& I_RuntimeConfigPath);
     };
 
     export class VISERA_ENGINE_API FDotNETApplication
@@ -63,7 +67,7 @@ namespace Visera
 
     private:
         hostfxr_handle  Context           {nullptr};
-        FPath           RuntimeConfigPath {};//{VISERA_ENGINE_DIR "/Global/Visera-DotNETConfig.json"};
+        FPath           RuntimeConfigPath {};
         TArray<FPath>   Args{};
         get_function_pointer_fn GetFunctionPointer  {nullptr};
 
@@ -80,6 +84,8 @@ namespace Visera
     export class VISERA_ENGINE_API FDotNET
     {
     public:
+        [[nodiscard]] inline TSharedPtr<FDotNETComponent>
+        CreateComponent(const FPath& I_DLLPath, const FPath& I_RuntimeConfigPath) const;
         [[nodiscard]] inline TSharedPtr<FDotNETApplication>
         CreateCommandLineApp(TArray<FPath>&& I_Args) const;
 
@@ -129,7 +135,6 @@ namespace Visera
         auto& Function = Functions[I_Name.data()];
         if (!Function)
         {
-            static const auto DLLPath = GPlatform->GetExecutableDirectory() / PATH("Visera-App.dll");
             auto Result = LoadAssemblyAndGetFunctionPointer(
                 DLLPath.GetNativePath().c_str(), // [WARN]: Use .dll instead of .dylib on MacOS!
                 PLATFORM_STRING("App, Visera-App"),
@@ -141,10 +146,19 @@ namespace Visera
             if (Result != HostFXR::Success || !Function )
             {
                 LOG_ERROR("Failed to load the function \"{}\" from \"{}\" (error:{})!",
-                          FText::ToUTF8(I_Name.data()), RuntimeConfigPath, Result);
+                          FText::ToUTF8(I_Name.data()), DLLPath, Result);
             }
         }
         return Function;
+    }
+
+    TSharedPtr<FDotNETComponent> FDotNET::
+    CreateComponent(const FPath& I_DLLPath,
+                    const FPath& I_RuntimeConfigPath) const
+    {
+        LOG_DEBUG("Creating a component (path:{}, config:{}).",
+                  I_DLLPath, I_RuntimeConfigPath);
+        return MakeShared<FDotNETComponent>(I_DLLPath, I_RuntimeConfigPath);
     }
 
     TSharedPtr<FDotNETApplication> FDotNET::
@@ -153,26 +167,30 @@ namespace Visera
         if (I_Args.empty())
         { LOG_ERROR("Empty arguments!"); return {}; }
 
-        LOG_DEBUG("Creating a commandline App (name:{}).", I_Args[0]);
+        LOG_DEBUG("Creating a commandline App (path:{}).", I_Args[0]);
         return MakeShared<FDotNETApplication>(std::move(I_Args));
     }
 
     FDotNETComponent::
-    FDotNETComponent()
+    FDotNETComponent(const FPath& I_DLLPath,
+                     const FPath& I_RuntimeConfigPath)
+    : DLLPath           (I_DLLPath),
+      RuntimeConfigPath (I_RuntimeConfigPath)
     {
+        VISERA_ASSERT(FFileSystem::Exists(DLLPath));
+        VISERA_ASSERT(FFileSystem::Exists(RuntimeConfigPath));
+
         auto HostFXRInitInfo = hostfxr_initialize_parameters
         {
             .dotnet_root = HostFXR::DotNETRoot.GetNativePath().c_str(),
         };
-        //[TODO]: Remove this test code
-        RuntimeConfigPath = FPath{VISERA_ENGINE_DIR "/Global/Visera-Scripting.json"};
         if (HostFXR::InitializeForRuntimeConfig(
             RuntimeConfigPath.GetNativePath().c_str(),
             &HostFXRInitInfo,
             &Context) != HostFXR::Success || !Context)
         {
-            LOG_ERROR("Failed to initialize Component (path:\"{}\")!",
-                      RuntimeConfigPath);
+            LOG_ERROR("Failed to initialize Component (path:{}, config:{})!",
+                      DLLPath, RuntimeConfigPath);
             return;
         }
 
@@ -182,8 +200,8 @@ namespace Visera
             reinterpret_cast<void**>(&LoadAssemblyAndGetFunctionPointer)) != HostFXR::Success ||
             !LoadAssemblyAndGetFunctionPointer)
         {
-            LOG_ERROR("Failed to load function pointer for \"{}\"!",
-                      RuntimeConfigPath);
+            LOG_ERROR("Failed to load function pointer (path:{}, config:{})!",
+                      DLLPath, RuntimeConfigPath);
             return;
         }
     }
@@ -194,7 +212,7 @@ namespace Visera
     {
         VISERA_ASSERT(!Args.empty());
         RuntimeConfigPath = Args[0];
-        LOG_DEBUG("Initializing App (path:\"{}\").", RuntimeConfigPath);
+        LOG_DEBUG("Initializing App (path:{}).", RuntimeConfigPath);
 
         TArray<const char_t*> Argv(I_Args.size());
         for (UInt8 Idx = 0; Idx < Args.size(); Idx++)
@@ -214,7 +232,7 @@ namespace Visera
             &Context);
         if (Status != HostFXR::Success || !Context)
         { 
-            LOG_ERROR("Failed to initialize App (name:{}, error:{})!",
+            LOG_ERROR("Failed to initialize App (path:{}, error:{})!",
                       RuntimeConfigPath, Status);
             return;
         }

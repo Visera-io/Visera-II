@@ -9,11 +9,6 @@
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 	#define VISERA_CORE_API __declspec(dllexport)
-	// #if defined(VISERA_CORE_BUILD_SHARED)
-	// 	#define VISERA_CORE_API __declspec(dllexport)
-	// #else
-	// 	#define VISERA_CORE_API __declspec(dllimport)
-	// #endif
 #else
 	#define VISERA_CORE_API __attribute__((visibility("default")))
 #endif

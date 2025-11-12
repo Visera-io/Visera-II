@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-      <AssemblyName>Visera-App</AssemblyName>
-      <OutputType>Library</OutputType>
-      <TargetFramework>net10.0</TargetFramework>
-      <!-- RootNamespace>Visera.App</RootNamespace -->
-      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-      <Nullable>enable</Nullable>
-      <ImplicitUsings>enable</ImplicitUsings>
-      <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-      <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <PropertyGroup>
+        <AssemblyName>Visera-App</AssemblyName>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <!-- RootNamespace>Visera.App</RootNamespace -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
-  <!-- Grab everything under Assets/Script/ recursively -->
-  <ItemGroup>
-    <Compile Include="Assets/Script/*.cs" />
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Include="$(VISERA_ENGINE_APIS)/**/*.cs"/>
+        <Compile Include="Assets/Script/**/*.cs"/>
+    </ItemGroup>
 </Project>
