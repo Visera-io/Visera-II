@@ -77,7 +77,7 @@ namespace Visera
                 AK::Comm::GetDefaultInitSettings(CommunicationSettings );
                 AKPLATFORM::SafeStrCpy(
                     CommunicationSettings.szAppNetworkName,
-                    reinterpret_cast<const char*>(VISERA_APP),
+                    VISERA_APP,
                     AK_COMM_SETTINGS_MAX_STRING_SIZE);
                 if (AK::Comm::Init(CommunicationSettings) != AK_Success)
                 { LOG_FATAL("Failed to initialize music communication!"); }

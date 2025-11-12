@@ -217,9 +217,9 @@ namespace Visera::RHI
     FVulkanDriver()
     {
         AppInfo = vk::ApplicationInfo{}
-        .setPApplicationName    (reinterpret_cast<const char*>(VISERA_APP))
+        .setPApplicationName    (VISERA_APP)
         .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
-        .setPEngineName         (reinterpret_cast<const char*>(u8"Visera"))
+        .setPEngineName         ("Visera")
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
         .setApiVersion          (vk::ApiVersion13);
 

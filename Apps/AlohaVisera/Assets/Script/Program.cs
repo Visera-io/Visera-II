@@ -22,6 +22,7 @@ public static class App
         Log.Info("C#", "Running Visera App...");
         var Num = 10;
         Log.Info("C#", "Windows" + 1 + 1);
+        Log.Info("C#", $"{Hash.CityHash64("Hello World!")}");
 
         return 0;
     }

@@ -66,9 +66,9 @@ namespace Visera
         Handle = glfwCreateWindow(
             Width, Height, //[TODO] read from config (save the last scale).
 #if !defined(VISERA_RELEASE_MODE)
-            reinterpret_cast<const char*>(u8"Visera"),
+            "Visera", // The App name is used as the Editor's main window.
 #else
-            reinterpret_cast<const char*>(VISERA_APP),
+            VISERA_APP,
 #endif
             nullptr,
             nullptr);
