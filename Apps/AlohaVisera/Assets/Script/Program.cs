@@ -45,4 +45,15 @@ public static class App
         Log.Info("C#", $"Hello World! - {Author}");
         return 0;
     }
+
+    public static int
+    Main(IntPtr Data, int Size)
+    {
+        Log.Info("C#", "Running Visera App...");
+
+        
+
+        Log.Fatal("C#", "Ending for debug...");
+        return 0;
+    }
 }

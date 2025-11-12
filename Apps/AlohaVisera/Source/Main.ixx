@@ -23,19 +23,6 @@ public:
 
 export int main(int argc, char *argv[])
 {
-    //
-    // FHiResClock Clock{};
-    // for (int i = 0; i < 1; ++i)
-    // {
-    //     auto Instance = GScene->CreateObject<Foo>(FName(Format("Foo_{}", i)));
-    //     LOG_DEBUG("[{}] {}", Instance->GetID(), Instance->GetName());
-    //     Instance->Update(1.02);
-    // }
-    // LOG_DEBUG("Test Time: {}ms", Clock.Elapsed().Milliseconds());
-    //
-    // //Demos
-    // //{ Demos::Compression Demo; }
-    //
     GLog->Bootstrap();
     GEngine->Bootstrap();
     {
@@ -61,17 +48,12 @@ export int main(int argc, char *argv[])
         }
         else {LOG_WARN("Failed to load the \"HelloWorld\"!");}
 
-
-//         auto App = GScripting->CreateCommandLineApp(
-// {
-//             PATH("Test/Foo/bin/Debug/net10.0/Foo.dll"),
-//             PATH("LJYC"),
-//         }
-//         );
-//         App->Run();
+        if (auto AppMain = AppLib.GetFunction(PLATFORM_STRING("Main")))
+        {
+            AppMain(nullptr, 0);
+        }
 
         GEngine->Run();
-
         GStudio->Terminate();
     }
     GEngine->Terminate();

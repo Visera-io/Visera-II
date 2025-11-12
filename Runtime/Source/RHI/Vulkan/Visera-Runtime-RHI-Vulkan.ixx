@@ -553,11 +553,9 @@ namespace Visera::RHI
             bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
                         !GPU.ComputeQueueFamilies.empty()  &&
                         !GPU.TransferQueueFamilies.empty();
-            if (GWindow->IsBootstrapped())
-            {
-                bSuitable &= !GPU.PresentQueueFamilies.empty();
-            }
-
+#if !defined(VISERA_OFFSCREEN_MODE)
+            bSuitable &= !GPU.PresentQueueFamilies.empty();
+#endif
             if (!bSuitable) { return False; }
 
             LOG_TRACE("Checking Extension supporting...");
