@@ -35,7 +35,6 @@ internal static class Log
 
 public static class App
 {
-    //[UnmanagedCallersOnly]
     public static int
     HelloWorld(IntPtr Data, int Size) // https://github.com/dotnet/docs/issues/31796?utm_source=chatgpt.com
     {

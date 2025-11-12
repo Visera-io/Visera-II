@@ -50,15 +50,17 @@ export int main(int argc, char *argv[])
 
         FDotNETComponent AppLib{};
         auto HelloWorld = AppLib.GetFunction(PLATFORM_STRING("HelloWorld"));
-        if (!HelloWorld)
-        { LOG_FATAL("Failed to load the \"HelloWorld\"!"); }
-
-        FWideString Author = PLATFORM_STRING("LJYC");
-        for (UInt32 Idx = 0; Idx < 1024; ++Idx)
+        if (HelloWorld)
         {
-            FWideString Name = FWideString(L"LJYC ") + std::to_wstring(Idx+1);
-            HelloWorld(Name.data(), Name.size());
+            FPlatformString Author = PLATFORM_STRING("LJYC");
+            for (UInt32 Idx = 0; Idx < 3; ++Idx)
+            {
+                FPlatformString Name = PLATFORM_STRING("LJYC");
+                HelloWorld(Name.data(), Name.size());
+            }
         }
+        else {LOG_WARN("Failed to load the \"HelloWorld\"!");}
+
 
 //         auto App = GScripting->CreateCommandLineApp(
 // {

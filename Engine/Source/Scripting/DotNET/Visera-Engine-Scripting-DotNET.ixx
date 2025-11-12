@@ -90,10 +90,10 @@ namespace Visera
     public:
         FDotNET()
         {
-            LOG_DEBUG("Initializing .NET");
+            LOG_TRACE("Initializing .NET");
             //[Optional]: Using the nethost library, discover the location of hostfxr and get exports
-            HostFXR = GPlatform->LoadLibrary(FPath{HOSTFXR_LIBRARY_NAME});
-            if (!HostFXR) { LOG_FATAL("Failed to load HostFXR"); }
+            HostFXR = GPlatform->LoadLibrary(GPlatform->GetExecutableDirectory() / FPath{HOSTFXR_LIBRARY_NAME});
+            if (!HostFXR->IsLoaded()) { LOG_FATAL("Failed to load HostFXR"); }
 
             LOG_TRACE("Loading HostFXR functions.");
             HostFXR::InitializeForRuntimeConfig = reinterpret_cast<hostfxr_initialize_for_runtime_config_fn>
@@ -119,7 +119,7 @@ namespace Visera
         }
         ~FDotNET()
         {
-            LOG_DEBUG("Terminating .NET");
+            LOG_TRACE("Terminating .NET");
         }
     };
 
@@ -129,12 +129,9 @@ namespace Visera
         auto& Function = Functions[I_Name.data()];
         if (!Function)
         {
+            static const auto DLLPath = GPlatform->GetExecutableDirectory() / PATH("Visera-App.dll");
             auto Result = LoadAssemblyAndGetFunctionPointer(
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-                L"Visera-App.dll",
-#else
-                "Visera-App.dylib"
-#endif
+                DLLPath.GetNativePath().c_str(), // [WARN]: Use .dll instead of .dylib on MacOS!
                 PLATFORM_STRING("App, Visera-App"),
                 I_Name.data(),
                 nullptr,

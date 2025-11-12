@@ -37,15 +37,22 @@ function(find_dotnet_installation)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-     # Extract runtime path from output
-     string(REGEX MATCH "Microsoft\\.NETCore\\.App (9\\.[0-9]+\\.[0-9]+) \\[[^]]+\\]" DOTNET_RUNTIME_MATCH "${DOTNET_RUNTIMES_OUTPUT}")
+    # Select the NEWEST Microsoft.NETCore.App runtime version from --list-runtimes
+    string(REGEX MATCHALL "Microsoft\\.NETCore\\.App ([0-9]+\\.[0-9]+\\.[0-9]+) \\[[^]]+\\]" DOTNET_RUNTIME_MATCHES "${DOTNET_RUNTIMES_OUTPUT}")
 
-     if(CMAKE_MATCH_1)
-         set(DOTNETCORE_RUNTIME_VERSION "${CMAKE_MATCH_1}" PARENT_SCOPE)
-         message(STATUS "Found .NETCore runtime version: ${CMAKE_MATCH_1}")
-     else()
-         message(FATAL_ERROR "Failed to find .NETCore runtime!")
-     endif()
+    if(DOTNET_RUNTIME_MATCHES)
+        set(DOTNET_MAX_VERSION "0.0.0")
+        foreach(Candidate IN LISTS DOTNET_RUNTIME_MATCHES)
+            string(REGEX REPLACE "Microsoft\\.NETCore\\.App ([0-9]+\\.[0-9]+\\.[0-9]+) \\[[^]]+\\]" "\\1" Version "${Candidate}")
+            if(Version VERSION_GREATER DOTNET_MAX_VERSION)
+                set(DOTNET_MAX_VERSION "${Version}")
+            endif()
+        endforeach()
+        set(DOTNETCORE_RUNTIME_VERSION "${DOTNET_MAX_VERSION}" PARENT_SCOPE)
+        message(STATUS "Selected newest .NETCore runtime version: ${DOTNET_MAX_VERSION}")
+    else()
+        message(FATAL_ERROR "Failed to find any Microsoft.NETCore.App runtime!")
+    endif()
 
     get_filename_component(DOTNET_ROOT_DIR ${DOTNET_EXECUTABLE} DIRECTORY)
 
@@ -103,25 +110,40 @@ function(find_nethost_library)
 endfunction()
 
 function(find_hostfxr_library)
-    # Look for nethost library in common locations
+    # Determine hostfxr library name per platform
     if(WIN32)
         set(HOSTFXR_DLL_NAMES "hostfxr.dll")
     else()
         set(HOSTFXR_DLL_NAMES "libhostfxr.a" "libhostfxr.so" "libhostfxr.dylib")
     endif()
 
-    # Search paths for hostfxr library
-    set(HOSTFXR_SEARCH_PATHS
-            "${DOTNET_ROOT_DIR}/host/fxr/${DOTNETCORE_RUNTIME_VERSION}"
-    )
+    # Scan all versions under host/fxr and pick the newest semver dir
+    file(GLOB _FXR_DIRS "${DOTNET_ROOT_DIR}/host/fxr/*")
+    set(_BEST_FXR_VER "")
+    set(_BEST_FXR_PATH "")
+    foreach(_dir IN LISTS _FXR_DIRS)
+        if(IS_DIRECTORY "${_dir}")
+            get_filename_component(_ver "${_dir}" NAME)
+            if(_ver MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+                if(_BEST_FXR_VER STREQUAL "" OR _ver VERSION_GREATER _BEST_FXR_VER)
+                    set(_BEST_FXR_VER "${_ver}")
+                    set(_BEST_FXR_PATH "${_dir}")
+                endif()
+            endif()
+        endif()
+    endforeach()
+
+    if(_BEST_FXR_PATH STREQUAL "")
+        message(FATAL_ERROR "Failed to locate hostfxr directory under ${DOTNET_ROOT_DIR}/host/fxr")
+    endif()
 
     find_file(HOSTFXR_DLL
-            NAMES ${HOSTFXR_DLL_NAMES}
-            PATHS ${HOSTFXR_SEARCH_PATHS}
-            NO_DEFAULT_PATH)
+        NAMES ${HOSTFXR_DLL_NAMES}
+        PATHS "${_BEST_FXR_PATH}"
+        NO_DEFAULT_PATH)
 
     if(NOT HOSTFXR_DLL)
-        message(FATAL_ERROR "Failed to find the hostfxr DLL!")
+        message(FATAL_ERROR "Failed to find the hostfxr library in ${_BEST_FXR_PATH}!")
     endif()
 
     message(STATUS "Found hostfxr DLL: ${HOSTFXR_DLL}")

@@ -240,7 +240,7 @@ namespace Visera
 	using FPlatformString = FWideString;
 	using FPlatformStringView = FWideStringView;
 #else
-	#define PLATFORM_STRING(I_String) ##I_String
+	#define PLATFORM_STRING(I_String) I_String
 	using FPlatformChar   = char;
 	using FPlatformString = FString;
 	using FPlatformStringView = FStringView;

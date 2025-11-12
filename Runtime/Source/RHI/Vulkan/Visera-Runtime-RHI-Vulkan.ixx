@@ -706,8 +706,8 @@ namespace Visera::RHI
             }
             if (!bFoundRequiredPresentMode)
             {
-                LOG_ERROR("Failed to find required present mode \"{}\" for SwapChain!"
-                          "-- Using FIFO present mode by default.", SwapChain.PresentMode);
+                LOG_ERROR("Failed to find required present mode {} for SwapChain!"
+                          "-- Using FIFO by default.", SwapChain.PresentMode);
                 SwapChain.PresentMode = EVulkanPresentMode::eFifo;
             }
         }

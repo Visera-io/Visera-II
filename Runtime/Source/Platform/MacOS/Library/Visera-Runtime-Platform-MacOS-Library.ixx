@@ -45,7 +45,10 @@ namespace Visera
 
         Handle = dlopen(I_Path.GetNativePath().c_str(), RTLD_NOW | RTLD_GLOBAL);
         if (!Handle)
-        { LOG_ERROR("Failed to load the library \"{}\"", Path); }
+        {
+            const char* Error = dlerror();
+            LOG_ERROR("Failed to load the library \"{}\" -- {}!", Path, Error);
+        }
     }
 
     FMacOSLibrary::

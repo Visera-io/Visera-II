@@ -2,7 +2,7 @@
   <PropertyGroup>
       <AssemblyName>Visera-App</AssemblyName>
       <OutputType>Library</OutputType>
-      <TargetFramework>net9.0</TargetFramework>
+      <TargetFramework>net10.0</TargetFramework>
       <!-- RootNamespace>Visera.App</RootNamespace -->
       <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
       <Nullable>enable</Nullable>
