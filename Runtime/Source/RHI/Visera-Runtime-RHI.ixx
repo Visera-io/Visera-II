@@ -1,17 +1,17 @@
 module;
 #include <Visera-Runtime.hpp>
+#include <vulkan/vulkan.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;
+       import Visera.Runtime.Media.Image;
        import Visera.Core.Types.Name;
        import Visera.Core.Log;
 
 namespace Visera
 {
-    using namespace RHI;
-
     export class VISERA_RUNTIME_API FRHI : public IGlobalSingleton<FRHI>
     {
     public:
@@ -22,8 +22,10 @@ namespace Visera
         inline void
         Present()     const { Driver->Present(); }
 
-        [[nodiscard]] inline TSharedPtr<FBuffer>
+        [[nodiscard]] inline TSharedPtr<RHI::FBuffer>
         CreateStagingBuffer(UInt64 I_Size);
+        [[nodiscard]] inline TSharedPtr<RHI::FImage>
+        CreateTexture2D(TSharedRef<FImage> I_Image);
 
         [[nodiscard]] inline Bool
         CreateRenderPass(const FName&                  I_Name,
@@ -92,15 +94,88 @@ namespace Visera
     }
 
 
-    TSharedPtr<FBuffer> FRHI::
+    TSharedPtr<RHI::FBuffer> FRHI::
     CreateStagingBuffer(UInt64 I_Size)
     {
         LOG_DEBUG("Creating a staging buffer ({} bytes).", I_Size);
         return Driver->CreateBuffer(
             I_Size,
-            EBufferUsage::eTransferSrc,
-            EMemoryPoolFlag::eHostAccessAllowTransferInstead |
-            EMemoryPoolFlag::eHostAccessSequentialWrite);
+            RHI::EBufferUsage::eTransferSrc,
+            RHI::EMemoryPoolFlag::eHostAccessAllowTransferInstead |
+            RHI::EMemoryPoolFlag::eHostAccessSequentialWrite);
     }
 
+
+    TSharedPtr<RHI::FImage> FRHI::
+    CreateTexture2D(TSharedRef<FImage> I_Image)
+    {
+        LOG_DEBUG("Creating a Texture2D (extent:[{},{}]).",
+                  I_Image->GetWidth(), I_Image->GetHeight());
+        RHI::EFormat Format = RHI::EFormat::eUndefined;
+        switch (I_Image->GetColorFormat())
+        {
+        case EColorFormat::RGB:
+            Format = I_Image->IsSRGB()?
+                     RHI::EFormat::eR8G8B8Srgb
+                     :
+                     RHI::EFormat::eR8G8B8Unorm;
+            break;
+        case EColorFormat::RGBA:
+            Format = I_Image->IsSRGB()?
+                     RHI::EFormat::eR8G8B8A8Srgb
+                     :
+                     RHI::EFormat::eR8G8B8A8Unorm;
+            break;
+        case EColorFormat::BGR:
+            Format = I_Image->IsSRGB()?
+                     RHI::EFormat::eB8G8R8Srgb
+                     :
+                     RHI::EFormat::eB8G8R8Unorm;
+            break;
+        case EColorFormat::BGRA:
+            Format = I_Image->IsSRGB()?
+                     RHI::EFormat::eB8G8R8A8Srgb
+                     :
+                     RHI::EFormat::eB8G8R8A8Unorm;
+            break;
+        default:
+            LOG_FATAL("Unsupported color format \"({})\"!",
+                      static_cast<Int8>(I_Image->GetColorFormat()));
+        }
+        auto Texture2D = Driver->CreateImage(
+            RHI::EImageType::e2D,
+            {I_Image->GetWidth(), I_Image->GetHeight(), 1},
+            Format,
+            RHI::EImageUsage::eTransferDst | RHI::EImageUsage::eSampled
+        );
+
+        auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
+        auto Fence = Driver->CreateFence(False, "Convert Texture Layout");
+        auto StagingBuffer = CreateStagingBuffer(I_Image->GetSize());
+        StagingBuffer->Write(I_Image->GetData(), I_Image->GetSize());
+        Cmd->Begin();
+        {
+            Cmd->ConvertImageLayout(Texture2D,
+                RHI::EImageLayout::eTransferDstOptimal,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite);
+
+            Cmd->CopyBufferToImage(StagingBuffer, Texture2D);
+
+            Cmd->ConvertImageLayout(Texture2D,
+                RHI::EImageLayout::eShaderReadOnlyOptimal,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite,
+                RHI::EPipelineStage::eFragmentShader,
+                RHI::EAccess::eShaderRead);
+        }
+        Cmd->End();
+        Driver->Submit(Cmd, nullptr, nullptr, Fence);
+        if (!Fence->Wait())
+        { LOG_FATAL("Failed to wait on the fence (desc:{})!", Fence->GetDescription()); }
+
+        return Texture2D;
+    }
 }

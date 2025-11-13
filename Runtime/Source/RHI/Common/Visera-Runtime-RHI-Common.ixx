@@ -22,5 +22,6 @@ export namespace Visera
         using EBufferUsage      = EVulkanBufferUsage;
 
         using FBuffer           = FVulkanBuffer;
+        using FImage            = FVulkanImage;
     }
 }

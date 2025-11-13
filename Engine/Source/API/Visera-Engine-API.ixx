@@ -51,5 +51,13 @@ namespace Visera::API
         auto Shader = GAssetHub->LoadShader(FPath{I_Path}, I_EntryPoint);
         return Shader != nullptr;
     }
+
+    VISERA_APP_CALLABLE
+    LoadTexture(const char* I_Path)
+    {
+        VISERA_ASSERT(I_Path);
+        auto Texture = GAssetHub->LoadTexture(FPath{I_Path});
+        return Texture != nullptr;
+    }
 }
 }

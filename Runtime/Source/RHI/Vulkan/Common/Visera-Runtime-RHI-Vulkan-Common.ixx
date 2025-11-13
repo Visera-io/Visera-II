@@ -16,7 +16,8 @@ export namespace Visera::RHI
     using EVulkanImageType     = vk::ImageType;
     using EVulkanImageViewType = vk::ImageViewType;
     using EVulkanFormat        = vk::Format;
-    using EVulkanImageUsage    = vk::Flags<vk::ImageUsageFlagBits>;
+    using EVulkanImageUsage    = vk::ImageUsageFlagBits;
+    using EVulkanImageUsages   = vk::ImageUsageFlags;
     using EVulkanImageAspect   = vk::ImageAspectFlagBits;
     using EVulkanSharingMode   = vk::SharingMode;
     using EVulkanSamplingRate  = vk::SampleCountFlagBits;

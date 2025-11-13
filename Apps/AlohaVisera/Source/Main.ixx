@@ -25,7 +25,7 @@ export int main(int argc, char *argv[])
 {
     GLog->Bootstrap();
 
-    LOG_WARN("Practicing C#.");
+    /*LOG_WARN("Practicing C#.");
     {
         GPlatform->Bootstrap();
         GScripting->Bootstrap();
@@ -42,7 +42,7 @@ export int main(int argc, char *argv[])
         GPlatform->Terminate();
         GLog->Terminate();
         return 0;
-    }
+    }*/
 
     GEngine->Bootstrap();
     {
@@ -55,17 +55,11 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_Galaxy", ID);
 
-        auto HelloWorld = GScripting->GetFunction(PLATFORM_STRING("HelloWorld"));
-        if (HelloWorld)
+        if (auto AppMain = GScripting->GetFunction(PLATFORM_STRING("Main")))
         {
-            FPlatformString Author = PLATFORM_STRING("LJYC");
-            for (UInt32 Idx = 0; Idx < 3; ++Idx)
-            {
-                FPlatformString Name = PLATFORM_STRING("LJYC");
-                HelloWorld(Name.data(), Name.size());
-            }
+            AppMain(nullptr, 0);
         }
-        else {LOG_WARN("Failed to load the \"HelloWorld\"!");}
+        else LOG_FATAL("Failed to load the \"Main\"!");
 
         GEngine->Run();
         GStudio->Terminate();

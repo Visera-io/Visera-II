@@ -9,7 +9,7 @@ import Visera.Core.Log;
 
 namespace Visera::RHI
 {
-    export class VISERA_RUNTIME_API FVulkanImage : IVulkanResource
+    export class VISERA_RUNTIME_API FVulkanImage : public IVulkanResource
     {
     public:
         [[nodiscard]] inline const vk::Image&
@@ -38,14 +38,14 @@ namespace Visera::RHI
         EVulkanFormat       Format {};
         EVulkanImageLayout  Layout { EVulkanImageLayout::eUndefined };
         FVulkanExtent3D     Extent {0,0,0};
-        EVulkanImageUsage   Usages {};
+        EVulkanImageUsages  Usages {};
 
     public:
         FVulkanImage() : IVulkanResource{EType::Image} {}
         FVulkanImage(EVulkanImageType       I_ImageType,
                      const FVulkanExtent3D&	I_Extent,
                      EVulkanFormat          I_Format,
-                     EVulkanImageUsage      I_Usages);
+                     EVulkanImageUsages     I_Usages);
         ~FVulkanImage() override;
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
@@ -83,7 +83,7 @@ namespace Visera::RHI
                             EVulkanImageType        I_ImageType,
                             const FVulkanExtent3D&	I_Extent,
                             EVulkanFormat           I_Format,
-                            EVulkanImageUsage       I_Usages)
+                            EVulkanImageUsages      I_Usages)
         {
             Handle = I_Handle;
             Extent = I_Extent;
@@ -133,7 +133,7 @@ namespace Visera::RHI
     FVulkanImage(EVulkanImageType       I_ImageType,
                  const FVulkanExtent3D&	I_Extent,
                  EVulkanFormat          I_Format,
-                 EVulkanImageUsage      I_Usages)
+                 EVulkanImageUsages     I_Usages)
     : IVulkanResource{EType::Image},
       Type   {I_ImageType},
       Format {I_Format},

@@ -5,6 +5,7 @@ export module Visera.Engine.AssetHub;
 import Visera.Engine.AssetHub.Asset;
 import Visera.Engine.AssetHub.Sound;
 import Visera.Engine.AssetHub.Shader;
+import Visera.Engine.AssetHub.Texture;
 import Visera.Runtime.Platform;
 import Visera.Core.Log;
 import Visera.Core.OS.FileSystem;
@@ -19,8 +20,8 @@ namespace Visera
     export class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton<FAssetHub>
     {
     public:
-        //[[nodiscard]] inline TSharedPtr<FImage>
-        //LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
+        [[nodiscard]] inline TSharedPtr<FTexture>
+        LoadTexture(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FShader>
         LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FSound>
@@ -62,46 +63,6 @@ namespace Visera
         Status = EStatus::Terminated;
     }
 
-    //TSharedPtr<FImage> FAssetHub::
-    //LoadImage(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
-    // {
-    //     VISERA_ASSERT(IsBootstrapped());
-    //
-    //     TSharedPtr<FImage> Image{};
-    //
-    //     if (I_Source != EAssetSource::Any)
-    //     {
-    //         const auto& Root = Roots[I_Source];
-    //         FPath Path = Root.GetRoot() / PATH("Image") / I_File;
-    //
-    //         if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-    //         {
-    //             Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         for (const auto& [_, Root] : Roots)
-    //         {
-    //             FPath Path = Root.GetRoot() / PATH("Image") / I_File;
-    //
-    //             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-    //             {
-    //                 Image = MakeShared<FImage>(FName{Path.GetUTF8Path()}, Path);
-    //                 break;
-    //             }
-    //         }
-    //     }
-    //
-    //     if (!Image)
-    //     { LOG_ERROR("Failed to load the image \"{}\"", I_File); }
-    //
-    //     LOG_DEBUG("Loaded the image \"{}\" (extend:[{},{}], sRGB:{}).",
-    //               Image->GetPath(), Image->GetWidth(), Image->GetHeight(), Image->IsSRGB());
-    //
-    //     return Image;
-    // }
-
     TSharedPtr<FShader> FAssetHub::
     LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source /* = EAssetSource::Any */)
     {
@@ -140,6 +101,49 @@ namespace Visera
                   Shader->GetPath(), Shader->GetStage(), Shader->GetEntryPoint(), Shader->GetSize());
 
         return Shader;
+    }
+
+    TSharedPtr<FTexture> FAssetHub::
+    LoadTexture(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
+    {
+        VISERA_ASSERT(IsBootstrapped());
+
+        TSharedPtr<FTexture> Texture{};
+
+        if (I_Source != EAssetSource::Any)
+        {
+            const auto& Root = Roots[I_Source];
+            FPath Path = Root.GetRoot() / PATH("Texture") / I_File;
+
+            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+            {
+                Texture = MakeShared<FTexture>(FName{Path.GetUTF8Path()}, Path);
+            }
+        }
+        else
+        {
+            for (const auto& [_, Root] : Roots)
+            {
+                FPath Path = Root.GetRoot() / PATH("Texture") / I_File;
+
+                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
+                {
+                    Texture = MakeShared<FTexture>(FName{Path.GetUTF8Path()}, Path);
+                    break;
+                }
+            }
+        }
+
+        if (!Texture)
+        {
+            LOG_ERROR("Failed to load the texture \"{}\"!", I_File);
+            return {};
+        }
+
+        LOG_DEBUG("Loaded the texture \"{}\".",
+                  Texture->GetPath());
+
+        return Texture;
     }
 
     TSharedPtr<FSound> FAssetHub::

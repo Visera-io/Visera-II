@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
+
 using Visera;
 
 public static class App
@@ -29,6 +30,11 @@ public static class App
             Log.Warn("C#", "Failed to load the shader!");
         }
         else Log.Debug("C#", "Loaded the shader.");
+
+        if(!AssetHub.LoadTexture("Firework.png"))
+        {
+            Log.Warn("C#", "Failed to load the Firework.png!");
+        }
 
         return 0;
     }

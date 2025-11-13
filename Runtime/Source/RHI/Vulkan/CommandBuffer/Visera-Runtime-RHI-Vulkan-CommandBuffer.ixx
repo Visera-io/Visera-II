@@ -6,6 +6,7 @@ export module Visera.Runtime.RHI.Vulkan.CommandBuffer;
 import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.RenderPass;
 import Visera.Runtime.RHI.Vulkan.Image;
+import Visera.Runtime.RHI.Vulkan.Buffer;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -47,6 +48,9 @@ namespace Visera::RHI
         void inline
         BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
                   TSharedRef<FVulkanImage> I_DstImage);
+        void inline
+        CopyBufferToImage(TSharedRef<FVulkanBuffer> I_SrcBuffer,
+                          TSharedRef<FVulkanImage>  I_DstImage);
         void inline
         End();
 
@@ -239,6 +243,7 @@ namespace Visera::RHI
     BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
               TSharedRef<FVulkanImage> I_DstImage)
     {
+        VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_SrcImage->GetLayout() == EVulkanImageLayout::eTransferSrcOptimal);
         VISERA_ASSERT(I_DstImage->GetLayout() == EVulkanImageLayout::eTransferDstOptimal);
         //VISERA_ASSERT(!_SrcImage->EnabledMSAA() && !_DstImage->EnabledMSAA()); //vkCmdBlitImage must not be used for multisampled source or destination images. Use vkCmdResolveImage for this purpose.
@@ -275,8 +280,40 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
+    CopyBufferToImage(TSharedRef<FVulkanBuffer> I_SrcBuffer,
+                      TSharedRef<FVulkanImage>  I_DstImage)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_DstImage->GetLayout() == EVulkanImageLayout::eTransferDstOptimal);
+        VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
+        constexpr auto ImageSubresourceRange = vk::ImageSubresourceLayers{}
+            .setAspectMask      (EVulkanImageAspect::eColor)
+            .setMipLevel        (0)
+            .setBaseArrayLayer  (0)
+            .setLayerCount      (1)
+        ;
+        auto CopyRegion = vk::BufferImageCopy2{}
+            .setBufferOffset        (0)
+            .setBufferRowLength     (0) // 0 => tightly packed, row pitch = width * bytesPerPixel
+            .setBufferImageHeight   (0) // 0 => tightly packed
+            .setImageSubresource    (ImageSubresourceRange)
+            .setImageOffset         ({0, 0, 0})
+            .setImageExtent         (I_DstImage->GetExtent())
+        ;
+        auto CopyInfo = vk::CopyBufferToImageInfo2{}
+            .setSrcBuffer(I_SrcBuffer->GetHandle())
+            .setDstImage(I_DstImage->GetHandle())
+            .setDstImageLayout(I_DstImage->GetLayout())
+            .setRegionCount(1)
+            .setPRegions(&CopyRegion)
+        ;
+        Handle.copyBufferToImage2(CopyInfo);
+    }
+
+    void FVulkanCommandBuffer::
     End()
     {
+        VISERA_ASSERT(IsRecording());
         Handle.end();
 
         Status = EStatus::ReadyToSubmit;

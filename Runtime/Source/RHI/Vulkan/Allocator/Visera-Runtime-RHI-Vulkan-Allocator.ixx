@@ -91,20 +91,29 @@ namespace Visera::RHI
         [[nodiscard]] inline EType
         GetResourceType() const { return Type; }
 
+        [[nodiscard]] inline Bool
+        IsAllocated() const { return Allocation != nullptr; }
 		[[nodiscard]] inline Bool
         IsEmpty() const { return GetMemorySize() == 0; }
 
     protected:
         inline void
-        Allocate(void*                 I_Handle,
-                 const void*           I_CreateInfo,
+        Allocate(void*                  I_Handle,
+                 const void*            I_CreateInfo,
                  EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         inline void
         Release(void* I_Handle);
-
+        [[nodiscard]] inline const VmaAllocation&
+        GetAllocation() const { return Allocation; }
+        [[nodiscard]] VmaAllocationInfo
+        GetAllocationInfo() const;
+        void
+        MapMemory(void** I_UnmappedMemory);
+        void
+        UnmapMemory();
     private:
-        EType         Type{ EType::Unknown };
-        VmaAllocation Allocation { nullptr };
+        EType             Type{ EType::Unknown };
+        VmaAllocation     Allocation { nullptr };
 
     public:
         IVulkanResource() = delete;
@@ -113,8 +122,8 @@ namespace Visera::RHI
     };
 
     void IVulkanResource::
-    Allocate(void*                 I_Handle,
-             const void*           I_CreateInfo,
+    Allocate(void*                  I_Handle,
+             const void*            I_CreateInfo,
              EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
     {
         VmaAllocationCreateInfo AllocationCreateInfo
@@ -200,4 +209,26 @@ namespace Visera::RHI
         }
         Allocation = nullptr;
     }
+
+    VmaAllocationInfo IVulkanResource::
+    GetAllocationInfo() const
+    {
+        VISERA_ASSERT(IsAllocated());
+        VmaAllocationInfo AllocationInfo{};
+        vmaGetAllocationInfo(GVulkanAllocator->GetHandle(), Allocation, &AllocationInfo);
+        return AllocationInfo;
+    }
+
+    void IVulkanResource::
+    MapMemory(void** I_UnmappedMemory)
+    {
+        vmaMapMemory(GVulkanAllocator->GetHandle(), Allocation, I_UnmappedMemory);
+    }
+
+    void IVulkanResource::
+    UnmapMemory()
+    {
+        vmaUnmapMemory(GVulkanAllocator->GetHandle(), Allocation);
+    }
+
 }

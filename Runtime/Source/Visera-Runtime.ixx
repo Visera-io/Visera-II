@@ -6,6 +6,7 @@ export import Visera.Runtime.Platform;
 export import Visera.Runtime.Window;
 export import Visera.Runtime.Event;
 export import Visera.Runtime.RHI;
+export import Visera.Runtime.Media;
 export import Visera.Runtime.Scene;
        import Visera.Core.Log;
        import Visera.Core.OS.Time;
@@ -29,6 +30,7 @@ namespace Visera
         {
             LOG_INFO("Initializing Runtime.");
             GPlatform   ->Bootstrap();
+            GMedia      ->Bootstrap();
             GWindow     ->Bootstrap();
             GRHI        ->Bootstrap();
             GScene      ->Bootstrap();
@@ -46,6 +48,7 @@ namespace Visera
             GScene      ->Terminate();
             GRHI        ->Terminate();
             GWindow     ->Terminate();
+            GMedia      ->Terminate();
             GPlatform   ->Terminate();
 
             Status = EStatus::Terminated;

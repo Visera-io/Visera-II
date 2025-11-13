@@ -329,14 +329,14 @@ namespace Visera
     	[[nodiscard]] FStringView
 		GetDebugName() const { return Name; }
 
-    	virtual void inline
+    	virtual void
 		Bootstrap() = 0;
-    	virtual void inline
+    	virtual void
 		Terminate() = 0;
 
-    	[[nodiscard]] inline Bool
+    	[[nodiscard]] Bool
 		IsBootstrapped() const { return Status == EStatus::Bootstrapped; }
-    	[[nodiscard]] inline Bool
+    	[[nodiscard]] Bool
 		IsTerminated() const   { return Status == EStatus::Terminated; }
 
     	virtual ~IGlobalSingleton()

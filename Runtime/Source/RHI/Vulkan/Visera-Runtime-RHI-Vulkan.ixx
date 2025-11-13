@@ -125,7 +125,7 @@ namespace Visera::RHI
         CreateImage(EVulkanImageType       I_ImageType,
                     const FVulkanExtent3D& I_Extent,
                     EVulkanFormat          I_Format,
-                    EVulkanImageUsage      I_Usages);
+                    EVulkanImageUsages     I_Usages);
         [[nodiscard]] TSharedPtr<FVulkanBuffer>
         CreateBuffer(UInt64                I_Size,
                      EVulkanBufferUsage    I_Usage,
@@ -266,11 +266,11 @@ namespace Visera::RHI
         DestroyOtherResource();
         DestroyInFlightFrames();
         DestroyPipelineCache();
+        DestroySwapChain();
+        GVulkanAllocator.reset();
         DestroyDescriptorPools();
         DestroyCommandPools();
-        DestroySwapChain();
         DestroyDevice();
-        GVulkanAllocator.reset();
         DestroySurface();
         DestroyDebugMessenger();
         DestroyInstance();
@@ -1069,7 +1069,7 @@ namespace Visera::RHI
     CreateImage(EVulkanImageType       I_ImageType,
                 const FVulkanExtent3D& I_Extent,
                 EVulkanFormat          I_Format,
-                EVulkanImageUsage      I_Usages)
+                EVulkanImageUsages     I_Usages)
     {
         VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
         LOG_DEBUG("Creating a Vulkan Image (extent:[{},{},{}]).",

@@ -29,8 +29,10 @@ namespace Visera
       GetHeight() const { return Wrapper->GetHeight(); }
       [[nodiscard]] inline UInt8
       GetBitDepth() const { return Wrapper->GetBitDepth(); }
-      [[nodiscard]] EImageFormat
-      GetFormat() const { return Format; }
+      [[nodiscard]] inline EImageFormat
+      GetImageFormat() const { return Format; }
+      [[nodiscard]] inline EColorFormat
+      GetColorFormat() const { return Wrapper->GetColorFormat(); }
 
       [[nodiscard]] Bool
       Resize(UInt32 I_Width, UInt32 I_Height);

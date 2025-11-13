@@ -33,3 +33,4 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 add_dependencies(${VISERA_APP} "Visera-App")
+set_target_properties("Visera-App" PROPERTIES FOLDER "Visera/App")

@@ -159,12 +159,12 @@ namespace Visera
         }
         if (BitDepth > 8)
         {
-            if (BitDepth != 16) { LOG_ERROR("Unsupported bit depth ({}) of image!", BitDepth); }
-            else
+            if (BitDepth == 16)
             {
                 LOG_WARN("The system do NOT support 16bits image, it has be converted to 8bits image!");
                 png_set_strip_16(Handle);
             }
+            else { LOG_ERROR("Unsupported bit depth ({}) of image!", BitDepth); }
         }
         if (BitDepth < 8)
         {
@@ -174,6 +174,12 @@ namespace Visera
             else
             { png_set_packing(Handle); }
         }
+        if (png_get_channels(Handle, Info) < 4)
+        {
+            LOG_WARN("Padding the Alpha channel because many GPUs do NOT support RGB(sRGB) format!");
+            png_set_add_alpha(Handle, 0xFF, PNG_FILLER_AFTER);
+        }
+
         png_read_update_info(Handle, Info); // Once you update the data, you MUST call "png_read_update_info"
 
         BitDepth = 8;

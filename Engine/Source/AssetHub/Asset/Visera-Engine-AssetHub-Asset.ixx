@@ -18,7 +18,7 @@ namespace Visera
          Unknown,
          Shader,
          Sound,
-         Texture2D,
+         Texture,
       };
       [[nodiscard]] virtual Bool
       Save() const { VISERA_UNIMPLEMENTED_API; return False; }
