@@ -19,8 +19,8 @@ namespace Visera
     export class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton<FAssetHub>
     {
     public:
-        // [[nodiscard]] inline TSharedPtr<FImage>
-        // LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
+        //[[nodiscard]] inline TSharedPtr<FImage>
+        //LoadImage(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FShader>
         LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FSound>

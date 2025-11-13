@@ -2,9 +2,9 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine.API;
 #define VISERA_MODULE_NAME "Engine.API"
-import Visera.Core.Log;
-import Visera.Core.Hash;
+import Visera.Core;
 import Visera.Runtime.Window;
+import Visera.Engine.AssetHub;
 
 #define VISERA_APP_CALLABLE export VISERA_ENGINE_API auto __cdecl
 
@@ -42,6 +42,14 @@ namespace Visera::API
     ResizeWindow(Int32 I_Width, Int32 I_Height)
     {
         GWindow->SetSize(I_Width, I_Height);
+    }
+
+    VISERA_APP_CALLABLE
+    LoadShader(const char* I_Path, const char* I_EntryPoint)
+    {
+        VISERA_ASSERT(I_Path && I_EntryPoint);
+        auto Shader = GAssetHub->LoadShader(FPath{I_Path}, I_EntryPoint);
+        return Shader != nullptr;
     }
 }
 }

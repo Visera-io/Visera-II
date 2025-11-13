@@ -29,6 +29,7 @@ export int main(int argc, char *argv[])
     {
         GPlatform->Bootstrap();
         GScripting->Bootstrap();
+        GAssetHub->Bootstrap();
 
         if (auto AppMain = GScripting->GetFunction(PLATFORM_STRING("Main")))
         {
@@ -36,6 +37,7 @@ export int main(int argc, char *argv[])
         }
         else LOG_FATAL("Failed to load the \"Main\"!");
 
+        GAssetHub->Terminate();
         GScripting->Terminate();
         GPlatform->Terminate();
         GLog->Terminate();

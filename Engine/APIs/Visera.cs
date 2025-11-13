@@ -8,4 +8,11 @@ namespace Visera
         public static extern ulong
         CityHash64(string I_Data);
     }
+
+    static class AssetHub
+    {
+        [DllImport("Visera-Engine", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool
+        LoadShader(string I_Path, string I_EntryPoint);
+    }
 }

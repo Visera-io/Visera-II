@@ -23,6 +23,12 @@ public static class App
         var Num = 10;
         Log.Info("C#", "Windows" + 1 + 1);
         Log.Info("C#", $"{Hash.CityHash64("Hello World!")}");
+        Log.Info("C#", $"{Hash.CityHash64("LJYC!")}");
+        if(!AssetHub.LoadShader("shader.slang", "vertMain"))
+        {
+            Log.Warn("C#", "Failed to load the shader!");
+        }
+        else Log.Debug("C#", "Loaded the shader.");
 
         return 0;
     }
