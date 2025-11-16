@@ -27,19 +27,18 @@ namespace Visera
         [[nodiscard]] inline TSharedPtr<RHI::FImage>
         CreateTexture2D(TSharedRef<FImage> I_Image);
 
-        [[nodiscard]] inline Bool
+        [[nodiscard]] inline TSharedPtr<RHI::FRenderPass>
         CreateRenderPass(const FName&                  I_Name,
                          TSharedRef<RHI::FSPIRVShader> I_VertexShader,
                          TSharedRef<RHI::FSPIRVShader> I_FragmentShader)
         {
-            VISERA_UNIMPLEMENTED_API;
             VISERA_ASSERT(I_VertexShader->IsVertexShader());
             VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
-            //LOG_DEBUG("Creating a Vulkan Render Pass (name:{}, vertex:{}, fragment:{}).",
-             //         I_Name, I_VertexShader->GetPath(), I_FragmentShader->GetPath());
-        //VISERA_ASSERT(VertexShader->IsVertexShader());
-        //(FragmentShader->IsFragmentShader());
-            return True;
+
+            LOG_DEBUG("Creating a Vulkan Render Pass (name:{}).", I_Name);
+            return Driver->CreateRenderPass(I_Name,
+                   Driver->CreateShaderModule(I_VertexShader),
+                   Driver->CreateShaderModule(I_FragmentShader));
         }
 
         // Low-level API

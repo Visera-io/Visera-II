@@ -14,14 +14,14 @@ export import Visera.Runtime.RHI.Vulkan.Common;
 export import Visera.Runtime.RHI.Vulkan.CommandBuffer;
 export import Visera.Runtime.RHI.Vulkan.Image;
 export import Visera.Runtime.RHI.Vulkan.Buffer;
+export import Visera.Runtime.RHI.Vulkan.RenderPass;
+export import Visera.Runtime.RHI.Vulkan.RenderTarget;
        import Visera.Runtime.RHI.Vulkan.Loader;
        import Visera.Runtime.RHI.Vulkan.Allocator;
        import Visera.Runtime.RHI.Vulkan.Fence;
        import Visera.Runtime.RHI.Vulkan.Semaphore;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
        import Visera.Runtime.RHI.Vulkan.PipelineCache;
-       import Visera.Runtime.RHI.Vulkan.RenderPass;
-       import Visera.Runtime.RHI.Vulkan.RenderTarget;
        import Visera.Runtime.RHI.Vulkan.DescriptorSet;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.Platform;
@@ -1025,7 +1025,7 @@ namespace Visera::RHI
     CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader)
     {
         VISERA_ASSERT(!I_Shader->IsEmpty());
-        LOG_TRACE("Creating a Vulkan Shader Module.");
+        LOG_TRACE("Creating a Vulkan Shader Module");
         return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
     }
 
@@ -1034,7 +1034,6 @@ namespace Visera::RHI
                      TSharedRef<FVulkanShaderModule> I_VertexShader,
                      TSharedRef<FVulkanShaderModule> I_FragmentShader)
     {
-        LOG_TRACE("Creating a Vulkan Render Pass (name:{}).", I_Name);
         return RenderPasses.emplace_back(MakeShared<FVulkanRenderPass>(
                I_Name,
                Device.Context,

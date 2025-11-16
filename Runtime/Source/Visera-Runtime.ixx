@@ -7,7 +7,6 @@ export import Visera.Runtime.Window;
 export import Visera.Runtime.Event;
 export import Visera.Runtime.RHI;
 export import Visera.Runtime.Media;
-export import Visera.Runtime.Scene;
        import Visera.Core.Log;
        import Visera.Core.OS.Time;
 
@@ -33,7 +32,6 @@ namespace Visera
             GMedia      ->Bootstrap();
             GWindow     ->Bootstrap();
             GRHI        ->Bootstrap();
-            GScene      ->Bootstrap();
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
             SetConsoleOutputCP(65001); // Set console output code page to UTF-8
@@ -45,7 +43,6 @@ namespace Visera
         void Terminate() override
         {
             LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
-            GScene      ->Terminate();
             GRHI        ->Terminate();
             GWindow     ->Terminate();
             GMedia      ->Terminate();

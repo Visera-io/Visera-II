@@ -1,15 +1,15 @@
 module;
-#include <Visera-Runtime.hpp>
-export module Visera.Runtime.Scene.Object;
+#include <Visera-Engine.hpp>
+export module Visera.Engine.Scene.Object;
 #define VISERA_MODULE_NAME "Runtime.Scene"
-import Visera.Runtime.Scene.ECS.Entity;
+import Visera.Engine.Scene.ECS.Entity;
 import Visera.Core.Attribute;
 import Visera.Core.Log;
 import Visera.Core.Types.Name;
 
 namespace Visera
 {
-    export class VISERA_RUNTIME_API VObject
+    export class VISERA_ENGINE_API VObject
         : public Attribute::SharedOnly<VObject>
     {
     public:

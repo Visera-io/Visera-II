@@ -44,13 +44,17 @@ namespace Visera
             }
             
              auto& Driver = GRHI->GetDriver();
-             auto VertModule
-             = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")
-                     ->GetSPIRVCode());
-             auto FragModule
-             = Driver->CreateShaderModule(GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")
-                     ->GetSPIRVCode());
-             auto RenderPass = Driver->CreateRenderPass(FName{"TestPass"}, VertModule, FragModule);
+
+             auto RenderPass = GRHI->CreateRenderPass(
+                 FName{"TestPass"},
+                 GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
+                 GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode()
+             );
+             auto SpritePass = GRHI->CreateRenderPass(
+                 FName{"SpritePass"},
+                 GAssetHub->LoadShader(PATH("Sprite.slang"), "VertexMain")->GetSPIRVCode(),
+                 GAssetHub->LoadShader(PATH("Sprite.slang"), "FragmentMain")->GetSPIRVCode()
+             );
              RenderPass->SetRenderArea({
                  {0,0},
                  {1920, 1080},
