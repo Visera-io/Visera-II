@@ -13,12 +13,12 @@ namespace Visera
         Render() const = 0;
 
     protected:
-        TSharedPtr<RHI::FRenderPass>    RenderPass;
+        TSharedPtr<RHI::FRenderPipeline>    RenderPipeline;
 
     public:
         virtual ~IRenderer()
         {
-            RenderPass.reset();
+            RenderPipeline.reset();
         }
     };
 }
