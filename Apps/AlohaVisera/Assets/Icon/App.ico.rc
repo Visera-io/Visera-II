@@ -1,4 +1,3 @@
-#include <windows.h>
+#define IDI_MAIN_ICON 101   // pick any integer ID
 
-// For executable
 IDI_MAIN_ICON ICON "App.ico"

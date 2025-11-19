@@ -11,7 +11,7 @@ project("${VISERA} (${VISERA_VERSION})"
     HOMEPAGE_URL    "www.visera.io"
     LANGUAGES       CXX
 )
-message("Installing ${PROJECT_NAME}")
+message("Welcome to play ${PROJECT_NAME}!")
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
@@ -58,7 +58,28 @@ set(VISERA_CORE_DIR     "${PROJECT_SOURCE_DIR}/Core")
 set(VISERA_RUNTIME_DIR  "${PROJECT_SOURCE_DIR}/Runtime")
 set(VISERA_ENGINE_DIR   "${PROJECT_SOURCE_DIR}/Engine")
 set(VISERA_STUDIO_DIR   "${PROJECT_SOURCE_DIR}/Studio")
-set(VISERA_APP_DIR      "${PROJECT_SOURCE_DIR}/Apps/${VISERA_APP}")
+if(NOT VISERA_APP_DIR OR NOT VISERA_APP_NAME)
+message(FATAL_ERROR "Please specify both VISERA_APP_DIR and VISERA_APP_NAME!")
+endif()
+if(${VISERA_APP_NAME} STREQUAL "Visera-App")
+message(FATAL_ERROR "Please do NOT use \"Visera-App\" as the name!")
+endif()
+# Turn VISERA_APP_DIR into an absolute path
+get_filename_component(
+    VISERA_APP_DIR
+    ${VISERA_APP_DIR}
+    REALPATH
+    BASE_DIR "${PROJECT_SOURCE_DIR}"
+)
+message(STATUS "App Name  : \"${VISERA_APP_NAME}\"")
+message(STATUS "App Author: \"${VISERA_APP_AUTHOR}\"")
+message(STATUS "App Path  : \"${VISERA_APP_DIR}\"")
+
+set(VISERA_APP_PROJECT "${VISERA_APP_DIR}/Visera-App.csproj")
+if(NOT EXISTS "${VISERA_APP_PROJECT}")
+message(FATAL_ERROR "Failed to find the \"${VISERA_APP_PROJECT}\"!")
+endif()
+set(VISERA_APP ${VISERA_APP_NAME})
 
 add_compile_definitions(
     VISERA_CORE_DIR=u8"${VISERA_CORE_DIR}"
@@ -67,7 +88,7 @@ add_compile_definitions(
     VISERA_STUDIO_DIR=u8"${VISERA_STUDIO_DIR}"
     VISERA_APP_DIR=u8"${VISERA_APP_DIR}"
 
-    VISERA_APP="${VISERA_APP}"
+    VISERA_APP="${VISERA_APP_NAME}"
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -84,7 +105,24 @@ add_subdirectory(${VISERA_CORE_DIR})
 add_subdirectory(${VISERA_RUNTIME_DIR})
 add_subdirectory(${VISERA_ENGINE_DIR})
 add_subdirectory(${VISERA_STUDIO_DIR})
-add_subdirectory(${VISERA_APP_DIR})
+add_subdirectory(${VISERA_APP_DIR}) #[TODO]: App -> Engine
+
+add_custom_target(
+    "Visera-App" ALL
+    COMMAND
+    ${DOTNET_EXECUTABLE} build ${VISERA_APP_PROJECT}
+    -c $<IF:$<CONFIG:Release>,Release,Debug>
+
+    -p:VISERA_ENGINE_APIS=${VISERA_ENGINE_DIR}/APIs/
+
+    -p:OutputPath=$<TARGET_FILE_DIR:${VISERA_APP}>/
+    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
+    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
+
+    WORKING_DIRECTORY ${VISERA_APP_DIR}
+)
+add_dependencies(${VISERA_APP} "Visera-App")
+set_target_properties("Visera-App" PROPERTIES FOLDER "Visera/App")
 
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
 message(STATUS "Configuring Visual Studio properties...")

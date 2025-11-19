@@ -1,15 +1,9 @@
-if(NOT VISERA_APP)
-    message(FATAL_ERROR "Empty App Name!")
-endif()
+cmake_minimum_required(VERSION 4.0.0 FATAL_ERROR)
 
-if(NOT VISERA_APP_VERSION)
-    set(VISERA_APP_NAME "${VISERA_APP} (Sandbox)")
-endif()
-
-project("${VISERA_APP_NAME}"
-        VERSION         "${VISERA_APP_VERSION}"
-        HOMEPAGE_URL    "www.visera.io"
-        LANGUAGES       CXX
+project(${VISERA_APP_NAME}
+    VERSION         "${VISERA_APP_VERSION}"
+    HOMEPAGE_URL    "www.visera.io"
+    LANGUAGES       CXX
 )
 
 set(CMAKE_CXX_STANDARD          23)
@@ -17,20 +11,3 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
 include("Scripts/install.cmake")
-
-add_custom_target(
-    "Visera-App" ALL
-    COMMAND
-    ${DOTNET_EXECUTABLE} build "Visera-App.csproj"
-    -c $<IF:$<CONFIG:Release>,Release,Debug>
-
-    -p:VISERA_ENGINE_APIS=${VISERA_ENGINE_DIR}/APIs/
-
-    -p:OutputPath=$<TARGET_FILE_DIR:${VISERA_APP}>/
-    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
-    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
-
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
-add_dependencies(${VISERA_APP} "Visera-App")
-set_target_properties("Visera-App" PROPERTIES FOLDER "Visera/App")

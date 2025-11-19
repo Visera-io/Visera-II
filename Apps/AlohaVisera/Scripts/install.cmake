@@ -31,7 +31,7 @@ target_link_libraries(${VISERA_APP}
 )
 
 # <<App Icon>>
-if(MSVC)
+if(WIN32)
     enable_language(RC)
     # Optional: Set icon path variable (if you want to make it configurable)
     # set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}")
