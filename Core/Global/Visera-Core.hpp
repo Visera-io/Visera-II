@@ -162,8 +162,10 @@
 
 #if !defined(VISERA_RELEASE_MODE)
 #define DEBUG_ONLY_FIELD(I_Content) I_Content
+#define RELEASE_ONLY_FIELD(I_Content)
 #else
 #define DEBUG_ONLY_FIELD(I_Content)
+#define RELEASE_ONLY_FIELD(I_Content) I_Content
 #endif
 
 #define VISERA_UNIMPLEMENTED_API LOG_FATAL("Unimplmented API \"File: {} Line: {} Name: {}\"!", __FILE__, __LINE__, __FUNCTION__)
@@ -310,8 +312,11 @@ namespace Visera
 
 	template<typename T>
 	using TSharedRef   = const TSharedPtr<T>&;
+
     template<typename T>
-    using TWeakPtr	   = std::weak_ptr<T>;
+	using TWeakPtr	   = std::weak_ptr<T>;
+	template<typename T>
+	using TWeakRef	   = const std::weak_ptr<T>&;
 
     template<typename T>
     using TUniquePtr   = std::unique_ptr<T>;

@@ -131,5 +131,5 @@ float4 FragmentMain(PSInput input) : SV_Target
     //col += halo * float3(0.3, 0.6, 1.0);
     col += halo * float3(1.0 * IO.offset_x, 0.6, 1.0);
 
-    return float4(col, 1.0);
+    return float4(col * (0.5 + 0.5 * sin(IO.time)), 1.0);
 }

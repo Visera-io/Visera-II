@@ -10,17 +10,6 @@ import Visera.Engine.Scripting.DotNET;
 import Visera.Studio;
 using namespace Visera;
 
-class Foo : public VObject
-{
-public:
-    void Awake() override { LOG_INFO("Wake up Foo!"); }
-    void Update(Float I_FrameTime) override { LOG_INFO("Update Foo {}!", I_FrameTime); }
-
-    void Bar() {
-        auto k = shared_from_this();
-    }
-};
-
 export int main(int argc, char *argv[])
 {
     GLog->Bootstrap();

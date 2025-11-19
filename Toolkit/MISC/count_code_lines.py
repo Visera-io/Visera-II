@@ -17,6 +17,16 @@ SCRIPT_DIRS = [
     "Studio/Scripts",
 ]
 
+SHADER_DIRS = [
+    "Apps/AlohaVisera/Assets/Shader",
+    "Engine/Assets/Shader",
+]
+
+CSHARP_DIRS = [
+    "Apps/AlohaVisera/Assets/Script",
+    "Engine/APIs",
+]
+
 # File extensions we consider as code
 CODE_EXTS = {".hpp", ".ixx"}
 
@@ -50,7 +60,7 @@ def main():
         if path.exists():
             total = count_lines_in_dir(path, CODE_EXTS)
             grand_total += total
-            print(f"{folder}: {total} LOC (C++)")
+            print(f"{total:<10} LOC (C++)\t | {folder}")
         else:
             print(f"⚠️ Skipping missing folder: {folder}")
     for folder in SCRIPT_DIRS:
@@ -58,9 +68,28 @@ def main():
         if path.exists():
             total = count_lines_in_dir(path, CMAKE_EXTS)
             grand_total += total
-            print(f"{folder}: {total} LOC (CMake)")
+            print(f"{total:<10} LOC (CMake)\t | {folder}")
         else:
             print(f"⚠️ Skipping missing folder: {folder}")
+
+    for folder in SHADER_DIRS:
+        path = Path(folder)
+        if path.exists():
+            total = count_lines_in_dir(path, ".slang")
+            grand_total += total
+            print(f"{total:<10} LOC (Slang)\t | {folder}")
+        else:
+            print(f"⚠️ Skipping missing folder: {folder}")
+
+    for folder in CSHARP_DIRS:
+        path = Path(folder)
+        if path.exists():
+            total = count_lines_in_dir(path, ".cs")
+            grand_total += total
+            print(f"{total:<10} LOC (C#)\t | {folder}")
+        else:
+            print(f"⚠️ Skipping missing folder: {folder}")
+
     print("=" * 40)
     print(f"TOTAL: {grand_total} LOC")
 
