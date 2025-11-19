@@ -302,6 +302,9 @@ namespace Visera
 	template<typename T>
 	using TOptional = std::optional<T>;
 
+	template<typename Signature>
+	using TFunction = std::function<Signature>;
+
 	VISERA_CORE_API void inline
 	Sleep(Float I_Seconds) { std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<UInt64>(1000 * I_Seconds))); }
 

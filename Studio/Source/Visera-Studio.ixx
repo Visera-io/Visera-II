@@ -128,8 +128,8 @@ namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
         Font = FPath{VISERA_STUDIO_DIR "/Assets/Font/TsangerYunHei.ttf"};
 
-        GRuntime->StudioBeginFrame = [this](){ BeginFrame(); };
-        GRuntime->StudioEndFrame   = [this](){ EndFrame(); };
+        GEvent->OnBeginFrame.Subscribe([this](){ BeginFrame(); });
+        GEvent->OnEndFrame.Subscribe([this](){ EndFrame(); });
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();

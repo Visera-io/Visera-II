@@ -91,9 +91,6 @@ namespace Visera
                       Cmd->LeaveRenderPass();
 
                      // GRender->Tick(0);
-            
-                     GRuntime->StudioBeginFrame();
-                     GRuntime->StudioEndFrame();
                  }
                  GRHI->EndFrame();
                  GRHI->Present();

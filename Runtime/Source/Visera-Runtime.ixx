@@ -18,9 +18,6 @@ namespace Visera
         [[nodiscard]] inline const FHiResClock&
         GetTimer() const { return Timer; }
 
-        std::function<void()> StudioBeginFrame = [](){};
-        std::function<void()> StudioEndFrame   = [](){};
-
     private:
         FHiResClock Timer{};
 
@@ -28,6 +25,7 @@ namespace Visera
         void Bootstrap() override
         {
             LOG_INFO("Initializing Runtime.");
+            GEvent      ->Bootstrap();
             GPlatform   ->Bootstrap();
             GMedia      ->Bootstrap();
             GWindow     ->Bootstrap();
@@ -47,6 +45,7 @@ namespace Visera
             GWindow     ->Terminate();
             GMedia      ->Terminate();
             GPlatform   ->Terminate();
+            GEvent      ->Terminate();
 
             Status = EStatus::Terminated;
         }

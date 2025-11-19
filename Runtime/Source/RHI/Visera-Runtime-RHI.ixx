@@ -7,6 +7,7 @@ export import Visera.Runtime.RHI.Common;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Media.Image;
+       import Visera.Runtime.Event;
        import Visera.Core.Log;
 
 namespace Visera
@@ -15,9 +16,9 @@ namespace Visera
     {
     public:
         inline void
-        BeginFrame()  const { Driver->BeginFrame(); }
+        BeginFrame()  const { Driver->BeginFrame(); GEvent->OnBeginFrame.Broadcast(); }
         inline void
-        EndFrame()    const { Driver->EndFrame(); }
+        EndFrame()    const { GEvent->OnEndFrame.Broadcast(); Driver->EndFrame(); }
         inline void
         Present()     const { Driver->Present(); }
 

@@ -10,10 +10,14 @@ import Visera.Engine.Scripting.DotNET;
 import Visera.Studio;
 using namespace Visera;
 
+struct Foo
+{
+    using FOnInit = TDelegate<FString, FString>;
+    FOnInit OnInit;
+};
+
 export int main(int argc, char *argv[])
 {
-    GLog->Bootstrap();
-
     /*LOG_WARN("Practicing C#.");
     {
         GPlatform->Bootstrap();
@@ -36,6 +40,13 @@ export int main(int argc, char *argv[])
     GEngine->Bootstrap();
     {
         GStudio->Bootstrap();
+
+        Foo foo;
+        foo.OnInit.Bind([](FString I_Mes, FString I_Name)
+        {
+            LOG_INFO("{} -- {}", I_Mes, I_Name);
+        });
+        foo.OnInit.Invoke("Hello World", "LJYC");
 
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
