@@ -8,9 +8,10 @@ module;
 #include <stb_image_write.h>
 export module Visera.Runtime.Media.Image;
 #define VISERA_MODULE_NAME "Runtime.Media"
-import Visera.Runtime.Media.Image.Wrapper;
-import Visera.Runtime.Media.Image.PNG;
-import Visera.Core.Log;
+export import Visera.Runtime.Media.Image.Common;
+       import Visera.Runtime.Media.Image.Wrapper;
+       import Visera.Runtime.Media.Image.PNG;
+       import Visera.Core.Log;
 
 namespace Visera
 {
