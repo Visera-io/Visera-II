@@ -20,7 +20,7 @@ namespace Visera::RHI
         [[nodiscard]] inline const vk::raii::PipelineLayout&
         GetLayout() const { return Layout->GetHandle(); }
         [[nodiscard]] inline const FVulkanRect2D&
-        GetRenderArea() const { return CurrentRenderArea; }
+        GetRenderArea() const { return CurrentRenderingInfo.renderArea; }
         inline FVulkanRenderPipeline*
         SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT);
         inline FVulkanRenderPipeline*
@@ -28,7 +28,7 @@ namespace Visera::RHI
         inline FVulkanRenderPipeline*
         SetStencilRT(TSharedRef<FVulkanRenderTarget> I_StencilRT);
         inline FVulkanRenderPipeline*
-        SetRenderArea(const FVulkanRect2D& I_RenderArea) { CurrentRenderArea = I_RenderArea; return this; }
+        SetRenderArea(const FVulkanRect2D& I_RenderArea) { CurrentRenderingInfo.setRenderArea(I_RenderArea); return this; }
         [[nodiscard]] inline const vk::RenderingInfo&
         GetRenderingInfo() const { return CurrentRenderingInfo; }
 
@@ -50,9 +50,9 @@ namespace Visera::RHI
             EVulkanFormat
             ColorRTFormat    {EVulkanFormat::eR8G8B8A8Srgb};
             EVulkanFormat
-            DepthRTFormat    {EVulkanFormat::eD32Sfloat};
+            DepthRTFormat    {EVulkanFormat::eUndefined};
             EVulkanFormat
-            StencilRTFormat  {EVulkanFormat::eS8Uint};
+            StencilRTFormat  {EVulkanFormat::eUndefined};
         }Settings;
 
     private:
@@ -66,7 +66,6 @@ namespace Visera::RHI
         TSharedPtr<FVulkanRenderTarget> CurrentColorRT;
         TSharedPtr<FVulkanRenderTarget> CurrentDepthRT;
         TSharedPtr<FVulkanRenderTarget> CurrentStencilRT;
-        FVulkanRect2D                   CurrentRenderArea{};
 
         enum : UInt8 { MAX_DYNAMIC_STATE = 2 };
         static inline vk::DynamicState  DynamicStates[MAX_DYNAMIC_STATE]
@@ -89,6 +88,9 @@ namespace Visera::RHI
         void Create(const vk::raii::Device&          I_Device,
                     TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
         {
+            CurrentRenderingInfo
+                .setLayerCount(1)
+            ;
             vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
             ShaderStageCreateInfos[0]
                 .setStage  (vk::ShaderStageFlagBits::eVertex)

@@ -164,7 +164,7 @@ namespace Visera::RHI
         VISERA_ASSERT(IsRecording());
         CurrentRenderPipeline = std::move(I_RenderPass);
 
-        auto RenderingInfo = CurrentRenderPipeline->GetRenderingInfo();
+        auto& RenderingInfo = CurrentRenderPipeline->GetRenderingInfo();
         Handle.beginRendering(RenderingInfo);
 
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,

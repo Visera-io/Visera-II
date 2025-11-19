@@ -46,32 +46,26 @@ namespace Visera
             
              auto& Driver = GRHI->GetDriver();
 
-             // auto RenderPass = GRHI->CreateRenderPipeline(
-             //     "TestPass",
-             //     GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
-             //     GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode()
-             // );
+            struct alignas(16) FTestPushConstantRange
+            {
+                Float Time{0};
+                Float CursorX{0}, CursorY{0};
+                Float OffsetX{0}, OffsetY{0};
+            };
+            static_assert(sizeof(FTestPushConstantRange) <= 128);
+            FTestPushConstantRange MouseContext{};
 
-             // RenderPass->SetRenderArea({
-             //     {0,0},
-             //     {1920, 1080},
-             // });
-             
-               // auto RHIImage = Driver->CreateImage(
-               //     RHI::EImageType::e2D,
-               //     {200, 400, 1},
-               //     RHI::EFormat::eR8G8B8A8Unorm,
-               //     RHI::EImageUsage::eColorAttachment
-               //     );
-             
-             struct alignas(16) FTestPushConstantRange
-             {
-                 Float Time{0};
-                 Float CursorX{0}, CursorY{0};
-                 Float OffsetX{0}, OffsetY{0};
-             };
-             static_assert(sizeof(FTestPushConstantRange) <= 128);
-             FTestPushConstantRange MouseContext{};
+            auto PipelineLayout = Driver->CreatePipelineLayout({},
+{{ RHI::EShaderStage::eFragment, 0U, UInt32(sizeof MouseContext) }});
+            auto RenderPass = GRHI->CreateRenderPipeline(
+             "TestPass", PipelineLayout,
+             GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
+             GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode()
+            );
+             RenderPass->SetRenderArea({
+                 {0,0},
+                 {1920, 1080},
+             });
 
              while (!GWindow->ShouldClose())
              {
@@ -89,12 +83,12 @@ namespace Visera
             
                  GRHI->BeginFrame();
                  {
-                     auto& Cmd = Driver->GetCurrentFrame().DrawCalls;
+                     auto& Cmd = GRHI->GetDrawCommands();
             
-                     //Cmd->EnterRenderPass(RenderPass);
-                     // Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
-                     // Cmd->Draw(3,1,0,0);
-                     // Cmd->LeaveRenderPass();
+                     Cmd->EnterRenderPass(RenderPass);
+                      Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
+                      Cmd->Draw(3,1,0,0);
+                      Cmd->LeaveRenderPass();
 
                      // GRender->Tick(0);
             

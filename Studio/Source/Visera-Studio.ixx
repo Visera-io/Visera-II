@@ -13,7 +13,7 @@ import Visera.Runtime;
 
 namespace Visera
 {
-    export class VISERA_STUDIO_API FStudio
+    export class VISERA_STUDIO_API FStudio : public IGlobalSingleton<FStudio>
     {
     public:
         void inline
@@ -42,6 +42,47 @@ namespace Visera
             auto& Extent = Driver->SwapChain.Extent;
             auto& SwapChainImage = Driver->GetCurrentSwapChainImage();
 
+            auto& CurrentColorRT = CurrentFrame.ColorRT;
+            auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
+            auto  OldSwapChainLayout = SwapChainImage->GetImage()->GetLayout();
+
+            CurrentFrame.DrawCalls->ConvertImageLayout(
+                CurrentColorRT->GetImage(),
+                RHI::EImageLayout::eTransferSrcOptimal,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+            CurrentFrame.DrawCalls->ConvertImageLayout(
+                SwapChainImage->GetImage(),
+                RHI::EImageLayout::eTransferDstOptimal,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+            CurrentFrame.DrawCalls->BlitImage(
+                CurrentColorRT->GetImage(),
+                SwapChainImage->GetImage());
+
+            CurrentFrame.DrawCalls->ConvertImageLayout(
+                CurrentColorRT->GetImage(),
+                OldColorRTLayout,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+            CurrentFrame.DrawCalls->ConvertImageLayout(
+                SwapChainImage->GetImage(),
+                OldSwapChainLayout,
+                RHI::EPipelineStage::eTopOfPipe,
+                RHI::EAccess::eNone,
+                RHI::EPipelineStage::eTransfer,
+                RHI::EAccess::eTransferWrite
+            );
+
             VkRenderingAttachmentInfo ColorAttachment
             {
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -65,57 +106,17 @@ namespace Visera
             vkCmdEndRendering(Cmds);
 
             ImGui::EndFrame();
-            //
-            // auto& CurrentColorRT = CurrentFrame.ColorRT;
-            // auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
-            // auto  OldSwapChainLayout = SwapChainImage->GetImage()->GetLayout();
-            //
-            // CurrentFrame.DrawCalls->ConvertImageLayout(
-            //     CurrentColorRT->GetImage(),
-            //     RHI::EImageLayout::eTransferSrcOptimal,
-            //     RHI::EPipelineStage::eTopOfPipe,
-            //     RHI::EAccess::eNone,
-            //     RHI::EPipelineStage::eTransfer,
-            //     RHI::EAccess::eTransferWrite
-            // );
-            // CurrentFrame.DrawCalls->ConvertImageLayout(
-            //     SwapChainImage->GetImage(),
-            //     RHI::EImageLayout::eTransferDstOptimal,
-            //     RHI::EPipelineStage::eTopOfPipe,
-            //     RHI::EAccess::eNone,
-            //     RHI::EPipelineStage::eTransfer,
-            //     RHI::EAccess::eTransferWrite
-            // );
-            // CurrentFrame.DrawCalls->BlitImage(
-            //     CurrentColorRT->GetImage(),
-            //     SwapChainImage->GetImage());
-            //
-            // CurrentFrame.DrawCalls->ConvertImageLayout(
-            //     CurrentColorRT->GetImage(),
-            //     OldColorRTLayout,
-            //     RHI::EPipelineStage::eTopOfPipe,
-            //     RHI::EAccess::eNone,
-            //     RHI::EPipelineStage::eTransfer,
-            //     RHI::EAccess::eTransferWrite
-            // );
-            // CurrentFrame.DrawCalls->ConvertImageLayout(
-            //     SwapChainImage->GetImage(),
-            //     OldSwapChainLayout,
-            //     RHI::EPipelineStage::eTopOfPipe,
-            //     RHI::EAccess::eNone,
-            //     RHI::EPipelineStage::eTransfer,
-            //     RHI::EAccess::eTransferWrite
-            // );
 #endif
         }
-
-        void inline
-        Bootstrap();
-        void inline
-        Terminate();
-
     private:
         FPath Font;
+
+    public:
+        FStudio() : IGlobalSingleton("Studio") {}
+        void
+        Bootstrap() override;
+        void
+        Terminate() override;
     };
 
     export inline VISERA_STUDIO_API TUniquePtr<FStudio>
