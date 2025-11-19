@@ -7,7 +7,6 @@ export import Visera.Runtime.RHI.Common;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Media.Image;
-       import Visera.Core.Types.Name;
        import Visera.Core.Log;
 
 namespace Visera
@@ -22,21 +21,25 @@ namespace Visera
         inline void
         Present()     const { Driver->Present(); }
 
+        [[nodiscard]] inline TSharedRef<RHI::FCommandBuffer>
+        GetDrawCommands() { return Driver->GetCurrentFrame().DrawCalls; }
         [[nodiscard]] inline TSharedPtr<RHI::FBuffer>
         CreateStagingBuffer(UInt64 I_Size);
         [[nodiscard]] inline TSharedPtr<RHI::FImage>
         CreateTexture2D(TSharedRef<FImage> I_Image);
-
-        [[nodiscard]] inline TSharedPtr<RHI::FRenderPass>
-        CreateRenderPass(const FName&                  I_Name,
-                         TSharedRef<RHI::FSPIRVShader> I_VertexShader,
-                         TSharedRef<RHI::FSPIRVShader> I_FragmentShader)
+        // [[nodiscard]] inline TSharedPtr<RHI::FImage>
+        // CreatePipelineLayout(TSharedRef<FImage> I_Image);
+        [[nodiscard]] inline TSharedPtr<RHI::FRenderPipeline>
+        CreateRenderPipeline(const FString&                   I_Name,
+                             TSharedRef<RHI::FPipelineLayout> I_PipelineLayout,
+                             TSharedRef<RHI::FSPIRVShader>    I_VertexShader,
+                             TSharedRef<RHI::FSPIRVShader>    I_FragmentShader)
         {
             VISERA_ASSERT(I_VertexShader->IsVertexShader());
             VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
 
             LOG_DEBUG("Creating a Vulkan Render Pass (name:{}).", I_Name);
-            return Driver->CreateRenderPass(I_Name,
+            return Driver->CreateRenderPipeline(I_PipelineLayout,
                    Driver->CreateShaderModule(I_VertexShader),
                    Driver->CreateShaderModule(I_FragmentShader));
         }
@@ -104,11 +107,10 @@ namespace Visera
             RHI::EMemoryPoolFlag::eHostAccessSequentialWrite);
     }
 
-
     TSharedPtr<RHI::FImage> FRHI::
     CreateTexture2D(TSharedRef<FImage> I_Image)
     {
-        LOG_DEBUG("Creating a Texture2D (extent:[{},{}]).",
+        LOG_DEBUG("(WIP) Creating a Texture2D (extent:[{},{}]).",
                   I_Image->GetWidth(), I_Image->GetHeight());
         RHI::EFormat Format = RHI::EFormat::eUndefined;
         switch (I_Image->GetColorFormat())

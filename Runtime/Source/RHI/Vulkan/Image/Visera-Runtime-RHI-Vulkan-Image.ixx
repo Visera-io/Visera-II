@@ -56,17 +56,16 @@ namespace Visera::RHI
     public:
         [[nodiscard]] inline const vk::raii::ImageView&
         GetHandle() const { return Handle; }
-
-        [[nodiscard]] inline Bool
-        IsExpired() const { return Image.expired(); }
+        [[nodiscard]] inline TSharedRef<FVulkanImage>
+        GetImage() const  { return Image; }
 
     private:
-        vk::raii::ImageView    Handle {nullptr};
-        TWeakPtr<FVulkanImage> Image;
+        vk::raii::ImageView      Handle {nullptr};
+        TSharedPtr<FVulkanImage> Image;
 
     public:
         FVulkanImageView() = delete;
-        FVulkanImageView(TSharedPtr<FVulkanImage>   I_Image,
+        FVulkanImageView(TSharedRef<FVulkanImage>   I_Image,
                          EVulkanImageViewType       I_Type,
                          EVulkanImageAspect         I_Aspect,
                          const TPair<UInt8, UInt8>& I_MipmapRange = {0,0},
@@ -95,7 +94,7 @@ namespace Visera::RHI
     };
 
     FVulkanImageView::
-    FVulkanImageView(TSharedPtr<FVulkanImage>   I_Image,
+    FVulkanImageView(TSharedRef<FVulkanImage>   I_Image,
                      EVulkanImageViewType       I_Type,
                      EVulkanImageAspect         I_Aspect,
                      const TPair<UInt8, UInt8>& I_MipmapRange,

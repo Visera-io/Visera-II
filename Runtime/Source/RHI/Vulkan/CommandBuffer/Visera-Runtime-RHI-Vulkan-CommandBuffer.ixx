@@ -4,7 +4,7 @@ module;
 export module Visera.Runtime.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
-import Visera.Runtime.RHI.Vulkan.RenderPass;
+import Visera.Runtime.RHI.Vulkan.RenderPipeline;
 import Visera.Runtime.RHI.Vulkan.Image;
 import Visera.Runtime.RHI.Vulkan.Buffer;
 import Visera.Core.Log;
@@ -34,7 +34,7 @@ namespace Visera::RHI
                            EVulkanPipelineStage     I_DstStage,
                            EVulkanAccess            I_DstAccess);
         void inline
-        EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass);
+        EnterRenderPass(TSharedRef<FVulkanRenderPipeline> I_RenderPass);
         void inline
         PushConstants(EVulkanShaderStage I_ShaderStages,
                       const void*        I_Data,
@@ -70,7 +70,7 @@ namespace Visera::RHI
         vk::raii::CommandBuffer       Handle {nullptr};
         TOptional<FVulkanViewport>    CurrentViewport;
         TOptional<FVulkanRect2D>      CurrentScissor;
-        TSharedPtr<FVulkanRenderPass> CurrentRenderPass;
+        TSharedPtr<FVulkanRenderPipeline> CurrentRenderPipeline;
 
         EStatus Status { EStatus::Idle };
 
@@ -159,16 +159,16 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    EnterRenderPass(TSharedRef<FVulkanRenderPass> I_RenderPass)
+    EnterRenderPass(TSharedRef<FVulkanRenderPipeline> I_RenderPass)
     {
         VISERA_ASSERT(IsRecording());
-        CurrentRenderPass = std::move(I_RenderPass);
+        CurrentRenderPipeline = std::move(I_RenderPass);
 
-        auto RenderingInfo = CurrentRenderPass->GetRenderingInfo();
+        auto RenderingInfo = CurrentRenderPipeline->GetRenderingInfo();
         Handle.beginRendering(RenderingInfo);
 
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                         CurrentRenderPass->GetPipeline());
+                         CurrentRenderPipeline->GetHandle());
 
         if (!CurrentViewport.has_value())
         {
@@ -201,16 +201,10 @@ namespace Visera::RHI
                   UInt32             I_Size)
     {
         VISERA_ASSERT(IsInsideRenderPass());
-
         vkCmdPushConstants(*Handle,
-            *CurrentRenderPass->GetPipelineLayout(),
+            *CurrentRenderPipeline->GetLayout(),
             Int32(I_ShaderStages),
             I_Offset, I_Size, I_Data);
-        // Handle.pushConstants(
-        //     ,
-        //     I_ShaderStages,
-        //     I_Offset,
-        //     Data);
     }
 
     void FVulkanCommandBuffer::
@@ -234,7 +228,7 @@ namespace Visera::RHI
         CurrentViewport.reset();
         CurrentScissor.reset();
 
-        CurrentRenderPass.reset();
+        CurrentRenderPipeline.reset();
 
         Status = EStatus::Recording;
     }

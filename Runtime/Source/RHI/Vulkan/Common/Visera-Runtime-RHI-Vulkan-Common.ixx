@@ -26,6 +26,11 @@ export namespace Visera::RHI
     using EVulkanBufferUsage   = vk::BufferUsageFlagBits;
     using EVulkanPresentMode   = vk::PresentModeKHR;
     using EVulkanColorSpace    = vk::ColorSpaceKHR;
+    using EVulkanFilter        = vk::Filter;
+    using EVulkanSamplerMipmapMode  = vk::SamplerMipmapMode;
+    using EVulkanSamplerAddressMode = vk::SamplerAddressMode;
+    using EVulkanBorderColor   = vk::BorderColor;
+    using EVulkanCompareOp     = vk::CompareOp;
 
     using FVulkanExtent2D      = vk::Extent2D;
     using FVulkanExtent3D      = vk::Extent3D;
@@ -34,6 +39,8 @@ export namespace Visera::RHI
     using FVulkanClearColor    = vk::ClearColorValue;
     using FVulkanImageBarrier  = vk::ImageMemoryBarrier2;
     using FVulkanSwizzle       = vk::ComponentMapping;
+    using FVulkanPushConstant  = vk::PushConstantRange;
+    using FVulkanDescriptorSetLayoutBinding = vk::DescriptorSetLayoutBinding;
 
     constexpr auto IdentitySwizzle = FVulkanSwizzle{}
         .setR(vk::ComponentSwizzle::eIdentity)

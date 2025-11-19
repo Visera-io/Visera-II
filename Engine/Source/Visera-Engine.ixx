@@ -23,6 +23,7 @@ namespace Visera
             
             GScripting  ->Bootstrap();
             GAssetHub   ->Bootstrap();
+            GRender     ->Bootstrap();
             GAudio      ->Bootstrap();
 
             Status = EStatus::Bootstrapped;
@@ -45,20 +46,16 @@ namespace Visera
             
              auto& Driver = GRHI->GetDriver();
 
-             auto RenderPass = GRHI->CreateRenderPass(
-                 FName{"TestPass"},
-                 GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
-                 GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode()
-             );
-             auto SpritePass = GRHI->CreateRenderPass(
-                 FName{"SpritePass"},
-                 GAssetHub->LoadShader(PATH("Sprite.slang"), "VertexMain")->GetSPIRVCode(),
-                 GAssetHub->LoadShader(PATH("Sprite.slang"), "FragmentMain")->GetSPIRVCode()
-             );
-             RenderPass->SetRenderArea({
-                 {0,0},
-                 {1920, 1080},
-             });
+             // auto RenderPass = GRHI->CreateRenderPipeline(
+             //     "TestPass",
+             //     GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
+             //     GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode()
+             // );
+
+             // RenderPass->SetRenderArea({
+             //     {0,0},
+             //     {1920, 1080},
+             // });
              
                // auto RHIImage = Driver->CreateImage(
                //     RHI::EImageType::e2D,
@@ -94,10 +91,12 @@ namespace Visera
                  {
                      auto& Cmd = Driver->GetCurrentFrame().DrawCalls;
             
-                     Cmd->EnterRenderPass(RenderPass);
-                     Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
-                     Cmd->Draw(3,1,0,0);
-                     Cmd->LeaveRenderPass();
+                     //Cmd->EnterRenderPass(RenderPass);
+                     // Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
+                     // Cmd->Draw(3,1,0,0);
+                     // Cmd->LeaveRenderPass();
+
+                     // GRender->Tick(0);
             
                      GRuntime->StudioBeginFrame();
                      GRuntime->StudioEndFrame();
@@ -112,6 +111,7 @@ namespace Visera
             LOG_TRACE("Terminating Engine.");
 
             GAudio      ->Terminate();
+            GRender     ->Terminate();
             GAssetHub   ->Terminate();
             GScripting  ->Terminate();
 

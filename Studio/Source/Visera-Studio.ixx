@@ -34,37 +34,78 @@ namespace Visera
         {
 #if !defined(VISERA_OFFSCREEN_MODE)
             static auto& Driver = GRHI->GetDriver();
-            if (bVisible)
+
+            ImGui::Render();
+
+            auto& CurrentFrame = Driver->GetCurrentFrame();
+            auto& Cmds = *CurrentFrame.DrawCalls->GetHandle();
+            auto& Extent = Driver->SwapChain.Extent;
+            auto& SwapChainImage = Driver->GetCurrentSwapChainImage();
+
+            VkRenderingAttachmentInfo ColorAttachment
             {
-                ImGui::Render();
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = *SwapChainImage->GetHandle(),
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
+                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+            };
+            VkRenderingInfo RenderingInfo
+            {
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                .renderArea = { {0, 0}, Extent },
+                .layerCount = 1,
+                .colorAttachmentCount   = 1,
+                .pColorAttachments      = &ColorAttachment,
+            };
+            vkCmdBeginRendering(Cmds, &RenderingInfo);
 
-                auto CommandBuffer = *Driver->GetCurrentFrame().DrawCalls->GetHandle();
-                auto Extent = Driver->SwapChain.Extent;
-                auto ImageView = Driver->GetCurrentFrame().ColorRT->GetImageView();
+            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Cmds);
 
-                VkRenderingAttachmentInfo ColorAttachment {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                    .imageView   = *ImageView->GetHandle(),
-                    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
-                    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-                };
+            vkCmdEndRendering(Cmds);
 
-                VkRenderingInfo RenderingInfo {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-                    .renderArea = { {0, 0}, Extent },
-                    .layerCount = 1,
-                    .colorAttachmentCount   = 1,
-                    .pColorAttachments      = &ColorAttachment,
-                };
-
-                vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
-
-                ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), CommandBuffer);
-
-                vkCmdEndRendering(CommandBuffer);
-            }
             ImGui::EndFrame();
+            //
+            // auto& CurrentColorRT = CurrentFrame.ColorRT;
+            // auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
+            // auto  OldSwapChainLayout = SwapChainImage->GetImage()->GetLayout();
+            //
+            // CurrentFrame.DrawCalls->ConvertImageLayout(
+            //     CurrentColorRT->GetImage(),
+            //     RHI::EImageLayout::eTransferSrcOptimal,
+            //     RHI::EPipelineStage::eTopOfPipe,
+            //     RHI::EAccess::eNone,
+            //     RHI::EPipelineStage::eTransfer,
+            //     RHI::EAccess::eTransferWrite
+            // );
+            // CurrentFrame.DrawCalls->ConvertImageLayout(
+            //     SwapChainImage->GetImage(),
+            //     RHI::EImageLayout::eTransferDstOptimal,
+            //     RHI::EPipelineStage::eTopOfPipe,
+            //     RHI::EAccess::eNone,
+            //     RHI::EPipelineStage::eTransfer,
+            //     RHI::EAccess::eTransferWrite
+            // );
+            // CurrentFrame.DrawCalls->BlitImage(
+            //     CurrentColorRT->GetImage(),
+            //     SwapChainImage->GetImage());
+            //
+            // CurrentFrame.DrawCalls->ConvertImageLayout(
+            //     CurrentColorRT->GetImage(),
+            //     OldColorRTLayout,
+            //     RHI::EPipelineStage::eTopOfPipe,
+            //     RHI::EAccess::eNone,
+            //     RHI::EPipelineStage::eTransfer,
+            //     RHI::EAccess::eTransferWrite
+            // );
+            // CurrentFrame.DrawCalls->ConvertImageLayout(
+            //     SwapChainImage->GetImage(),
+            //     OldSwapChainLayout,
+            //     RHI::EPipelineStage::eTopOfPipe,
+            //     RHI::EAccess::eNone,
+            //     RHI::EPipelineStage::eTransfer,
+            //     RHI::EAccess::eTransferWrite
+            // );
 #endif
         }
 
@@ -75,7 +116,6 @@ namespace Visera
 
     private:
         FPath Font;
-        Bool  bVisible = True;
     };
 
     export inline VISERA_STUDIO_API TUniquePtr<FStudio>

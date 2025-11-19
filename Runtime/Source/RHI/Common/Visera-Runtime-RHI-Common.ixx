@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Common;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
@@ -20,9 +19,16 @@ export namespace Visera
         using EShaderStage      = EVulkanShaderStage;
         using EMemoryPoolFlag   = EVulkanMemoryPoolFlag;
         using EBufferUsage      = EVulkanBufferUsage;
+        using EDescriptorType   = EVulkanDescriptorType;
 
         using FBuffer           = FVulkanBuffer;
         using FImage            = FVulkanImage;
-        using FRenderPass       = FVulkanRenderPass;
+        using FImageView        = FVulkanImageView;
+        using FPipelineLayout   = FVulkanPipelineLayout;
+        using FRenderPipeline   = FVulkanRenderPipeline;
+        using FCommandBuffer    = FVulkanCommandBuffer;
+        using FDescriptorSet    = FVulkanDescriptorSet;
+        using FSampler          = FVulkanSampler;
+        using FDescriptorSetLayoutBinding = FVulkanDescriptorSetLayoutBinding;
     }
 }

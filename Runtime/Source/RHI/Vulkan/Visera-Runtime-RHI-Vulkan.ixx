@@ -14,15 +14,18 @@ export import Visera.Runtime.RHI.Vulkan.Common;
 export import Visera.Runtime.RHI.Vulkan.CommandBuffer;
 export import Visera.Runtime.RHI.Vulkan.Image;
 export import Visera.Runtime.RHI.Vulkan.Buffer;
-export import Visera.Runtime.RHI.Vulkan.RenderPass;
+export import Visera.Runtime.RHI.Vulkan.Sampler;
+export import Visera.Runtime.RHI.Vulkan.PipelineLayout;
+export import Visera.Runtime.RHI.Vulkan.RenderPipeline;
 export import Visera.Runtime.RHI.Vulkan.RenderTarget;
+export import Visera.Runtime.RHI.Vulkan.DescriptorSet;
+export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Runtime.RHI.Vulkan.Loader;
        import Visera.Runtime.RHI.Vulkan.Allocator;
        import Visera.Runtime.RHI.Vulkan.Fence;
        import Visera.Runtime.RHI.Vulkan.Semaphore;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
        import Visera.Runtime.RHI.Vulkan.PipelineCache;
-       import Visera.Runtime.RHI.Vulkan.DescriptorSet;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
@@ -54,12 +57,17 @@ namespace Visera::RHI
             TSet<UInt32> PresentQueueFamilies {};
             TSet<UInt32> ComputeQueueFamilies {};
             TSet<UInt32> TransferQueueFamilies{};
+            vk::PhysicalDeviceProperties  Properties;
+            vk::PhysicalDeviceProperties2 Properties2;
+            vk::PhysicalDeviceFeatures    Features;
+            vk::PhysicalDeviceFeatures2   Features2;
         }GPU;
 
         struct
         {
-            vk::raii::Device Context         {nullptr};
-            vk::raii::Queue  GraphicsQueue   {nullptr};
+            vk::raii::Device Context        {nullptr};
+            vk::raii::Queue  GraphicsQueue  {nullptr};
+            vk::raii::Queue  TransferQueue  {nullptr};
         }Device;
 
         TUniquePtr<FVulkanLoader>    Loader;
@@ -101,10 +109,8 @@ namespace Visera::RHI
         BeginFrame();
         [[nodiscard]] inline const FInFlightFrame&
         GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex]; }
-        [[nodiscard]] inline Bool
+        inline void
         EndFrame();
-        [[nodiscard]] inline Bool
-        Present();
         inline void
         Submit(TSharedRef<FVulkanCommandBuffer> I_CommandBuffer,
                TSharedRef<FVulkanSemaphore>     I_WaitSemaphore,
@@ -112,10 +118,13 @@ namespace Visera::RHI
                TSharedRef<FVulkanFence>         I_Fence = {});
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
         CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader);
-        [[nodiscard]] TSharedPtr<FVulkanRenderPass>
-        CreateRenderPass(const FName&                    I_Name,
-                         TSharedRef<FVulkanShaderModule> I_VertexShader,
-                         TSharedRef<FVulkanShaderModule> I_FragmentShader);
+        [[nodiscard]] TSharedPtr<FVulkanPipelineLayout>
+        CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
+                             const TArray<FVulkanPushConstant>&     I_PushConstants);
+        [[nodiscard]] TSharedPtr<FVulkanRenderPipeline>
+        CreateRenderPipeline(TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout,
+                             TSharedRef<FVulkanShaderModule>   I_VertexShader,
+                             TSharedRef<FVulkanShaderModule>   I_FragmentShader);
         [[nodiscard]] TSharedPtr<FVulkanFence>
         CreateFence(Bool        I_bSignaled,
                     FStringView I_Description);
@@ -126,12 +135,24 @@ namespace Visera::RHI
                     const FVulkanExtent3D& I_Extent,
                     EVulkanFormat          I_Format,
                     EVulkanImageUsages     I_Usages);
+        [[nodiscard]] TSharedPtr<FVulkanSampler>
+        CreateImageSampler(EVulkanFilter             I_Filter,
+                           EVulkanSamplerAddressMode I_AddressMode,
+                           Float                     I_MaxAnisotropy = 1.0);
+        [[nodiscard]] TSharedPtr<FVulkanSampler>
+        CreateCompareSampler(EVulkanFilter      I_Filter,
+                             EVulkanCompareOp   I_CompareOp,
+                             EVulkanBorderColor I_BorderColor);
         [[nodiscard]] TSharedPtr<FVulkanBuffer>
         CreateBuffer(UInt64                I_Size,
                      EVulkanBufferUsage    I_Usage,
                      EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(EVulkanQueue I_Queue);
+        [[nodiscard]] TSharedPtr<FVulkanDescriptorSetLayout>
+        CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
+        [[nodiscard]] TSharedPtr<FVulkanDescriptorSet>
+        CreateDescriptorSet(TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout);
         [[nodiscard]] const vk::raii::DescriptorPool&
         GetDescriptorPool() const { return DescriptorPool; }
         [[nodiscard]] const TUniqueRef<FVulkanPipelineCache>
@@ -144,7 +165,12 @@ namespace Visera::RHI
         GetNativeDevice() const { return Device.Context; };
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
-
+#if !defined(VISERA_OFFSCREEN_MODE)
+        [[nodiscard]] inline Bool
+        Present();
+        [[nodiscard]] inline const TSharedRef<FVulkanImageView>
+        GetCurrentSwapChainImage() { return SwapChain.ImageViews[SwapChain.Cursor]; }
+#endif
     private:
         const FVulkanExtent2D                       ColorRTRes { 1920, 1080 };
         TArray<FInFlightFrame>                      InFlightFrames;
@@ -154,7 +180,7 @@ namespace Visera::RHI
         vk::raii::DescriptorPool                    DescriptorPool      {nullptr};
         vk::raii::CommandPool                       GraphicsCommandPool {nullptr};
 
-        TArray<TSharedPtr<FVulkanRenderPass>>       RenderPasses;
+        TArray<TSharedPtr<FVulkanRenderPipeline>>   RenderPipelines;
         TUniquePtr<FVulkanPipelineCache>            PipelineCache;
 
         TArray<const char*> InstanceLayers;
@@ -170,7 +196,7 @@ namespace Visera::RHI
         void inline CreateDevice();         void inline DestroyDevice();
         void inline CreateSwapChain();      void inline DestroySwapChain();
         void inline CreateCommandPools();   void inline DestroyCommandPools();
-        void inline CreateDescriptorPools(); void inline DestroyDescriptorPools();
+        void inline CreateDescriptorPools();void inline DestroyDescriptorPools();
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
         void inline CreateInFlightFrames(); void inline DestroyInFlightFrames();
         void inline CreateOtherResource();  void inline DestroyOtherResource();
@@ -330,7 +356,7 @@ namespace Visera::RHI
     DestroyOtherResource()
     {
         SemaphorePool.clear();
-        RenderPasses.clear();
+        RenderPipelines.clear();
     }
 
     void FVulkanDriver::
@@ -362,8 +388,9 @@ namespace Visera::RHI
         .setDescriptorCount (100);
 
         auto CreateInfo = vk::DescriptorPoolCreateInfo()
-            .setFlags           (vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-            .setMaxSets         (GPU.Context.getProperties().limits.maxBoundDescriptorSets)
+            .setFlags           (vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind |
+                                 vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+            .setMaxSets         (GPU.Properties.limits.maxBoundDescriptorSets)
             .setPoolSizeCount   (MAX_DESCRIPTOR_ENUM)
             .setPPoolSizes      (PoolSizes)
         ;
@@ -583,11 +610,13 @@ namespace Visera::RHI
         });
 
         if (SelectedPhysicalDevice == PhysicalDeviceCandidates.end())
-        {
-            LOG_FATAL("Failed to find a suitable PhysicalDevice!");
-        }
+        { LOG_FATAL("Failed to find a suitable PhysicalDevice!"); }
 
-        LOG_INFO("Selected GPU: {}", GPU.Context.getProperties().deviceName.data());
+        GPU.Properties  = GPU.Context.getProperties();
+        GPU.Properties2 = GPU.Context.getProperties2();
+        GPU.Features    = GPU.Context.getFeatures();
+        GPU.Features2   = GPU.Context.getFeatures2();
+        LOG_INFO("Selected GPU: {}", GPU.Properties.deviceName.data());
     }
 
     void FVulkanDriver::
@@ -596,50 +625,73 @@ namespace Visera::RHI
         VISERA_ASSERT(GPU.Context != nullptr);
 
         constexpr Float Priority = 0.0f;
-        auto DeviceQueueCreateInfo = vk::DeviceQueueCreateInfo{}
-            .setQueueFamilyIndex(*GPU.GraphicsQueueFamilies.begin())
-            .setQueueCount(1)
-            .setQueuePriorities({Priority});
 
+        TArray<vk::DeviceQueueCreateInfo> DeviceQueueCreateInfos(1);
+        auto GraphicsFamilyIter  = GPU.GraphicsQueueFamilies.begin();
+        auto GraphicsFamilyIndex = *GraphicsFamilyIter;
+        DeviceQueueCreateInfos[0] = vk::DeviceQueueCreateInfo{}
+            .setQueueFamilyIndex(GraphicsFamilyIndex)
+            .setQueueCount      (1)
+            .setQueuePriorities ({Priority})
+        ;
+        auto TransferFamilyIter  = GPU.TransferQueueFamilies.begin();
+        auto TransferFamilyIndex = *TransferFamilyIter;
+        if (TransferFamilyIndex == GraphicsFamilyIndex)
+        {
+            if (++TransferFamilyIter != GPU.TransferQueueFamilies.end())
+            {
+                TransferFamilyIndex = *TransferFamilyIter;
+
+                DeviceQueueCreateInfos.emplace_back(vk::DeviceQueueCreateInfo{}
+                    .setQueueFamilyIndex(TransferFamilyIndex)
+                    .setQueueCount      (1)
+                    .setQueuePriorities ({Priority}));
+            }
+            else
+            {
+                LOG_WARN("Failed to find a separated Transfer Queue Family, "
+                         "using the Graphics Queue Family!");
+            }
+        }
         // First build each feature struct explicitly
-        auto Feature2 = vk::PhysicalDeviceFeatures2{};
-
-        auto Vulkan13Features =  vk::PhysicalDeviceVulkan13Features{};
-        Vulkan13Features.dynamicRendering = vk::True;
-        Vulkan13Features.synchronization2 = vk::True;
-
-        auto ExtendedDynamicsStateFeatures = vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT{};
-        ExtendedDynamicsStateFeatures.extendedDynamicState = vk::True;
-
-        auto Vulkan11Features =  vk::PhysicalDeviceVulkan11Features{};
-        Vulkan11Features.shaderDrawParameters = vk::True;
-
-        vk::StructureChain FeatureChain{
-            Feature2,
+        auto Vulkan11Features =  vk::PhysicalDeviceVulkan11Features{}
+            .setShaderDrawParameters                        (vk::True)
+        ;
+        auto Vulkan12Features =  vk::PhysicalDeviceVulkan12Features{}
+            .setDescriptorIndexing                          (vk::True)
+            .setRuntimeDescriptorArray                      (vk::True)
+            .setShaderSampledImageArrayNonUniformIndexing   (vk::True)
+            .setDescriptorBindingPartiallyBound             (vk::True)
+            .setDescriptorBindingVariableDescriptorCount    (vk::True)
+            .setDescriptorBindingUpdateUnusedWhilePending   (vk::True)
+        ;
+        auto Vulkan13Features =  vk::PhysicalDeviceVulkan13Features{}
+            .setDynamicRendering                            (vk::True)
+            .setSynchronization2                            (vk::True)
+        ;
+        vk::StructureChain FeatureChain
+        {
+            GPU.Features2,   // Bindless
+            Vulkan11Features,
+            Vulkan12Features,
             Vulkan13Features,
-            ExtendedDynamicsStateFeatures,
-            Vulkan11Features
         };
-
         const auto CreateInfo = vk::DeviceCreateInfo{}
             .setPNext                   (&FeatureChain.get<vk::PhysicalDeviceFeatures2>())
-            .setQueueCreateInfoCount    (1)
-            .setPQueueCreateInfos       (&DeviceQueueCreateInfo)
+            .setQueueCreateInfoCount    (DeviceQueueCreateInfos.size())
+            .setPQueueCreateInfos       (DeviceQueueCreateInfos.data())
             .setEnabledExtensionCount   (DeviceExtensions.size())
             .setPpEnabledExtensionNames (DeviceExtensions.data())
         ;
         //Create Device
-        {
-            auto Result = GPU.Context.createDevice(CreateInfo);
-            if (!Result.has_value())
-            { LOG_FATAL("Failed to create Vulkan Device!"); }
-            else
-            { Device.Context = std::move(*Result); }
-        }
+        auto Result = GPU.Context.createDevice(CreateInfo);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to create Vulkan Device!"); }
+        else
+        { Device.Context = std::move(*Result); }
         // Get Queues
-        {
-            Device.GraphicsQueue = Device.Context.getQueue(*GPU.GraphicsQueueFamilies.begin(), 0);
-        }
+        Device.GraphicsQueue = Device.Context.getQueue(GraphicsFamilyIndex, 0);
+        Device.TransferQueue = Device.Context.getQueue(TransferFamilyIndex, 0);
     }
 
 
@@ -860,7 +912,11 @@ namespace Visera::RHI
     BeginFrame()
     {
         auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
-        if (!CurrentFrame.Fence->Wait()) { return False; }
+        if (!CurrentFrame.Fence->Wait())
+        {
+            LOG_FATAL("Failed to wait the fence (desc:{})!",
+                      CurrentFrame.Fence->GetDescription());
+        }
 
         CurrentFrame.DrawCalls->Reset();
         CurrentFrame.DrawCalls->Begin();
@@ -881,88 +937,42 @@ namespace Visera::RHI
 #endif
         // Switch Render Targets
         auto& CurrentColorRT = CurrentFrame.ColorRT;
-        for (auto& RenderPass : RenderPasses)
+        for (auto& RenderPipeline : RenderPipelines)
         {
-            RenderPass->SetColorRT(CurrentColorRT);
+            RenderPipeline->SetColorRT(CurrentColorRT);
         }
 
         return CurrentFrame.Fence->Reset();
     }
 
-    Bool FVulkanDriver::
+    void FVulkanDriver::
     EndFrame()
     {
         auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
-
-#if !defined(VISERA_OFFSCREEN_MODE)
-        auto& CurrentColorRT = CurrentFrame.ColorRT;
-        auto OldColorRTLayout   = CurrentColorRT->GetLayout();
-        auto& CurrentSwapChainImage = SwapChain.Images[SwapChain.Cursor];
-        auto OldSwapChainLayout = CurrentSwapChainImage->GetLayout();
-
-        CurrentFrame.DrawCalls->ConvertImageLayout(
-            CurrentColorRT->GetImage(),
-            EVulkanImageLayout::eTransferSrcOptimal,
-            EVulkanPipelineStage::eTopOfPipe,
-            EVulkanAccess::eNone,
-            EVulkanPipelineStage::eTransfer,
-            EVulkanAccess::eTransferWrite
-        );
-
-        CurrentFrame.DrawCalls->ConvertImageLayout(
-            CurrentSwapChainImage,
-            EVulkanImageLayout::eTransferDstOptimal,
-            EVulkanPipelineStage::eTopOfPipe,
-            EVulkanAccess::eNone,
-            EVulkanPipelineStage::eTransfer,
-            EVulkanAccess::eTransferWrite
-        );
-
-        CurrentFrame.DrawCalls->BlitImage(CurrentColorRT->GetImage(),
-                       CurrentSwapChainImage);
-
-        CurrentFrame.DrawCalls->ConvertImageLayout(
-            CurrentColorRT->GetImage(),
-            OldColorRTLayout,
-            EVulkanPipelineStage::eTopOfPipe,
-            EVulkanAccess::eNone,
-            EVulkanPipelineStage::eTransfer,
-            EVulkanAccess::eTransferWrite
-        );
-
-        CurrentFrame.DrawCalls->ConvertImageLayout(
-            CurrentSwapChainImage,
-            OldSwapChainLayout,
-            EVulkanPipelineStage::eTopOfPipe,
-            EVulkanAccess::eNone,
-            EVulkanPipelineStage::eTransfer,
-            EVulkanAccess::eTransferWrite
-        );
-
         CurrentFrame.DrawCalls->End();
 
+#if !defined(VISERA_OFFSCREEN_MODE)
         Submit(CurrentFrame.DrawCalls,
                CurrentFrame.SwapChainImageAvailable,
                SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
                CurrentFrame.Fence);
-
-        return True;
 #else
-        CurrentFrame.DrawCalls->End();
-
         Submit(CurrentFrame.DrawCalls,
                {},
                {},
                CurrentFrame.Fence);
 
-        return CurrentFrame.Fence->Wait();
+        if (!CurrentFrame.Fence->Wait())
+        {
+            LOG_FATAL("Failed to wait for fence (desc:{})!",
+                      CurrentFrame.Fence->GetDescription());
+        }
 #endif
     }
 
     Bool FVulkanDriver::
     Present()
     {
-#if !defined(VISERA_OFFSCREEN_MODE)
         auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
             .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor]->GetHandle()))
@@ -981,9 +991,6 @@ namespace Visera::RHI
 
         InFlightFrameIndex = (InFlightFrameIndex + 1) % (InFlightFrames.size());
         return True;
-#else
-        return False;
-#endif
     }
 
     void FVulkanDriver::
@@ -1029,17 +1036,30 @@ namespace Visera::RHI
         return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
     }
 
-    TSharedPtr<FVulkanRenderPass> FVulkanDriver::
-    CreateRenderPass(const FName&                    I_Name,
-                     TSharedRef<FVulkanShaderModule> I_VertexShader,
-                     TSharedRef<FVulkanShaderModule> I_FragmentShader)
+
+    TSharedPtr<FVulkanPipelineLayout> FVulkanDriver::
+    CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
+                         const TArray<FVulkanPushConstant>&     I_PushConstants)
     {
-        return RenderPasses.emplace_back(MakeShared<FVulkanRenderPass>(
-               I_Name,
-               Device.Context,
+        LOG_TRACE("Creating a Vulkan Pipeline Layout.");
+        return MakeShared<FVulkanPipelineLayout>(
+            Device.Context,
+            I_DescriptorSetLayouts,
+            I_PushConstants);
+    }
+
+    TSharedPtr<FVulkanRenderPipeline> FVulkanDriver::
+    CreateRenderPipeline(TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout,
+                         TSharedRef<FVulkanShaderModule>   I_VertexShader,
+                         TSharedRef<FVulkanShaderModule>   I_FragmentShader)
+    {
+        LOG_TRACE("Creating a Vulkan Render Pipeline.");
+        auto& NewRenderPipeline = RenderPipelines.emplace_back(MakeShared<FVulkanRenderPipeline>(
+               I_PipelineLayout,
                I_VertexShader,
-               I_FragmentShader,
-               PipelineCache));
+               I_FragmentShader));
+        NewRenderPipeline->Create(Device.Context, PipelineCache);
+        return NewRenderPipeline;
     }
 
     TSharedPtr<FVulkanFence> FVulkanDriver::
@@ -1138,7 +1158,7 @@ namespace Visera::RHI
                 auto TargetImage = CreateImage(
                     EVulkanImageType::e2D,
                     {ColorRTRes.width, ColorRTRes.height, 1},
-                    FVulkanRenderPass::ColorRTFormat,
+                    EVulkanFormat::eR8G8B8A8Srgb,
                     vk::ImageUsageFlagBits::eColorAttachment |
                     vk::ImageUsageFlagBits::eTransferSrc);
 
@@ -1187,6 +1207,89 @@ namespace Visera::RHI
             LOG_FATAL("Invalid Command Buffer Type!");
             return {};
         }
+    }
 
+    TSharedPtr<FVulkanDescriptorSetLayout> FVulkanDriver::
+    CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
+    {
+        LOG_TRACE("Creating a new Vulkan Descriptor Set Layout.");
+        return MakeShared<FVulkanDescriptorSetLayout>(
+            Device.Context, I_Bindings);
+    }
+
+    TSharedPtr<FVulkanDescriptorSet> FVulkanDriver::
+    CreateDescriptorSet(TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout)
+    {
+        LOG_TRACE("Creating a new Vulkan Descriptor Set.");
+        return MakeShared<FVulkanDescriptorSet>(
+               GetDescriptorPool(),
+               I_DescriptorSetLayout);
+    }
+
+    TSharedPtr<FVulkanSampler> FVulkanDriver::
+    CreateImageSampler(EVulkanFilter             I_Filter,
+                       EVulkanSamplerAddressMode I_AddressMode,
+                       Float                     I_MaxAnisotropy /*= 1.0*/)
+    {
+        Bool bAnisotropy = I_MaxAnisotropy > 1.0;
+        while (bAnisotropy)
+        {
+            if (!GPU.Properties.limits.maxSamplerAnisotropy)
+            {
+                LOG_WARN("Current device does NOT support anisotropy!");
+                bAnisotropy = False;
+                break;
+            }
+            if (I_MaxAnisotropy > GPU.Properties.limits.maxSamplerAnisotropy)
+            {
+                I_MaxAnisotropy = GPU.Properties.limits.maxSamplerAnisotropy;
+                LOG_WARN("Clamped max anisotropy to the limit of current device {}!",
+                         I_MaxAnisotropy);
+                break;
+            }
+            break;
+        }
+        auto CreateInfo = vk::SamplerCreateInfo{}
+            .setMagFilter       (I_Filter)
+            .setMinFilter       (I_Filter)
+            .setAddressModeU    (I_AddressMode)
+            .setAddressModeV    (I_AddressMode)
+            .setAddressModeW    (I_AddressMode)
+            .setBorderColor     (EVulkanBorderColor::eFloatTransparentBlack)
+            .setMipmapMode      (EVulkanSamplerMipmapMode::eLinear)
+            .setMipLodBias      (0.0)
+            .setMinLod          (0.0)
+            .setMaxLod          (1.0)
+            .setAnisotropyEnable(bAnisotropy)
+            .setMaxAnisotropy   (I_MaxAnisotropy)
+            //.setCompareEnable   (False)
+            //.setCompareOp       ({})
+            //.setUnnormalizedCoordinates()
+        ;
+        return MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
+    }
+
+    TSharedPtr<FVulkanSampler> FVulkanDriver::
+    CreateCompareSampler(EVulkanFilter      I_Filter,
+                         EVulkanCompareOp   I_CompareOp,
+                         EVulkanBorderColor I_BorderColor)
+    {
+        auto CreateInfo = vk::SamplerCreateInfo{}
+            .setMagFilter       (I_Filter)
+            .setMinFilter       (I_Filter)
+            .setAddressModeU    (EVulkanSamplerAddressMode::eClampToBorder)
+            .setAddressModeV    (EVulkanSamplerAddressMode::eClampToBorder)
+            .setAddressModeW    (EVulkanSamplerAddressMode::eClampToBorder)
+            .setBorderColor     (I_BorderColor)
+            .setMipmapMode      (EVulkanSamplerMipmapMode::eLinear)
+            .setMipLodBias      (0.0)
+            .setMinLod          (0.0)
+            .setMaxLod          (1.0)
+            .setAnisotropyEnable(False)
+            //.setMaxAnisotropy   (1.0)
+            .setCompareEnable   (True)
+            .setCompareOp       (I_CompareOp)
+        ;
+        return MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
     }
 }

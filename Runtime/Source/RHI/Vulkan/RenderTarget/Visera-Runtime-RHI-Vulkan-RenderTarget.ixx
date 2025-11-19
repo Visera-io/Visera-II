@@ -14,13 +14,13 @@ namespace Visera::RHI
     {
     public:
         [[nodiscard]] inline TSharedRef<FVulkanImage>
-        GetImage() const { return TargetImage; }
+        GetImage() const { return TargetImageView->GetImage(); }
         [[nodiscard]] inline TSharedRef<FVulkanImageView>
         GetImageView() const  { return TargetImageView; }
         [[nodiscard]] inline EVulkanImageLayout
-        GetLayout() const  { return TargetImage->GetLayout(); }
+        GetLayout() const  { return TargetImageView->GetImage()->GetLayout(); }
         [[nodiscard]] inline EVulkanFormat
-        GetFormat() const  { return TargetImage->GetFormat(); }
+        GetFormat() const  { return TargetImageView->GetImage()->GetFormat(); }
         [[nodiscard]] inline EVulkanLoadOp
         GetLoadOp() const { return LoadOp; }
         inline FVulkanRenderTarget*
@@ -37,14 +37,13 @@ namespace Visera::RHI
         vk::RenderingAttachmentInfo
         GetAttachmentInfo() const;
         [[nodiscard]] inline Bool
-        HasDepth() const { return TargetImage->HasDepth(); }
+        HasDepth() const { return TargetImageView->GetImage()->HasDepth(); }
         [[nodiscard]] inline Bool
-        HasStencil() const { return TargetImage->HasStencil(); }
+        HasStencil() const { return TargetImageView->GetImage()->HasStencil(); }
         void inline
         Swap(TSharedRef<FVulkanRenderTarget> I_Other);
 
     private:
-        TSharedPtr<FVulkanImage>     TargetImage;
         TSharedPtr<FVulkanImageView> TargetImageView;
 
         EVulkanLoadOp       LoadOp     { EVulkanLoadOp::eNone  };
@@ -61,28 +60,27 @@ namespace Visera::RHI
 
     FVulkanRenderTarget::
     FVulkanRenderTarget(TSharedPtr<FVulkanImage> I_TargetImage)
-    : TargetImage{ std::move(I_TargetImage) }
     {
-        VISERA_ASSERT(TargetImage && TargetImage->GetHandle());
-        VISERA_ASSERT(TargetImage->GetLayout() != EVulkanImageLayout::eUndefined &&
+        VISERA_ASSERT(I_TargetImage && I_TargetImage->GetHandle());
+        VISERA_ASSERT(I_TargetImage->GetLayout() != EVulkanImageLayout::eUndefined &&
                       "Convert layout before creation for creating view!");
         EVulkanImageViewType RTViewType{};
-        switch (TargetImage->GetType())
+        switch (I_TargetImage->GetType())
         {
         case EVulkanImageType::e2D: RTViewType = EVulkanImageViewType::e2D; break;
         default: LOG_FATAL("Unsupported image type!"); break;
         }
 
         EVulkanImageAspect RTAspect{};
-        if (TargetImage->HasDepth())
+        if (I_TargetImage->HasDepth())
         { RTAspect = EVulkanImageAspect::eDepth; }
-        else if (TargetImage->HasStencil())
+        else if (I_TargetImage->HasStencil())
         { RTAspect = EVulkanImageAspect::eStencil; }
         else
         { RTAspect = EVulkanImageAspect::eColor; }
 
         TargetImageView = MakeShared<FVulkanImageView>(
-            TargetImage,
+            I_TargetImage,
             RTViewType,
             RTAspect);
     }
@@ -90,20 +88,17 @@ namespace Visera::RHI
     vk::RenderingAttachmentInfo FVulkanRenderTarget::
     GetAttachmentInfo() const
     {
-        auto AttachmentInfo = vk::RenderingAttachmentInfo{}
-            .setImageView   (GetImageView()->GetHandle())
-            .setImageLayout (GetLayout())
-            .setLoadOp      (GetLoadOp())
-            .setStoreOp     (GetStoreOp())
-            .setClearValue  (GetClearColor())
-        ;
-        return AttachmentInfo;
+        return vk::RenderingAttachmentInfo{}
+        .setImageView   (GetImageView()->GetHandle())
+        .setImageLayout (GetLayout())
+        .setLoadOp      (GetLoadOp())
+        .setStoreOp     (GetStoreOp())
+        .setClearValue  (GetClearColor());
     }
 
     void FVulkanRenderTarget::
     Swap(TSharedRef<FVulkanRenderTarget> I_Other)
     {
-        std::swap(TargetImage, I_Other->TargetImage);
         std::swap(TargetImageView, I_Other->TargetImageView);
         std::swap(LoadOp, I_Other->LoadOp);
         std::swap(StoreOp, I_Other->StoreOp);
