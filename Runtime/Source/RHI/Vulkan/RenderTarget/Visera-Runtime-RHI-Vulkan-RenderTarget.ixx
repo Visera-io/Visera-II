@@ -48,7 +48,7 @@ namespace Visera::RHI
 
         EVulkanLoadOp       LoadOp     { EVulkanLoadOp::eNone  };
         EVulkanStoreOp      StoreOp    { EVulkanStoreOp::eNone };
-        FVulkanClearColor   ClearColor { FVulkanClearColor(0.0f, 0.0f, 0.0f, 1.0f)} ;
+        FVulkanClearColor   ClearColor { FVulkanClearColor(0.0f, 0.0f, 0.0f, 0.0f)} ;
 
     public:
         FVulkanRenderTarget()                                      = delete;

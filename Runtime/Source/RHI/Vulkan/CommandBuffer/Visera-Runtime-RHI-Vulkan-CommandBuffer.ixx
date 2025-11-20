@@ -35,6 +35,10 @@ namespace Visera::RHI
                            EVulkanPipelineStage     I_DstStage,
                            EVulkanAccess            I_DstAccess);
         void inline
+        SetViewport(const FVulkanViewport& I_Viewport) { VISERA_ASSERT(!IsInsideRenderPass()); CurrentViewport = I_Viewport; }
+        void inline
+        SetScissor(const FVulkanRect2D& I_Scissor) { VISERA_ASSERT(!IsInsideRenderPass()); CurrentScissor = I_Scissor; }
+        void inline
         EnterRenderPass(TSharedRef<FVulkanRenderPipeline> I_RenderPass);
         void inline
         PushConstants(EVulkanShaderStage I_ShaderStages,

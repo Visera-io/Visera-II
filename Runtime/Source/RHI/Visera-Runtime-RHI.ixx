@@ -99,6 +99,7 @@ namespace Visera
 
         DefaultDescriptorSetLayout = Driver->CreateDescriptorSetLayout({
             RHI::FDescriptorSetBinding{}
+            .setStageFlags      (RHI::EShaderStage::eFragment)
             .setBinding         (0)
             .setDescriptorType  (RHI::EDescriptorType::eCombinedImageSampler)
             .setDescriptorCount (1)

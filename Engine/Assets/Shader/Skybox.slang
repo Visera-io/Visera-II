@@ -5,13 +5,6 @@ const static float2 Vertices[3] =
         {  3.0, -1.0 },
 };
 
-const static float2 Vertices2[3] =
-{
-        { 0.0,   0.5 },
-        { -0.5, -0.5 },
-        {  0.5, -0.5 },
-};
-
 [shader("vertex")]
 float4 VertexMain(uint _VertexID : SV_VertexID) : SV_Position
 {

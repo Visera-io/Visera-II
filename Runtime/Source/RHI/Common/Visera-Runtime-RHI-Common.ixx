@@ -33,6 +33,7 @@ export namespace Visera
         using FCommandBuffer    = FVulkanCommandBuffer;
         using FDescriptorSet    = FVulkanDescriptorSet;
         using FSampler          = FVulkanSampler;
+        using FViewport         = FVulkanViewport;
         using FPushConstant     = FVulkanPushConstant;
         using FDescriptorSetLayout  = FVulkanDescriptorSetLayout;
         using FDescriptorSetBinding = FVulkanDescriptorSetLayoutBinding;

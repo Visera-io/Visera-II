@@ -148,7 +148,8 @@ namespace Visera
     	};
 	 	if (Diagnostics)
 	 	{
-	 		LOG_ERROR("Failed to create the Shader Module: {}!", Diagnostics->getBufferPointer());
+	 		LOG_ERROR("Failed to create the Shader Module: {}!",
+	 			      static_cast<const char*>(Diagnostics->getBufferPointer()));
 			return {};
 	 	}
 
