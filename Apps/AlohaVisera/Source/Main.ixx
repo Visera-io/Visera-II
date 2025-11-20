@@ -47,6 +47,19 @@ export int main(int argc, char *argv[])
             LOG_INFO("{} -- {}", I_Mes, I_Name);
         });
         foo.OnInit.Invoke("Hello World", "LJYC");
+        TMulticastDelegate<> M;
+        for (int i = 0; i < 10; ++i)
+        {
+            M.Subscribe([i, &M]()
+            {
+                LOG_INFO("Sub {}", i);
+                M.Subscribe([i, &M]()
+                {
+                    LOG_INFO("Cas Sub {}", i);
+                });
+            });
+        }
+        M.Broadcast();
 
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));

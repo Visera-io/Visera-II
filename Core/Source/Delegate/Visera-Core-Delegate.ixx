@@ -11,17 +11,19 @@ namespace Visera
     class VISERA_CORE_API TDelegate
     {
     public:
+        using FCallback = TFunction<void(T_Args...)>;
+        
         void inline
-        Bind(TFunction<void(T_Args...)> I_Function) { Function = std::move(I_Function); }
+        Bind(FCallback I_Callback) { Callback = std::move(I_Callback); }
         void inline
         Unbind() { Bind(nullptr); }
         void inline
-        Invoke(T_Args... I_Args) const { if (Function) { Function(I_Args...); } }
+        Invoke(T_Args&&... I_Args) const { if (Callback) { Callback(std::forward<T_Args>(I_Args)...); } }
 
         [[nodiscard]] inline Bool
-        IsBind() const { return Function != nullptr; }
+        IsBind() const { return Callback != nullptr; }
 
     private:
-        TFunction<void(T_Args...)> Function;
+        FCallback Callback;
     };
 }
