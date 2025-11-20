@@ -44,11 +44,11 @@ export namespace Visera
         IsZero(const void* I_Memory, UInt64 I_Size);
 
         /**Example: VE::Memory::GetDataOffset(&Foo::bar);*/
-        template <class Structure, typename MemeberType> constexpr [[nodiscard]] UInt64
+        template <class Structure, typename MemeberType> [[nodiscard]] constexpr UInt64
         GetDataOffset(MemeberType Structure::* Member) { static_assert(std::is_standard_layout_v<Structure>, "Structure MUST be a standard layout type!"); return reinterpret_cast<UInt64>(&(reinterpret_cast<Structure*>(NULL)->*Member)); }
 
         /**Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.*/
-        template <Concepts::Alignable T> constexpr [[nodiscard]] T
+        template <Concepts::Alignable T> [[nodiscard]] constexpr T
         Align(T I_Value, UInt64 I_Alignment) { VISERA_ASSERT(Math::IsPowerOfTwo(I_Alignment)); return (T)(((UInt64)I_Value + I_Alignment - 1) & ~(I_Alignment - 1)); };
     }
 

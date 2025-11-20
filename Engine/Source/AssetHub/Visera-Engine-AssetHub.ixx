@@ -5,6 +5,7 @@ export module Visera.Engine.AssetHub;
 export import Visera.Engine.AssetHub.Sound;
 export import Visera.Engine.AssetHub.Shader;
 export import Visera.Engine.AssetHub.Texture;
+export import Visera.Core.Types.Path;
        import Visera.Engine.AssetHub.Asset;
        import Visera.Runtime.Platform;
        import Visera.Core.Log;
