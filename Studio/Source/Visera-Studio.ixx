@@ -9,7 +9,10 @@ module;
 export module Visera.Studio;
 #define VISERA_MODULE_NAME "Studio"
 import Visera.Core.Log;
-import Visera.Runtime;
+import Visera.Core.Types.Path;
+import Visera.Engine.Event;
+import Visera.Runtime.RHI;
+import Visera.Runtime.Window;
 
 namespace Visera
 {
@@ -128,8 +131,8 @@ namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
         Font = FPath{VISERA_STUDIO_DIR "/Assets/Font/TsangerYunHei.ttf"};
 
-        GEvent->OnBeginFrame.Subscribe([this](){ BeginFrame(); });
-        GEvent->OnEndFrame.Subscribe([this](){ EndFrame(); });
+        GEvent->OnFrameBegin.Subscribe([this](){ BeginFrame(); });
+        GEvent->OnFrameEnd.Subscribe([this](){ EndFrame(); });
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();

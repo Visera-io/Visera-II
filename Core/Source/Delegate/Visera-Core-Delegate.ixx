@@ -18,7 +18,7 @@ namespace Visera
         void inline
         Unbind() { Bind(nullptr); }
         void inline
-        Invoke(T_Args&&... I_Args) const { if (Callback) { Callback(std::forward<T_Args>(I_Args)...); } }
+        Invoke(T_Args... I_Args)   const { if (Callback) { Callback(I_Args...); } }
 
         [[nodiscard]] inline Bool
         IsBind() const { return Callback != nullptr; }

@@ -41,25 +41,11 @@ export int main(int argc, char *argv[])
     {
         GStudio->Bootstrap();
 
-        Foo foo;
-        foo.OnInit.Bind([](FString I_Mes, FString I_Name)
+        auto Handle = GInput->GetKeyboard()->OnPressed.Subscribe(
+        [](FKeyboard::EKey I_Key)
         {
-            LOG_INFO("{} -- {}", I_Mes, I_Name);
+            LOG_INFO("Pressed {}", static_cast<Int32>(I_Key));
         });
-        foo.OnInit.Invoke("Hello World", "LJYC");
-        TMulticastDelegate<> M;
-        for (int i = 0; i < 10; ++i)
-        {
-            M.Subscribe([i, &M]()
-            {
-                LOG_INFO("Sub {}", i);
-                M.Subscribe([i, &M]()
-                {
-                    LOG_INFO("Cas Sub {}", i);
-                });
-            });
-        }
-        M.Broadcast();
 
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
@@ -68,9 +54,12 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_Galaxy", ID);
 
-        if (auto AppMain = GScripting->GetFunction(PLATFORM_STRING("Main")))
+        if (auto AppTick = GScripting->GetFunction(PLATFORM_STRING("Tick")))
         {
-            AppMain(nullptr, 0);
+            GEngine->AppTick.Bind([AppTick](Float I_DeltaTime)
+            {
+                AppTick(&I_DeltaTime, sizeof(Float));
+            });
         }
         else LOG_FATAL("Failed to load the \"Main\"!");
 

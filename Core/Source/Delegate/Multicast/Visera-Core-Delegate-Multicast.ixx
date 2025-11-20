@@ -21,7 +21,6 @@ namespace Visera
         };
 
     public:
-        // 订阅：返回一个 Handle，用它来 Unsubscribe
         inline FHandle
         Subscribe(FCallback I_Function)
         {
@@ -36,20 +35,14 @@ namespace Visera
                 .bPendingRemove = False,
             };
 
-            // 如果当前正在 Broadcast，则先放到 PendingAdd，等 Broadcast 结束后再真正加进去
             if (LockCount > 0)
-            {
-                PendingAdd.push_back(std::move(NewSlot));
-            }
+            { PendingAdd.push_back(std::move(NewSlot)); }
             else
-            {
-                Slots.push_back(std::move(NewSlot));
-            }
+            { Slots.push_back(std::move(NewSlot)); }
 
             return NewHandle;
         }
 
-        // 退订：可以在 Broadcast 过程中调用
         inline void
         Unsubscribe(FHandle I_Handle)
         {
@@ -73,13 +66,11 @@ namespace Visera
                 {
                     if (LockCount > 0)
                     {
-                        // 正在 Broadcast：逻辑删除，当前轮剩余时间内不再调用
                         Slot.bPendingRemove = true;
                         Slot.Callback       = nullptr;
                     }
                     else
                     {
-                        // 不在 Broadcast：可以直接压缩
                         Slot.bPendingRemove = true;
                         Compact();
                     }
@@ -89,14 +80,15 @@ namespace Visera
         }
 
         inline void
-        Broadcast(T_Args&&... I_Args)
+        Broadcast(T_Args... I_Args)
         {
+            VISERA_ASSERT(!LockCount && "Recursive broadcast is prohibited!");
             ++LockCount;
             for (auto& Slot : Slots)
             {
                 if (!Slot.bPendingRemove && Slot.Callback)
                 {
-                    Slot.Callback(std::forward<T_Args>(I_Args)...);
+                    Slot.Callback(I_Args...);
                 }
             }
             --LockCount;
@@ -135,7 +127,7 @@ namespace Visera
             }
         }
 
-        inline bool
+        [[nodiscard]] inline Bool
         IsEmpty() const
         {
             if (!PendingAdd.empty())
@@ -161,9 +153,7 @@ namespace Visera
                 if (!ItRead->bPendingRemove && ItRead->Callback)
                 {
                     if (ItWrite != ItRead)
-                    {
-                        *ItWrite = std::move(*ItRead);
-                    }
+                    { *ItWrite = std::move(*ItRead); }
                     ++ItWrite;
                 }
             }

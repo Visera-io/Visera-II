@@ -21,38 +21,57 @@ export namespace Visera
     class VISERA_CORE_API TTimePoint<std::chrono::high_resolution_clock>
     {
     public:
-        TTimePoint() = default;
-        explicit TTimePoint(const std::chrono::high_resolution_clock::time_point& TTimePoint) noexcept : Value{ TTimePoint }{}
-        explicit TTimePoint(std::chrono::high_resolution_clock::time_point&& TTimePoint) noexcept : Value{ TTimePoint }{}
+        using clock      = std::chrono::high_resolution_clock;
+        using time_point = clock::time_point;
 
-        operator std::chrono::high_resolution_clock::time_point() const { return Value; }
-        auto&   operator=(const TTimePoint<std::chrono::high_resolution_clock>& target) { Value = target.Value; return *this; }
-        auto&   operator=(TTimePoint<std::chrono::high_resolution_clock>&& target) noexcept      { Value = target.Value; return *this; }
-        auto    operator-(const std::chrono::high_resolution_clock::time_point& target) const { return TDuration<std::chrono::high_resolution_clock>{ Value - target }; }
-        auto    operator-(const TTimePoint<std::chrono::high_resolution_clock>& target)  const { return TDuration<std::chrono::high_resolution_clock>{ Value - target.Value }; }
+        TTimePoint() = default;
+        explicit TTimePoint(const time_point& tp) noexcept : Value{ tp } {}
+        explicit TTimePoint(time_point&& tp) noexcept : Value{ std::move(tp) } {}
+
+        TTimePoint(const TTimePoint&)            = default;
+        TTimePoint(TTimePoint&&) noexcept        = default;
+        TTimePoint& operator=(const TTimePoint&) = default;
+        TTimePoint& operator=(TTimePoint&&) noexcept = default;
+
+        operator time_point() const noexcept { return Value; }
+
+        auto operator-(const time_point& target) const
+        { return TDuration<clock>{ Value - target }; }
+
+        auto operator-(const TTimePoint& target) const
+        { return TDuration<clock>{ Value - target.Value }; }
+
     private:
-        std::chrono::high_resolution_clock::time_point Value;
+        time_point Value{};
     };
 
     template<>
     class VISERA_CORE_API TTimePoint<std::chrono::system_clock>
     {
     public:
-        //[TODO] Time Zone issues.
+        using clock      = std::chrono::system_clock;
+        using time_point = clock::time_point;
+
         [[nodiscard]] FString ToString() const
         { return std::format("UTC(+0) {:%Y-%m-%d %H:%M:%S}", Value); }
 
-    public:
-        TTimePoint() = default; //UNIX Time
-        TTimePoint(std::chrono::system_clock::time_point Value) : Value{ std::move(Value) }{}
-        TTimePoint(const TTimePoint<std::chrono::system_clock>& I_NewTimePoint) : Value{ I_NewTimePoint.Value }{}
+        TTimePoint() = default;
+        explicit TTimePoint(time_point tp) : Value{ std::move(tp) } {}
 
-        operator std::chrono::system_clock::time_point() const { return Value; }
-        auto&   operator=(const TTimePoint<std::chrono::system_clock>& target) { Value = target.Value; return *this; }
-        auto&   operator=(TTimePoint<std::chrono::system_clock>&& target)      { Value = target.Value; return *this; }
-        auto    operator-(const std::chrono::system_clock::time_point& target) const { return TDuration<std::chrono::system_clock>{ Value - target }; }
-        auto    operator-(const TTimePoint<std::chrono::system_clock>& target) const { return TDuration<std::chrono::system_clock>{ Value - target.Value }; }
+        // defaults are fine
+        TTimePoint(const TTimePoint&)            = default;
+        TTimePoint(TTimePoint&&) noexcept        = default;
+        TTimePoint& operator=(const TTimePoint&) = default;
+        TTimePoint& operator=(TTimePoint&&) noexcept = default;
+
+        operator time_point() const noexcept { return Value; }
+
+        auto operator-(const time_point& target) const
+        { return TDuration<clock>{ Value - target }; }
+        auto operator-(const TTimePoint& target) const
+        { return TDuration<clock>{ Value - target.Value }; }
+
     private:
-        std::chrono::system_clock::time_point Value;
+        time_point Value{};
     };
 }

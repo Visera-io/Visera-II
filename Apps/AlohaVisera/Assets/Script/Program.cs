@@ -18,23 +18,25 @@ public static class App
     }
 
     public static int
-    Main(IntPtr Data, int Size)
+    Tick(IntPtr Data, int Size)
     {
-        Log.Info("C#", "Running Visera App...");
-        var Num = 10;
-        Log.Info("C#", "Windows" + 1 + 1);
-        Log.Info("C#", $"{Hash.CityHash64("Hello World!")}");
-        Log.Info("C#", $"{Hash.CityHash64("LJYC!")}");
-        if(!AssetHub.LoadShader("shader.slang", "vertMain"))
+        float DeltaTime = Marshal.PtrToStructure<float>(Data);
+        if(DeltaTime > 1.0)
         {
-            Log.Warn("C#", "Failed to load the shader!");
+            Log.Warn("C#", $"Triggered a slow loop (time: {DeltaTime}).");
         }
-        else Log.Debug("C#", "Loaded the shader.");
-
-        if(!AssetHub.LoadTexture("Firework.png"))
-        {
-            Log.Warn("C#", "Failed to load the Firework.png!");
-        }
+        //Log.Info("C#", $"DeltaTime: {DeltaTime}s");
+//
+//         if(!AssetHub.LoadShader("shader.slang", "vertMain"))
+//         {
+//             Log.Warn("C#", "Failed to load the shader!");
+//         }
+//         else Log.Debug("C#", "Loaded the shader.");
+//
+//         if(!AssetHub.LoadTexture("Firework.png"))
+//         {
+//             Log.Warn("C#", "Failed to load the Firework.png!");
+//         }
 
         return 0;
     }

@@ -4,7 +4,7 @@ export module Visera.Runtime;
 #define VISERA_MODULE_NAME "Runtime"
 export import Visera.Runtime.Platform;
 export import Visera.Runtime.Window;
-export import Visera.Runtime.Event;
+export import Visera.Runtime.Input;
 export import Visera.Runtime.RHI;
 export import Visera.Runtime.Media;
        import Visera.Core.Log;
@@ -25,8 +25,8 @@ namespace Visera
         void Bootstrap() override
         {
             LOG_INFO("Initializing Runtime.");
-            GEvent      ->Bootstrap();
             GPlatform   ->Bootstrap();
+            GInput      ->Bootstrap();
             GMedia      ->Bootstrap();
             GWindow     ->Bootstrap();
             GRHI        ->Bootstrap();
@@ -44,8 +44,8 @@ namespace Visera
             GRHI        ->Terminate();
             GWindow     ->Terminate();
             GMedia      ->Terminate();
+            GInput      ->Terminate();
             GPlatform   ->Terminate();
-            GEvent      ->Terminate();
 
             Status = EStatus::Terminated;
         }

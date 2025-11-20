@@ -32,12 +32,13 @@ target_link_libraries(${VISERA_APP}
 
 # <<App Icon>>
 if(WIN32)
+    set(APP_ICON_WINDOWS "${VISERA_APP_ASSETS_DIR}/Icon/App.ico.rc")
     enable_language(RC)
     # Optional: Set icon path variable (if you want to make it configurable)
     # set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}")
     target_sources(${VISERA_APP}
                    PRIVATE
-                   "${VISERA_APP_ASSETS_DIR}/Icon/App.ico.rc")
+                   ${APP_ICON_WINDOWS})
 elseif(APPLE)
     set(APP_ICON_MACOS "${VISERA_APP_ASSETS_DIR}/Icon/App.icns")
 

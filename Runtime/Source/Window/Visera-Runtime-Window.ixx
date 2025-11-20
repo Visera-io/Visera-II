@@ -14,9 +14,6 @@ namespace Visera
     export class VISERA_RUNTIME_API FWindow : public IGlobalSingleton<FWindow>
     {
     public:
-        [[nodiscard]] inline auto&
-        GetMouse() { return Window->GetMouse(); }
-
         [[nodiscard]] inline void*
         GetHandle() const { return Window->GetHandle(); }
         [[nodiscard]] inline Bool

@@ -6,6 +6,7 @@ module;
 export module Visera.Runtime.Window.GLFW;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Window.Interface;
+import Visera.Runtime.Input;
 import Visera.Core.Log;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 import Visera.Core.Types.Path;
@@ -45,9 +46,10 @@ namespace Visera
         GLFWwindow* Handle = nullptr;
 
     private:
+        static void KeyCallback(GLFWwindow* I_Handle, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods);
         static void MouseButtonCallback(GLFWwindow* I_Handle, Int32 I_Button, Int32 I_Action, Int32 I_Mods);
-        static void MouseCursorCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY);
-        static void MouseScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY);
+        static void CursorMoveCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY);
+        static void ScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY);
     };
 
     FGLFWWindow::
@@ -99,9 +101,11 @@ namespace Visera
 
         glfwSetWindowIcon(Handle, 1, &Icon);
 #endif
-        glfwSetMouseButtonCallback(Handle, FGLFWWindow::MouseButtonCallback);
-        glfwSetCursorPosCallback(Handle, FGLFWWindow::MouseCursorCallback);
-        glfwSetScrollCallback(Handle, FGLFWWindow::MouseScrollCallback);
+
+        glfwSetMouseButtonCallback  (Handle, FGLFWWindow::MouseButtonCallback);
+        glfwSetCursorPosCallback    (Handle, FGLFWWindow::CursorMoveCallback);
+        glfwSetScrollCallback       (Handle, FGLFWWindow::ScrollCallback);
+        glfwSetKeyCallback          (Handle, FGLFWWindow::KeyCallback);
 
         LOG_DEBUG("Created a new GLFW Window (title:{}, extent:[{},{}], scales:[{},{}])",
                   GetTitle(), Width, Height, ScaleX, ScaleY);
@@ -137,29 +141,43 @@ namespace Visera
         }
         return PrimaryMonitor;
     }
+
+    void FGLFWWindow::
+    KeyCallback(GLFWwindow* I_Handle, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
+    {
+        const auto Key = static_cast<FKeyboard::EKey>(I_Key);
+        switch (I_Action)
+        {
+        case GLFW_RELEASE: return GInput->GetKeyboard()->OnReleased.Broadcast(Key);
+        case GLFW_PRESS:   return GInput->GetKeyboard()->OnPressed.Broadcast(Key);
+        case GLFW_REPEAT:  return GInput->GetKeyboard()->OnHeld.Broadcast(Key);
+        default: LOG_ERROR("Unhandled key action ({})!", I_Action);
+        }
+    }
+
     void FGLFWWindow::
     MouseButtonCallback(GLFWwindow* I_Handle, Int32 I_Button, Int32 I_Action, Int32 I_Mods)
     {
-        const char* actionStr =
-            (I_Action == GLFW_PRESS)   ? "Pressed" :
-            (I_Action == GLFW_RELEASE) ? "Released" : "Repeated";
-
-        LOG_DEBUG("(WIP) Mouse Button {} {}", I_Button, actionStr);
+        const auto Button = static_cast<FMouse::EButton>(I_Button);
+        switch (I_Action)
+        {
+        case GLFW_RELEASE: return GInput->GetMouse()->OnReleased.Broadcast(Button);
+        case GLFW_PRESS:   return GInput->GetMouse()->OnPressed.Broadcast(Button);
+        case GLFW_REPEAT:  return GInput->GetMouse()->OnHeld.Broadcast(Button);
+        default: LOG_ERROR("Unhandled mouse action ({})!", I_Action);
+        }
     }
 
     void FGLFWWindow::
-    MouseCursorCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY)
+    CursorMoveCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY)
     {
-        GMouse.Cursor.Offset.X   = I_PosX - GMouse.Cursor.Position.X;
-        GMouse.Cursor.Offset.Y   = I_PosY - GMouse.Cursor.Position.Y;
-        GMouse.Cursor.Position.X = I_PosX;
-        GMouse.Cursor.Position.Y = I_PosY;
+        GInput->GetMouse()->OnCursorMoved.Broadcast(I_PosX, I_PosY);
     }
 
     void FGLFWWindow::
-    MouseScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY)
+    ScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY)
     {
-        LOG_DEBUG("(WIP) Mouse scrolled ({}, {})", I_OffsetX, I_OffsetY);
+        GInput->GetMouse()->OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
     }
 #endif
 }

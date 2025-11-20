@@ -6,7 +6,7 @@ macro(link_glfw in_target)
     message(STATUS "\nLinking GLFW (glfw)")
     
     if(NOT TARGET glfw)
-        option(BUILD_SHARED_LIBS "Build shared libraries"       ON) # Call GLFW in Many Modules
+        option(BUILD_SHARED_LIBS "Build shared libraries"       ON)  # Call GLFW in Many Modules
         option(GLFW_BUILD_DOCS   "Build the GLFW documentation" OFF)
         option(GLFW_INSTALL "Generate installation target"      OFF)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/GLFW)

@@ -6,8 +6,11 @@ export import Visera.Engine.AssetHub;
 export import Visera.Engine.Audio;
 export import Visera.Engine.Render;
 export import Visera.Engine.Scripting;
+export import Visera.Engine.Event;
 export import Visera.Engine.UI;
        import Visera.Core.Types.Name;
+       import Visera.Core.Delegate;
+       import Visera.Core.OS.Time;
        import Visera.Core.Log;
        import Visera.Runtime;
 
@@ -16,29 +19,22 @@ namespace Visera
     export class VISERA_ENGINE_API FEngine : public IGlobalSingleton<FEngine>
     {
     public:
-        void Bootstrap() override
-        {
-            LOG_TRACE("Bootstrapping Engine.");
-            GRuntime    ->Bootstrap();
-            
-            GScripting  ->Bootstrap();
-            GAssetHub   ->Bootstrap();
-            GRender     ->Bootstrap();
-            GAudio      ->Bootstrap();
-
-            Status = EStatus::Bootstrapped;
-        }
+        TDelegate<Float>     AppTick;
+        TMulticastDelegate<> OnBootstrap;
+        TMulticastDelegate<> OnTerminate;
 
         void Run()
         {
             VISERA_ASSERT(IsBootstrapped());
-            
+
             if (!GWindow->IsBootstrapped())
             {
                 LOG_INFO("Visera Off-Screen Mode.");
                 GRHI->BeginFrame();
                 {
-            
+                    GEvent->OnFrameBegin.Broadcast();
+                    AppTick.Invoke(0);
+                    GEvent->OnFrameEnd.Broadcast();
                 }
                 GRHI->EndFrame();
                 return;
@@ -74,15 +70,19 @@ namespace Visera
             
                  static Float LastSec {0};
                  LastSec = MouseContext.Time;
+                 auto Mouse = GInput->GetMouse();
                  MouseContext.Time = GRuntime->GetTimer().Elapsed().Milliseconds() / 1000.0;
-                 MouseContext.CursorX = GWindow->GetMouse().Cursor.Position.X / GWindow->GetWidth();
-                 MouseContext.CursorY = 1.0 - (GWindow->GetMouse().Cursor.Position.Y / GWindow->GetHeight());
-                 GWindow->GetMouse().Cursor.Offset.X -= std::min(1.0f, MouseContext.Time - LastSec);
-                 if (GWindow->GetMouse().Cursor.Offset.X <= 0) GWindow->GetMouse().Cursor.Offset.X = 0;
-                 MouseContext.OffsetX = GWindow->GetMouse().Cursor.Offset.X; // As a Time
-            
+                 MouseContext.CursorX = Mouse->GetPosition().X / GWindow->GetWidth();
+                 MouseContext.CursorY = 1.0 - (Mouse->GetPosition().Y / GWindow->GetHeight());
+                 auto DeltaX = Mouse->GetOffset().X - std::min(1.0f, MouseContext.Time - LastSec);
+
+                 MouseContext.OffsetX = std::max(0.0f, DeltaX); // As a Time
+
+                 Float DeltaTime = Timer.Tick().Microseconds() / 1000000.0; Timer.Reset();
+
                  GRHI->BeginFrame();
                  {
+                     GEvent->OnFrameBegin.Broadcast();
                      auto& Cmd = GRHI->GetDrawCommands();
             
                      Cmd->EnterRenderPass(RenderPass);
@@ -90,21 +90,46 @@ namespace Visera
                       Cmd->Draw(3,1,0,0);
                       Cmd->LeaveRenderPass();
 
+                     AppTick.Invoke(DeltaTime);
                      // GRender->Tick(0);
+
+                     GEvent->OnFrameEnd.Broadcast();
                  }
                  GRHI->EndFrame();
                  GRHI->Present();
              }
         }
+    private:
+        FHiResClock Timer;
+
+    public:
+        void Bootstrap() override
+        {
+            LOG_TRACE("Bootstrapping Engine.");
+            GRuntime    ->Bootstrap();
+
+            GEvent      ->Bootstrap();
+            GScripting  ->Bootstrap();
+            GAssetHub   ->Bootstrap();
+            GRender     ->Bootstrap();
+            GAudio      ->Bootstrap();
+
+            OnBootstrap.Broadcast();
+
+            Status = EStatus::Bootstrapped;
+        }
+
 
         void Terminate() override
         {
             LOG_TRACE("Terminating Engine.");
+            OnTerminate.Broadcast();
 
             GAudio      ->Terminate();
             GRender     ->Terminate();
             GAssetHub   ->Terminate();
             GScripting  ->Terminate();
+            GEvent      ->Terminate();
 
             GRuntime    ->Terminate();
 

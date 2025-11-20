@@ -5,17 +5,6 @@ export module Visera.Runtime.Window.Interface;
 
 namespace Visera
 {
-    export struct VISERA_RUNTIME_API FMouse
-    {
-        struct
-        {
-            struct { Double X{0}, Y{0}; } Position;
-            struct { Double X{0}, Y{0}; } Offset;
-        } Cursor{};
-    };
-    export inline VISERA_RUNTIME_API FMouse
-    GMouse{};
-
     export class VISERA_RUNTIME_API IWindow
     {
     protected:
@@ -27,9 +16,6 @@ namespace Visera
             Null,
             GLFW
         };
-        [[nodiscard]] inline FMouse&
-        GetMouse() { return GMouse; }
-
         [[nodiscard]] virtual void*
         GetHandle() const = 0;
         [[nodiscard]] virtual Bool
