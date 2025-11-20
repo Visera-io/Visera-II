@@ -3,6 +3,7 @@ module;
 export module Visera.Engine.API;
 #define VISERA_MODULE_NAME "Engine.API"
 import Visera.Core;
+import Visera.Runtime.Input;
 import Visera.Runtime.Window;
 import Visera.Engine.AssetHub;
 
@@ -58,6 +59,13 @@ namespace Visera::API
         VISERA_ASSERT(I_Path);
         auto Texture = GAssetHub->LoadTexture(FPath{I_Path});
         return Texture != nullptr;
+    }
+
+    VISERA_APP_CALLABLE
+    IsPressed(UInt32 I_Key)
+    {
+        if(I_Key > FKeyboard::MaxKey) { return False; }
+        return GInput->GetKeyboard()->GetKey(static_cast<FKeyboard::EKey>(I_Key)).IsPressed();
     }
 }
 }

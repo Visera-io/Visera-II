@@ -1,5 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
+
+#include "GLFW/glfw3.h"
 export module Visera.Runtime.Window;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Window.Interface;

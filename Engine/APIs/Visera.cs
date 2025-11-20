@@ -19,4 +19,11 @@ namespace Visera
         public static extern bool
         LoadTexture(string I_Path);
     }
+
+    static class Keyboard
+    {
+        [DllImport("Visera-Engine", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool
+        IsPressed(int I_Key);
+    }
 }

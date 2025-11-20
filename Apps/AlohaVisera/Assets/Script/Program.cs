@@ -25,6 +25,10 @@ public static class App
         {
             Log.Warn("C#", $"Triggered a slow loop (time: {DeltaTime}).");
         }
+        if(Keyboard.IsPressed(32))
+        {
+            Log.Info("C#", "Pressed Space.");
+        }
         //Log.Info("C#", $"DeltaTime: {DeltaTime}s");
 //
 //         if(!AssetHub.LoadShader("shader.slang", "vertMain"))

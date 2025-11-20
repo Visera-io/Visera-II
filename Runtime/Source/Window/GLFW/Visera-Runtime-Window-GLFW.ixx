@@ -107,6 +107,14 @@ namespace Visera
         glfwSetScrollCallback       (Handle, FGLFWWindow::ScrollCallback);
         glfwSetKeyCallback          (Handle, FGLFWWindow::KeyCallback);
 
+        if (!GInput->GetKeyboard()->OnGetKey.TryBind(
+        [this](FKeyboard::EKey I_Key, FKeyboard::FKey::EStatus* O_Status)
+        {
+            *O_Status = static_cast<FKeyboard::FKey::EStatus>
+                        (glfwGetKey(Handle, static_cast<Int32>(I_Key)));
+        }))
+        { LOG_FATAL("Failed to delegate OnGetKey()!"); }
+
         LOG_DEBUG("Created a new GLFW Window (title:{}, extent:[{},{}], scales:[{},{}])",
                   GetTitle(), Width, Height, ScaleX, ScaleY);
     }

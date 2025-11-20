@@ -46,6 +46,14 @@ export int main(int argc, char *argv[])
         {
             LOG_INFO("Pressed {}", static_cast<Int32>(I_Key));
         });
+        GEvent->OnFrameBegin.Subscribe([]()
+        {
+           if (GInput->GetKeyboard()->GetKey(FKeyboard::EKey::A)
+               .IsPressed())
+           {
+               LOG_INFO("A");
+           }
+        });
 
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));

@@ -3,14 +3,14 @@ module;
 //#include <GLFW/glfw3.h>
 export module Visera.Runtime.Input.Keyboard;
 #define VISERA_MODULE_NAME "Runtime.Input"
-import Visera.Core.Delegate.Multicast;
+import Visera.Core.Delegate;
 
 namespace Visera
 {
     export class VISERA_RUNTIME_API FKeyboard // Onto Mapping to GLFW
     {
     public:
-        enum class EAction : Int32
+        enum class EAction : UInt32
         {
             Release = 0,	    // Released
             Press   = 1,	    // Just Pressed
@@ -18,7 +18,7 @@ namespace Visera
             Detach  = Hold + 1, // Just Released  (a special Release action)
         };
 
-        enum class EKey : Int32
+        enum class EKey : UInt32
         {
             A = 65, B = 66, C = 67, D = 68, E = 69, F = 70, G = 71,
             H = 72, I = 73, J = 74, K = 75, L = 76, M = 77, N = 78,
@@ -42,12 +42,49 @@ namespace Visera
             Enter    = 257,
             Tab	     = 258,
             CapsLock = 280,
+            LCtrl    = 341,
+            RCtrl    = 345,
+            LAlt     = 342,
+            RAlt     = 346,
+            Menu     = 348, // Max Key
         };
+        static constexpr UInt32
+        MaxKey = static_cast<UInt32>(EKey::Menu);
+
+        struct VISERA_RUNTIME_API FKey
+        {
+            enum class EStatus : UInt8 { Released, Pressed };
+            [[nodiscard]] inline Bool
+            IsPressed() const { return Status == EStatus::Pressed; }
+            [[nodiscard]] inline Bool
+            IsReleased() const { return Status == EStatus::Released; }
+
+            mutable EStatus Status = EStatus::Pressed;
+        };
+        [[nodiscard]] inline const FKey&
+        GetKey(EKey I_Key) const
+        {
+            const auto Key = static_cast<UInt32>(I_Key);
+            OnGetKey.Invoke(I_Key, &Keys[Key].Status);
+            return Keys[Key];
+        }
 
         using FKeyEvent = TMulticastDelegate<EKey>;
         FKeyEvent OnPressed;
         FKeyEvent OnReleased;
         FKeyEvent OnHeld;
         FKeyEvent OnDetached;
+
+        using FCheckKeyStatusEvent = TExclusiveDelegate<EKey, FKey::EStatus*>;
+        FCheckKeyStatusEvent OnGetKey;
+
+    private:
+        FKey Keys[MaxKey + 1] {};
+
+    public:
+        FKeyboard()
+        {
+
+        }
     };
 }
