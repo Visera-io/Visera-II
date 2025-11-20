@@ -24,32 +24,32 @@ export namespace Visera
         Memset(void* I_Memory, Int32 I_Value, UInt64 I_Size) -> void;
         inline auto
         Memcpy(void* I_Destination, const void* I_Source, UInt64 I_Size) -> void { std::memcpy(I_Destination, I_Source, I_Size); }
-        inline auto
+        [[nodiscard]] inline auto
         Memcmp(const void* I_MemA, const void* I_MemB, UInt64 I_Size) { return std::memcmp(I_MemA, I_MemB, I_Size); }
-        inline auto
-        Malloc(UInt64 I_Size, UInt32 I_Alignment) -> void*;
-        inline auto
-        MallocNow(UInt64 I_Size, UInt32 I_Alignment, Int32 I_Value = 0) -> void* { void* AllocatedMemory = Malloc(I_Size, I_Alignment); Memset(AllocatedMemory, I_Value, I_Size); return AllocatedMemory; }
-        inline auto
-        Realloc(void* I_Memory, UInt64 I_OldSize, UInt32 I_OldAlignment, UInt64 I_NewSize, UInt32 I_NewAlignment) -> void*;
+        [[nodiscard]] inline void*
+        Malloc(UInt64 I_Size, UInt32 I_Alignment);
+        [[nodiscard]] inline void*
+        MallocNow(UInt64 I_Size, UInt32 I_Alignment, Int32 I_Value = 0) { void* AllocatedMemory = Malloc(I_Size, I_Alignment); Memset(AllocatedMemory, I_Value, I_Size); return AllocatedMemory; }
+        [[nodiscard]] inline void*
+        Realloc(void* I_Memory, UInt64 I_OldSize, UInt32 I_OldAlignment, UInt64 I_NewSize, UInt32 I_NewAlignment);
         inline auto
         Free(void* I_Memory, UInt32 I_Alignment) -> void;
 
         inline auto
         Prefetch(const void* I_Memory, UInt32 I_Offset = 0) -> void;
 
-        inline auto
-        IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment)   ->Bool;
-        inline auto
-        IsZero(const void* I_Memory, UInt64 I_Size)            ->Bool;
+        [[nodiscard]] inline Bool
+        IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment);
+        [[nodiscard]] inline Bool
+        IsZero(const void* I_Memory, UInt64 I_Size);
 
         /**Example: VE::Memory::GetDataOffset(&Foo::bar);*/
-        template <class Structure, typename MemeberType> constexpr
-        UInt64 GetDataOffset(MemeberType Structure::* Member) { static_assert(std::is_standard_layout_v<Structure>, "Structure MUST be a standard layout type!"); return reinterpret_cast<UInt64>(&(reinterpret_cast<Structure*>(NULL)->*Member)); }
+        template <class Structure, typename MemeberType> constexpr [[nodiscard]] UInt64
+        GetDataOffset(MemeberType Structure::* Member) { static_assert(std::is_standard_layout_v<Structure>, "Structure MUST be a standard layout type!"); return reinterpret_cast<UInt64>(&(reinterpret_cast<Structure*>(NULL)->*Member)); }
 
         /**Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.*/
-        template <Concepts::Alignable T> constexpr
-        T Align(T I_Value, UInt64 I_Alignment) { VISERA_ASSERT(Math::IsPowerOfTwo(I_Alignment)); return (T)(((UInt64)I_Value + I_Alignment - 1) & ~(I_Alignment - 1)); };
+        template <Concepts::Alignable T> constexpr [[nodiscard]] T
+        Align(T I_Value, UInt64 I_Alignment) { VISERA_ASSERT(Math::IsPowerOfTwo(I_Alignment)); return (T)(((UInt64)I_Value + I_Alignment - 1) & ~(I_Alignment - 1)); };
     }
 
     // << Implementation >>

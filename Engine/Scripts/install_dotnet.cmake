@@ -182,7 +182,12 @@ macro(link_dotnet in_target)
     target_link_libraries(${in_target} PRIVATE ${NETHOST_LIBRARY})
 
     add_custom_target(DotNET)
-    set_target_properties(DotNET PROPERTIES FOLDER "Visera/Engine/External/.NET")
+    target_sources(DotNET PRIVATE
+            "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/coreclr_delegates.h"
+            "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/hostfxr.h"
+            #"${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/nethost.h"
+    )
+    set_target_properties(DotNET PROPERTIES FOLDER "Visera/Engine/External/DotNET")
 
     add_custom_command(
         TARGET ${in_target}

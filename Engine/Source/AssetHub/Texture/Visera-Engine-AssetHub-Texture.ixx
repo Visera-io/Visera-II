@@ -15,10 +15,13 @@ namespace Visera
       [[nodiscard]] const FByte*
       GetData() const override { VISERA_UNIMPLEMENTED_API; return nullptr; };
       [[nodiscard]] UInt64
-      GetSize() const override { return Data->GetMemorySize(); };
+      GetSize() const override { VISERA_UNIMPLEMENTED_API; return 0; };
+
+      [[nodiscard]] TSharedRef<RHI::FStaticTexture2D>
+      GetRHITexture() const { return Data; }
 
    private:
-      TSharedPtr<RHI::FImage> Data;
+      TSharedPtr<RHI::FStaticTexture2D> Data;
 
    public:
       FTexture() = delete;

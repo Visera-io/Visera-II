@@ -7,6 +7,7 @@ macro(link_slang in_target)
 
     if(NOT TARGET Slang)
         add_subdirectory(${VISERA_ENGINE_EXTERNAL_DIR}/Slang)
+        target_sources(Slang PRIVATE ${SLANG_DLL_PATH})
         set_target_properties(Slang PROPERTIES FOLDER "Visera/Engine/External/Slang")
     endif()
 

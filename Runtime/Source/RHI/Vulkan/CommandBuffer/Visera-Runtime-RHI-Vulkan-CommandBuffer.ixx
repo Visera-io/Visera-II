@@ -7,6 +7,7 @@ import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.RenderPipeline;
 import Visera.Runtime.RHI.Vulkan.Image;
 import Visera.Runtime.RHI.Vulkan.Buffer;
+import Visera.Runtime.RHI.Vulkan.DescriptorSet;
 import Visera.Core.Log;
 
 namespace Visera::RHI
@@ -40,6 +41,9 @@ namespace Visera::RHI
                       const void*        I_Data,
                       UInt32             I_Offset,
                       UInt32             I_Size);
+        void inline
+        BindDescriptorSet(EVulkanShaderStage               I_ShaderStages,
+                          TSharedRef<FVulkanDescriptorSet> I_DescriptorSet);
         void inline
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
@@ -205,6 +209,22 @@ namespace Visera::RHI
             *CurrentRenderPipeline->GetLayout(),
             Int32(I_ShaderStages),
             I_Offset, I_Size, I_Data);
+    }
+
+    void FVulkanCommandBuffer::
+    BindDescriptorSet(EVulkanShaderStage               I_ShaderStages,
+                      TSharedRef<FVulkanDescriptorSet> I_DescriptorSet)
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+        const auto DescriptorSet = I_DescriptorSet->GetHandle();
+        const auto BindInfo = vk::BindDescriptorSetsInfo{}
+            .setStageFlags          (I_ShaderStages)
+            .setLayout              (CurrentRenderPipeline->GetLayout())
+            .setFirstSet            (0)
+            .setDescriptorSetCount  (1)
+            .setPDescriptorSets     (&DescriptorSet)
+        ;
+        Handle.bindDescriptorSets2(BindInfo);
     }
 
     void FVulkanCommandBuffer::

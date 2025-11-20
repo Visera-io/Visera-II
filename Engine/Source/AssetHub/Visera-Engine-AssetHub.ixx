@@ -2,13 +2,13 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine.AssetHub;
 #define VISERA_MODULE_NAME "Engine.AssetHub"
-import Visera.Engine.AssetHub.Asset;
-import Visera.Engine.AssetHub.Sound;
-import Visera.Engine.AssetHub.Shader;
-import Visera.Engine.AssetHub.Texture;
-import Visera.Runtime.Platform;
-import Visera.Core.Log;
-import Visera.Core.OS.FileSystem;
+export import Visera.Engine.AssetHub.Sound;
+export import Visera.Engine.AssetHub.Shader;
+export import Visera.Engine.AssetHub.Texture;
+       import Visera.Engine.AssetHub.Asset;
+       import Visera.Runtime.Platform;
+       import Visera.Core.Log;
+       import Visera.Core.OS.FileSystem;
 
 namespace Visera
 {

@@ -14,9 +14,13 @@ export namespace Visera
         using EFormat           = EVulkanFormat;
         using EImageUsage       = EVulkanImageUsage;
         using EImageLayout      = EVulkanImageLayout;
+        using EImageViewType    = EVulkanImageViewType;
+        using EImageAspect      = EVulkanImageAspect;
         using EPipelineStage    = EVulkanPipelineStage;
         using EAccess           = EVulkanAccess;
         using EShaderStage      = EVulkanShaderStage;
+        using EFilter           = EVulkanFilter;
+        using ESamplerAddressMode= EVulkanSamplerAddressMode;
         using EMemoryPoolFlag   = EVulkanMemoryPoolFlag;
         using EBufferUsage      = EVulkanBufferUsage;
         using EDescriptorType   = EVulkanDescriptorType;
@@ -29,6 +33,8 @@ export namespace Visera
         using FCommandBuffer    = FVulkanCommandBuffer;
         using FDescriptorSet    = FVulkanDescriptorSet;
         using FSampler          = FVulkanSampler;
-        using FDescriptorSetLayoutBinding = FVulkanDescriptorSetLayoutBinding;
+        using FPushConstant     = FVulkanPushConstant;
+        using FDescriptorSetLayout  = FVulkanDescriptorSetLayout;
+        using FDescriptorSetBinding = FVulkanDescriptorSetLayoutBinding;
     }
 }

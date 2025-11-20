@@ -48,10 +48,10 @@ export int main(int argc, char *argv[])
         });
         GEvent->OnFrameBegin.Subscribe([]()
         {
-           if (GInput->GetKeyboard()->GetKey(FKeyboard::EKey::A)
-               .IsPressed())
+           if (GInput->GetKeyboard()->IsPressed(FKeyboard::EKey::A))
            {
                LOG_INFO("A");
+               GInput->GetKeyboard()->OnPressed.Broadcast(FKeyboard::EKey::B); // Inject
            }
         });
 

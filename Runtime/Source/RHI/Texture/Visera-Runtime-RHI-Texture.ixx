@@ -14,39 +14,30 @@ namespace Visera::RHI
     {
     public:
         inline void
-        Write(TSharedRef<FImageView> I_ImageView);
+        WriteTo(TSharedRef<FDescriptorSet> I_DescriptorSet, UInt8 I_Binding);
 
     private:
         TSharedPtr<FImageView>     ImageView;
         TSharedPtr<FSampler>       Sampler;
-        TSharedPtr<FDescriptorSet> DescriptorSet;
-        UInt8                      Binding;
 
     public:
         FStaticTexture2D() = delete;
         FStaticTexture2D(TSharedRef<FImageView>     I_ImageView,
-                         TSharedRef<FSampler>       I_Sampler,
-                         TSharedRef<FDescriptorSet> I_DescriptorSet,
-                         UInt8                      I_Binding);
+                         TSharedRef<FSampler>       I_Sampler);
     };
 
     FStaticTexture2D::
     FStaticTexture2D(TSharedRef<FImageView>     I_ImageView,
-                     TSharedRef<FSampler>       I_Sampler,
-                     TSharedRef<FDescriptorSet> I_DescriptorSet,
-                     UInt8                      I_Binding)
+                     TSharedRef<FSampler>       I_Sampler)
     : ImageView     {I_ImageView},
-      Sampler       {I_Sampler},
-      DescriptorSet {I_DescriptorSet},
-      Binding       {I_Binding}
+      Sampler       {I_Sampler}
     {
-        DescriptorSet->WriteImage(Binding, ImageView, Sampler);
+
     }
 
     void FStaticTexture2D::
-    Write(TSharedRef<FImageView> I_ImageView)
+    WriteTo(TSharedRef<FDescriptorSet> I_DescriptorSet, UInt8 I_Binding)
     {
-        ImageView = I_ImageView;
-        DescriptorSet->WriteImage(Binding, ImageView, Sampler);
+        I_DescriptorSet->WriteImage(I_Binding, ImageView, Sampler);
     }
 }

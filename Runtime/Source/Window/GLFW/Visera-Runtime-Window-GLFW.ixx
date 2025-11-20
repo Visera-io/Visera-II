@@ -108,9 +108,9 @@ namespace Visera
         glfwSetKeyCallback          (Handle, FGLFWWindow::KeyCallback);
 
         if (!GInput->GetKeyboard()->OnGetKey.TryBind(
-        [this](FKeyboard::EKey I_Key, FKeyboard::FKey::EStatus* O_Status)
+        [this](FKeyboard::EKey I_Key, FKeyboard::EAction* O_Status)
         {
-            *O_Status = static_cast<FKeyboard::FKey::EStatus>
+            *O_Status = static_cast<FKeyboard::EAction>
                         (glfwGetKey(Handle, static_cast<Int32>(I_Key)));
         }))
         { LOG_FATAL("Failed to delegate OnGetKey()!"); }

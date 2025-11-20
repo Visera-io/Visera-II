@@ -65,7 +65,7 @@ namespace Visera::API
     IsPressed(UInt32 I_Key)
     {
         if(I_Key > FKeyboard::MaxKey) { return False; }
-        return GInput->GetKeyboard()->GetKey(static_cast<FKeyboard::EKey>(I_Key)).IsPressed();
+        return GInput->GetKeyboard()->IsPressed(static_cast<FKeyboard::EKey>(I_Key));
     }
 }
 }

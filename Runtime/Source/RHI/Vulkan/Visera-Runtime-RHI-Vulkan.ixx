@@ -135,6 +135,13 @@ namespace Visera::RHI
                     const FVulkanExtent3D& I_Extent,
                     EVulkanFormat          I_Format,
                     EVulkanImageUsages     I_Usages);
+        [[nodiscard]] TSharedPtr<FVulkanImageView>
+        CreateImageView(TSharedRef<FVulkanImage>   I_Image,
+                        EVulkanImageViewType       I_ViewType,
+                        EVulkanImageAspect         I_Aspect,
+                        const TPair<UInt8, UInt8>& I_MipmapRange = {0,0},
+                        const TPair<UInt8, UInt8>& I_ArrayRange  = {0,0},
+                        TOptional<FVulkanSwizzle>  I_Swizzle     = {});
         [[nodiscard]] TSharedPtr<FVulkanSampler>
         CreateImageSampler(EVulkanFilter             I_Filter,
                            EVulkanSamplerAddressMode I_AddressMode,
@@ -900,6 +907,7 @@ namespace Visera::RHI
             ->AddDeviceExtension(vk::KHRSynchronization2ExtensionName)
             ->AddDeviceExtension(vk::KHRDynamicRenderingExtensionName)
             ->AddDeviceExtension(vk::KHRMaintenance1ExtensionName)
+            ->AddDeviceExtension(vk::KHRMaintenance6ExtensionName) // BindDescriptorSets2() [TODO]: Remove in Vulkan1.4
 #if defined(VISERA_ON_APPLE_SYSTEM)
             ->AddDeviceExtension("VK_KHR_portability_subset")
 #endif
@@ -1094,6 +1102,24 @@ namespace Visera::RHI
         LOG_DEBUG("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
         return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
+    }
+
+    TSharedPtr<FVulkanImageView> FVulkanDriver::
+    CreateImageView(TSharedRef<FVulkanImage>   I_Image,
+                    EVulkanImageViewType       I_ViewType,
+                    EVulkanImageAspect         I_Aspect,
+                    const TPair<UInt8, UInt8>& I_MipmapRange,
+                    const TPair<UInt8, UInt8>& I_ArrayRange,
+                    TOptional<FVulkanSwizzle>  I_Swizzle)
+    {
+        LOG_DEBUG("Creating a Vulkan Image View.");
+        return MakeShared<FVulkanImageView>(
+            I_Image,
+            I_ViewType,
+            I_Aspect,
+            I_MipmapRange,
+            I_ArrayRange,
+            I_Swizzle);
     }
 
     TSharedPtr<FVulkanBuffer> FVulkanDriver::

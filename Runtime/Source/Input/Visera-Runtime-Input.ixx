@@ -23,13 +23,13 @@ namespace Visera
     public:
         void Bootstrap() override
         {
-            LOG_INFO("Bootstrapping Input.");
+            LOG_TRACE("Bootstrapping Input.");
 
             Status = EStatus::Bootstrapped;
         }
         void Terminate() override
         {
-            LOG_INFO("Terminating Input.");
+            LOG_TRACE("Terminating Input.");
 
             Status = EStatus::Terminated;
         }

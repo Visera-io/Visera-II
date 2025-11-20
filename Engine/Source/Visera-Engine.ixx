@@ -54,9 +54,10 @@ namespace Visera
             auto PipelineLayout = Driver->CreatePipelineLayout({},
 {{ RHI::EShaderStage::eFragment, 0U, UInt32(sizeof MouseContext) }});
             auto RenderPass = GRHI->CreateRenderPipeline(
-             "TestPass", PipelineLayout,
+             "TestPass",
              GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
-             GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode()
+             GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode(),
+             PipelineLayout
             );
              RenderPass->SetRenderArea({
                  {0,0},
@@ -91,7 +92,7 @@ namespace Visera
                       Cmd->LeaveRenderPass();
 
                      AppTick.Invoke(DeltaTime);
-                     // GRender->Tick(0);
+                     GRender->Tick(DeltaTime);
 
                      GEvent->OnFrameEnd.Broadcast();
                  }

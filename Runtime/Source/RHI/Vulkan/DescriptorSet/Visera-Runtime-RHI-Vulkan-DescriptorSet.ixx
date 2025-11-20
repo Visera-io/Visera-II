@@ -37,14 +37,15 @@ namespace Visera::RHI
     FVulkanDescriptorSet::
     FVulkanDescriptorSet(const vk::raii::DescriptorPool&        I_DescriptorPool,
                          TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout)
+    : Layout { I_DescriptorSetLayout }
     {
         VISERA_ASSERT(I_DescriptorPool != nullptr);
 
-        auto Layout = *I_DescriptorSetLayout->GetHandle();
+        auto LayoutHandle = *Layout->GetHandle();
         auto AllocateInfo = vk::DescriptorSetAllocateInfo{}
             .setDescriptorPool      (I_DescriptorPool)
             .setDescriptorSetCount  (1)
-            .setPSetLayouts         (&Layout)
+            .setPSetLayouts         (&LayoutHandle)
         ;
         auto Result = I_DescriptorPool.getDevice().allocateDescriptorSets(AllocateInfo);
         if (Result.has_value())
@@ -66,9 +67,11 @@ namespace Visera::RHI
             .setImageLayout (Image->GetLayout())
         ;
         auto WriteInfo = vk::WriteDescriptorSet{}
-            .setDstSet      (Handle)
-            .setDstBinding  (I_Binding)
-            .setPImageInfo  (&ImageInfo)
+            .setDescriptorCount (1)
+            .setDstSet          (Handle)
+            .setDstBinding      (I_Binding)
+            .setDescriptorType  (EVulkanDescriptorType::eCombinedImageSampler)
+            .setPImageInfo      (&ImageInfo)
         ;
         const auto& Device = Layout->GetHandle().getDevice();
         Device.updateDescriptorSets(
