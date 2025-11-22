@@ -7,13 +7,17 @@ import Visera.Runtime.Input;
 import Visera.Runtime.Window;
 import Visera.Engine.AssetHub;
 
-#define VISERA_APP_CALLABLE export VISERA_ENGINE_API auto __cdecl
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+#define VISERA_APP_CALLABLE VISERA_ENGINE_API __cdecl
+#else
+#define VISERA_APP_CALLABLE VISERA_ENGINE_API
+#endif
 
 extern "C"
 {
-namespace Visera::API
+export namespace Visera::API
 {
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE void
     Print(ELogLevel I_Level, const char* I_Module, const char* I_Message)
     {
         switch (I_Level)
@@ -27,25 +31,25 @@ namespace Visera::API
         }
     }
 
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE UInt64
     CityHash64(const char* I_Data)
     {
         return Visera::CityHash64(I_Data);
     }
 
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE void
     SetWindowTitle(const char* I_Title)
     {
         GWindow->SetTitle(I_Title);
     }
 
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE void
     ResizeWindow(Int32 I_Width, Int32 I_Height)
     {
         GWindow->SetSize(I_Width, I_Height);
     }
 
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE Bool
     LoadShader(const char* I_Path, const char* I_EntryPoint)
     {
         VISERA_ASSERT(I_Path && I_EntryPoint);
@@ -53,7 +57,7 @@ namespace Visera::API
         return Shader != nullptr;
     }
 
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE Bool
     LoadTexture(const char* I_Path)
     {
         VISERA_ASSERT(I_Path);
@@ -61,7 +65,7 @@ namespace Visera::API
         return Texture != nullptr;
     }
 
-    VISERA_APP_CALLABLE
+    VISERA_APP_CALLABLE Bool
     IsPressed(UInt32 I_Key)
     {
         if(I_Key > FKeyboard::MaxKey) { return False; }

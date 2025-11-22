@@ -9,7 +9,7 @@ import :NameEntryTable;
 import Visera.Core.Math.Arithmetic;
 #endif
 import Visera.Core.OS.Memory;
-import Visera.Core.OS.Concurrency.Locks.RWLock;
+import Visera.Core.OS.Thread.RWLock;
 import Visera.Core.Math.Arithmetic;
 
 export namespace Visera

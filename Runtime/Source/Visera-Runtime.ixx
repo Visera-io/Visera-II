@@ -7,6 +7,7 @@ export import Visera.Runtime.Window;
 export import Visera.Runtime.Input;
 export import Visera.Runtime.RHI;
 export import Visera.Runtime.Media;
+export import Visera.Runtime.Scheduler;
        import Visera.Core.Log;
        import Visera.Core.OS.Time;
 

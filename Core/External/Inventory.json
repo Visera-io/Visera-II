@@ -35,15 +35,6 @@
         ],
         "URL" : "https://github.com/madler/zlib"
     },
-    "STB" :
-    {
-        "Version" : "Date >= 2025.5.1",
-        "Dependencies" :
-        [
-
-        ],
-        "URL" : "https://github.com/nothings/stb"
-    },
     "Ankerl" :
     {
         "Version" : "4.7.0",
@@ -52,14 +43,5 @@
 
         ],
         "URL" : "https://github.com/martinus/unordered_dense"
-    },
-    "OneTBB" :
-    {
-        "Version" : "2022.2.0",
-        "Dependencies" :
-        [
-
-        ],
-        "URL" : "https://github.com/uxlfoundation/oneTBB"
     }
 }

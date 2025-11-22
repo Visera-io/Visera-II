@@ -3,7 +3,6 @@ module;
 export module Visera.Core;
 #define VISERA_MODULE_NAME "Core"
 export import Visera.Core.Archive;
-export import Visera.Core.Attribute;
 export import Visera.Core.Color;
 export import Visera.Core.Compression;
 export import Visera.Core.Delegate;

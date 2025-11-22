@@ -4,13 +4,11 @@ export module Visera.Engine.AssetHub.Asset;
 #define VISERA_MODULE_NAME "Engine.AssetHub"
 export import Visera.Core.Types.Name;
 export import Visera.Core.Types.Path;
-       import Visera.Core.Attribute;
        import Visera.Core.Log;
 
 namespace Visera
 {
    export class VISERA_ENGINE_API IAsset
-   : public Attribute::SharedOnly<IAsset>
    {
    public:
       enum class EType

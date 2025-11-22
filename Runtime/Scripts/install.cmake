@@ -37,6 +37,9 @@ target_link_libraries(${VISERA_RUNTIME} PRIVATE Visera::Core)
 #
 list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
+include(install_onetbb)
+link_onetbb(${VISERA_RUNTIME})
+
 if(NOT VISERA_OFFSCREEN_MODE)
 include(install_glfw)
 link_glfw(${VISERA_RUNTIME})
@@ -47,6 +50,9 @@ link_vma(${VISERA_RUNTIME})
 
 include(install_vulkan)
 link_vulkan(${VISERA_RUNTIME})
+
+include(install_stb)
+link_stb(${VISERA_RUNTIME})
 
 include(install_libpng)
 link_libpng(${VISERA_RUNTIME})

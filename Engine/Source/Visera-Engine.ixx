@@ -7,6 +7,7 @@ export import Visera.Engine.Audio;
 export import Visera.Engine.Render;
 export import Visera.Engine.Scripting;
 export import Visera.Engine.Event;
+export import Visera.Engine.World;
 export import Visera.Engine.UI;
        import Visera.Core.Types.Name;
        import Visera.Core.Delegate;
