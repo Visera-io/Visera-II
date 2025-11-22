@@ -19,11 +19,20 @@
   },
   ".NET" :
   {
-    "Version" : "9.X.X",
+    "Version" : "10.X.X",
     "Dependencies" :
     [
 
     ],
-    "URL" : "https://dotnet.microsoft.com/"
+    "URL" : "https://dotnet.microsoft.com"
+  },
+  "EnTT" :
+  {
+    "Version" : "3.16.0",
+    "Dependencies" :
+    [
+
+    ],
+    "URL" : "https://github.com/skypjack/entt"
   }
 }

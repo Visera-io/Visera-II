@@ -12,5 +12,4 @@ macro(link_bvh in_target)
     endif()
 
     target_link_libraries(${in_target} PUBLIC bvh)
-    #target_include_directories(${in_target} PRIVATE "${VISERA_STUDIO_EXTERNAL_DIR}/ImGui")
 endmacro()
