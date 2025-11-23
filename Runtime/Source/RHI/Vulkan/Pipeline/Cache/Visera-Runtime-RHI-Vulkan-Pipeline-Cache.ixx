@@ -1,7 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-export module Visera.Runtime.RHI.Vulkan.PipelineCache;
+export module Visera.Runtime.RHI.Vulkan.Pipeline.Cache;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.OS.FileSystem;
 import Visera.Core.OS.Memory;

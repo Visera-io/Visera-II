@@ -4,7 +4,7 @@ module;
 export module Visera.Runtime.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
-import Visera.Runtime.RHI.Vulkan.RenderPipeline;
+import Visera.Runtime.RHI.Vulkan.Pipeline.Render;
 import Visera.Runtime.RHI.Vulkan.Image;
 import Visera.Runtime.RHI.Vulkan.Buffer;
 import Visera.Runtime.RHI.Vulkan.DescriptorSet;

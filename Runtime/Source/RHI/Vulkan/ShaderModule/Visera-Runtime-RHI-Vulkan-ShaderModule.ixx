@@ -3,7 +3,6 @@ module;
 #include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.ShaderModule;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.SPIRV;
 import Visera.Core.Log;
 
 namespace Visera
@@ -21,29 +20,25 @@ namespace Visera
 
     public:
         FVulkanShaderModule() = delete;
-        FVulkanShaderModule(const vk::raii::Device&  I_Device,
-                            TSharedRef<FSPIRVShader> I_SPIRVShader);
-        ~FVulkanShaderModule();
+        FVulkanShaderModule(const vk::raii::Device& I_Device,
+                            const TArray<FByte>&    I_SPIRVShader);
+        ~FVulkanShaderModule() {};
     };
 
     FVulkanShaderModule::
-    FVulkanShaderModule(const vk::raii::Device&  I_Device,
-                        TSharedRef<FSPIRVShader> I_SPIRVShader)
+    FVulkanShaderModule(const vk::raii::Device& I_Device,
+                        const TArray<FByte>&    I_SPIRVShader)
     {
-        auto CreateInfo = vk::ShaderModuleCreateInfo{}
-            .setPCode    (reinterpret_cast<const UInt32*>(I_SPIRVShader->GetShaderCode().data()))
-            .setCodeSize (I_SPIRVShader->GetSize() * sizeof(FByte))
+        VISERA_ASSERT((I_SPIRVShader.size() % 4) == 0);
+
+        const auto CreateInfo = vk::ShaderModuleCreateInfo{}
+            .setPCode    (reinterpret_cast<const UInt32*>(I_SPIRVShader.data()))
+            .setCodeSize (I_SPIRVShader.size() * sizeof(FByte))
         ;
         auto Result = I_Device.createShaderModule(CreateInfo);
         if (!Result.has_value())
         { LOG_FATAL("Failed to create a Vulkan Shader Module!"); }
         else
         { Handle = std::move(*Result); }
-    }
-
-    FVulkanShaderModule::
-    ~FVulkanShaderModule()
-    {
-        Handle.clear();
     }
 }

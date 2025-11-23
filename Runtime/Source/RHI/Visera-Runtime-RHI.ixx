@@ -45,7 +45,7 @@ namespace Visera
         [[nodiscard]] inline TSharedPtr<FStaticTexture2D>
         CreateTexture2D(TSharedRef<FImage> I_Image, Bool bLinearSampler = True);
         [[nodiscard]] inline TSharedPtr<FRenderPipeline>
-        CreateRenderPipeline(const FString&                   I_Name,
+        CreateRenderPipeline(const FString&              I_Name,
                              TSharedRef<FSPIRVShader>    I_VertexShader,
                              TSharedRef<FSPIRVShader>    I_FragmentShader,
                              TSharedPtr<FPipelineLayout> I_PipelineLayout = {})
@@ -56,8 +56,8 @@ namespace Visera
             LOG_DEBUG("Creating a Vulkan Render Pass (name:{}).", I_Name);
             auto RenderPipeline = Driver->CreateRenderPipeline(
                 I_PipelineLayout? I_PipelineLayout : DefaultPipelineLayout,
-                   Driver->CreateShaderModule(I_VertexShader),
-                   Driver->CreateShaderModule(I_FragmentShader));
+                   Driver->CreateShaderModule(I_VertexShader->GetShaderCode()),
+                   Driver->CreateShaderModule(I_FragmentShader->GetShaderCode()));
             RenderPipeline->SetRenderArea({
                  {0,0},
                  {1920, 1080}});

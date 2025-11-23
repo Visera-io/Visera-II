@@ -15,17 +15,14 @@ export import Visera.Runtime.RHI.Vulkan.CommandBuffer;
 export import Visera.Runtime.RHI.Vulkan.Image;
 export import Visera.Runtime.RHI.Vulkan.Buffer;
 export import Visera.Runtime.RHI.Vulkan.Sampler;
-export import Visera.Runtime.RHI.Vulkan.PipelineLayout;
-export import Visera.Runtime.RHI.Vulkan.RenderPipeline;
+export import Visera.Runtime.RHI.Vulkan.Pipeline;
 export import Visera.Runtime.RHI.Vulkan.RenderTarget;
 export import Visera.Runtime.RHI.Vulkan.DescriptorSet;
 export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Runtime.RHI.Vulkan.Loader;
        import Visera.Runtime.RHI.Vulkan.Allocator;
-       import Visera.Runtime.RHI.Vulkan.Fence;
-       import Visera.Runtime.RHI.Vulkan.Semaphore;
+       import Visera.Runtime.RHI.Vulkan.Sync;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
-       import Visera.Runtime.RHI.Vulkan.PipelineCache;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
@@ -117,7 +114,7 @@ namespace Visera
                TSharedRef<FVulkanSemaphore>     I_SignalSemaphore,
                TSharedRef<FVulkanFence>         I_Fence = {});
         [[nodiscard]] TSharedPtr<FVulkanShaderModule>
-        CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader);
+        CreateShaderModule(const TArray<FByte>& I_SPIRVShader);
         [[nodiscard]] TSharedPtr<FVulkanPipelineLayout>
         CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
                              const TArray<vk::PushConstantRange>&   I_PushConstants);
@@ -1014,11 +1011,11 @@ namespace Visera
     }
 
     TSharedPtr<FVulkanShaderModule> FVulkanDriver::
-    CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader)
+    CreateShaderModule(const TArray<FByte>& I_SPIRVShader)
     {
-        VISERA_ASSERT(!I_Shader->IsEmpty());
+        VISERA_ASSERT(!I_SPIRVShader.empty());
         LOG_TRACE("Creating a Vulkan Shader Module");
-        return MakeShared<FVulkanShaderModule>(Device.Context, I_Shader);
+        return MakeShared<FVulkanShaderModule>(Device.Context, I_SPIRVShader);
     }
 
 
