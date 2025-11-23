@@ -41,9 +41,6 @@ export namespace Visera
 			if (I_Max < *IO_Value) { *IO_Value = I_Max; return; }
 		}
 
-    	template<Concepts::Integeral NumT> Bool
-		IsPowerOfTwo(NumT I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
-
     	template<Concepts::Arithmetical NumT, Concepts::Integeral IntT> Double
 		Pow(NumT I_Base, IntT I_Exp)
     	{

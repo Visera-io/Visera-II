@@ -1,10 +1,11 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan.hpp>
-export module Visera.Runtime.RHI.Common;
+export module Visera.Runtime.RHI.Types;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan;
 import Visera.Core.Log;
+import Visera.Core.Traits.Flags;
 
 export namespace Visera
 {
@@ -27,7 +28,6 @@ export namespace Visera
     using EDescriptorType   = vk::DescriptorType;
 
     using FBuffer           = FVulkanBuffer;
-    using FImage            = FVulkanImage;
     using FImageView        = FVulkanImageView;
     using FPipelineLayout   = FVulkanPipelineLayout;
     using FRenderPipeline   = FVulkanRenderPipeline;
@@ -38,4 +38,35 @@ export namespace Visera
     using FPushConstant     = vk::PushConstantRange;
     using FDescriptorSetLayout  = FVulkanDescriptorSetLayout;
     using FDescriptorSetBinding = vk::DescriptorSetLayoutBinding;
+
+    enum class ERHISetBindingType
+    {
+        Undefined            = 0,
+        CombinedImageSampler = 1 << 0,
+        UniformBuffer        = 1 << 1,
+    };
+    VISERA_MAKE_FLAGS(ERHISetBindingType);
+
+    enum class ERHIShaderStages : UInt32
+    {
+        Undefined = 0,
+        Vertex    = 1 << 0,
+        Fragment  = 1 << 1,
+    };
+    VISERA_MAKE_FLAGS(ERHIShaderStages);
+
+    struct VISERA_RUNTIME_API FRHISetBinding
+    {
+        UInt32              Index        {0};
+        ERHISetBindingType  Type         {ERHISetBindingType::Undefined};
+        UInt32              Count        {0};
+        ERHIShaderStages    ShaderStages {ERHIShaderStages::Undefined};
+
+        UInt64              ImmutableSamplerID {0};
+    };
+
+    struct VISERA_RUNTIME_API FRHISetLayout
+    {
+
+    };
 }

@@ -3,7 +3,7 @@ module;
 #include <vulkan/vulkan.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-export import Visera.Runtime.RHI.Common;
+export import Visera.Runtime.RHI.Types;
 export import Visera.Runtime.RHI.Texture;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;

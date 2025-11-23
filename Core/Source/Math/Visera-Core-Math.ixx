@@ -7,6 +7,7 @@ export import Visera.Core.Math.Algebra;
 export import Visera.Core.Math.Constants;
 export import Visera.Core.Math.Geometry;
 export import Visera.Core.Math.Trigonometry;
+export import Visera.Core.Math.Bit;
 
 export namespace Visera
 {

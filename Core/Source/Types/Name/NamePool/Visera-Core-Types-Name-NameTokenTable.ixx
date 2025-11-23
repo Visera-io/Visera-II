@@ -10,7 +10,7 @@ import Visera.Core.Math.Arithmetic;
 #endif
 import Visera.Core.OS.Memory;
 import Visera.Core.OS.Thread.RWLock;
-import Visera.Core.Math.Arithmetic;
+import Visera.Core.Math.Bit;
 
 export namespace Visera
 {

@@ -2,7 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Texture;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Runtime.RHI.Common;
+import Visera.Runtime.RHI.Types;
 import Visera.Core.Log;
 
 namespace Visera

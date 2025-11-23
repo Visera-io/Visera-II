@@ -8,7 +8,7 @@ module;
 export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.Log;
-import Visera.Core.Math.Arithmetic;
+import Visera.Core.Math.Bit;
 
 export namespace Visera
 {

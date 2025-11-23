@@ -227,6 +227,10 @@ namespace Visera
     using FANSIChar	    = char;
     using FWideChar     = wchar_t;
 
+#define VISERA_MAKE_FLAGS(EnumClass)      \
+	static_assert(std::is_enum_v<EnumClass>); \
+	template<> struct TEnableBitMaskOperators<EnumClass> : std::true_type {}
+
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 	#define PLATFORM_STRING(I_String) L##I_String
 	using FPlatformChar   = wchar_t;
@@ -245,7 +249,13 @@ namespace Visera
 	namespace Concepts
 	{
 		template<typename T> concept
-		Integeral     = std::integral<T> || std::unsigned_integral<T>;
+		Integeral = std::integral<T>;
+
+		template<typename T> concept
+		SignedIntegeral = std::signed_integral<T>;
+
+		template<typename T> concept
+		UnsingedIntegeral = std::unsigned_integral<T>;
 
 		template<typename T> concept
 		FloatingPoint = std::floating_point<T>;

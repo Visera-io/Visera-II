@@ -11,6 +11,8 @@ export import Visera.Core.Log;
 export import Visera.Core.Math;
 export import Visera.Core.OS;
 export import Visera.Core.Types;
+export import Visera.Core.Meta;
+export import Visera.Core.Traits;
 
 export namespace Visera
 {
