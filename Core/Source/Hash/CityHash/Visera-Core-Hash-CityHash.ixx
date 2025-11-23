@@ -132,7 +132,7 @@ export module Visera.Core.Hash.CityHash;
 
 namespace Google
 {
-    using namespace std;
+  using namespace std;
     
 	typedef uint8_t uint8;
 	typedef uint32_t uint32;
@@ -737,3 +737,27 @@ export namespace Google
     }
     #endif
 } // namespace Google
+
+export namespace Visera
+{
+  static_assert(std::is_same_v<UInt128, Google::uint128>);
+
+  /*<<City Hash by Google>>*/
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash64(FStringView I_StringView)				-> UInt64	{ return Google::CityHash64(I_StringView.data(), I_StringView.size()); }
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash64(FStringView I_StringView, UInt64 I_Seed)	-> UInt64	{ return Google::CityHash64WithSeed(I_StringView.data(), I_StringView.size(), I_Seed); }
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash64(const char* I_String, UInt64 I_Length)	-> UInt64	{ return Google::CityHash64(I_String, I_Length); }
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash64(const char* I_String, UInt64 I_Length, UInt64 I_Seed) -> UInt64	{ return Google::CityHash64WithSeed(I_String, I_Length, I_Seed); }
+
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash128(FStringView I_StringView)					-> UInt128	{ return Google::CityHash128(I_StringView.data(), I_StringView.size()); }
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash128(FStringView I_StringView, UInt128 I_Seed)	-> UInt128	{ return Google::CityHash128WithSeed(I_StringView.data(), I_StringView.size(), I_Seed); }
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash128(const char* I_String, UInt64 I_Length)		-> UInt128	{ return Google::CityHash128(I_String, I_Length); }
+  [[nodiscard]] VISERA_CORE_API inline auto
+  CityHash128(const char* I_String, UInt64 I_Length, UInt128 I_Seed) -> UInt128 { return Google::CityHash128WithSeed(I_String, I_Length, I_Seed); }
+}
