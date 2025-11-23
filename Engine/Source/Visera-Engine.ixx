@@ -51,46 +51,36 @@ namespace Visera
             };
             static_assert(sizeof(FTestPushConstantRange) <= 128);
             FTestPushConstantRange MouseContext{};
-
-            auto PipelineLayout = Driver->CreatePipelineLayout({},
-{{ RHI::EShaderStage::eFragment, 0U, UInt32(sizeof MouseContext) }});
-            auto RenderPass = GRHI->CreateRenderPipeline(
-             "TestPass",
-             GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
-             GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode(),
-             PipelineLayout
-            );
-             RenderPass->SetRenderArea({
-                 {0,0},
-                 {1920, 1080},
-             });
+//
+//             auto PipelineLayout = Driver->CreatePipelineLayout({},
+// {{ EShaderStage::eFragment, 0U, UInt32(sizeof MouseContext) }});
+//             auto RenderPass = GRHI->CreateRenderPipeline(
+//              "TestPass",
+//              GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
+//              GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode(),
+//              PipelineLayout
+//             );
+//              RenderPass->SetRenderArea({
+//                  {0,0},
+//                  {1920, 1080},
+//              });
 
              while (!GWindow->ShouldClose())
              {
                  GWindow->PollEvents();
                  GAudio->Tick();
-            
-                 static Float LastSec {0};
-                 LastSec = MouseContext.Time;
-                 auto Mouse = GInput->GetMouse();
-                 MouseContext.Time = GRuntime->GetTimer().Elapsed().Milliseconds() / 1000.0;
-                 MouseContext.CursorX = Mouse->GetPosition().X / GWindow->GetWidth();
-                 MouseContext.CursorY = 1.0 - (Mouse->GetPosition().Y / GWindow->GetHeight());
-                 auto DeltaX = Mouse->GetOffset().X - std::min(1.0f, MouseContext.Time - LastSec);
-
-                 MouseContext.OffsetX = std::max(0.0f, DeltaX); // As a Time
 
                  Float DeltaTime = Timer.Tick().Microseconds() / 1000000.0; Timer.Reset();
 
                  GRHI->BeginFrame();
                  {
                      GEvent->OnFrameBegin.Broadcast();
-                     auto& Cmd = GRHI->GetDrawCommands();
-            
-                     Cmd->EnterRenderPass(RenderPass);
-                      Cmd->PushConstants(RHI::EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
-                      Cmd->Draw(3,1,0,0);
-                      Cmd->LeaveRenderPass();
+                     // auto& Cmd = GRHI->GetDrawCommands();
+                     //
+                     // Cmd->EnterRenderPass(RenderPass);
+                     //  Cmd->PushConstants(EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
+                     //  Cmd->Draw(3,1,0,0);
+                     //  Cmd->LeaveRenderPass();
 
                      AppTick.Invoke(DeltaTime);
                      GRender->Tick(DeltaTime);

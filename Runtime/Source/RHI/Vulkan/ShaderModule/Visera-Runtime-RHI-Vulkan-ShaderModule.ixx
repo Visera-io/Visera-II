@@ -6,7 +6,7 @@ export module Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Runtime.RHI.SPIRV;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanShaderModule
     {

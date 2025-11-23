@@ -15,7 +15,7 @@ namespace Visera
     public:
     	[[nodiscard]] static inline Bool
     	AddSearchPath(const FPath& I_Path);
-        [[nodiscard]] inline TSharedPtr<RHI::FSPIRVShader>
+        [[nodiscard]] inline TSharedPtr<FSPIRVShader>
     	Compile(const FPath& I_Path, FStringView I_EntryPoint);
 
     private:
@@ -39,7 +39,7 @@ namespace Visera
     private:
     	[[nodiscard]] Bool
     	CreateSession();
-    	[[nodiscard]] TSharedPtr<RHI::FSPIRVShader>
+    	[[nodiscard]] TSharedPtr<FSPIRVShader>
     	Process(const FPath&  I_File, FStringView   I_EntryPoint);
     };
 
@@ -57,7 +57,7 @@ namespace Visera
 		return False;
 	}
 
-    TSharedPtr<RHI::FSPIRVShader> FSlangCompiler::
+    TSharedPtr<FSPIRVShader> FSlangCompiler::
     Compile(const FPath& I_Path, FStringView I_EntryPoint)
     {
 		auto SPIRVShader = Process(I_Path.GetFileName(), I_EntryPoint);
@@ -132,7 +132,7 @@ namespace Visera
     	return True;
     }
 
-     TSharedPtr<RHI::FSPIRVShader> FSlangCompiler::
+     TSharedPtr<FSPIRVShader> FSlangCompiler::
 	 Process(const FPath& I_File, FStringView  I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);
@@ -203,11 +203,11 @@ namespace Visera
 
 	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
 
-		auto ShaderType { RHI::FSPIRVShader::EStage::Unknown };
+		auto ShaderType { FSPIRVShader::EStage::Unknown };
 	 	switch (EntryPointRef->getStage())
 	 	{
-	 		case SLANG_STAGE_VERTEX:	ShaderType = RHI::FSPIRVShader::EStage::Vertex;   break;
-	 		case SLANG_STAGE_FRAGMENT:	ShaderType = RHI::FSPIRVShader::EStage::Fragment; break;
+	 		case SLANG_STAGE_VERTEX:	ShaderType = FSPIRVShader::EStage::Vertex;   break;
+	 		case SLANG_STAGE_FRAGMENT:	ShaderType = FSPIRVShader::EStage::Fragment; break;
 	 		default: LOG_ERROR("Unsupported Shader Stage!");
 	 	}
 
@@ -217,7 +217,7 @@ namespace Visera
 			Buffer + Session->CompiledCode->getBufferSize());
 		Session->CompiledCode.setNull();
 
-		return MakeShared<RHI::FSPIRVShader>(
+		return MakeShared<FSPIRVShader>(
 			ShaderType,
 			"main",
 			ShaderCode);

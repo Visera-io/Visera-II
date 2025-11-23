@@ -5,7 +5,7 @@ export module Visera.Runtime.RHI.Texture;
 import Visera.Runtime.RHI.Common;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     /*
      * Only one descriptor set.

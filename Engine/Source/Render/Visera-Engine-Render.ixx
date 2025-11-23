@@ -2,6 +2,7 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine.Render;
 #define VISERA_MODULE_NAME "Engine.Render"
+import Visera.Engine.Render.Background;
 import Visera.Engine.Render.Sprite;
 import Visera.Core.Log;
 
@@ -13,17 +14,20 @@ namespace Visera
         void inline
         Tick(Float I_DeltaTime)
         {
-            SpriteRenderer->Render();
+            //BackgroundRenderer->Render(I_DeltaTime);
+            SpriteRenderer->Render(I_DeltaTime);
         }
 
     private:
-        TUniquePtr<FSpriteRenderer> SpriteRenderer;
+        TUniquePtr<FBackgroundRenderer> BackgroundRenderer;
+        TUniquePtr<FSpriteRenderer>     SpriteRenderer;
 
     public:
         void
         Bootstrap() override
         {
             LOG_TRACE("Bootstrapping Render.");
+            BackgroundRenderer = MakeUnique<FBackgroundRenderer>();
             SpriteRenderer = MakeUnique<FSpriteRenderer>();
         }
         void
@@ -31,6 +35,7 @@ namespace Visera
         {
             LOG_TRACE("Terminating Render.");
             SpriteRenderer.reset();
+            BackgroundRenderer.reset();
         }
 
         FRender() : IGlobalSingleton("Render") {}

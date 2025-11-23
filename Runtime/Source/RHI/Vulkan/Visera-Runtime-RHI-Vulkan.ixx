@@ -34,7 +34,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Name;
 
-namespace Visera::RHI
+namespace Visera
 {
     export using EVulkanMemoryPoolFlag = EVulkanMemoryPoolFlagBits;
 
@@ -84,11 +84,11 @@ namespace Visera::RHI
             UInt32                                  Cursor     {0};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
-            vk::Format              ImageFormat {EVulkanFormat::eB8G8R8A8Srgb};
-            vk::ColorSpaceKHR       ColorSpace  {EVulkanColorSpace::eSrgbNonlinear};
+            vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
+            vk::ColorSpaceKHR       ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                  MinimalImageCount{3};
-            vk::PresentModeKHR      PresentMode {EVulkanPresentMode::eMailbox};
-            vk::SharingMode         SharingMode {EVulkanSharingMode::eExclusive};
+            vk::PresentModeKHR      PresentMode {vk::PresentModeKHR::eMailbox};
+            vk::SharingMode         SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                          bClipped       {True};
         }SwapChain;
@@ -120,7 +120,7 @@ namespace Visera::RHI
         CreateShaderModule(TSharedRef<FSPIRVShader> I_Shader);
         [[nodiscard]] TSharedPtr<FVulkanPipelineLayout>
         CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                             const TArray<FVulkanPushConstant>&     I_PushConstants);
+                             const TArray<vk::PushConstantRange>&   I_PushConstants);
         [[nodiscard]] TSharedPtr<FVulkanRenderPipeline>
         CreateRenderPipeline(TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout,
                              TSharedRef<FVulkanShaderModule>   I_VertexShader,
@@ -131,31 +131,31 @@ namespace Visera::RHI
         [[nodiscard]] TSharedPtr<FVulkanSemaphore>
         CreateSemaphore(FStringView I_Name);
         [[nodiscard]] TSharedPtr<FVulkanImage>
-        CreateImage(EVulkanImageType       I_ImageType,
-                    const FVulkanExtent3D& I_Extent,
-                    EVulkanFormat          I_Format,
-                    EVulkanImageUsages     I_Usages);
+        CreateImage(vk::ImageType       I_ImageType,
+                    const vk::Extent3D& I_Extent,
+                    vk::Format          I_Format,
+                    vk::ImageUsageFlags     I_Usages);
         [[nodiscard]] TSharedPtr<FVulkanImageView>
         CreateImageView(TSharedRef<FVulkanImage>   I_Image,
-                        EVulkanImageViewType       I_ViewType,
-                        EVulkanImageAspect         I_Aspect,
+                        vk::ImageViewType       I_ViewType,
+                        vk::ImageAspectFlagBits         I_Aspect,
                         const TPair<UInt8, UInt8>& I_MipmapRange = {0,0},
                         const TPair<UInt8, UInt8>& I_ArrayRange  = {0,0},
-                        TOptional<FVulkanSwizzle>  I_Swizzle     = {});
+                        TOptional<vk::ComponentMapping>  I_Swizzle     = {});
         [[nodiscard]] TSharedPtr<FVulkanSampler>
-        CreateImageSampler(EVulkanFilter             I_Filter,
-                           EVulkanSamplerAddressMode I_AddressMode,
+        CreateImageSampler(vk::Filter             I_Filter,
+                           vk::SamplerAddressMode I_AddressMode,
                            Float                     I_MaxAnisotropy = 1.0);
         [[nodiscard]] TSharedPtr<FVulkanSampler>
-        CreateCompareSampler(EVulkanFilter      I_Filter,
-                             EVulkanCompareOp   I_CompareOp,
-                             EVulkanBorderColor I_BorderColor);
+        CreateCompareSampler(vk::Filter      I_Filter,
+                             vk::CompareOp   I_CompareOp,
+                             vk::BorderColor I_BorderColor);
         [[nodiscard]] TSharedPtr<FVulkanBuffer>
-        CreateBuffer(UInt64                I_Size,
-                     EVulkanBufferUsage    I_Usage,
+        CreateBuffer(UInt64                 I_Size,
+                     vk::BufferUsageFlags    I_Usages,
                      EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
-        CreateCommandBuffer(EVulkanQueue I_Queue);
+        CreateCommandBuffer(vk::QueueFlagBits I_Queue);
         [[nodiscard]] TSharedPtr<FVulkanDescriptorSetLayout>
         CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
         [[nodiscard]] TSharedPtr<FVulkanDescriptorSet>
@@ -179,7 +179,7 @@ namespace Visera::RHI
         GetCurrentSwapChainImage() { return SwapChain.ImageViews[SwapChain.Cursor]; }
 #endif
     private:
-        const FVulkanExtent2D                       ColorRTRes { 1920, 1080 };
+        const vk::Extent2D                       ColorRTRes { 1920, 1080 };
         TArray<FInFlightFrame>                      InFlightFrames;
         UInt8                                       InFlightFrameIndex {0};
 
@@ -385,13 +385,13 @@ namespace Visera::RHI
 
         vk::DescriptorPoolSize PoolSizes[MAX_DESCRIPTOR_ENUM];
         PoolSizes[SampledImage]
-        .setType            (EVulkanDescriptorType::eSampledImage)
+        .setType            (vk::DescriptorType::eSampledImage)
         .setDescriptorCount (100);
         PoolSizes[CombinedImageSampler]
-        .setType            (EVulkanDescriptorType::eCombinedImageSampler)
+        .setType            (vk::DescriptorType::eCombinedImageSampler)
         .setDescriptorCount (100);
         PoolSizes[UniformBuffer]
-        .setType            (EVulkanDescriptorType::eUniformBuffer)
+        .setType            (vk::DescriptorType::eUniformBuffer)
         .setDescriptorCount (100);
 
         auto CreateInfo = vk::DescriptorPoolCreateInfo()
@@ -765,7 +765,7 @@ namespace Visera::RHI
             {
                 LOG_ERROR("Failed to find required present mode {} for SwapChain!"
                           "-- Using FIFO by default.", SwapChain.PresentMode);
-                SwapChain.PresentMode = EVulkanPresentMode::eFifo;
+                SwapChain.PresentMode = vk::PresentModeKHR::eFifo;
             }
         }
 
@@ -852,43 +852,20 @@ namespace Visera::RHI
             {
                 SwapChain.Images.emplace_back(MakeShared<FVulkanImageWrapper>(
                     SwapChainImages[Idx],
-                    EVulkanImageType::e2D,
-                    FVulkanExtent3D{SwapChain.Extent.width, SwapChain.Extent.height, 1},
+                    vk::ImageType::e2D,
+                    vk::Extent3D{SwapChain.Extent.width, SwapChain.Extent.height, 1},
                     SwapChain.ImageFormat,
                     SwapChain.ImageUsage));
             }
         }
-        // Convert Swapchain Images' layout
-        {
-            auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
-            auto Fence = CreateFence(False, "convert swapchain image layout");
 
-            Cmd->Begin();
-            {
-                for (auto& Image : SwapChain.Images)
-                {
-                    Cmd->ConvertImageLayout(Image,
-                        EVulkanImageLayout::ePresentSrcKHR,
-                        EVulkanPipelineStage::eTopOfPipe,
-                        EVulkanAccess::eNone,
-                        EVulkanPipelineStage::eBottomOfPipe,
-                        EVulkanAccess::eNone
-                    );
-                }
-            }
-            Cmd->End();
-            Submit(Cmd, {}, {}, Fence);
-
-            if (!Fence->Wait())
-            { LOG_FATAL("Failed to wait for convert swapchain image layouts!"); }
-        }
         // Create Image Views
         for (const auto& Image : SwapChain.Images)
         {
             SwapChain.ImageViews.emplace_back(MakeShared<FVulkanImageView>(
                 Image,
-                EVulkanImageViewType::e2D,
-                EVulkanImageAspect::eColor));
+                vk::ImageViewType::e2D,
+                vk::ImageAspectFlagBits::eColor));
         }
         // Create Semaphores
         SwapChain.ReadyToPresentSemaphores.resize(SwapChain.Images.size());
@@ -1016,11 +993,11 @@ namespace Visera::RHI
 
         auto WaitSemaphoreInfo = vk::SemaphoreSubmitInfo{}
             .setSemaphore(WaitSemaphore)
-            .setStageMask(EVulkanPipelineStage::eColorAttachmentOutput)
+            .setStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput)
         ;
         auto SignalSemaphoreInfo = vk::SemaphoreSubmitInfo{}
             .setSemaphore(SignalSemaphore)
-            .setStageMask(EVulkanPipelineStage::eColorAttachmentOutput)
+            .setStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput)
         ;
         auto CommandBufferInfo = vk::CommandBufferSubmitInfo{}
             .setCommandBuffer(CommandBuffer)
@@ -1047,7 +1024,7 @@ namespace Visera::RHI
 
     TSharedPtr<FVulkanPipelineLayout> FVulkanDriver::
     CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                         const TArray<FVulkanPushConstant>&     I_PushConstants)
+                         const TArray<vk::PushConstantRange>&   I_PushConstants)
     {
         LOG_TRACE("Creating a Vulkan Pipeline Layout.");
         return MakeShared<FVulkanPipelineLayout>(
@@ -1093,10 +1070,10 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanImage> FVulkanDriver::
-    CreateImage(EVulkanImageType       I_ImageType,
-                const FVulkanExtent3D& I_Extent,
-                EVulkanFormat          I_Format,
-                EVulkanImageUsages     I_Usages)
+    CreateImage(vk::ImageType       I_ImageType,
+                const vk::Extent3D& I_Extent,
+                vk::Format          I_Format,
+                vk::ImageUsageFlags     I_Usages)
     {
         VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
         LOG_DEBUG("Creating a Vulkan Image (extent:[{},{},{}]).",
@@ -1106,11 +1083,11 @@ namespace Visera::RHI
 
     TSharedPtr<FVulkanImageView> FVulkanDriver::
     CreateImageView(TSharedRef<FVulkanImage>   I_Image,
-                    EVulkanImageViewType       I_ViewType,
-                    EVulkanImageAspect         I_Aspect,
+                    vk::ImageViewType       I_ViewType,
+                    vk::ImageAspectFlagBits         I_Aspect,
                     const TPair<UInt8, UInt8>& I_MipmapRange,
                     const TPair<UInt8, UInt8>& I_ArrayRange,
-                    TOptional<FVulkanSwizzle>  I_Swizzle)
+                    TOptional<vk::ComponentMapping>  I_Swizzle)
     {
         LOG_DEBUG("Creating a Vulkan Image View.");
         return MakeShared<FVulkanImageView>(
@@ -1123,13 +1100,13 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanBuffer> FVulkanDriver::
-    CreateBuffer(UInt64                I_Size,
-                 EVulkanBufferUsage    I_Usage,
+    CreateBuffer(UInt64                 I_Size,
+                 vk::BufferUsageFlags    I_Usages,
                  EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
     {
         VISERA_ASSERT(I_Size != 0);
         LOG_DEBUG("Creating a Vulkan Buffer ({} bytes).", I_Size);
-        return MakeShared<FVulkanBuffer>(I_Size, I_Usage, I_MemoryPoolFlags);
+        return MakeShared<FVulkanBuffer>(I_Size, I_Usages, I_MemoryPoolFlags);
     }
 
     void FVulkanDriver::
@@ -1174,7 +1151,7 @@ namespace Visera::RHI
         LOG_DEBUG("Creating {} in-flght frames (extent: [{},{}]).",
                   InFlightFrames.size(), ColorRTRes.width, ColorRTRes.height);
 
-        auto Cmd = CreateCommandBuffer(EVulkanQueue::eGraphics);
+        auto Cmd = CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
         auto Fence = CreateFence(False, "convert render targets layout");
         Cmd->Begin();
         {
@@ -1182,25 +1159,25 @@ namespace Visera::RHI
             for (auto& InFlightFrame : InFlightFrames)
             {
                 auto TargetImage = CreateImage(
-                    EVulkanImageType::e2D,
+                    vk::ImageType::e2D,
                     {ColorRTRes.width, ColorRTRes.height, 1},
-                    EVulkanFormat::eR8G8B8A8Srgb,
+                    vk::Format::eR8G8B8A8Srgb,
                     vk::ImageUsageFlagBits::eColorAttachment |
                     vk::ImageUsageFlagBits::eTransferSrc);
 
                 Cmd->ConvertImageLayout(TargetImage,
-                    EVulkanImageLayout::eColorAttachmentOptimal,
-                    EVulkanPipelineStage::eTopOfPipe,
-                    EVulkanAccess::eNone,
-                    EVulkanPipelineStage::eColorAttachmentOutput,
-                    EVulkanAccess::eColorAttachmentWrite
+                    vk::ImageLayout::eColorAttachmentOptimal,
+                    vk::PipelineStageFlagBits2::eTopOfPipe,
+                    vk::AccessFlagBits2::eNone,
+                    vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                    vk::AccessFlagBits2::eColorAttachmentWrite
                 );
                 InFlightFrame.ColorRT = MakeShared<FVulkanRenderTarget>(TargetImage);
-                InFlightFrame.ColorRT->SetLoadOp(EVulkanLoadOp::eClear)
-                                     ->SetStoreOp(EVulkanStoreOp::eStore);
+                InFlightFrame.ColorRT->SetLoadOp(vk::AttachmentLoadOp::eLoad)
+                                     ->SetStoreOp(vk::AttachmentStoreOp::eStore);
 
                 // Command Buffers
-                InFlightFrame.DrawCalls = CreateCommandBuffer(EVulkanQueue::eGraphics);
+                InFlightFrame.DrawCalls = CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
                 // Fences
                 InFlightFrame.Fence
                 = CreateFence(True, Format("In-Flight Fence ({})", InFlightFrameIndex));
@@ -1220,11 +1197,11 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanCommandBuffer> FVulkanDriver::
-    CreateCommandBuffer(EVulkanQueue I_Queue)
+    CreateCommandBuffer(vk::QueueFlagBits I_Queue)
     {
         switch (I_Queue)
         {
-        case EVulkanQueue::eGraphics:
+        case vk::QueueFlagBits::eGraphics:
             LOG_TRACE("Creating a new Vulkan Graphics Command Buffer.");
             return MakeShared<FVulkanCommandBuffer>(
                 Device.Context,
@@ -1253,8 +1230,8 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanSampler> FVulkanDriver::
-    CreateImageSampler(EVulkanFilter             I_Filter,
-                       EVulkanSamplerAddressMode I_AddressMode,
+    CreateImageSampler(vk::Filter             I_Filter,
+                       vk::SamplerAddressMode I_AddressMode,
                        Float                     I_MaxAnisotropy /*= 1.0*/)
     {
         Bool bAnisotropy = I_MaxAnisotropy > 1.0;
@@ -1281,8 +1258,8 @@ namespace Visera::RHI
             .setAddressModeU    (I_AddressMode)
             .setAddressModeV    (I_AddressMode)
             .setAddressModeW    (I_AddressMode)
-            .setBorderColor     (EVulkanBorderColor::eFloatTransparentBlack)
-            .setMipmapMode      (EVulkanSamplerMipmapMode::eLinear)
+            .setBorderColor     (vk::BorderColor::eFloatTransparentBlack)
+            .setMipmapMode      (vk::SamplerMipmapMode::eLinear)
             .setMipLodBias      (0.0)
             .setMinLod          (0.0)
             .setMaxLod          (1.0)
@@ -1296,18 +1273,18 @@ namespace Visera::RHI
     }
 
     TSharedPtr<FVulkanSampler> FVulkanDriver::
-    CreateCompareSampler(EVulkanFilter      I_Filter,
-                         EVulkanCompareOp   I_CompareOp,
-                         EVulkanBorderColor I_BorderColor)
+    CreateCompareSampler(vk::Filter      I_Filter,
+                         vk::CompareOp   I_CompareOp,
+                         vk::BorderColor I_BorderColor)
     {
         auto CreateInfo = vk::SamplerCreateInfo{}
             .setMagFilter       (I_Filter)
             .setMinFilter       (I_Filter)
-            .setAddressModeU    (EVulkanSamplerAddressMode::eClampToBorder)
-            .setAddressModeV    (EVulkanSamplerAddressMode::eClampToBorder)
-            .setAddressModeW    (EVulkanSamplerAddressMode::eClampToBorder)
+            .setAddressModeU    (vk::SamplerAddressMode::eClampToBorder)
+            .setAddressModeV    (vk::SamplerAddressMode::eClampToBorder)
+            .setAddressModeW    (vk::SamplerAddressMode::eClampToBorder)
             .setBorderColor     (I_BorderColor)
-            .setMipmapMode      (EVulkanSamplerMipmapMode::eLinear)
+            .setMipmapMode      (vk::SamplerMipmapMode::eLinear)
             .setMipLodBias      (0.0)
             .setMinLod          (0.0)
             .setMaxLod          (1.0)

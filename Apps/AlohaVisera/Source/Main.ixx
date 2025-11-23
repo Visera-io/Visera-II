@@ -41,20 +41,6 @@ export int main(int argc, char *argv[])
     {
         GStudio->Bootstrap();
 
-        auto Handle = GInput->GetKeyboard()->OnPressed.Subscribe(
-        [](FKeyboard::EKey I_Key)
-        {
-            LOG_INFO("Pressed {}", static_cast<Int32>(I_Key));
-        });
-        GEvent->OnFrameBegin.Subscribe([]()
-        {
-           if (GInput->GetKeyboard()->IsPressed(FKeyboard::EKey::A))
-           {
-               LOG_INFO("A");
-               GInput->GetKeyboard()->OnPressed.Broadcast(FKeyboard::EKey::B); // Inject
-           }
-        });
-
         auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
 

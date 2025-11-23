@@ -7,7 +7,7 @@ import Visera.Core.OS.FileSystem;
 import Visera.Core.OS.Memory;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanPipelineCache
     {

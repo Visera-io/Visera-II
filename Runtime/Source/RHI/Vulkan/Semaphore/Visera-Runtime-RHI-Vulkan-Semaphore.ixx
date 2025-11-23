@@ -6,7 +6,7 @@ export module Visera.Runtime.RHI.Vulkan.Semaphore;
 import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanSemaphore
     {

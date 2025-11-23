@@ -10,7 +10,7 @@ import Visera.Runtime.RHI.Vulkan.Buffer;
 import Visera.Runtime.RHI.Vulkan.DescriptorSet;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanCommandBuffer
     {
@@ -28,25 +28,31 @@ namespace Visera::RHI
         void inline
         Begin();
         void inline
-        ConvertImageLayout(TSharedRef<FVulkanImage> I_Image,
-                           EVulkanImageLayout       I_NewLayout,
-                           EVulkanPipelineStage     I_SrcStage,
-                           EVulkanAccess            I_SrcAccess,
-                           EVulkanPipelineStage     I_DstStage,
-                           EVulkanAccess            I_DstAccess);
+        ConvertImageLayout(TSharedRef<FVulkanImage>   I_Image,
+                           vk::ImageLayout            I_NewLayout,
+                           vk::PipelineStageFlagBits2 I_SrcStage,
+                           vk::AccessFlagBits2        I_SrcAccess,
+                           vk::PipelineStageFlagBits2 I_DstStage,
+                           vk::AccessFlagBits2        I_DstAccess);
         void inline
-        SetViewport(const FVulkanViewport& I_Viewport) { VISERA_ASSERT(!IsInsideRenderPass()); CurrentViewport = I_Viewport; }
+        SetViewport(const vk::Viewport& I_Viewport) { CurrentViewport = I_Viewport; Handle.setViewport(0, CurrentViewport.value()); }
         void inline
-        SetScissor(const FVulkanRect2D& I_Scissor) { VISERA_ASSERT(!IsInsideRenderPass()); CurrentScissor = I_Scissor; }
+        SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.value());}
         void inline
         EnterRenderPass(TSharedRef<FVulkanRenderPipeline> I_RenderPass);
         void inline
-        PushConstants(EVulkanShaderStage I_ShaderStages,
-                      const void*        I_Data,
-                      UInt32             I_Offset,
-                      UInt32             I_Size);
+        BindVertexBuffer(UInt32                    I_Binding,
+                         TSharedRef<FVulkanBuffer> I_VertexBuffer,
+                         UInt64                    I_BufferOffset);
         void inline
-        BindDescriptorSet(EVulkanShaderStage               I_ShaderStages,
+        PushConstants(const void*          I_Data,
+                      UInt32               I_Offset,
+                      UInt32               I_Size);
+        template<class T> void
+        PushConstants(const T&             I_Data,
+                      UInt32               I_Offset = 0) { PushConstants(&I_Data, I_Offset, sizeof(I_Data)); }
+        void inline
+        BindDescriptorSet(UInt32                           I_SetIndex,
                           TSharedRef<FVulkanDescriptorSet> I_DescriptorSet);
         void inline
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
@@ -75,9 +81,9 @@ namespace Visera::RHI
         IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
 
     private:
-        vk::raii::CommandBuffer       Handle {nullptr};
-        TOptional<FVulkanViewport>    CurrentViewport;
-        TOptional<FVulkanRect2D>      CurrentScissor;
+        vk::raii::CommandBuffer           Handle {nullptr};
+        TOptional<vk::Viewport>           CurrentViewport;
+        TOptional<vk::Rect2D>             CurrentScissor;
         TSharedPtr<FVulkanRenderPipeline> CurrentRenderPipeline;
 
         EStatus Status { EStatus::Idle };
@@ -125,12 +131,12 @@ namespace Visera::RHI
     }
 
     void FVulkanCommandBuffer::
-    ConvertImageLayout(TSharedRef<FVulkanImage> I_Image,
-                       EVulkanImageLayout       I_NewLayout,
-                       EVulkanPipelineStage     I_SrcStage,
-                       EVulkanAccess            I_SrcAccess,
-                       EVulkanPipelineStage     I_DstStage,
-                       EVulkanAccess            I_DstAccess)
+    ConvertImageLayout(TSharedRef<FVulkanImage>   I_Image,
+                       vk::ImageLayout            I_NewLayout,
+                       vk::PipelineStageFlagBits2 I_SrcStage,
+                       vk::AccessFlagBits2        I_SrcAccess,
+                       vk::PipelineStageFlagBits2 I_DstStage,
+                       vk::AccessFlagBits2        I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
 
@@ -145,13 +151,13 @@ namespace Visera::RHI
         }
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
-            .setAspectMask      (EVulkanImageAspect::eColor)
+            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
             .setBaseMipLevel    (0)
             .setLevelCount      (1)
             .setBaseArrayLayer  (0)
             .setLayerCount      (1)
         ;
-        auto Barrier = FVulkanImageBarrier{}
+        auto Barrier = vk::ImageMemoryBarrier2{}
             .setSrcStageMask        (I_SrcStage)
             .setSrcAccessMask       (I_SrcAccess)
             .setDstStageMask        (I_DstStage)
@@ -180,51 +186,72 @@ namespace Visera::RHI
 
         if (!CurrentViewport.has_value())
         {
-            CurrentViewport = FVulkanViewport{}
+            SetViewport(vk::Viewport{}
                 .setX       (RenderingInfo.renderArea.offset.x)
                 .setY       (RenderingInfo.renderArea.offset.y)
                 .setWidth   (RenderingInfo.renderArea.extent.width)
                 .setHeight  (RenderingInfo.renderArea.extent.height)
-            ;
+                .setMinDepth(0.0)
+                .setMaxDepth(1.0));
         }
-        auto& Viewport = CurrentViewport.value();
-        Handle.setViewport(0, Viewport);
 
         if (!CurrentScissor.has_value())
         {
-            CurrentScissor = vk::Rect2D{}
-                .setOffset({0,0})
-                .setExtent({static_cast<UInt32>(Viewport.width),static_cast<UInt32>(Viewport.height)})
-            ;
+            SetScissor(vk::Rect2D{}
+                .setOffset(RenderingInfo.renderArea.offset)
+                .setExtent(RenderingInfo.renderArea.extent));
         }
-        Handle.setScissor(0, CurrentScissor.value());
 
         Status = EStatus::InsideRenderPass;
     }
 
     void FVulkanCommandBuffer::
-    PushConstants(EVulkanShaderStage I_ShaderStages,
-                  const void*        I_Data,
-                  UInt32             I_Offset,
-                  UInt32             I_Size)
+    PushConstants(const void*          I_Data,
+                  UInt32               I_Offset,
+                  UInt32               I_Size)
     {
         VISERA_ASSERT(IsInsideRenderPass());
-        vkCmdPushConstants(*Handle,
-            *CurrentRenderPipeline->GetLayout(),
-            Int32(I_ShaderStages),
-            I_Offset, I_Size, I_Data);
+        VISERA_ASSERT((I_Offset % 4) == 0); // VUID Constrain
+        VISERA_ASSERT((I_Size   % 4) == 0); // VUID Constrain
+
+        const auto& PipelineLayout = CurrentRenderPipeline->GetLayout();
+
+        const auto Info = vk::PushConstantsInfo{}
+            .setLayout      (PipelineLayout->GetHandle())
+            .setStageFlags  (PipelineLayout->GetPushConstantStages())
+            .setOffset      (I_Offset)
+            .setSize        (I_Size)
+            .setPValues     (I_Data)
+        ;
+        Handle.pushConstants2(Info);
     }
 
     void FVulkanCommandBuffer::
-    BindDescriptorSet(EVulkanShaderStage               I_ShaderStages,
+    BindVertexBuffer(UInt32                    I_Binding,
+                     TSharedRef<FVulkanBuffer> I_VertexBuffer,
+                     UInt64                    I_BufferOffset)
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+        Handle.bindVertexBuffers2(
+            I_Binding,
+            {I_VertexBuffer->GetHandle()},
+            {I_BufferOffset}
+        );
+    }
+
+    void FVulkanCommandBuffer::
+    BindDescriptorSet(UInt32                           I_SetIndex,
                       TSharedRef<FVulkanDescriptorSet> I_DescriptorSet)
     {
         VISERA_ASSERT(IsInsideRenderPass());
+        const auto& PipelineLayout = CurrentRenderPipeline->GetLayout();
+
         const auto DescriptorSet = I_DescriptorSet->GetHandle();
+
         const auto BindInfo = vk::BindDescriptorSetsInfo{}
-            .setStageFlags          (I_ShaderStages)
-            .setLayout              (CurrentRenderPipeline->GetLayout())
-            .setFirstSet            (0)
+            .setLayout              (PipelineLayout->GetHandle())
+            .setStageFlags          (PipelineLayout->GetDescriptorSetStages())
+            .setFirstSet            (I_SetIndex)
             .setDescriptorSetCount  (1)
             .setPDescriptorSets     (&DescriptorSet)
         ;
@@ -262,8 +289,8 @@ namespace Visera::RHI
               TSharedRef<FVulkanImage> I_DstImage)
     {
         VISERA_ASSERT(IsRecording());
-        VISERA_ASSERT(I_SrcImage->GetLayout() == EVulkanImageLayout::eTransferSrcOptimal);
-        VISERA_ASSERT(I_DstImage->GetLayout() == EVulkanImageLayout::eTransferDstOptimal);
+        VISERA_ASSERT(I_SrcImage->GetLayout() == vk::ImageLayout::eTransferSrcOptimal);
+        VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         //VISERA_ASSERT(!_SrcImage->EnabledMSAA() && !_DstImage->EnabledMSAA()); //vkCmdBlitImage must not be used for multisampled source or destination images. Use vkCmdResolveImage for this purpose.
 
         //[TODO]: As parameters
@@ -274,7 +301,7 @@ namespace Visera::RHI
         vk::Offset3D DstRange(DstExtent.width, DstExtent.height, DstExtent.depth);
 
         constexpr auto BlitSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (EVulkanImageAspect::eColor)
+            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
             .setMipLevel        (0)
             .setBaseArrayLayer  (0)
             .setLayerCount      (1)
@@ -302,10 +329,10 @@ namespace Visera::RHI
                       TSharedRef<FVulkanImage>  I_DstImage)
     {
         VISERA_ASSERT(IsRecording());
-        VISERA_ASSERT(I_DstImage->GetLayout() == EVulkanImageLayout::eTransferDstOptimal);
+        VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
         constexpr auto ImageSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (EVulkanImageAspect::eColor)
+            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
             .setMipLevel        (0)
             .setBaseArrayLayer  (0)
             .setLayerCount      (1)

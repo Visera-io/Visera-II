@@ -1,21 +1,7 @@
-const static float2 Vertices[6] =
+struct VSInput
 {
-        { -1.0, -1.0 },
-        {  1.0, -1.0 },
-        {  1.0,  1.0 },
-        {  1.0,  1.0 },
-        { -1.0,  1.0 },
-        { -1.0, -1.0 },
-};
-
-const static float2 UVs[6] =
-{
-        { 0.0, 0.0 },
-        { 1.0, 0.0 },
-        { 1.0, 1.0 },
-        { 1.0, 1.0 },
-        { 0.0, 1.0 },
-        { 0.0, 0.0 },
+    [[vk::location(0)]]
+    float4 Data;
 };
 
 struct VSOutput
@@ -24,13 +10,12 @@ struct VSOutput
     float2 UV       : TEXCOORD0;
 };
 
-
 [shader("vertex")]
-VSOutput VertexMain(uint _VertexID : SV_VertexID)
+VSOutput VertexMain(VSInput Input)
 {
     VSOutput o;
-    o.Position = float4(Vertices[_VertexID], 0.0, 1.0);
-    o.UV = UVs[_VertexID];
+    o.Position = float4(Input.Data.x, Input.Data.y, 0.0, 1.0);
+    o.UV = Input.Data.zw;
     return o;
 }
 
@@ -44,7 +29,7 @@ struct PSInput
 struct PushConstants
 {
     float Time;
-    float Scale;
+    float Alpha;
     float OffsetX, OffsetY;
 };
 [[vk::push_constant]] PushConstants PC;
@@ -59,5 +44,5 @@ float4 FragmentMain(PSInput input) : SV_Target
     // If your PNG appears upside-down, uncomment the next line:
     // uv.y = 1.0 - uv.y;
     float4 Color = FairyTex.Sample(uv);
-    return float4(Color.xyz, Color.w * 0.2);
+    return float4(Color.xyz, Color.w * PC.Alpha);
 }

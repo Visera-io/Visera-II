@@ -1,7 +1,6 @@
 module;
 #include <Visera-Runtime.hpp>
 #include <vulkan/vulkan_raii.hpp>
-#include <vk_mem_alloc.h>
 export module Visera.Runtime.RHI.Vulkan.Buffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
@@ -9,26 +8,28 @@ import Visera.Runtime.RHI.Vulkan.Allocator;
 import Visera.Core.Log;
 import Visera.Core.OS.Memory;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanBuffer : public IVulkanResource
     {
     public:
         [[nodiscard]] inline const vk::Buffer&
         GetHandle() const { return Handle; }
-        inline void
+        void
         Write(const void* I_Data, UInt64 I_Size);
+        template<class T> void
+        Write(const T& I_Data) { Write(&I_Data, sizeof(T)); }
 
         [[nodiscard]] inline Bool
-        IsMapped() const { return GetAllocationInfo().pMappedData != nullptr; }
+        IsMapped() const { return GetAllocation()->GetMappedData() != nullptr; }
 
     protected:
         vk::Buffer           Handle {nullptr};
 
     public:
         FVulkanBuffer() : IVulkanResource{EType::Buffer} {}
-        FVulkanBuffer(UInt64                I_Size,
-                      EVulkanBufferUsage    I_Usage,
+        FVulkanBuffer(UInt64                 I_Size,
+                      vk::BufferUsageFlags    I_Usages,
                       EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
         ~FVulkanBuffer() override;
         FVulkanBuffer(const FVulkanBuffer&)            = delete;
@@ -36,15 +37,15 @@ namespace Visera::RHI
     };
     
     FVulkanBuffer::
-    FVulkanBuffer(UInt64                I_Size,
-                  EVulkanBufferUsage    I_Usage,
+    FVulkanBuffer(UInt64                 I_Size,
+                  vk::BufferUsageFlags    I_Usages,
                   EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
     : IVulkanResource {EType::Buffer}
     {
         auto CreateInfo = vk::BufferCreateInfo{}
             .setSize                    (I_Size)
-            .setUsage                   (I_Usage)
-            .setSharingMode             (EVulkanSharingMode::eExclusive)
+            .setUsage                   (I_Usages)
+            .setSharingMode             (vk::SharingMode::eExclusive)
             .setQueueFamilyIndexCount   (0)
             .setPQueueFamilyIndices     (nullptr)
         ;
@@ -62,9 +63,9 @@ namespace Visera::RHI
     {
         VISERA_ASSERT(I_Data && I_Size);
         VISERA_ASSERT(I_Size <= GetMemorySize());
-        void* MappedMemory = nullptr;
+        void* MappedMemory = GetAllocation()->GetMappedData();
 
-        if (!IsMapped())
+        if (!MappedMemory)
         {
             MapMemory(&MappedMemory);
             Memory::Memcpy(MappedMemory, I_Data, I_Size);

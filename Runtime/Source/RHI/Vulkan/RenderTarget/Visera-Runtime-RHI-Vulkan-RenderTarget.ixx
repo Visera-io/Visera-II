@@ -8,7 +8,7 @@ import Visera.Runtime.RHI.Vulkan.Image;
 import Visera.Runtime.RHI.Vulkan.Allocator;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanRenderTarget
     {
@@ -17,22 +17,22 @@ namespace Visera::RHI
         GetImage() const { return TargetImageView->GetImage(); }
         [[nodiscard]] inline TSharedRef<FVulkanImageView>
         GetImageView() const  { return TargetImageView; }
-        [[nodiscard]] inline EVulkanImageLayout
+        [[nodiscard]] inline vk::ImageLayout
         GetLayout() const  { return TargetImageView->GetImage()->GetLayout(); }
-        [[nodiscard]] inline EVulkanFormat
+        [[nodiscard]] inline vk::Format
         GetFormat() const  { return TargetImageView->GetImage()->GetFormat(); }
-        [[nodiscard]] inline EVulkanLoadOp
+        [[nodiscard]] inline vk::AttachmentLoadOp
         GetLoadOp() const { return LoadOp; }
         inline FVulkanRenderTarget*
-        SetLoadOp(EVulkanLoadOp I_LoadOp) { LoadOp = I_LoadOp; return this; }
-        [[nodiscard]] inline EVulkanStoreOp
+        SetLoadOp(vk::AttachmentLoadOp I_LoadOp) { LoadOp = I_LoadOp; return this; }
+        [[nodiscard]] inline vk::AttachmentStoreOp
         GetStoreOp() const { return StoreOp; }
         inline FVulkanRenderTarget*
-        SetStoreOp(EVulkanStoreOp I_StoreOp) { StoreOp = I_StoreOp; return this; }
-        [[nodiscard]] inline const FVulkanClearColor&
+        SetStoreOp(vk::AttachmentStoreOp I_StoreOp) { StoreOp = I_StoreOp; return this; }
+        [[nodiscard]] inline const vk::ClearColorValue&
         GetClearColor() const { return ClearColor; }
         inline FVulkanRenderTarget&
-        SetClearColor(const FVulkanClearColor& I_ClearColor) { ClearColor = I_ClearColor; return *this; }
+        SetClearColor(const vk::ClearColorValue& I_ClearColor) { ClearColor = I_ClearColor; return *this; }
 
         vk::RenderingAttachmentInfo
         GetAttachmentInfo() const;
@@ -46,9 +46,9 @@ namespace Visera::RHI
     private:
         TSharedPtr<FVulkanImageView> TargetImageView;
 
-        EVulkanLoadOp       LoadOp     { EVulkanLoadOp::eNone  };
-        EVulkanStoreOp      StoreOp    { EVulkanStoreOp::eNone };
-        FVulkanClearColor   ClearColor { FVulkanClearColor(0.0f, 0.0f, 0.0f, 0.0f)} ;
+        vk::AttachmentLoadOp       LoadOp     { vk::AttachmentLoadOp::eNone  };
+        vk::AttachmentStoreOp      StoreOp    { vk::AttachmentStoreOp::eNone };
+        vk::ClearColorValue   ClearColor { vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f)} ;
 
     public:
         FVulkanRenderTarget()                                      = delete;
@@ -62,22 +62,22 @@ namespace Visera::RHI
     FVulkanRenderTarget(TSharedPtr<FVulkanImage> I_TargetImage)
     {
         VISERA_ASSERT(I_TargetImage && I_TargetImage->GetHandle());
-        VISERA_ASSERT(I_TargetImage->GetLayout() != EVulkanImageLayout::eUndefined &&
+        VISERA_ASSERT(I_TargetImage->GetLayout() != vk::ImageLayout::eUndefined &&
                       "Convert layout before creation for creating view!");
-        EVulkanImageViewType RTViewType{};
+        vk::ImageViewType RTViewType{};
         switch (I_TargetImage->GetType())
         {
-        case EVulkanImageType::e2D: RTViewType = EVulkanImageViewType::e2D; break;
+        case vk::ImageType::e2D: RTViewType = vk::ImageViewType::e2D; break;
         default: LOG_FATAL("Unsupported image type!"); break;
         }
 
-        EVulkanImageAspect RTAspect{};
+        vk::ImageAspectFlagBits RTAspect{};
         if (I_TargetImage->HasDepth())
-        { RTAspect = EVulkanImageAspect::eDepth; }
+        { RTAspect = vk::ImageAspectFlagBits::eDepth; }
         else if (I_TargetImage->HasStencil())
-        { RTAspect = EVulkanImageAspect::eStencil; }
+        { RTAspect = vk::ImageAspectFlagBits::eStencil; }
         else
-        { RTAspect = EVulkanImageAspect::eColor; }
+        { RTAspect = vk::ImageAspectFlagBits::eColor; }
 
         TargetImageView = MakeShared<FVulkanImageView>(
             I_TargetImage,

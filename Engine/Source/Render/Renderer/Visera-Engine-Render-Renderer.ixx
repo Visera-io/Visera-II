@@ -10,10 +10,10 @@ namespace Visera
     {
     public:
         virtual void
-        Render() const = 0;
+        Render(Float I_DeltaTime) = 0;
 
     protected:
-        TSharedPtr<RHI::FRenderPipeline>    RenderPipeline;
+        TSharedPtr<FRenderPipeline>    RenderPipeline;
 
     public:
         virtual ~IRenderer()

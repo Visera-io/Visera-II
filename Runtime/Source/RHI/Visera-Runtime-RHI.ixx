@@ -23,28 +23,32 @@ namespace Visera
             Float OffsetY{0};
         };
 
-        inline void
-        BeginFrame()  const { Driver->BeginFrame(); }
-        inline void
-        EndFrame()    const { Driver->EndFrame(); }
+        void
+        BeginFrame()  const;
+        void
+        EndFrame()    const;
         inline void
         Present()     const { Driver->Present(); }
 
         //[TODO]: Remove these test APIs
-        [[nodiscard]] inline TSharedRef<RHI::FCommandBuffer>
+        [[nodiscard]] inline TSharedRef<FCommandBuffer>
         GetDrawCommands() { return Driver->GetCurrentFrame().DrawCalls; }
-        [[nodiscard]] inline TSharedRef<RHI::FDescriptorSet>
+        [[nodiscard]] inline TSharedRef<FDescriptorSet>
         GetDefaultDecriptorSet() { return DefaultDescriptorSet; }
+        [[nodiscard]] inline TSharedRef<FDescriptorSet>
+        GetDefaultDecriptorSet2() { return DefaultDescriptorSet2; }
 
-        [[nodiscard]] inline TSharedPtr<RHI::FBuffer>
+        [[nodiscard]] inline TSharedPtr<FBuffer>
         CreateStagingBuffer(UInt64 I_Size);
-        [[nodiscard]] inline TSharedPtr<RHI::FStaticTexture2D>
+        [[nodiscard]] inline TSharedPtr<FBuffer>
+        CreateVertexBuffer(UInt64 I_Size);
+        [[nodiscard]] inline TSharedPtr<FStaticTexture2D>
         CreateTexture2D(TSharedRef<FImage> I_Image, Bool bLinearSampler = True);
-        [[nodiscard]] inline TSharedPtr<RHI::FRenderPipeline>
+        [[nodiscard]] inline TSharedPtr<FRenderPipeline>
         CreateRenderPipeline(const FString&                   I_Name,
-                             TSharedRef<RHI::FSPIRVShader>    I_VertexShader,
-                             TSharedRef<RHI::FSPIRVShader>    I_FragmentShader,
-                             TSharedPtr<RHI::FPipelineLayout> I_PipelineLayout = {})
+                             TSharedRef<FSPIRVShader>    I_VertexShader,
+                             TSharedRef<FSPIRVShader>    I_FragmentShader,
+                             TSharedPtr<FPipelineLayout> I_PipelineLayout = {})
         {
             VISERA_ASSERT(I_VertexShader->IsVertexShader());
             VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
@@ -61,7 +65,7 @@ namespace Visera
         }
 
         // Low-level API
-        [[nodiscard]] inline const TUniquePtr<RHI::FVulkanDriver>&
+        [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
             DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" line:{} \"{}\" accessed the RHI driver.",
@@ -72,12 +76,13 @@ namespace Visera
         };
 
     private:
-        TUniquePtr<RHI::FVulkanDriver>   Driver;
-        TSharedPtr<RHI::FDescriptorSetLayout> DefaultDescriptorSetLayout;
-        TSharedPtr<RHI::FPipelineLayout>      DefaultPipelineLayout;
-        TSharedPtr<RHI::FDescriptorSet>       DefaultDescriptorSet;
-        TSharedPtr<RHI::FSampler>             DefaultLinearSampler;
-        TSharedPtr<RHI::FSampler>             DefaultNearestSampler;
+        TUniquePtr<FVulkanDriver>   Driver;
+        TSharedPtr<FDescriptorSetLayout> DefaultDescriptorSetLayout;
+        TSharedPtr<FPipelineLayout>      DefaultPipelineLayout;
+        TSharedPtr<FDescriptorSet>       DefaultDescriptorSet;
+        TSharedPtr<FDescriptorSet>       DefaultDescriptorSet2;
+        TSharedPtr<FSampler>             DefaultLinearSampler;
+        TSharedPtr<FSampler>             DefaultNearestSampler;
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -95,31 +100,32 @@ namespace Visera
     Bootstrap()
     {
         LOG_TRACE("Bootstrapping RHI.");
-        Driver = MakeUnique<RHI::FVulkanDriver>();
+        Driver = MakeUnique<FVulkanDriver>();
 
         DefaultDescriptorSetLayout = Driver->CreateDescriptorSetLayout({
-            RHI::FDescriptorSetBinding{}
-            .setStageFlags      (RHI::EShaderStage::eFragment)
+            FDescriptorSetBinding{}
+            .setStageFlags      (EShaderStage::eFragment)
             .setBinding         (0)
-            .setDescriptorType  (RHI::EDescriptorType::eCombinedImageSampler)
+            .setDescriptorType  (EDescriptorType::eCombinedImageSampler)
             .setDescriptorCount (1)
         });
         DefaultDescriptorSet = Driver->CreateDescriptorSet(DefaultDescriptorSetLayout);
+        DefaultDescriptorSet2 = Driver->CreateDescriptorSet(DefaultDescriptorSetLayout);
         DefaultPipelineLayout = Driver->CreatePipelineLayout(
         {DefaultDescriptorSetLayout->GetHandle()},
 {
-        RHI::FPushConstant{}
-        .setStageFlags(RHI::EShaderStage::eFragment)
+        FPushConstant{}
+        .setStageFlags(EShaderStage::eAll)
         .setOffset(0)
         .setSize(sizeof(FDefaultPushConstant))
         });
 
         DefaultLinearSampler = Driver->CreateImageSampler(
-            RHI::EFilter::eLinear,
-            RHI::ESamplerAddressMode::eRepeat);
+            EFilter::eLinear,
+            ESamplerAddressMode::eRepeat);
         DefaultNearestSampler = Driver->CreateImageSampler(
-            RHI::EFilter::eNearest,
-            RHI::ESamplerAddressMode::eRepeat);
+            EFilter::eNearest,
+            ESamplerAddressMode::eRepeat);
 
         Status = EStatus::Bootstrapped;
     }
@@ -131,6 +137,7 @@ namespace Visera
         DefaultNearestSampler.reset();
         DefaultLinearSampler.reset();
         DefaultPipelineLayout.reset();
+        DefaultDescriptorSet2.reset();
         DefaultDescriptorSet.reset();
         DefaultDescriptorSetLayout.reset();
         Driver.reset();
@@ -146,81 +153,92 @@ namespace Visera
     }
 
 
-    TSharedPtr<RHI::FBuffer> FRHI::
+    TSharedPtr<FBuffer> FRHI::
     CreateStagingBuffer(UInt64 I_Size)
     {
         LOG_DEBUG("Creating a staging buffer ({} bytes).", I_Size);
         return Driver->CreateBuffer(
             I_Size,
-            RHI::EBufferUsage::eTransferSrc,
-            RHI::EMemoryPoolFlag::eHostAccessAllowTransferInstead |
-            RHI::EMemoryPoolFlag::eHostAccessSequentialWrite);
+            EBufferUsage::eTransferSrc,
+            EMemoryPoolFlag::eHostAccessAllowTransferInstead |
+            EMemoryPoolFlag::eHostAccessSequentialWrite);
     }
 
-    TSharedPtr<RHI::FStaticTexture2D> FRHI::
+    TSharedPtr<FBuffer> FRHI::
+    CreateVertexBuffer(UInt64 I_Size)
+    {
+        return Driver->CreateBuffer(
+            I_Size,
+            EBufferUsage::eVertexBuffer,
+            EMemoryPoolFlag::eHostAccessAllowTransferInstead |
+            EMemoryPoolFlag::eHostAccessSequentialWrite |
+            EMemoryPoolFlag::eMapped);
+    }
+
+    TSharedPtr<FStaticTexture2D> FRHI::
     CreateTexture2D(TSharedRef<FImage> I_Image, Bool bLinearSampler)
     {
         LOG_DEBUG("(WIP) Creating a RHIImage (extent:[{},{}]).",
                   I_Image->GetWidth(), I_Image->GetHeight());
-        RHI::EFormat Format = RHI::EFormat::eUndefined;
+        EFormat Format = EFormat::eUndefined;
         switch (I_Image->GetColorFormat())
         {
         case EColorFormat::RGB:
             Format = I_Image->IsSRGB()?
-                     RHI::EFormat::eR8G8B8Srgb
+                     EFormat::eR8G8B8Srgb
                      :
-                     RHI::EFormat::eR8G8B8Unorm;
+                     EFormat::eR8G8B8Unorm;
             break;
         case EColorFormat::RGBA:
             Format = I_Image->IsSRGB()?
-                     RHI::EFormat::eR8G8B8A8Srgb
+                     EFormat::eR8G8B8A8Srgb
                      :
-                     RHI::EFormat::eR8G8B8A8Unorm;
+                     EFormat::eR8G8B8A8Unorm;
             break;
         case EColorFormat::BGR:
             Format = I_Image->IsSRGB()?
-                     RHI::EFormat::eB8G8R8Srgb
+                     EFormat::eB8G8R8Srgb
                      :
-                     RHI::EFormat::eB8G8R8Unorm;
+                     EFormat::eB8G8R8Unorm;
             break;
         case EColorFormat::BGRA:
             Format = I_Image->IsSRGB()?
-                     RHI::EFormat::eB8G8R8A8Srgb
+                     EFormat::eB8G8R8A8Srgb
                      :
-                     RHI::EFormat::eB8G8R8A8Unorm;
+                     EFormat::eB8G8R8A8Unorm;
             break;
         default:
             LOG_FATAL("Unsupported color format \"({})\"!",
                       static_cast<Int8>(I_Image->GetColorFormat()));
         }
         auto RHIImage = Driver->CreateImage(
-            RHI::EImageType::e2D,
+            EImageType::e2D,
             {I_Image->GetWidth(), I_Image->GetHeight(), 1},
             Format,
-            RHI::EImageUsage::eTransferDst | RHI::EImageUsage::eSampled
+            EImageUsage::eTransferDst | EImageUsage::eSampled
         );
 
-        auto Cmd = Driver->CreateCommandBuffer(RHI::EQueue::eGraphics);
+        auto Cmd = Driver->CreateCommandBuffer(EQueue::eGraphics);
         auto Fence = Driver->CreateFence(False, "Convert Texture Layout");
         auto StagingBuffer = CreateStagingBuffer(I_Image->GetSize());
         StagingBuffer->Write(I_Image->GetData(), I_Image->GetSize());
         Cmd->Begin();
         {
             Cmd->ConvertImageLayout(RHIImage,
-                RHI::EImageLayout::eTransferDstOptimal,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite);
+                EImageLayout::eTransferDstOptimal,
+                EPipelineStage::eTopOfPipe,
+                EAccess::eNone,
+                EPipelineStage::eTransfer,
+                EAccess::eTransferWrite);
 
             Cmd->CopyBufferToImage(StagingBuffer, RHIImage);
 
             Cmd->ConvertImageLayout(RHIImage,
-                RHI::EImageLayout::eShaderReadOnlyOptimal,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite,
-                RHI::EPipelineStage::eFragmentShader,
-                RHI::EAccess::eShaderRead);
+                EImageLayout::eShaderReadOnlyOptimal,
+                EPipelineStage::eTransfer,
+                EAccess::eTransferWrite,
+                EPipelineStage::eFragmentShader,
+                EAccess::eShaderRead);
         }
         Cmd->End();
         Driver->Submit(Cmd, nullptr, nullptr, Fence);
@@ -229,10 +247,22 @@ namespace Visera
 
         auto RHIImageView = Driver->CreateImageView(
             RHIImage,
-            RHI::EImageViewType::e2D,
-            RHI::EImageAspect::eColor);
-        return MakeShared<RHI::FStaticTexture2D>(
+            EImageViewType::e2D,
+            EImageAspect::eColor);
+        return MakeShared<FStaticTexture2D>(
             RHIImageView,
             bLinearSampler? DefaultLinearSampler : DefaultNearestSampler);
+    }
+
+    void FRHI::
+    BeginFrame() const
+    {
+        Driver->BeginFrame();
+    }
+
+    void FRHI::
+    EndFrame() const
+    {
+        Driver->EndFrame();
     }
 }

@@ -17,11 +17,11 @@ namespace Visera
       [[nodiscard]] UInt64
       GetSize() const override { VISERA_UNIMPLEMENTED_API; return 0; };
 
-      [[nodiscard]] TSharedRef<RHI::FStaticTexture2D>
+      [[nodiscard]] TSharedRef<FStaticTexture2D>
       GetRHITexture() const { return Data; }
 
    private:
-      TSharedPtr<RHI::FStaticTexture2D> Data;
+      TSharedPtr<FStaticTexture2D> Data;
 
    public:
       FTexture() = delete;

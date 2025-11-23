@@ -19,19 +19,19 @@ namespace Visera
         GetSize() const override { return SPIRVCode->GetSize(); }
         [[nodiscard]] inline EShaderLanguage
         GetLanguage() const { return Language; }
-        [[nodiscard]] inline EShaderStage
+        [[nodiscard]] inline EShaderType
         GetStage() const { return ShaderStage; }
         [[nodiscard]] inline FStringView
         GetEntryPoint() const { return EntryPoint; }
-        [[nodiscard]] inline TSharedRef<RHI::FSPIRVShader>
+        [[nodiscard]] inline TSharedRef<FSPIRVShader>
         GetSPIRVCode() const { VISERA_ASSERT(SPIRVCode && "Compiled"); return SPIRVCode; }
 
     private:
         static inline TUniquePtr<FSlangCompiler> SlangCompiler;
-        const FString                   EntryPoint;
-        EShaderLanguage                 Language;
-        EShaderStage                    ShaderStage;
-        TSharedPtr<RHI::FSPIRVShader>   SPIRVCode;
+        const FString              EntryPoint;
+        EShaderLanguage            Language;
+        EShaderType                ShaderStage;
+        TSharedPtr<FSPIRVShader>   SPIRVCode;
 
     public:
         FShader() = delete;
@@ -60,8 +60,8 @@ namespace Visera
 
         switch (SPIRVCode->GetStage())
         {
-        case RHI::FSPIRVShader::EStage::Vertex:   ShaderStage = EShaderStage::Vertex;   break;
-        case RHI::FSPIRVShader::EStage::Fragment: ShaderStage = EShaderStage::Fragment; break;
+        case FSPIRVShader::EStage::Vertex:   ShaderStage = EShaderType::Vertex;   break;
+        case FSPIRVShader::EStage::Fragment: ShaderStage = EShaderType::Fragment; break;
         default: LOG_FATAL("Unknown shader stage!");
         }
     }

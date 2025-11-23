@@ -47,23 +47,22 @@ namespace Visera
 
             auto& CurrentColorRT = CurrentFrame.ColorRT;
             auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
-            auto  OldSwapChainLayout = SwapChainImage->GetImage()->GetLayout();
 
             CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentColorRT->GetImage(),
-                RHI::EImageLayout::eTransferSrcOptimal,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
+                EImageLayout::eTransferSrcOptimal,
+                EPipelineStage::eTopOfPipe,
+                EAccess::eNone,
+                EPipelineStage::eTransfer,
+                EAccess::eTransferWrite
             );
             CurrentFrame.DrawCalls->ConvertImageLayout(
                 SwapChainImage->GetImage(),
-                RHI::EImageLayout::eTransferDstOptimal,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
+                EImageLayout::eTransferDstOptimal,
+                EPipelineStage::eTopOfPipe,
+                EAccess::eNone,
+                EPipelineStage::eTransfer,
+                EAccess::eTransferWrite
             );
             CurrentFrame.DrawCalls->BlitImage(
                 CurrentColorRT->GetImage(),
@@ -72,20 +71,19 @@ namespace Visera
             CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentColorRT->GetImage(),
                 OldColorRTLayout,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
+                EPipelineStage::eTopOfPipe,
+                EAccess::eNone,
+                EPipelineStage::eTransfer,
+                EAccess::eTransferWrite
             );
             CurrentFrame.DrawCalls->ConvertImageLayout(
                 SwapChainImage->GetImage(),
-                OldSwapChainLayout,
-                RHI::EPipelineStage::eTopOfPipe,
-                RHI::EAccess::eNone,
-                RHI::EPipelineStage::eTransfer,
-                RHI::EAccess::eTransferWrite
+                EImageLayout::ePresentSrcKHR,
+                EPipelineStage::eTopOfPipe,
+                EAccess::eNone,
+                EPipelineStage::eTransfer,
+                EAccess::eTransferWrite
             );
-
             VkRenderingAttachmentInfo ColorAttachment
             {
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,

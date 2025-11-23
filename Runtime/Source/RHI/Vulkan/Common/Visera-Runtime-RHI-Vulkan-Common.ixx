@@ -4,45 +4,9 @@ module;
 export module Visera.Runtime.RHI.Vulkan.Common;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 
-export namespace Visera::RHI
+export namespace Visera
 {
-    using EVulkanImageLayout   = vk::ImageLayout;
-    using EVulkanPipelineStage = vk::PipelineStageFlagBits2;
-    using EVulkanShaderStage   = vk::ShaderStageFlagBits;
-    using EVulkanAccess        = vk::AccessFlagBits2;
-    using EVulkanQueue         = vk::QueueFlagBits;
-    using EVulkanLoadOp        = vk::AttachmentLoadOp;
-    using EVulkanStoreOp       = vk::AttachmentStoreOp;
-    using EVulkanImageType     = vk::ImageType;
-    using EVulkanImageViewType = vk::ImageViewType;
-    using EVulkanFormat        = vk::Format;
-    using EVulkanImageUsage    = vk::ImageUsageFlagBits;
-    using EVulkanImageUsages   = vk::ImageUsageFlags;
-    using EVulkanImageAspect   = vk::ImageAspectFlagBits;
-    using EVulkanSharingMode   = vk::SharingMode;
-    using EVulkanSamplingRate  = vk::SampleCountFlagBits;
-    using EVulkanImageTiling   = vk::ImageTiling;
-    using EVulkanDescriptorType= vk::DescriptorType;
-    using EVulkanBufferUsage   = vk::BufferUsageFlagBits;
-    using EVulkanPresentMode   = vk::PresentModeKHR;
-    using EVulkanColorSpace    = vk::ColorSpaceKHR;
-    using EVulkanFilter        = vk::Filter;
-    using EVulkanSamplerMipmapMode  = vk::SamplerMipmapMode;
-    using EVulkanSamplerAddressMode = vk::SamplerAddressMode;
-    using EVulkanBorderColor   = vk::BorderColor;
-    using EVulkanCompareOp     = vk::CompareOp;
-
-    using FVulkanExtent2D      = vk::Extent2D;
-    using FVulkanExtent3D      = vk::Extent3D;
-    using FVulkanViewport      = vk::Viewport;
-    using FVulkanRect2D        = vk::Rect2D;
-    using FVulkanClearColor    = vk::ClearColorValue;
-    using FVulkanImageBarrier  = vk::ImageMemoryBarrier2;
-    using FVulkanSwizzle       = vk::ComponentMapping;
-    using FVulkanPushConstant  = vk::PushConstantRange;
-    using FVulkanDescriptorSetLayoutBinding = vk::DescriptorSetLayoutBinding;
-
-    constexpr auto IdentitySwizzle = FVulkanSwizzle{}
+    constexpr auto IdentitySwizzle = vk::ComponentMapping{}
         .setR(vk::ComponentSwizzle::eIdentity)
         .setG(vk::ComponentSwizzle::eIdentity)
         .setB(vk::ComponentSwizzle::eIdentity)
@@ -50,10 +14,8 @@ export namespace Visera::RHI
     ;
 }
 
-using namespace Visera;
-
 template <>
-struct fmt::formatter<RHI::EVulkanImageLayout>
+struct fmt::formatter<vk::ImageLayout>
 {
     // Parse format specifiers (if any)
     constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
@@ -63,19 +25,19 @@ struct fmt::formatter<RHI::EVulkanImageLayout>
 
     // Corrected format function with const-correctness
     template <typename FormatContext>
-    auto format(RHI::EVulkanImageLayout I_ImageLayout, FormatContext& I_Context) const
+    auto format(vk::ImageLayout I_ImageLayout, FormatContext& I_Context) const
     -> decltype(I_Context.out())
     {
         const char* Name = "(WIP)";
         switch (I_ImageLayout)
         {
-        case RHI::EVulkanImageLayout::eUndefined:                         Name = "Undefined"; break;
-        case RHI::EVulkanImageLayout::eColorAttachmentOptimal:            Name = "Color"; break;
-        case RHI::EVulkanImageLayout::eDepthAttachmentOptimal:            Name = "Depth"; break;
-        case RHI::EVulkanImageLayout::eDepthStencilAttachmentOptimal:     Name = "DepthStencil"; break;
-        case RHI::EVulkanImageLayout::eTransferSrcOptimal:                Name = "TransferSource"; break;
-        case RHI::EVulkanImageLayout::eTransferDstOptimal:                Name = "TransferDestination"; break;
-        case RHI::EVulkanImageLayout::ePresentSrcKHR:                     Name = "Present"; break;
+        case vk::ImageLayout::eUndefined:                         Name = "Undefined"; break;
+        case vk::ImageLayout::eColorAttachmentOptimal:            Name = "Color"; break;
+        case vk::ImageLayout::eDepthAttachmentOptimal:            Name = "Depth"; break;
+        case vk::ImageLayout::eDepthStencilAttachmentOptimal:     Name = "DepthStencil"; break;
+        case vk::ImageLayout::eTransferSrcOptimal:                Name = "TransferSource"; break;
+        case vk::ImageLayout::eTransferDstOptimal:                Name = "TransferDestination"; break;
+        case vk::ImageLayout::ePresentSrcKHR:                     Name = "Present"; break;
         default: break;
         }
         return fmt::format_to(I_Context.out(),"{}", Name);
@@ -84,7 +46,7 @@ struct fmt::formatter<RHI::EVulkanImageLayout>
 
 
 template <>
-struct fmt::formatter<RHI::EVulkanPresentMode>
+struct fmt::formatter<vk::PresentModeKHR>
 {
     // Parse format specifiers (if any)
     constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
@@ -94,19 +56,19 @@ struct fmt::formatter<RHI::EVulkanPresentMode>
 
     // Corrected format function with const-correctness
     template <typename FormatContext>
-    auto format(RHI::EVulkanPresentMode I_ImageLayout, FormatContext& I_Context) const
+    auto format(vk::PresentModeKHR I_ImageLayout, FormatContext& I_Context) const
     -> decltype(I_Context.out())
     {
         const char* Name = "Unknown";
         switch (I_ImageLayout)
         {
-        case RHI::EVulkanPresentMode::eImmediate:               Name = "Immediate"; break;
-        case RHI::EVulkanPresentMode::eMailbox:                 Name = "Mailbox"; break;
-        case RHI::EVulkanPresentMode::eFifo:                    Name = "FIFO"; break;
-        case RHI::EVulkanPresentMode::eFifoRelaxed:             Name = "FIFO Relaxed"; break;
-        case RHI::EVulkanPresentMode::eSharedDemandRefresh:     Name = "Shared Demand Refresh"; break;
-        case RHI::EVulkanPresentMode::eSharedContinuousRefresh: Name = "Shared Continuous Refresh"; break;
-        case RHI::EVulkanPresentMode::eFifoLatestReady:         Name = "FIFO Latest Ready"; break;
+        case vk::PresentModeKHR::eImmediate:               Name = "Immediate"; break;
+        case vk::PresentModeKHR::eMailbox:                 Name = "Mailbox"; break;
+        case vk::PresentModeKHR::eFifo:                    Name = "FIFO"; break;
+        case vk::PresentModeKHR::eFifoRelaxed:             Name = "FIFO Relaxed"; break;
+        case vk::PresentModeKHR::eSharedDemandRefresh:     Name = "Shared Demand Refresh"; break;
+        case vk::PresentModeKHR::eSharedContinuousRefresh: Name = "Shared Continuous Refresh"; break;
+        case vk::PresentModeKHR::eFifoLatestReady:         Name = "FIFO Latest Ready"; break;
         default: break;
         }
         return fmt::format_to(I_Context.out(),"{}", Name);

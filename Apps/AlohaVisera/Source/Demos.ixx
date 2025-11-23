@@ -5,7 +5,7 @@ export module Visera.Demos;
 //import Visera.Core;
 //import Visera.Engine.AssetHub;
 
-export namespace Visera::Demos
+export namespace ViseraDemos
 {
     // struct Compression
     // {

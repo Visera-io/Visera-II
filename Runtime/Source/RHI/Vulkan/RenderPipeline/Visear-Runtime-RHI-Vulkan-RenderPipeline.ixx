@@ -10,16 +10,16 @@ import Visera.Runtime.RHI.Vulkan.PipelineLayout;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanRenderPipeline
     {
     public:
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline const vk::raii::PipelineLayout&
-        GetLayout() const { return Layout->GetHandle(); }
-        [[nodiscard]] inline const FVulkanRect2D&
+        [[nodiscard]] inline TSharedRef<FVulkanPipelineLayout>
+        GetLayout() const { return Layout; }
+        [[nodiscard]] inline const vk::Rect2D&
         GetRenderArea() const { return CurrentRenderingInfo.renderArea; }
         inline FVulkanRenderPipeline*
         SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT);
@@ -28,15 +28,17 @@ namespace Visera::RHI
         inline FVulkanRenderPipeline*
         SetStencilRT(TSharedRef<FVulkanRenderTarget> I_StencilRT);
         inline FVulkanRenderPipeline*
-        SetRenderArea(const FVulkanRect2D& I_RenderArea) { CurrentRenderingInfo.setRenderArea(I_RenderArea); return this; }
+        SetRenderArea(const vk::Rect2D& I_RenderArea) { CurrentRenderingInfo.setRenderArea(I_RenderArea); return this; }
         [[nodiscard]] inline const vk::RenderingInfo&
         GetRenderingInfo() const { return CurrentRenderingInfo; }
 
     protected:
         struct
         {
-            vk::PipelineVertexInputStateCreateInfo
-            VertexInputInfo{};
+            TArray<vk::VertexInputAttributeDescription>
+            VertexAttributes;
+            TArray<vk::VertexInputBindingDescription>
+            VertexBindings;
             vk::PipelineInputAssemblyStateCreateInfo
             InputAssembly{};
             vk::PipelineViewportStateCreateInfo
@@ -47,12 +49,12 @@ namespace Visera::RHI
             Multisampling{};
             vk::PipelineColorBlendAttachmentState
             ColorBlendAttachment{};
-            EVulkanFormat
-            ColorRTFormat    {EVulkanFormat::eR8G8B8A8Srgb};
-            EVulkanFormat
-            DepthRTFormat    {EVulkanFormat::eUndefined};
-            EVulkanFormat
-            StencilRTFormat  {EVulkanFormat::eUndefined};
+            vk::Format
+            ColorRTFormat    {vk::Format::eR8G8B8A8Srgb};
+            vk::Format
+            DepthRTFormat    {vk::Format::eUndefined};
+            vk::Format
+            StencilRTFormat  {vk::Format::eUndefined};
         }Settings;
 
     private:
@@ -106,6 +108,23 @@ namespace Visera::RHI
                 .setDynamicStateCount (MAX_DYNAMIC_STATE)
                 .setPDynamicStates    (DynamicStates)
             ;
+            Settings.VertexAttributes.emplace_back()
+                .setLocation (0)
+                .setBinding  (0)
+                .setFormat   (vk::Format::eR32G32B32A32Sfloat)
+                .setOffset   (0)
+            ;
+            Settings.VertexBindings.emplace_back()
+                .setBinding     (0)
+                .setStride      (sizeof(float) * 4)
+                .setInputRate   (vk::VertexInputRate::eVertex)
+            ;
+            auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
+                .setVertexAttributeDescriptionCount (Settings.VertexAttributes.size())
+                .setPVertexAttributeDescriptions    (Settings.VertexAttributes.data())
+                .setVertexBindingDescriptionCount   (Settings.VertexBindings.size())
+                .setPVertexBindingDescriptions      (Settings.VertexBindings.data())
+            ;
             Settings.InputAssembly
                 .setTopology (vk::PrimitiveTopology::eTriangleList)
             ;
@@ -158,7 +177,7 @@ namespace Visera::RHI
                 .setPNext               (&PipelineRenderingCreateInfo)
                 .setStageCount          (2)
                 .setPStages             (ShaderStageCreateInfos)
-                .setPVertexInputState   (&Settings.VertexInputInfo)
+                .setPVertexInputState   (&VertexInputInfo)
                 .setPInputAssemblyState (&Settings.InputAssembly)
                 .setPViewportState      (&Settings.ViewportState)
                 .setPRasterizationState (&Settings.Rasterizer)

@@ -7,20 +7,20 @@ import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.Allocator;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanImage : public IVulkanResource
     {
     public:
         [[nodiscard]] inline const vk::Image&
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline FVulkanExtent3D
+        [[nodiscard]] inline vk::Extent3D
         GetExtent() const { return Extent; }
-        [[nodiscard]] inline EVulkanImageType
+        [[nodiscard]] inline vk::ImageType
         GetType() const { return Type; }
-        [[nodiscard]] inline EVulkanImageLayout
+        [[nodiscard]] inline vk::ImageLayout
         GetLayout() const { return Layout; }
-        [[nodiscard]] inline EVulkanFormat
+        [[nodiscard]] inline vk::Format
         GetFormat() const { return Format; }
 
         [[nodiscard]] inline Bool
@@ -30,22 +30,22 @@ namespace Visera::RHI
 
         inline void
         ConvertLayout(const vk::raii::CommandBuffer& I_CommandBuffer,
-                      const FVulkanImageBarrier&     I_MemoryBarrier);
+                      const vk::ImageMemoryBarrier2&     I_MemoryBarrier);
 
     protected:
         vk::Image           Handle {nullptr};
-        EVulkanImageType    Type   {};
-        EVulkanFormat       Format {};
-        EVulkanImageLayout  Layout { EVulkanImageLayout::eUndefined };
-        FVulkanExtent3D     Extent {0,0,0};
-        EVulkanImageUsages  Usages {};
+        vk::ImageType    Type   {};
+        vk::Format       Format {};
+        vk::ImageLayout  Layout { vk::ImageLayout::eUndefined };
+        vk::Extent3D     Extent {0,0,0};
+        vk::ImageUsageFlags  Usages {};
 
     public:
         FVulkanImage() : IVulkanResource{EType::Image} {}
-        FVulkanImage(EVulkanImageType       I_ImageType,
-                     const FVulkanExtent3D&	I_Extent,
-                     EVulkanFormat          I_Format,
-                     EVulkanImageUsages     I_Usages);
+        FVulkanImage(vk::ImageType       I_ImageType,
+                     const vk::Extent3D&	I_Extent,
+                     vk::Format          I_Format,
+                     vk::ImageUsageFlags     I_Usages);
         ~FVulkanImage() override;
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
@@ -65,12 +65,12 @@ namespace Visera::RHI
 
     public:
         FVulkanImageView() = delete;
-        FVulkanImageView(TSharedRef<FVulkanImage>   I_Image,
-                         EVulkanImageViewType       I_Type,
-                         EVulkanImageAspect         I_Aspect,
-                         const TPair<UInt8, UInt8>& I_MipmapRange = {0,0},
-                         const TPair<UInt8, UInt8>& I_ArrayRange  = {0,0},
-                         TOptional<FVulkanSwizzle>  I_Swizzle     = {});
+        FVulkanImageView(TSharedRef<FVulkanImage>         I_Image,
+                         vk::ImageViewType                I_Type,
+                         vk::ImageAspectFlagBits          I_Aspect,
+                         const TPair<UInt8, UInt8>&       I_MipmapRange = {0,0},
+                         const TPair<UInt8, UInt8>&       I_ArrayRange  = {0,0},
+                         TOptional<vk::ComponentMapping>  I_Swizzle     = {});
     };
 
 
@@ -79,10 +79,10 @@ namespace Visera::RHI
     public:
         FVulkanImageWrapper() = delete;
         FVulkanImageWrapper(const vk::Image&        I_Handle,
-                            EVulkanImageType        I_ImageType,
-                            const FVulkanExtent3D&	I_Extent,
-                            EVulkanFormat           I_Format,
-                            EVulkanImageUsages      I_Usages)
+                            vk::ImageType        I_ImageType,
+                            const vk::Extent3D&	I_Extent,
+                            vk::Format           I_Format,
+                            vk::ImageUsageFlags      I_Usages)
         {
             Handle = I_Handle;
             Extent = I_Extent;
@@ -94,22 +94,22 @@ namespace Visera::RHI
     };
 
     FVulkanImageView::
-    FVulkanImageView(TSharedRef<FVulkanImage>   I_Image,
-                     EVulkanImageViewType       I_Type,
-                     EVulkanImageAspect         I_Aspect,
-                     const TPair<UInt8, UInt8>& I_MipmapRange,
-                     const TPair<UInt8, UInt8>& I_ArrayRange,
-                     TOptional<FVulkanSwizzle>  I_Swizzle)
+    FVulkanImageView(TSharedRef<FVulkanImage>         I_Image,
+                     vk::ImageViewType                I_Type,
+                     vk::ImageAspectFlagBits          I_Aspect,
+                     const TPair<UInt8, UInt8>&       I_MipmapRange,
+                     const TPair<UInt8, UInt8>&       I_ArrayRange,
+                     TOptional<vk::ComponentMapping>  I_Swizzle)
     : Image {I_Image}
     {
         auto& Device = GVulkanAllocator->GetDevice();
 
         auto ImageSubresourceRage = vk::ImageSubresourceRange{}
-            .setAspectMask(I_Aspect)
-            .setBaseMipLevel(I_MipmapRange.first)
-            .setLevelCount(I_MipmapRange.second - I_MipmapRange.first + 1)
-            .setBaseArrayLayer(I_ArrayRange.first)
-            .setLayerCount(I_ArrayRange.second - I_ArrayRange.first + 1)
+            .setAspectMask      (I_Aspect)
+            .setBaseMipLevel    (I_MipmapRange.first)
+            .setLevelCount      (I_MipmapRange.second - I_MipmapRange.first + 1)
+            .setBaseArrayLayer  (I_ArrayRange.first)
+            .setLayerCount      (I_ArrayRange.second - I_ArrayRange.first + 1)
         ;
         const auto& Swizzle = I_Swizzle.has_value()?
                             I_Swizzle.value(): IdentitySwizzle;
@@ -129,10 +129,10 @@ namespace Visera::RHI
     }
 
     FVulkanImage::
-    FVulkanImage(EVulkanImageType       I_ImageType,
-                 const FVulkanExtent3D&	I_Extent,
-                 EVulkanFormat          I_Format,
-                 EVulkanImageUsages     I_Usages)
+    FVulkanImage(vk::ImageType       I_ImageType,
+                 const vk::Extent3D&	I_Extent,
+                 vk::Format          I_Format,
+                 vk::ImageUsageFlags     I_Usages)
     : IVulkanResource{EType::Image},
       Type   {I_ImageType},
       Format {I_Format},
@@ -145,13 +145,13 @@ namespace Visera::RHI
             .setFormat                  (Format)
             .setMipLevels               (1)
             .setArrayLayers             (1)
-            .setSamples                 (EVulkanSamplingRate::e1)
-            .setTiling                  (EVulkanImageTiling::eOptimal)
+            .setSamples                 (vk::SampleCountFlagBits::e1)
+            .setTiling                  (vk::ImageTiling::eOptimal)
             .setUsage                   (Usages)
-            .setSharingMode             (EVulkanSharingMode::eExclusive)
+            .setSharingMode             (vk::SharingMode::eExclusive)
             .setQueueFamilyIndexCount   (0)
             .setPQueueFamilyIndices     (nullptr)
-            .setInitialLayout           (EVulkanImageLayout::eUndefined);
+            .setInitialLayout           (vk::ImageLayout::eUndefined);
         ;
         Allocate(&Handle, &CreateInfo);
     }
@@ -164,12 +164,12 @@ namespace Visera::RHI
 
     void FVulkanImage::
     ConvertLayout(const vk::raii::CommandBuffer& I_CommandBuffer,
-                  const FVulkanImageBarrier&     I_MemoryBarrier)
+                  const vk::ImageMemoryBarrier2& I_MemoryBarrier)
     {
         auto DependencyInfo = vk::DependencyInfo{}
-            .setDependencyFlags     ({})
-            .setImageMemoryBarrierCount(1)
-            .setPImageMemoryBarriers(&I_MemoryBarrier)
+            .setDependencyFlags         ({})
+            .setImageMemoryBarrierCount (1)
+            .setPImageMemoryBarriers    (&I_MemoryBarrier)
         ;
         I_CommandBuffer.pipelineBarrier2(DependencyInfo);
 
@@ -181,12 +181,12 @@ namespace Visera::RHI
     {
         switch (GetFormat())
         {
-            case EVulkanFormat::eD16Unorm:
-            case EVulkanFormat::eX8D24UnormPack32:
-            case EVulkanFormat::eD32Sfloat:
-            case EVulkanFormat::eD16UnormS8Uint:
-            case EVulkanFormat::eD24UnormS8Uint:
-            case EVulkanFormat::eD32SfloatS8Uint:
+            case vk::Format::eD16Unorm:
+            case vk::Format::eX8D24UnormPack32:
+            case vk::Format::eD32Sfloat:
+            case vk::Format::eD16UnormS8Uint:
+            case vk::Format::eD24UnormS8Uint:
+            case vk::Format::eD32SfloatS8Uint:
                 return True;
             default:
                 return False;
@@ -198,10 +198,10 @@ namespace Visera::RHI
     {
         switch (GetFormat())
         {
-            case EVulkanFormat::eS8Uint:
-            case EVulkanFormat::eD16UnormS8Uint:
-            case EVulkanFormat::eD24UnormS8Uint:
-            case EVulkanFormat::eD32SfloatS8Uint:
+            case vk::Format::eS8Uint:
+            case vk::Format::eD16UnormS8Uint:
+            case vk::Format::eD24UnormS8Uint:
+            case vk::Format::eD32SfloatS8Uint:
                 return true;
             default:
                 return false;

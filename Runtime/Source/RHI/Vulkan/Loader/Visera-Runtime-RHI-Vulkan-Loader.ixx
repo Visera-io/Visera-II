@@ -5,7 +5,7 @@ export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanLoader
     {
@@ -28,14 +28,12 @@ namespace Visera::RHI
     FVulkanLoader::
     FVulkanLoader()
     {
-        LOG_TRACE("Creating the Vulkan Loader.");
+
     }
 
     FVulkanLoader::
     ~FVulkanLoader()
     {
-        LOG_TRACE("Destroying the Vulkan Loader.");
-
         if (!bLoadedInstance)
         { LOG_ERROR("Forgot to load VkInstance!"); }
         if (!bLoadedDevice)

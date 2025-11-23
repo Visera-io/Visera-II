@@ -4,7 +4,7 @@ export module Visera.Runtime.RHI.SPIRV;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FSPIRVShader
     {

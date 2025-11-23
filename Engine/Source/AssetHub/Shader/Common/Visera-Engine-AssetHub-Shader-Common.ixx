@@ -12,7 +12,7 @@ export namespace Visera
         //SPIRV,
     };
 
-    enum class EShaderStage
+    enum class EShaderType
     {
         Unknown,
         Vertex,
@@ -21,7 +21,7 @@ export namespace Visera
 }
 
 template <>
-struct fmt::formatter<Visera::EShaderStage>
+struct fmt::formatter<Visera::EShaderType>
 {
     // Parse format specifiers (if any)
     constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
@@ -31,14 +31,14 @@ struct fmt::formatter<Visera::EShaderStage>
 
     // Corrected format function with const-correctness
     template <typename FormatContext>
-    auto format(const Visera::EShaderStage& I_ShaderStage, FormatContext& I_Context) const
+    auto format(const Visera::EShaderType& I_ShaderStage, FormatContext& I_Context) const
     -> decltype(I_Context.out())
     {
         const char* StageName = "Unknown";
         switch (I_ShaderStage)
         {
-            case Visera::EShaderStage::Vertex:   StageName = "Vertex";   break;
-            case Visera::EShaderStage::Fragment: StageName = "Fragment"; break;
+            case Visera::EShaderType::Vertex:   StageName = "Vertex";   break;
+            case Visera::EShaderType::Fragment: StageName = "Fragment"; break;
             default: break;
         }
         return fmt::format_to(I_Context.out(),"{}",StageName);

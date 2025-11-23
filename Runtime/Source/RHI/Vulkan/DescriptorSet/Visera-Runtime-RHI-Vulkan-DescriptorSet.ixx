@@ -9,7 +9,7 @@ import Visera.Runtime.RHI.Vulkan.Sampler;
 import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanDescriptorSet
     {
@@ -70,7 +70,7 @@ namespace Visera::RHI
             .setDescriptorCount (1)
             .setDstSet          (Handle)
             .setDstBinding      (I_Binding)
-            .setDescriptorType  (EVulkanDescriptorType::eCombinedImageSampler)
+            .setDescriptorType  (vk::DescriptorType::eCombinedImageSampler)
             .setPImageInfo      (&ImageInfo)
         ;
         const auto& Device = Layout->GetHandle().getDevice();

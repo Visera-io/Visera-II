@@ -7,7 +7,7 @@ export module Visera.Runtime.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export enum EVulkanMemoryPoolFlagBits : VmaAllocationCreateFlags
     {

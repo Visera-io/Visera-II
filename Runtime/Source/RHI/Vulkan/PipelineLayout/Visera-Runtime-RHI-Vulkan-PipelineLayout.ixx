@@ -7,30 +7,34 @@ import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.DescriptorSet;
 import Visera.Core.Log;
 
-namespace Visera::RHI
+namespace Visera
 {
     export class VISERA_RUNTIME_API FVulkanPipelineLayout
     {
     public:
         [[nodiscard]] inline const vk::raii::PipelineLayout&
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline vk::ShaderStageFlags
+        GetPushConstantStages() const { return vk::ShaderStageFlagBits::eAll; } //[TODO]: From set layout / shader reflection
+        [[nodiscard]] inline vk::ShaderStageFlags
+        GetDescriptorSetStages() const { return vk::ShaderStageFlagBits::eAll; } //[TODO]: From set layout / shader reflection
 
     private:
-        vk::raii::PipelineLayout        Handle {nullptr};
+        vk::raii::PipelineLayout Handle {nullptr};
 
     public:
         FVulkanPipelineLayout() = delete;
         FVulkanPipelineLayout(const vk::raii::Device&                I_Device,
                               const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                              const TArray<FVulkanPushConstant>&     I_PushConstants);
+                              const TArray<vk::PushConstantRange>&   I_PushConstants);
     };
 
     FVulkanPipelineLayout::
     FVulkanPipelineLayout(const vk::raii::Device&                I_Device,
                           const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                          const TArray<FVulkanPushConstant>&     I_PushConstants)
+                          const TArray<vk::PushConstantRange>&   I_PushConstants)
     {
-        auto PipelineLayoutInfo = vk::PipelineLayoutCreateInfo{}
+        const auto PipelineLayoutInfo = vk::PipelineLayoutCreateInfo{}
             .setSetLayoutCount          (I_DescriptorSetLayouts.size())
             .setPSetLayouts             (I_DescriptorSetLayouts.data())
             .setPushConstantRangeCount  (I_PushConstants.size())

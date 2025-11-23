@@ -7,7 +7,7 @@ import Visera.Runtime.Event.MulticastDelegate;
 import Visera.Runtime.Event.EventSystem;
 import Visera.Core.Log;
 
-namespace Visera::Examples
+namespace ViseraExamples
 {
     /**
      * @brief Example game object class demonstrating event usage
