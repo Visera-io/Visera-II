@@ -12,5 +12,5 @@
 
 namespace Visera
 {
-    using SRuntimeError = std::runtime_error;
+
 }

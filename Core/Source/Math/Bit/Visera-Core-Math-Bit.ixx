@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <bit>
 export module Visera.Core.Math.Bit;
 #define VISERA_MODULE_NAME "Core.Math"
 
@@ -32,16 +33,16 @@ export namespace Visera
         BitFloor(NumT I_Number) noexcept { return std::bit_floor(I_Number); }
 
         template<Concepts::UnsingedIntegeral NumT> constexpr NumT
-        RotateLeft(NumT I_Number, Int32 r) noexcept { return std::rotl(I_Number, r); }
+        RotateLeft(NumT I_Number, Int32 I_Rotation) noexcept { return std::rotl(I_Number, I_Rotation); }
 
         template<Concepts::UnsingedIntegeral NumT> constexpr NumT
-        RotateRight(NumT I_Number, Int32 r) noexcept { return std::rotr(I_Number, r); }
+        RotateRight(NumT I_Number, Int32 I_Rotation) noexcept { return std::rotr(I_Number, I_Rotation); }
 
         template<class NumT> constexpr NumT
         ByteSwap(NumT I_Number) noexcept { return std::byteswap(I_Number); }
 
         template<class To, class From> constexpr To
-        BitCast(const From& f) noexcept { return std::bit_cast<To>(f); }
+        BitCast(const From& I_Source) noexcept { return std::bit_cast<To>(I_Source); }
 
         template<Concepts::UnsingedIntegeral NumT> constexpr NumT
         AlignUp(NumT I_Number, NumT I_Alignment) noexcept
@@ -56,22 +57,22 @@ export namespace Visera
         { return (I_Number + I_Alignment - 1) & ~(I_Alignment - 1); }
 
         template<Concepts::UnsingedIntegeral NumT> constexpr NumT
-        MakeMask(Int32 offset, Int32 width) noexcept
+        MakeMask(Int32 I_Offset, Int32 I_Width) noexcept
         {
-            if (width <= 0) return 0;
-            if (width >= Int32(sizeof(NumT) * 8)) return ~NumT{0};
-            return ( (NumT{1} << width) - 1 ) << offset;
+            if (I_Width <= 0) return 0;
+            if (I_Width >= Int32(sizeof(NumT) * 8)) return ~NumT{0};
+            return ( (NumT{1} << I_Width) - 1 ) << I_Offset;
         }
 
         template<Concepts::UnsingedIntegeral NumT> constexpr NumT
-        ExtractBits(NumT value, Int32 offset, Int32 width) noexcept
-        { return (value >> offset) & ((NumT{1} << width) - 1); }
+        ExtractBits(NumT I_Value, Int32 I_Offset, Int32 I_Width) noexcept
+        { return (I_Value >> I_Offset) & ((NumT{1} << I_Width) - 1); }
 
         template<Concepts::UnsingedIntegeral NumT> constexpr NumT
-        InsertBits(NumT base, NumT insert, Int32 offset, Int32 width) noexcept
+        InsertBits(NumT I_Base, NumT I_Insert, Int32 I_Offset, Int32 I_Width) noexcept
         {
-            NumT mask = MakeMask<NumT>(offset, width);
-            return (base & ~mask) | ((insert << offset) & mask);
+            NumT Mask = MakeMask<NumT>(I_Offset, I_Width);
+            return (I_Base & ~Mask) | ((I_Insert << I_Offset) & Mask);
         }
     }
 }

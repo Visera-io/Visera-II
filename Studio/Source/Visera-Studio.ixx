@@ -8,6 +8,7 @@ module;
 #endif
 export module Visera.Studio;
 #define VISERA_MODULE_NAME "Studio"
+import Visera.Core.Global;
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
 import Visera.Engine.Event;

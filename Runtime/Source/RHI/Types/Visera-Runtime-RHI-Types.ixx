@@ -68,7 +68,7 @@ export namespace Visera
         UniformBuffer,
         StorageBuffer,
     };
-    
+
     enum class ERHIShaderStages : UInt32
     {
         Undefined = 0,
@@ -110,31 +110,31 @@ export namespace Visera
                    Count        != 0                             &&
                    ShaderStages != ERHIShaderStages::Undefined;
         }
-
-        friend constexpr Bool
-        operator==(const FRHISetBinding& I_A, const FRHISetBinding& I_B) noexcept = default;
-
-        friend constexpr auto operator<=>(const FRHISetBinding& a,
-                                          const FRHISetBinding& b) noexcept
-        {
-            if (a.Index != b.Index) return a.Index <=> b.Index;
-            if (a.Type  != b.Type)  return a.Type  <=> b.Type;
-            if (a.Count != b.Count) return a.Count <=> b.Count;
-            if (ToUnderlying(a.ShaderStages) != ToUnderlying(b.ShaderStages))
-                return ToUnderlying(a.ShaderStages) <=> ToUnderlying(b.ShaderStages);
-            return a.ImmutableSamplerID <=> b.ImmutableSamplerID;
-        }
-
-        [[nodiscard]] UInt64
-        Hash() const noexcept
-        {
-            UInt64 Seed = 0;
-            return GoldenRatioHashCombine(0,
-                Index,
-                Count,
-                ShaderStages,
-                ImmutableSamplerID);
-        }
+        //
+        // friend constexpr Bool
+        // operator==(const FRHISetBinding& I_A, const FRHISetBinding& I_B) noexcept = default;
+        //
+        // friend constexpr auto operator<=>(const FRHISetBinding& a,
+        //                                   const FRHISetBinding& b) noexcept
+        // {
+        //     if (a.Index != b.Index) return a.Index <=> b.Index;
+        //     if (a.Type  != b.Type)  return a.Type  <=> b.Type;
+        //     if (a.Count != b.Count) return a.Count <=> b.Count;
+        //     if (ToUnderlying(a.ShaderStages) != ToUnderlying(b.ShaderStages))
+        //         return ToUnderlying(a.ShaderStages) <=> ToUnderlying(b.ShaderStages);
+        //     return a.ImmutableSamplerID <=> b.ImmutableSamplerID;
+        // }
+        //
+        // [[nodiscard]] UInt64
+        // Hash() const noexcept
+        // {
+        //     UInt64 Seed = 0;
+        //     return GoldenRatioHashCombine(0,
+        //         Index,
+        //         Count,
+        //         ShaderStages,
+        //         ImmutableSamplerID);
+        // }
     };
 
     struct VISERA_RUNTIME_API FRHISetLayout

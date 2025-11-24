@@ -6,7 +6,6 @@ import Visera.Demos;
 import Visera.Core;
 import Visera.Runtime;
 import Visera.Engine;
-import Visera.Engine.Scripting.DotNET;
 import Visera.Studio;
 using namespace Visera;
 
@@ -41,8 +40,8 @@ export int main(int argc, char *argv[])
     {
         GStudio->Bootstrap();
 
-        auto BankInit = GAssetHub->LoadSound(PATH("Init.bnk"));
-        auto MainBGM = GAssetHub->LoadSound(PATH("Test.bnk"));
+        auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
+        auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
 
         GAudio->Register(BankInit);
         auto ID = GAudio->Register(MainBGM);

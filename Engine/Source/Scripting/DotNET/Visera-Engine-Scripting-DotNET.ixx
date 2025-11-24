@@ -7,6 +7,7 @@ export module Visera.Engine.Scripting.DotNET;
 #define VISERA_MODULE_NAME "Engine.Scripting"
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
+import Visera.Core.Types.Map;
 import Visera.Core.OS.FileSystem;
 import Visera.Runtime.Platform;
 

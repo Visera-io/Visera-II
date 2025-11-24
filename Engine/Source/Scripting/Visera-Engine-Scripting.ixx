@@ -3,6 +3,7 @@ module;
 export module Visera.Engine.Scripting;
 #define VISERA_MODULE_NAME "Engine.Scripting"
 import Visera.Engine.Scripting.DotNET;
+import Visera.Core.Global;
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
 import Visera.Runtime.Platform;
@@ -40,7 +41,7 @@ namespace Visera
 
         DotNET = MakeUnique<FDotNET>();
         APIs = DotNET->CreateComponent(
-            GPlatform->GetExecutableDirectory() / PATH("Visera-App.dll"),
+            GPlatform->GetExecutableDirectory() / FPath("Visera-App.dll"),
             FPath{VISERA_ENGINE_DIR "/Assets/Config/Visera-API.json"}
         );
         if (!APIs->IsValid())

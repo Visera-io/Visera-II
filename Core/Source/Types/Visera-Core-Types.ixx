@@ -6,6 +6,7 @@ export import Visera.Core.Types.JSON;
 export import Visera.Core.Types.Name;
 export import Visera.Core.Types.Path;
 export import Visera.Core.Types.Text;
+export import Visera.Core.Types.Map;
 
 export namespace Visera
 {

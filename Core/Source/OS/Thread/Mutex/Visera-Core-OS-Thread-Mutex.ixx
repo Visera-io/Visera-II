@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <mutex>
 export module Visera.Core.OS.Thread.Mutex;
 #define VISERA_MODULE_NAME "Core.OS"
 

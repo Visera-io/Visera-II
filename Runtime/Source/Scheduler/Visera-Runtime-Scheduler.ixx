@@ -2,6 +2,7 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.Scheduler;
 #define VISERA_MODULE_NAME "Runtime.Scheduler"
+import Visera.Core.Global;
 import Visera.Core.Log;
 
 namespace Visera

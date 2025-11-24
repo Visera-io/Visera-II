@@ -1,6 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 #include <zlib.h>
+#include <chrono>
 export module Visera.Core.Compression;
 #define VISERA_MODULE_NAME "Core.Compression"
 import Visera.Core.Log;

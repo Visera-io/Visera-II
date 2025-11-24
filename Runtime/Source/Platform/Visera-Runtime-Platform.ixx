@@ -8,6 +8,7 @@ import Visera.Runtime.Platform.Windows;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
 import Visera.Runtime.Platform.MacOS;
 #endif
+import Visera.Core.Global;
 import Visera.Core.Log;
 
 namespace Visera

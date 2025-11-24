@@ -94,12 +94,12 @@ namespace Visera
         {
             RenderPipeline = GRHI->CreateRenderPipeline(
                 "SpritePass",
-                GAssetHub->LoadShader(PATH("Sprite.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode(),
-                GAssetHub->LoadShader(PATH("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
+                GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode(),
+                GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
             );
             //RenderPipeline->SetRenderArea({{480,270}, {960, 540}});
 
-            Sprite = GAssetHub->LoadTexture(PATH("Fairy.png"));
+            Sprite = GAssetHub->LoadTexture(FPath("Fairy.png"));
             Sprite->GetRHITexture()->WriteTo(GRHI->GetDefaultDecriptorSet(), 0);
 
             VertexBuffer = GRHI->CreateVertexBuffer(sizeof(FVertex) * 6);
@@ -118,7 +118,7 @@ namespace Visera
             Corners[5].X = Corners[0].X; Corners[5].Y = Corners[0].Y; // Pos
             Corners[5].Z = Corners[0].Z; Corners[5].W = Corners[0].W; // UV
 
-            Background = GAssetHub->LoadTexture(PATH("Background.png"));
+            Background = GAssetHub->LoadTexture(FPath("Background.png"));
             Background->GetRHITexture()->WriteTo(GRHI->GetDefaultDecriptorSet2(), 0);
 
             VertexBuffer2 = GRHI->CreateVertexBuffer(sizeof(FVertex) * 6);

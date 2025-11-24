@@ -4,6 +4,7 @@ export module Visera.Engine.Render;
 #define VISERA_MODULE_NAME "Engine.Render"
 import Visera.Engine.Render.Background;
 import Visera.Engine.Render.Sprite;
+import Visera.Core.Global;
 import Visera.Core.Log;
 
 namespace Visera

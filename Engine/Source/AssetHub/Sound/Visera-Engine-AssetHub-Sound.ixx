@@ -36,7 +36,7 @@ namespace Visera
    {
       const FPath Extension = GetPath().GetExtension();
 
-      if (Extension == PATH(".bnk"))
+      if (Extension == FPath(".bnk"))
       {
          VISERA_ASSERT(AK::SoundEngine::IsInitialized());
          //auto WidePath = I_Path.GetNativePath().wstring();

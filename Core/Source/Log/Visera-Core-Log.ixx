@@ -5,6 +5,8 @@ module;
 #include <spdlog/sinks/rotating_file_sink.h>
 export module Visera.Core.Log;
 #define VISERA_MODULE_NAME "Core.Log"
+import Visera.Core.Global;
+import Visera.Core.OS.Time;
 
 namespace Visera
 {
@@ -21,8 +23,7 @@ namespace Visera
 	export class VISERA_CORE_API FLog : public IGlobalSingleton<FLog>
 	{
 	public:
-		template<typename... Args>
-		inline void
+		template<typename... Args> inline void
 		Trace(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			if (Level > VISERA_LOG_LEVEL_TRACE) { return; }
@@ -33,8 +34,7 @@ namespace Visera
 			{ NativeLog('T', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
-		template<typename... Args>
-		inline void
+		template<typename... Args> inline void
 		Debug(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			if (Level > VISERA_LOG_LEVEL_DEBUG) { return; }
@@ -45,8 +45,7 @@ namespace Visera
 			{ NativeLog('D', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
-		template<typename... Args>
-		inline void
+		template<typename... Args> inline void
 		Info(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			if (Level > VISERA_LOG_LEVEL_INFO) { return; }
@@ -57,8 +56,7 @@ namespace Visera
 			{ NativeLog('I', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
-		template<typename... Args>
-		inline void
+		template<typename... Args> inline void
 		Warn(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			if (Level > VISERA_LOG_LEVEL_WARN) { return; }
@@ -69,8 +67,7 @@ namespace Visera
 			{ NativeLog('W', stdout, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
-		template<typename... Args>
-		inline void
+		template<typename... Args> inline void
 		Error(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			if (Level > VISERA_LOG_LEVEL_ERROR) { return; }
@@ -81,8 +78,7 @@ namespace Visera
 			{ NativeLog('E', stderr, I_Fmt, std::forward<Args>(I_Args)...); }
 		}
 
-		template<typename... Args>
-		inline void
+		template<typename... Args> inline void
 		Fatal(spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
 			if (IsBootstrapped())
@@ -109,24 +105,23 @@ namespace Visera
 		inline void
 		NativeLog(const char I_Level, decltype(stdout) I_Stream, spdlog::format_string_t<Args...> I_Fmt, Args &&...I_Args)
 		{
-			const auto Now = std::chrono::system_clock::now();
-			const auto Time = std::chrono::system_clock::to_time_t(Now);
-			const auto MilliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(Now.time_since_epoch()) % 1000;
-			
-			std::tm LocalTime{};
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-			localtime_s(&LocalTime, &Time);
-#else
-			localtime_r(&Time, &LocalTime);
-#endif
-			auto ThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
-			auto Message = Format(I_Fmt, std::forward<Args>(I_Args)...);
+			const auto Now = FSystemClock::Now();
+			const auto Time = Now.ToSystemTimeType();
 
-			fmt::println(I_Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
-						 I_Level,
-						 LocalTime.tm_year + 1900, LocalTime.tm_mon + 1, LocalTime.tm_mday,
-						 LocalTime.tm_hour, LocalTime.tm_min, LocalTime.tm_sec, MilliSeconds.count(),
-						 ThreadID, Message);
+ 			std::tm LocalTime{};
+ #if defined(VISERA_ON_WINDOWS_SYSTEM)
+ 			localtime_s(&LocalTime, &Time);
+ #else
+ 			localtime_r(&Time, &LocalTime);
+ #endif
+ 			auto ThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
+ 			auto Message = Format(I_Fmt, std::forward<Args>(I_Args)...);
+
+ 			fmt::println(I_Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
+ 						 I_Level,
+ 						 LocalTime.tm_year + 1900, LocalTime.tm_mon + 1, LocalTime.tm_mday,
+ 						 LocalTime.tm_hour, LocalTime.tm_min, LocalTime.tm_sec, Now.GetTimeFromEpoch().Milliseconds(),
+ 						 ThreadID, Message);
 		}
 
 	public:

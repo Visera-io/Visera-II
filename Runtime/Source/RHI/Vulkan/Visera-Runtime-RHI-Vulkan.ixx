@@ -30,6 +30,8 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Name;
+       import Visera.Core.Types.Map;
+       import Visera.Core.Types.Set;
 
 namespace Visera
 {
@@ -1131,7 +1133,7 @@ namespace Visera
             PipelineCache = MakeUnique<FVulkanPipelineCache>(
                 GPU.Context,
                 Device.Context,
-                GPlatform->GetExecutableDirectory() / PATH("VulkanPipelines.cache")
+                GPlatform->GetExecutableDirectory() / FPath("VulkanPipelines.cache")
             );
         }
     }

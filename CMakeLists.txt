@@ -91,6 +91,12 @@ add_compile_definitions(
     VISERA_APP="${VISERA_APP_NAME}"
 )
 
+if(WIN32)
+    add_compile_definitions(VISERA_ON_WINDOWS_SYSTEM)
+elseif(APPLE)
+    add_compile_definitions(VISERA_ON_APPLE_SYSTEM)
+endif()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(VISERA_DEBUG_MODE)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Develop")

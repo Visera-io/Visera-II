@@ -12,6 +12,7 @@ export import Visera.Engine.UI;
        import Visera.Core.Types.Name;
        import Visera.Core.Delegate;
        import Visera.Core.OS.Time;
+       import Visera.Core.Global;
        import Visera.Core.Log;
        import Visera.Runtime;
 
@@ -56,8 +57,8 @@ namespace Visera
 // {{ EShaderStage::eFragment, 0U, UInt32(sizeof MouseContext) }});
 //             auto RenderPass = GRHI->CreateRenderPipeline(
 //              "TestPass",
-//              GAssetHub->LoadShader(PATH("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
-//              GAssetHub->LoadShader(PATH("Skybox.slang"), "FragmentMain")->GetSPIRVCode(),
+//              GAssetHub->LoadShader(FPath("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
+//              GAssetHub->LoadShader(FPath("Skybox.slang"), "FragmentMain")->GetSPIRVCode(),
 //              PipelineLayout
 //             );
 //              RenderPass->SetRenderArea({

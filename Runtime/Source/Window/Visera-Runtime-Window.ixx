@@ -7,6 +7,7 @@ export module Visera.Runtime.Window;
 import Visera.Runtime.Window.Interface;
 import Visera.Runtime.Window.Null;
 import Visera.Runtime.Window.GLFW;
+import Visera.Core.Global;
 import Visera.Core.Log;
 
 namespace Visera

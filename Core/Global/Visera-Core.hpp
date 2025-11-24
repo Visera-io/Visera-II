@@ -1,12 +1,5 @@
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-#define VISERA_ON_WINDOWS_SYSTEM
-#endif
-#if defined(__APPLE__)
-#define VISERA_ON_APPLE_SYSTEM
-#endif
-
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 	#define VISERA_CORE_API __declspec(dllexport)
 #else
@@ -23,7 +16,7 @@
 
 #if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     #define VISERA_ON_LITTLE_ENDIAN_PLATFORM
-#elif defined(_WIN32)
+#elif defined(VISERA_ON_WINDOWS_SYSTEM)
     // Windows is always little-endian (on supported CPUs)
     #define VISERA_ON_LITTLE_ENDIAN_PLATFORM
 #endif
@@ -39,12 +32,6 @@
 #endif
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-	#include <windows.h>
-	#undef TEXT
-    #undef LoadImage
-	#undef LoadLibrary
-	#undef SetEnvironmentVariable
-
 	#define PLATFORM_ASSERT(expression) ((void)(                                                       \
 		(!!(expression)) ||                                                               \
 		(_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0)) \
@@ -61,10 +48,8 @@
 
 #if defined(VISERA_RELEASE_MODE)
 #define VISERA_ASSERT(Expression) VISERA_NO_OPERATION
-#define VISERA_WIP                VISERA_NO_OPERATION
 #else
 #define VISERA_ASSERT(Expression) PLATFORM_ASSERT(Expression)
-#define VISERA_WIP VISERA_ASSERT("Work in Progress!")
 #endif
 
 //      [       Level      ]   [Print in Console] [Sink in Files] [Text Color] [Background Color] [Additional Information]
@@ -85,80 +70,77 @@
 
 #if defined(VISERA_ON_MSVC_COMPILER)
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
+	#define LOG_TRACE(I_Fmt, ...) Visera::GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
+	#define LOG_DEBUG(I_Fmt, ...) Visera::GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_DEBUG(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_INFO >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
+	#define LOG_INFO(I_Fmt, ...) Visera::GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_INFO(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_WARN >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
+	#define LOG_WARN(I_Fmt, ...) Visera::GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_WARN(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_ERROR >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
+	#define LOG_ERROR(I_Fmt, ...) Visera::GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_ERROR(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_FATAL >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
+	#define LOG_FATAL(I_Fmt, ...) Visera::GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, __VA_ARGS__)
 	#else
 	#define LOG_FATAL(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 #else
 	#if VISERA_LOG_LEVEL_TRACE >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_TRACE(I_Fmt, ...) GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_TRACE(I_Fmt, ...) Visera::GLog->Trace("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_TRACE(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_DEBUG >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_DEBUG(I_Fmt, ...) GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_DEBUG(I_Fmt, ...) Visera::GLog->Debug("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_DEBUG(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_INFO >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_INFO(I_Fmt, ...) GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_INFO(I_Fmt, ...) Visera::GLog->Info("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_INFO(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_WARN >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_WARN(I_Fmt, ...) GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_WARN(I_Fmt, ...) Visera::GLog->Warn("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_WARN(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_ERROR >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_ERROR(I_Fmt, ...) GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_ERROR(I_Fmt, ...) Visera::GLog->Error("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_ERROR(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 
 	#if VISERA_LOG_LEVEL_FATAL >= VISERA_LOG_SYSTEM_VERBOSITY
-	#define LOG_FATAL(I_Fmt, ...) GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
+	#define LOG_FATAL(I_Fmt, ...) Visera::GLog->Fatal("[M:{}] " I_Fmt, VISERA_MODULE_NAME, ##__VA_ARGS__)
 	#else
 	#define LOG_FATAL(I_Fmt, ...) VISERA_NO_OPERATION
 	#endif
 #endif
-
-#define TEXT(I_Text) FText{u8##I_Text}
-#define PATH(I_Path) FPath{FText(u8##I_Path)}
 
 #if !defined(VISERA_RELEASE_MODE)
 #define DEBUG_ONLY_FIELD(I_Content) I_Content
@@ -170,41 +152,23 @@
 
 #define VISERA_UNIMPLEMENTED_API LOG_FATAL("Unimplmented API \"File: {} Line: {} Name: {}\"!", __FILE__, __LINE__, __FUNCTION__)
 
-// << STD Modules >>
+// << PCHs >>
 #include <cassert>
-#include <sstream>
-#include <ostream>
-#include <fstream>
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include <cstdlib>
 #include <vector>
-#include <cmath>
-#include <list>
-#include <bit>
-#include <algorithm>
-#include <bitset>
 #include <ranges>
 #include <memory>
-#include <typeinfo>
-#include <filesystem>
-#include <functional>
-#include <source_location>
-#include <shared_mutex>
-#include <exception>
-#include <stdexcept>
 #include <string>
+#include <chrono>
+#include <algorithm>
+#include <functional>
 #include <string_view>
 #include <type_traits>
-#include <ankerl/unordered_dense.h>
-
-// << Formatter >>
+#include <source_location>
 #include <spdlog/fmt/fmt.h>
 
 namespace Visera
 {
-    using Bool		    = bool;
+	using Bool		    = bool;
     using Float  	    = float;
     using Double 	    = double;
     using Int8          = char;
@@ -226,10 +190,6 @@ namespace Visera
     using FByte         = UInt8;
     using FANSIChar	    = char;
     using FWideChar     = wchar_t;
-
-#define VISERA_MAKE_FLAGS(EnumClass)      \
-	static_assert(std::is_enum_v<EnumClass>); \
-	template<> struct TEnableBitMaskOperators<EnumClass> : std::true_type {}
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 	#define PLATFORM_STRING(I_String) L##I_String
@@ -269,35 +229,16 @@ namespace Visera
 			requires !std::is_const_v<std::remove_reference_t<T>>;
 			requires !std::is_const_v<std::remove_pointer_t<T>>;
 		};
-
-		template<typename T> concept
-	    Clock = requires
-		{
-			requires std::is_class_v<std::chrono::system_clock>;
-			requires std::is_class_v<std::chrono::high_resolution_clock>;
-		};
 	}
 
     template<typename T>
     using TArray    = std::vector<T>;
 
 	template <typename T>
-	using TArrayView= std::span<const T>;
-
-	template <typename T, size_t Extent>
-	using TSpan     = std::span<T, Extent>;
+	using TArrayView= const TArray<T>&;
 
 	template <Concepts::Mutable T>
 	using TMutable  = T*;
-
-    template<typename T>
-    using TList     = std::list<T>;
-
-    template<typename T>
-    using TSet      = ankerl::unordered_dense::set<T>;
-
-    template<typename Key, typename Value>
-    using TMap      = ankerl::unordered_dense::map<Key, Value>;
 
     template<typename T1, typename T2>
     using TPair     = std::pair<T1, T2>;
@@ -310,9 +251,6 @@ namespace Visera
 
 	template<typename Signature>
 	using TFunction = std::function<Signature>;
-
-	VISERA_CORE_API void inline
-	Sleep(Float I_Seconds) { std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<UInt64>(1000 * I_Seconds))); }
 
     template<typename T>
     using TSharedPtr   = std::shared_ptr<T>;
@@ -334,43 +272,6 @@ namespace Visera
 
 	template<typename T>
 	using TUniqueRef   = const TUniquePtr<T>&;
-
-    template<typename T>
-    class VISERA_CORE_API IGlobalSingleton
-    {
-    public:
-		enum class EStatus { Disabled, Bootstrapped, Terminated };
-    	[[nodiscard]] FStringView
-		GetDebugName() const { return Name; }
-
-    	virtual void
-		Bootstrap() = 0;
-    	virtual void
-		Terminate() = 0;
-
-    	[[nodiscard]] Bool
-		IsBootstrapped() const { return Status == EStatus::Bootstrapped; }
-    	[[nodiscard]] Bool
-		IsTerminated() const   { return Status == EStatus::Terminated; }
-
-    	virtual ~IGlobalSingleton()
-    	{
-    		if (IsBootstrapped())
-    		{ std::cerr << "[WARNING] " << Name << " was NOT terminated properly!\n"; }
-    	}
-
-    protected:
-    	const char* Name;
-    	mutable EStatus Status = EStatus::Disabled;
-
-    	IGlobalSingleton() = delete;
-    	explicit IGlobalSingleton(const char* I_Name) : Name(I_Name) {}
-
-    	IGlobalSingleton(const IGlobalSingleton&)			 = delete;
-    	IGlobalSingleton& operator=(const IGlobalSingleton&) = delete;
-    	IGlobalSingleton(IGlobalSingleton&&)				 = delete;
-    	IGlobalSingleton& operator=(IGlobalSingleton&&)      = delete;
-    };
 
 	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)
 	{ return I_A.first == I_B.first && I_A.second == I_B.second; }
@@ -398,3 +299,31 @@ namespace Visera
 	Format(fmt::format_string<Args...> I_Fmt, Args &&... I_Args)
 	{ return fmt::format(I_Fmt, std::forward<Args>(I_Args)...); }
 }
+
+#define VISERA_MAKE_FLAGS(EnumClass)			\
+	static_assert(std::is_enum_v<EnumClass>);	\
+	template<> struct Visera::TEnableBitMaskOperators<EnumClass> : std::true_type {}
+
+#define VISERA_MAKE_FORMATTER(Type, FormatString, ...)                     \
+	template <>                                                            \
+	struct fmt::formatter<Type>                                            \
+	{                                                                      \
+		constexpr auto parse(fmt::format_parse_context& I_Context)         \
+		-> decltype(I_Context.begin())									   \
+		{                                                                  \
+			return I_Context.begin();                                      \
+		}                                                                  \
+		\
+		template <typename FormatContext>                                  \
+		auto format(const Type& I_Formatee, FormatContext& I_Context) const\
+		-> decltype(I_Context.out())									   \
+		{                                                                  \
+			return fmt::format_to(I_Context.out(),                         \
+                   FormatString, __VA_ARGS__);                             \
+		}                                                                  \
+	};
+
+#define VISERA_MAKE_HASH(Type, BODY)                       \
+	namespace std { template<> struct hash<Type> {         \
+	size_t operator()(const Type& I_Object) const noexcept \
+	{ BODY } }; }

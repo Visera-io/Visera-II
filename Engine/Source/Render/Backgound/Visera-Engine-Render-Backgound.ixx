@@ -41,12 +41,12 @@ namespace Visera
         {
             RenderPipeline = GRHI->CreateRenderPipeline(
                 "SpritePass",
-                GAssetHub->LoadShader(PATH("Background.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode(),
-                GAssetHub->LoadShader(PATH("Background.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
+                GAssetHub->LoadShader(FPath("Background.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode(),
+                GAssetHub->LoadShader(FPath("Background.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
             );
             //RenderPipeline->SetRenderArea({{480,270}, {960, 540}});
 
-            Background = GAssetHub->LoadTexture(PATH("Background.png"));
+            Background = GAssetHub->LoadTexture(FPath("Background.png"));
             Background->GetRHITexture()->WriteTo(GRHI->GetDefaultDecriptorSet(), 0);
 
             VertexBuffer = GRHI->CreateVertexBuffer(sizeof(FVertex) * 6);

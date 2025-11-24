@@ -8,6 +8,7 @@ export import Visera.Runtime.RHI.Texture;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Media.Image;
+       import Visera.Core.Global;
        import Visera.Core.Log;
 
 namespace Visera

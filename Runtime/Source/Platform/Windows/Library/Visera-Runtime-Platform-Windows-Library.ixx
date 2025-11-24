@@ -1,4 +1,7 @@
 module;
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+#include <windows.h>
+#endif
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.Platform.Windows.Library;
 #define VISERA_MODULE_NAME "Runtime.Platform"

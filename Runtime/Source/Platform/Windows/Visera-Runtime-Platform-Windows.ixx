@@ -1,4 +1,9 @@
 module;
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+#include <windows.h>
+#undef LoadLibrary
+#undef SetEnvironmentVariable
+#endif
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.Platform.Windows;
 #define VISERA_MODULE_NAME "Runtime.Platform"
@@ -31,6 +36,9 @@ namespace Visera
     FWindowsPlatform()
     : IPlatform{EPlatform::Windows}
     {
+        SetConsoleOutputCP(65001); // Set console output code page to UTF-8
+        SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
+
         std::wstring Buffer(MAX_PATH, L'\0');
         DWORD Size = GetModuleFileNameW(nullptr, Buffer.data(), static_cast<DWORD>(Buffer.size()));
         Buffer.resize(Size);

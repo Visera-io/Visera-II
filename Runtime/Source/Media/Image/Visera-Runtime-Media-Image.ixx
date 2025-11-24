@@ -67,7 +67,7 @@ namespace Visera
    {
       const FPath Extension = Path.GetExtension();
 
-      if (Extension == PATH(".png"))
+      if (Extension == FPath(".png"))
       {
          Wrapper = MakeUnique<FPNGImageWrapper>();
          Data = Wrapper->Import(Path);

@@ -3,6 +3,7 @@ module;
 #include <nlohmann/json.hpp>
 export module Visera.Core.Types.JSON;
 #define VISERA_MODULE_NAME "Core.Types"
+import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -26,7 +27,7 @@ export namespace Visera
             }
             catch (const std::exception& e)
             {
-                VISERA_WIP;
+                VISERA_UNIMPLEMENTED_API;
                 return false;
             }
         }

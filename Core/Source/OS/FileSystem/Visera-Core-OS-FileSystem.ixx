@@ -1,13 +1,23 @@
 module;
 #include <Visera-Core.hpp>
+#include <fstream>
+#include <filesystem>
 export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.Core.Types.Path;
+       import Visera.Core.Traits.Flags;
        import Visera.Core.Log;
 
 export namespace Visera
 {
     using SFileSystemError = std::filesystem::filesystem_error;
+
+    enum class EIOMode : Int32
+    {
+        None   = 0,
+        Binary = std::ios_base::binary,
+    };
+    VISERA_MAKE_FLAGS(EIOMode);
 
     class VISERA_CORE_API FFileSystem
     {
@@ -16,6 +26,10 @@ export namespace Visera
         CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
         [[nodiscard]] Bool static inline
         Exists(const FPath& I_Path) { return std::filesystem::exists(I_Path.GetNativePath()); }
+        [[nodiscard]] TUniquePtr<std::ifstream> static inline
+        OpenIStream(const FPath& I_Path, EIOMode I_Mode = EIOMode::None);
+        [[nodiscard]] TUniquePtr<std::ofstream> static inline
+        OpenOStream(const FPath& I_Path, EIOMode I_Mode = EIOMode::None);
         [[nodiscard]] Bool static inline
         IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(I_Path.GetNativePath()); }
 
@@ -160,26 +174,28 @@ export namespace Visera
         return False;
     }
 
+    TUniquePtr<std::ifstream> FFileSystem::
+    OpenIStream(const FPath& I_Path, EIOMode I_Mode)
+    {
+        auto IStream = MakeUnique<std::ifstream>(I_Path.GetNativePath(), ToUnderlying(I_Mode));
+        if (!IStream->is_open())
+        {
+            LOG_ERROR("Failed to open istream \"{}\" (mode:{})!",
+                      I_Path, ToUnderlying(I_Mode));
+            return nullptr;
+        }
+        return IStream;
+    }
+    TUniquePtr<std::ofstream> FFileSystem::
+    OpenOStream(const FPath& I_Path, EIOMode I_Mode)
+    {
+        auto OStream = MakeUnique<std::ofstream>(I_Path.GetNativePath(), ToUnderlying(I_Mode));
+        if (!OStream->is_open())
+        {
+            LOG_ERROR("Failed to open ostream \"{}\" (mode:{})!",
+                      I_Path, ToUnderlying(I_Mode));
+            return nullptr;
+        }
+        return OStream;
+    }
 }
-
-template <>
-struct fmt::formatter<Visera::FFileSystem>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::FFileSystem& I_FileSystem, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        return fmt::format_to(
-            I_Context.out(),
-            "Root: {}",
-            I_FileSystem.GetRoot()
-        );
-    }
-};

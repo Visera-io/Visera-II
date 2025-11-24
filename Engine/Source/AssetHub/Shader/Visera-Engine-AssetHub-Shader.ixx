@@ -45,7 +45,7 @@ namespace Visera
     {
         const FPath Extension = GetPath().GetExtension();
         
-        if (Extension == PATH(".slang"))
+        if (Extension == FPath(".slang"))
         {
             if (!SlangCompiler) { SlangCompiler = MakeUnique<FSlangCompiler>(); }
             SPIRVCode = SlangCompiler->Compile(GetPath(), EntryPoint);

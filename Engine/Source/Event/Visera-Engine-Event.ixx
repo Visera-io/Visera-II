@@ -2,6 +2,7 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine.Event;
 #define VISERA_MODULE_NAME "Engine.Event"
+import Visera.Core.Global;
 import Visera.Core.Delegate;
 import Visera.Core.Log;
 

@@ -8,8 +8,10 @@ export import Visera.Engine.AssetHub.Texture;
 export import Visera.Core.Types.Path;
        import Visera.Engine.AssetHub.Asset;
        import Visera.Runtime.Platform;
-       import Visera.Core.Log;
        import Visera.Core.OS.FileSystem;
+       import Visera.Core.Types.Map;
+       import Visera.Core.Global;
+       import Visera.Core.Log;
 
 namespace Visera
 {
@@ -49,9 +51,9 @@ namespace Visera
     {
         LOG_TRACE("Bootstrapping AssetHub.");
 
-        Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR) / PATH("Assets") };
-        Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR) / PATH("Assets") };
-        Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)    / PATH("Assets") };
+        Roots[EAssetSource::Engine] = FFileSystem{FPath(VISERA_ENGINE_DIR) / FPath("Assets") };
+        Roots[EAssetSource::Studio] = FFileSystem{FPath(VISERA_STUDIO_DIR) / FPath("Assets") };
+        Roots[EAssetSource::App]    = FFileSystem{FPath(VISERA_APP_DIR)    / FPath("Assets") };
         
         Status = EStatus::Bootstrapped;
     }
@@ -74,7 +76,7 @@ namespace Visera
         if (I_Source != EAssetSource::Any)
         {
             const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / PATH("Shader") / I_File;
+            FPath Path = Root.GetRoot() / FPath("Shader") / I_File;
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
             {
@@ -85,7 +87,7 @@ namespace Visera
         {
             for (const auto& [_, Root] : Roots)
             {
-                FPath Path = Root.GetRoot() / PATH("Shader") / I_File;
+                FPath Path = Root.GetRoot() / FPath("Shader") / I_File;
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
                 {
@@ -114,7 +116,7 @@ namespace Visera
         if (I_Source != EAssetSource::Any)
         {
             const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / PATH("Texture") / I_File;
+            FPath Path = Root.GetRoot() / FPath("Texture") / I_File;
 
             if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
             {
@@ -125,7 +127,7 @@ namespace Visera
         {
             for (const auto& [_, Root] : Roots)
             {
-                FPath Path = Root.GetRoot() / PATH("Texture") / I_File;
+                FPath Path = Root.GetRoot() / FPath("Texture") / I_File;
 
                 if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
                 {
@@ -157,11 +159,11 @@ namespace Visera
         if (I_Source != EAssetSource::Any)
         {
             const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / PATH("Sound") /
+            FPath Path = Root.GetRoot() / FPath("Sound") /
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-                PATH("Windows")
+                FPath("Windows")
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-                PATH("Mac")
+                FPath("Mac")
 #else
                 VISERA_UNIMPLEMENTED_API;
 #endif
@@ -176,11 +178,11 @@ namespace Visera
         {
             for (const auto& [_, Root] : Roots)
             {
-                FPath Path = Root.GetRoot() / PATH("Sound") /
+                FPath Path = Root.GetRoot() / FPath("Sound") /
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-                PATH("Windows")
+                FPath("Windows")
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-                PATH("Mac")
+                FPath("Mac")
 #else
                 VISERA_UNIMPLEMENTED_API;
 #endif

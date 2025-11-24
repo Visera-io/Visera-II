@@ -1,7 +1,9 @@
 module;
 #include <Visera-Core.hpp>
+#include <chrono>
 export module Visera.Core.OS.Time.Clock;
 #define VISERA_MODULE_NAME "Core.OS"
+import Visera.Core.OS.Time.Common;
 import Visera.Core.OS.Time.TimePoint;
 import Visera.Core.OS.Time.Duration;
 

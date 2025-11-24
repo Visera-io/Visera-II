@@ -2,6 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.OS.Time.TimePoint;
 #define VISERA_MODULE_NAME "Core.OS"
+import Visera.Core.OS.Time.Common;
 import Visera.Core.OS.Time.Duration;
 
 export namespace Visera
@@ -54,6 +55,11 @@ export namespace Visera
 
         [[nodiscard]] FString ToString() const
         { return std::format("UTC(+0) {:%Y-%m-%d %H:%M:%S}", Value); }
+
+        [[nodiscard]] inline time_t
+        ToSystemTimeType() const { return clock::to_time_t(Value); }
+        [[nodiscard]] inline TDuration<clock>
+        GetTimeFromEpoch() const { return TDuration<clock>{ Value.time_since_epoch() }; }
 
         TTimePoint() = default;
         explicit TTimePoint(time_point tp) : Value{ std::move(tp) } {}

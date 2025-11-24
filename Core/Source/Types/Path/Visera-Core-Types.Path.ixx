@@ -1,9 +1,9 @@
 module;
 #include <Visera-Core.hpp>
+#include <filesystem>
 export module Visera.Core.Types.Path;
 #define VISERA_MODULE_NAME "Core.Types"
 export import Visera.Core.Types.Text;
-       import Visera.Core.Hash;
 
 export namespace Visera
 {

@@ -2,7 +2,7 @@ module;
 #include <Visera-Engine.hpp>
 export module Visera.Engine.API;
 #define VISERA_MODULE_NAME "Engine.API"
-import Visera.Core;
+import Visera.Core.Log;
 import Visera.Runtime.Input;
 import Visera.Runtime.Window;
 import Visera.Engine.AssetHub;
@@ -29,12 +29,6 @@ export namespace Visera::API
         case ELogLevel::Error: GLog->Error ("[M:App.{}] {}", I_Module, I_Message); break;
         case ELogLevel::Fatal: GLog->Fatal ("[M:App.{}] {}", I_Module, I_Message); break;
         }
-    }
-
-    VISERA_APP_CALLABLE
-    CityHash64(const char* I_Data) -> UInt64
-    {
-        return Visera::CityHash64(I_Data);
     }
 
     VISERA_APP_CALLABLE

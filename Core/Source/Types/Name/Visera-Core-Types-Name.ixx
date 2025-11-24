@@ -36,36 +36,11 @@ export namespace Visera
         UInt32		Number{ 0 };
     };
 
-} // namespace VE
-
-namespace std
-{
-    template<>
-    struct hash<Visera::FName>
-    {
-        std::size_t operator()(const Visera::FName& I_Name) const noexcept
-        { return static_cast<std::size_t>(I_Name.GetIdentifier()); }
-    };
 }
-
-template <>
-struct fmt::formatter<Visera::FName>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::FName& I_Name, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        return fmt::format_to(
-            I_Context.out(),
-            "{}({})",
-            I_Name.GetName(), I_Name.GetNumber()
-        );
-    }
-};
+VISERA_MAKE_HASH(Visera::FName,
+                 return I_Object.GetIdentifier();
+)
+VISERA_MAKE_FORMATTER(Visera::FName,
+                      "{}({})",
+                      I_Formatee.GetName(), I_Formatee.GetNumber()
+)

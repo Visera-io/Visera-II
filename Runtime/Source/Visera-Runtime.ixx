@@ -8,8 +8,9 @@ export import Visera.Runtime.Input;
 export import Visera.Runtime.RHI;
 export import Visera.Runtime.Media;
 export import Visera.Runtime.Scheduler;
-       import Visera.Core.Log;
        import Visera.Core.OS.Time;
+       import Visera.Core.Global;
+       import Visera.Core.Log;
 
 namespace Visera
 {
@@ -31,11 +32,6 @@ namespace Visera
             GMedia      ->Bootstrap();
             GWindow     ->Bootstrap();
             GRHI        ->Bootstrap();
-
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-            SetConsoleOutputCP(65001); // Set console output code page to UTF-8
-            SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
-#endif
 
             Status = EStatus::Bootstrapped;
         }

@@ -1,11 +1,15 @@
 module;
 #include <Visera-Core.hpp>
-export module Visera.Core.Containers.Map;
-#define VISERA_MODULE_NAME "Core.Containers"
+#include <ankerl/unordered_dense.h>
+export module Visera.Core.Types.Map;
+#define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.OS.Thread;
 
 export namespace Visera
 {
+    template<typename Key, typename Value>
+    using TMap      = ankerl::unordered_dense::map<Key, Value>;
+
     namespace TS
     {
         template<typename Key, typename Value>

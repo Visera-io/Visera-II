@@ -6,6 +6,7 @@ export module Visera.Engine.AssetHub.Shader.Slang;
 #define VISERA_MODULE_NAME "Engine.AssetHub"
 export import Visera.Runtime.RHI.SPIRV;
        import Visera.Core.Types.Path;
+       import Visera.Core.Types.Set;
        import Visera.Core.Log;
 
 namespace Visera

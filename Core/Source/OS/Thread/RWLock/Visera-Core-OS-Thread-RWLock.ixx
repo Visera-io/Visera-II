@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <shared_mutex>
 export module Visera.Core.OS.Thread.RWLock;
 #define VISERA_MODULE_NAME "Core.OS"
 

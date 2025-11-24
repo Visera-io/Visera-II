@@ -10,7 +10,6 @@ import Visera.Core.Log;
 
 export namespace Visera
 {
-
 	class VISERA_CORE_API FNameEntryTable
 	{
 	public:
@@ -32,10 +31,16 @@ export namespace Visera
 			NameEntryHandleBits	= MaxSectionBits + SectionOffsetBits,
 			NameEntryHandleMask	= (1U << NameEntryHandleBits) - 1,
 		};
-		auto Insert(FStringView I_ParsedName, const FNameHash& I_NameHash) -> FNameEntryHandle;
-		auto LookUp(FNameEntryHandle I_NameEntryHandle) const -> const FNameEntry&
-		{ // Reset not needed since any valid NameEntryHandle is distributed after the insertion.
-		  return *reinterpret_cast<FNameEntry*>(Sections[I_NameEntryHandle.GetSectionIndex()].Data + NameEntryByteStride * I_NameEntryHandle.GetSectionOffset());
+
+		FNameEntryHandle
+		Insert(FStringView I_ParsedName, const FNameHash& I_NameHash);
+		inline const FNameEntry&
+		LookUp(FNameEntryHandle I_NameEntryHandle) const
+		{
+			// Reset not needed since any valid NameEntryHandle is distributed after the insertion.
+			return *reinterpret_cast<FNameEntry*>(
+				Sections[I_NameEntryHandle.GetSectionIndex()].Data
+				+ (NameEntryByteStride * I_NameEntryHandle.GetSectionOffset()));
 		}
 
 	private:
@@ -91,10 +96,8 @@ export namespace Visera
 	AllocateNewSection()
     {
 		if (CurrentSectionCursor >= MaxSections)
-		{
-			LOG_FATAL("Exceeded the maximum MemoryBlocks{}!", UInt32(MaxSections));
-		}
-			
+		{ LOG_FATAL("Exceeded the maximum MemoryBlocks{}!", static_cast<UInt32>(MaxSections)); }
+
 		if (CurrentSectionCursor >= 0)
 		{
 			auto& CurrentSection = Sections[CurrentSectionCursor];
@@ -109,15 +112,12 @@ export namespace Visera
 				Terminator->Header.Size = 0;
 			}
 		}
-		//[FIXME]
-		//VE_LOG_DEBUG("Allocating a new Section (index:{}).", CurrentSectionCursor + 1);
+
 		auto& NewSection = Sections[++CurrentSectionCursor];
-		NewSection.Data = (FByte*)Memory::MallocNow(SectionByteSize, NameEntryAlignment);
+		NewSection.Data = static_cast<FByte*>(Memory::MallocNow(SectionByteSize, NameEntryAlignment));
 		if(!NewSection.Data)
-		{
-			LOG_FATAL("Failed to allocate memory! (func:{}, line:{})",
-				      __FUNCTION__, __LINE__);
-		}
+		{ LOG_FATAL("Failed to allocate memory for new name entry table section!"); }
+
 		NewSection.CurrentByteCursor = 0;
     }
 
@@ -137,5 +137,4 @@ export namespace Visera
 		}
 		CurrentSectionCursor = -1;
 	}
-
-} 
+}

@@ -2,6 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.OS.Time.Duration;
 #define VISERA_MODULE_NAME "Core.OS"
+import Visera.Core.OS.Time.Common;
 
 export namespace Visera
 {
