@@ -3,11 +3,12 @@ module;
 #include <vulkan/vulkan.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+export import Visera.Runtime.RHI.Common;
 export import Visera.Runtime.RHI.Types;
-export import Visera.Runtime.RHI.Texture;
        import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Media.Image;
+       import Visera.Core.Types.Map;
        import Visera.Core.Global;
        import Visera.Core.Log;
 
@@ -25,33 +26,33 @@ namespace Visera
         };
 
         void
-        BeginFrame()  const;
+        BeginFrame();
         void
-        EndFrame()    const;
+        EndFrame();
         inline void
-        Present()     const { Driver->Present(); }
+        Present() { if (!Driver->Present()) { LOG_ERROR("Failed to present!"); } }
 
         //[TODO]: Remove these test APIs
-        [[nodiscard]] inline TSharedRef<FCommandBuffer>
+        [[nodiscard]] inline TSharedRef<FVulkanCommandBuffer>
         GetDrawCommands() { return Driver->GetCurrentFrame().DrawCalls; }
-        [[nodiscard]] inline TSharedRef<FDescriptorSet>
+        [[nodiscard]] inline TSharedRef<FVulkanDescriptorSet>
         GetDefaultDecriptorSet() { return DefaultDescriptorSet; }
-        [[nodiscard]] inline TSharedRef<FDescriptorSet>
+        [[nodiscard]] inline TSharedRef<FVulkanDescriptorSet>
         GetDefaultDecriptorSet2() { return DefaultDescriptorSet2; }
 
-        [[nodiscard]] inline TSharedPtr<FDescriptorSet>
-        CreateDescriptorSet(const FRHISetLayout& I_SetLayout);
-        [[nodiscard]] inline TSharedPtr<FBuffer>
+        [[nodiscard]] inline TSharedPtr<FVulkanDescriptorSet>
+        CreateDescriptorSet(const FRHIDescriptorSetLayout& I_SetLayout);
+        [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
         CreateStagingBuffer(UInt64 I_Size);
-        [[nodiscard]] inline TSharedPtr<FBuffer>
+        [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
         CreateVertexBuffer(UInt64 I_Size);
-        [[nodiscard]] inline TSharedPtr<FStaticTexture2D>
-        CreateTexture2D(TSharedRef<FImage> I_Image, Bool bLinearSampler = True);
-        [[nodiscard]] inline TSharedPtr<FRenderPipeline>
-        CreateRenderPipeline(const FString&              I_Name,
-                             TSharedRef<FSPIRVShader>    I_VertexShader,
-                             TSharedRef<FSPIRVShader>    I_FragmentShader,
-                             TSharedPtr<FPipelineLayout> I_PipelineLayout = {})
+        [[nodiscard]] inline TSharedPtr<FRHIStaticTexture>
+        CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType);
+        [[nodiscard]] inline TSharedPtr<FVulkanRenderPipeline>
+        CreateRenderPipeline(const FString&                    I_Name,
+                             TSharedRef<FSPIRVShader>          I_VertexShader,
+                             TSharedRef<FSPIRVShader>          I_FragmentShader,
+                             TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout = {})
         {
             VISERA_ASSERT(I_VertexShader->IsVertexShader());
             VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
@@ -62,8 +63,9 @@ namespace Visera
                    Driver->CreateShaderModule(I_VertexShader->GetShaderCode()),
                    Driver->CreateShaderModule(I_FragmentShader->GetShaderCode()));
             RenderPipeline->SetRenderArea({
-                 {0,0},
-                 {1920, 1080}});
+                {0,0},
+                {1920, 1080}
+                });
             return RenderPipeline;
         }
 
@@ -80,12 +82,16 @@ namespace Visera
 
     private:
         TUniquePtr<FVulkanDriver> Driver;
-        TSharedPtr<FDescriptorSetLayout> DefaultDescriptorSetLayout;
-        TSharedPtr<FPipelineLayout>      DefaultPipelineLayout;
-        TSharedPtr<FDescriptorSet>       DefaultDescriptorSet;
-        TSharedPtr<FDescriptorSet>       DefaultDescriptorSet2;
-        TSharedPtr<FSampler>             DefaultLinearSampler;
-        TSharedPtr<FSampler>             DefaultNearestSampler;
+
+        TMap<UInt64, TSharedPtr<FVulkanDescriptorSetLayout>>
+        DescriptorSetLayoutPool;
+
+        TSharedPtr<FVulkanDescriptorSetLayout> DefaultDescriptorSetLayout;
+        TSharedPtr<FVulkanPipelineLayout>      DefaultPipelineLayout;
+        TSharedPtr<FVulkanDescriptorSet>       DefaultDescriptorSet;
+        TSharedPtr<FVulkanDescriptorSet>       DefaultDescriptorSet2;
+        TSharedPtr<FVulkanSampler>             DefaultLinearSampler;
+        TSharedPtr<FVulkanSampler>             DefaultNearestSampler;
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
@@ -105,30 +111,28 @@ namespace Visera
         LOG_TRACE("Bootstrapping RHI.");
         Driver = MakeUnique<FVulkanDriver>();
 
-        DefaultDescriptorSetLayout = Driver->CreateDescriptorSetLayout({
-            FDescriptorSetBinding{}
-            .setStageFlags      (EShaderStage::eFragment)
-            .setBinding         (0)
-            .setDescriptorType  (EDescriptorType::eCombinedImageSampler)
-            .setDescriptorCount (1)
-        });
-        DefaultDescriptorSet = Driver->CreateDescriptorSet(DefaultDescriptorSetLayout);
-        DefaultDescriptorSet2 = Driver->CreateDescriptorSet(DefaultDescriptorSetLayout);
+        auto DescriptorSetLayout = FRHIDescriptorSetLayout{}
+            .AddBinding(0, ERHIDescriptorType::CombinedImageSampler, 1, ERHIShaderStages::Fragment)
+            .AddBinding(1, ERHIDescriptorType::CombinedImageSampler, 1, ERHIShaderStages::Fragment)
+        ;
+
+        DefaultDescriptorSet  = CreateDescriptorSet(DescriptorSetLayout);
+        DefaultDescriptorSet2 = CreateDescriptorSet(DescriptorSetLayout);
         DefaultPipelineLayout = Driver->CreatePipelineLayout(
-        {DefaultDescriptorSetLayout->GetHandle()},
+        {DefaultDescriptorSet->GetLayout()->GetHandle()},
 {
-        FPushConstant{}
-        .setStageFlags(EShaderStage::eAll)
-        .setOffset(0)
-        .setSize(sizeof(FDefaultPushConstant))
+        vk::PushConstantRange{}
+            .setStageFlags(TypeCast(ERHIShaderStages::All))
+            .setOffset(0)
+            .setSize(sizeof(FDefaultPushConstant))
         });
 
         DefaultLinearSampler = Driver->CreateImageSampler(
-            EFilter::eLinear,
-            ESamplerAddressMode::eRepeat);
+            vk::Filter::eLinear,
+            vk::SamplerAddressMode::eRepeat);
         DefaultNearestSampler = Driver->CreateImageSampler(
-            EFilter::eNearest,
-            ESamplerAddressMode::eRepeat);
+            vk::Filter::eNearest,
+            vk::SamplerAddressMode::eRepeat);
 
         Status = EStatus::Bootstrapped;
     }
@@ -143,6 +147,7 @@ namespace Visera
         DefaultDescriptorSet2.reset();
         DefaultDescriptorSet.reset();
         DefaultDescriptorSetLayout.reset();
+        DescriptorSetLayoutPool.clear();
         Driver.reset();
 
         Status = EStatus::Terminated;
@@ -156,92 +161,91 @@ namespace Visera
     }
 
 
-    TSharedPtr<FBuffer> FRHI::
+    TSharedPtr<FVulkanBuffer> FRHI::
     CreateStagingBuffer(UInt64 I_Size)
     {
         LOG_DEBUG("Creating a staging buffer ({} bytes).", I_Size);
         return Driver->CreateBuffer(
             I_Size,
-            EBufferUsage::eTransferSrc,
-            EMemoryPoolFlag::eHostAccessAllowTransferInstead |
-            EMemoryPoolFlag::eHostAccessSequentialWrite);
+            vk::BufferUsageFlagBits::eTransferSrc,
+            VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
+            VMA::EMemoryPoolFlags::HostAccessSequentialWrite);
     }
 
-    TSharedPtr<FBuffer> FRHI::
+    TSharedPtr<FVulkanBuffer> FRHI::
     CreateVertexBuffer(UInt64 I_Size)
     {
         return Driver->CreateBuffer(
             I_Size,
-            EBufferUsage::eVertexBuffer,
-            EMemoryPoolFlag::eHostAccessAllowTransferInstead |
-            EMemoryPoolFlag::eHostAccessSequentialWrite |
-            EMemoryPoolFlag::eMapped);
+            vk::BufferUsageFlagBits::eVertexBuffer,
+            VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
+            VMA::EMemoryPoolFlags::HostAccessSequentialWrite);
     }
 
-    TSharedPtr<FStaticTexture2D> FRHI::
-    CreateTexture2D(TSharedRef<FImage> I_Image, Bool bLinearSampler)
+    TSharedPtr<FRHIStaticTexture> FRHI::
+    CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType)
     {
         LOG_DEBUG("(WIP) Creating a RHIImage (extent:[{},{}]).",
                   I_Image->GetWidth(), I_Image->GetHeight());
-        EFormat Format = EFormat::eUndefined;
+        ERHIFormat Format = ERHIFormat::Undefined;
         switch (I_Image->GetColorFormat())
         {
         case EColorFormat::RGB:
             Format = I_Image->IsSRGB()?
-                     EFormat::eR8G8B8Srgb
+                     ERHIFormat::R8G8B8_sRGB
                      :
-                     EFormat::eR8G8B8Unorm;
+                     ERHIFormat::R8G8B8_UNorm;
             break;
         case EColorFormat::RGBA:
             Format = I_Image->IsSRGB()?
-                     EFormat::eR8G8B8A8Srgb
+                     ERHIFormat::R8G8B8A8_sRGB
                      :
-                     EFormat::eR8G8B8A8Unorm;
+                     ERHIFormat::R8G8B8A8_UNorm;
             break;
         case EColorFormat::BGR:
             Format = I_Image->IsSRGB()?
-                     EFormat::eB8G8R8Srgb
+                     ERHIFormat::B8G8R8_sRGB
                      :
-                     EFormat::eB8G8R8Unorm;
+                     ERHIFormat::B8G8R8_UNorm;
             break;
         case EColorFormat::BGRA:
             Format = I_Image->IsSRGB()?
-                     EFormat::eB8G8R8A8Srgb
+                     ERHIFormat::B8G8R8A8_sRGB
                      :
-                     EFormat::eB8G8R8A8Unorm;
+                     ERHIFormat::B8G8R8A8_UNorm;
             break;
         default:
             LOG_FATAL("Unsupported color format \"({})\"!",
                       static_cast<Int8>(I_Image->GetColorFormat()));
         }
         auto RHIImage = Driver->CreateImage(
-            EImageType::e2D,
+            vk::ImageType::e2D,
             {I_Image->GetWidth(), I_Image->GetHeight(), 1},
-            Format,
-            EImageUsage::eTransferDst | EImageUsage::eSampled
+            TypeCast(Format),
+            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
         );
 
-        auto Cmd = Driver->CreateCommandBuffer(EQueue::eGraphics);
+        auto Cmd = Driver->CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
         auto Fence = Driver->CreateFence(False, "Convert Texture Layout");
         auto StagingBuffer = CreateStagingBuffer(I_Image->GetSize());
         StagingBuffer->Write(I_Image->GetData(), I_Image->GetSize());
         Cmd->Begin();
         {
             Cmd->ConvertImageLayout(RHIImage,
-                EImageLayout::eTransferDstOptimal,
-                EPipelineStage::eTopOfPipe,
-                EAccess::eNone,
-                EPipelineStage::eTransfer,
-                EAccess::eTransferWrite);
+                vk::ImageLayout::eTransferDstOptimal,
+                vk::PipelineStageFlagBits2::eTopOfPipe,
+                vk::AccessFlagBits2::eNone,
+                vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferWrite);
 
             Cmd->CopyBufferToImage(StagingBuffer, RHIImage);
 
             Cmd->ConvertImageLayout(RHIImage,
-                EImageLayout::eShaderReadOnlyOptimal,
-                EPipelineStage::eTransfer,
-                EAccess::eTransferWrite,
-                EPipelineStage::eFragmentShader,
-                EAccess::eShaderRead);
+                vk::ImageLayout::eShaderReadOnlyOptimal,
+                vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferWrite,
+                vk::PipelineStageFlagBits2::eFragmentShader,
+                vk::AccessFlagBits2::eShaderRead);
         }
         Cmd->End();
         Driver->Submit(Cmd, nullptr, nullptr, Fence);
@@ -250,30 +254,50 @@ namespace Visera
 
         auto RHIImageView = Driver->CreateImageView(
             RHIImage,
-            EImageViewType::e2D,
-            EImageAspect::eColor);
-        return MakeShared<FStaticTexture2D>(
+            vk::ImageViewType::e2D,
+            vk::ImageAspectFlagBits::eColor);
+        return MakeShared<FRHIStaticTexture>(
             RHIImageView,
-            bLinearSampler? DefaultLinearSampler : DefaultNearestSampler);
+            I_SamplerType == ERHISamplerType::Linear? DefaultLinearSampler : DefaultNearestSampler);
     }
 
-    TSharedPtr<FDescriptorSet> FRHI::
-    CreateDescriptorSet(const FRHISetLayout& I_SetLayout)
+    TSharedPtr<FVulkanDescriptorSet> FRHI::
+    CreateDescriptorSet(const FRHIDescriptorSetLayout& I_SetLayout)
     {
-        for (auto& Binding : I_SetLayout.Bindings)
+        auto Hash = I_SetLayout.GetOrderedHash();
+        auto& Layout = DescriptorSetLayoutPool[Hash];
+        if (!Layout)
         {
+            LOG_DEBUG("Creating a new descriptor set layout (hash:{}).", Hash);
+            UInt32 BindingCount = I_SetLayout.GetBindingCount();
+            auto VulkanSetBindings = TArray<vk::DescriptorSetLayoutBinding>(BindingCount);
+            for (UInt32 Idx = 0; Idx < BindingCount; Idx++)
+            {
+                auto& Binding = I_SetLayout.GetBinding(Idx);
+                VulkanSetBindings[Idx] = vk::DescriptorSetLayoutBinding{}
+                    .setBinding         (Binding.Index)
+                    .setDescriptorType  (TypeCast(Binding.Type))
+                    .setDescriptorCount (Binding.Count)
+                    .setStageFlags      (TypeCast(Binding.ShaderStages))
+                    //.setPImmutableSamplers()
+                ;
+            }
+            Layout = Driver->CreateDescriptorSetLayout(VulkanSetBindings);
+        }
+        return Driver->CreateDescriptorSet(Layout);
+    }
 
+    void FRHI::
+    BeginFrame()
+    {
+        while (!Driver->BeginFrame())
+        {
+            LOG_FATAL("Failed to begin new frame!");
         }
     }
 
     void FRHI::
-    BeginFrame() const
-    {
-        Driver->BeginFrame();
-    }
-
-    void FRHI::
-    EndFrame() const
+    EndFrame()
     {
         Driver->EndFrame();
     }

@@ -5,20 +5,21 @@ module;
 #include <vk_mem_alloc.h>
 export module Visera.Runtime.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Core.Traits.Flags;
 import Visera.Core.Log;
 
-namespace Visera
+export namespace Visera
 {
-    export enum EVulkanMemoryPoolFlagBits : VmaAllocationCreateFlags
+    enum class EVMAMemoryPoolFlags : VmaAllocationCreateFlags
     {
-        eNone                           = 0,
-        eMapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
-        eHostAccessAllowTransferInstead = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
-        eHostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+        None                           = 0,
+        Mapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        HostAccessAllowTransferInstead = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
+        HostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
     };
-    export using EVulkanMemoryPoolFlags = VmaAllocationCreateFlags;
+    VISERA_MAKE_FLAGS(EVMAMemoryPoolFlags);
 
-    export class VISERA_RUNTIME_API FVulkanAllocator
+    class VISERA_RUNTIME_API FVulkanAllocator
     {
     public:
         [[nodiscard]] inline VmaAllocator
@@ -74,10 +75,10 @@ namespace Visera
         vmaDestroyAllocator(Handle);
     }
 
-    export inline VISERA_RUNTIME_API TUniquePtr<FVulkanAllocator>
+    inline VISERA_RUNTIME_API TUniquePtr<FVulkanAllocator>
     GVulkanAllocator;
 
-    export class VISERA_RUNTIME_API IVulkanResource
+    class VISERA_RUNTIME_API IVulkanResource
     {
     public:
         enum class EType
@@ -100,7 +101,7 @@ namespace Visera
         inline void
         Allocate(void*                  I_Handle,
                  const void*            I_CreateInfo,
-                 EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
+                 EVMAMemoryPoolFlags    I_MemoryPoolFlags = EVMAMemoryPoolFlags::None);
         inline void
         Release(void* I_Handle);
         [[nodiscard]] inline const VmaAllocation&
@@ -124,11 +125,11 @@ namespace Visera
     void IVulkanResource::
     Allocate(void*                  I_Handle,
              const void*            I_CreateInfo,
-             EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
+             EVMAMemoryPoolFlags    I_MemoryPoolFlags /* = EVulkanMemoryPoolFlags::None */)
     {
         VmaAllocationCreateInfo AllocationCreateInfo
         {
-            .flags          = I_MemoryPoolFlags,
+            .flags          = ToUnderlying(I_MemoryPoolFlags),
             .usage          = VMA_MEMORY_USAGE_AUTO,
             .requiredFlags  = 0x0,
             .preferredFlags = 0x0,

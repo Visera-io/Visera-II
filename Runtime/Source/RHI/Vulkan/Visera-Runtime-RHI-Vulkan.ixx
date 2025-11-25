@@ -27,6 +27,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
+       import Visera.Core.Delegate;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Name;
@@ -35,7 +36,8 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
 
 namespace Visera
 {
-    export using EVulkanMemoryPoolFlag = EVulkanMemoryPoolFlagBits;
+    export namespace VMA
+    {  using EMemoryPoolFlags = EVMAMemoryPoolFlags; }
 
     export class VISERA_RUNTIME_API FVulkanDriver
     {
@@ -90,6 +92,9 @@ namespace Visera
             vk::SharingMode         SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                          bClipped       {True};
+
+            [[nodiscard]] inline const TSharedRef<FVulkanImageView>
+            GetCurrentImageView() { return ImageViews[Cursor]; }
         }SwapChain;
 #endif
 
@@ -110,6 +115,11 @@ namespace Visera
         GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex]; }
         inline void
         EndFrame();
+        TExclusiveDelegate<TSharedRef<FVulkanCommandBuffer>,
+                           TSharedRef<FVulkanImageView>>
+        StudioDrawCalls;
+        [[nodiscard]] inline Bool
+        Present();
         inline void
         Submit(TSharedRef<FVulkanCommandBuffer> I_CommandBuffer,
                TSharedRef<FVulkanSemaphore>     I_WaitSemaphore,
@@ -135,24 +145,24 @@ namespace Visera
                     vk::Format          I_Format,
                     vk::ImageUsageFlags     I_Usages);
         [[nodiscard]] TSharedPtr<FVulkanImageView>
-        CreateImageView(TSharedRef<FVulkanImage>   I_Image,
-                        vk::ImageViewType       I_ViewType,
+        CreateImageView(TSharedRef<FVulkanImage>        I_Image,
+                        vk::ImageViewType               I_ViewType,
                         vk::ImageAspectFlagBits         I_Aspect,
-                        const TPair<UInt8, UInt8>& I_MipmapRange = {0,0},
-                        const TPair<UInt8, UInt8>& I_ArrayRange  = {0,0},
-                        TOptional<vk::ComponentMapping>  I_Swizzle     = {});
+                        const TPair<UInt8, UInt8>&      I_MipmapRange = {0,0},
+                        const TPair<UInt8, UInt8>&      I_ArrayRange  = {0,0},
+                        TOptional<vk::ComponentMapping> I_Swizzle     = {});
         [[nodiscard]] TSharedPtr<FVulkanSampler>
         CreateImageSampler(vk::Filter             I_Filter,
                            vk::SamplerAddressMode I_AddressMode,
-                           Float                     I_MaxAnisotropy = 1.0);
+                           Float                  I_MaxAnisotropy = 1.0);
         [[nodiscard]] TSharedPtr<FVulkanSampler>
         CreateCompareSampler(vk::Filter      I_Filter,
                              vk::CompareOp   I_CompareOp,
                              vk::BorderColor I_BorderColor);
         [[nodiscard]] TSharedPtr<FVulkanBuffer>
         CreateBuffer(UInt64                 I_Size,
-                     vk::BufferUsageFlags    I_Usages,
-                     EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
+                     vk::BufferUsageFlags   I_Usages,
+                     VMA::EMemoryPoolFlags  I_MemoryPoolFlags = EVMAMemoryPoolFlags::None);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(vk::QueueFlagBits I_Queue);
         [[nodiscard]] TSharedPtr<FVulkanDescriptorSetLayout>
@@ -171,12 +181,6 @@ namespace Visera
         GetNativeDevice() const { return Device.Context; };
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
-#if !defined(VISERA_OFFSCREEN_MODE)
-        [[nodiscard]] inline Bool
-        Present();
-        [[nodiscard]] inline const TSharedRef<FVulkanImageView>
-        GetCurrentSwapChainImage() { return SwapChain.ImageViews[SwapChain.Cursor]; }
-#endif
     private:
         const vk::Extent2D                       ColorRTRes { 1920, 1080 };
         TArray<FInFlightFrame>                      InFlightFrames;
@@ -406,7 +410,7 @@ namespace Visera
         else
         { DescriptorPool = std::move(*Result); }
 
-        LOG_DEBUG("Created a Vulkan Descriptor Pool: (max_sets:{})",
+        LOG_TRACE("Created a Vulkan Descriptor Pool: (max_sets:{})",
                   CreateInfo.maxSets);
     }
 
@@ -933,14 +937,62 @@ namespace Visera
     EndFrame()
     {
         auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
-        CurrentFrame.DrawCalls->End();
 
 #if !defined(VISERA_OFFSCREEN_MODE)
+        auto& CurrentSwapChainImage = SwapChain.GetCurrentImageView()->GetImage();
+        auto& CurrentColorRT = CurrentFrame.ColorRT->GetImage();
+
+        auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
+
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+                CurrentColorRT,
+                vk::ImageLayout::eTransferSrcOptimal,
+                vk::PipelineStageFlagBits2::eTopOfPipe,
+                vk::AccessFlagBits2::eNone,
+                vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferWrite
+            );
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentSwapChainImage,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits2::eTopOfPipe,
+            vk::AccessFlagBits2::eNone,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite
+        );
+        CurrentFrame.DrawCalls->BlitImage(
+            CurrentColorRT,
+            CurrentSwapChainImage);
+
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentColorRT,
+            OldColorRTLayout,
+            vk::PipelineStageFlagBits2::eTopOfPipe,
+            vk::AccessFlagBits2::eNone,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite
+        );
+        CurrentFrame.DrawCalls->ConvertImageLayout(
+            CurrentSwapChainImage,
+            vk::ImageLayout::ePresentSrcKHR,
+            vk::PipelineStageFlagBits2::eTopOfPipe,
+            vk::AccessFlagBits2::eNone,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite
+        );
+
+        StudioDrawCalls.Invoke(CurrentFrame.DrawCalls,
+                               SwapChain.GetCurrentImageView());
+
+        CurrentFrame.DrawCalls->End();
+
         Submit(CurrentFrame.DrawCalls,
                CurrentFrame.SwapChainImageAvailable,
                SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
                CurrentFrame.Fence);
 #else
+        CurrentFrame.DrawCalls->End();
+
         Submit(CurrentFrame.DrawCalls,
                {},
                {},
@@ -957,7 +1009,8 @@ namespace Visera
     Bool FVulkanDriver::
     Present()
     {
-        auto PresentInfo = vk::PresentInfoKHR{}
+#if !define(VISERA_OFFSCREEN_MODE)
+        const auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
             .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor]->GetHandle()))
             .setSwapchainCount      (1)
@@ -972,7 +1025,9 @@ namespace Visera
             LOG_WARN("Failed to present current swapchain image -- RECREATION!");
             return False;
         }
+#else
 
+#endif
         InFlightFrameIndex = (InFlightFrameIndex + 1) % (InFlightFrames.size());
         return True;
     }
@@ -1075,7 +1130,7 @@ namespace Visera
                 vk::ImageUsageFlags     I_Usages)
     {
         VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
-        LOG_DEBUG("Creating a Vulkan Image (extent:[{},{},{}]).",
+        LOG_TRACE("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
         return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
     }
@@ -1088,7 +1143,7 @@ namespace Visera
                     const TPair<UInt8, UInt8>& I_ArrayRange,
                     TOptional<vk::ComponentMapping>  I_Swizzle)
     {
-        LOG_DEBUG("Creating a Vulkan Image View.");
+        LOG_TRACE("Creating a Vulkan Image View.");
         return MakeShared<FVulkanImageView>(
             I_Image,
             I_ViewType,
@@ -1100,11 +1155,11 @@ namespace Visera
 
     TSharedPtr<FVulkanBuffer> FVulkanDriver::
     CreateBuffer(UInt64                 I_Size,
-                 vk::BufferUsageFlags    I_Usages,
-                 EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
+                 vk::BufferUsageFlags   I_Usages,
+                 VMA::EMemoryPoolFlags  I_MemoryPoolFlags /* = EVMAMemoryPoolFlags::None */)
     {
         VISERA_ASSERT(I_Size != 0);
-        LOG_DEBUG("Creating a Vulkan Buffer ({} bytes).", I_Size);
+        LOG_TRACE("Creating a Vulkan Buffer ({} bytes).", I_Size);
         return MakeShared<FVulkanBuffer>(I_Size, I_Usages, I_MemoryPoolFlags);
     }
 
@@ -1147,7 +1202,7 @@ namespace Visera
         InFlightFrames.resize(1);
 #endif
 
-        LOG_DEBUG("Creating {} in-flght frames (extent: [{},{}]).",
+        LOG_TRACE("Creating {} in-flght frames (extent: [{},{}]).",
                   InFlightFrames.size(), ColorRTRes.width, ColorRTRes.height);
 
         auto Cmd = CreateCommandBuffer(vk::QueueFlagBits::eGraphics);

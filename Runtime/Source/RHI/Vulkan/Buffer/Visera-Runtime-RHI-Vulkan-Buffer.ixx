@@ -29,17 +29,17 @@ namespace Visera
     public:
         FVulkanBuffer() : IVulkanResource{EType::Buffer} {}
         FVulkanBuffer(UInt64                 I_Size,
-                      vk::BufferUsageFlags    I_Usages,
-                      EVulkanMemoryPoolFlags I_MemoryPoolFlags = EVulkanMemoryPoolFlagBits::eNone);
+                      vk::BufferUsageFlags   I_Usages,
+                      EVMAMemoryPoolFlags    I_MemoryPoolFlags = EVMAMemoryPoolFlags::None);
         ~FVulkanBuffer() override;
         FVulkanBuffer(const FVulkanBuffer&)            = delete;
         FVulkanBuffer& operator=(const FVulkanBuffer&) = delete;
     };
     
     FVulkanBuffer::
-    FVulkanBuffer(UInt64                 I_Size,
-                  vk::BufferUsageFlags    I_Usages,
-                  EVulkanMemoryPoolFlags I_MemoryPoolFlags /* = EVulkanMemoryPoolFlagBits::eNone */)
+    FVulkanBuffer(UInt64                I_Size,
+                  vk::BufferUsageFlags  I_Usages,
+                  EVMAMemoryPoolFlags   I_MemoryPoolFlags /* = EVulkanMemoryPoolFlags::None */)
     : IVulkanResource {EType::Buffer}
     {
         auto CreateInfo = vk::BufferCreateInfo{}

@@ -13,7 +13,7 @@ namespace Visera
         Render(Float I_DeltaTime) = 0;
 
     protected:
-        TSharedPtr<FRenderPipeline>    RenderPipeline;
+        TSharedPtr<FRHIRenderPipeline>    RenderPipeline;
 
     public:
         virtual ~IRenderer()

@@ -86,8 +86,8 @@ namespace Visera
         FVertex BGCorners[6];
         TSharedPtr<FTexture> Background;
         TSharedPtr<FTexture> Sprite;
-        TSharedPtr<FBuffer> VertexBuffer;
-        TSharedPtr<FBuffer> VertexBuffer2;
+        TSharedPtr<FRHIVertexBuffer> VertexBuffer;
+        TSharedPtr<FRHIVertexBuffer> VertexBuffer2;
 
     public:
         FSpriteRenderer()

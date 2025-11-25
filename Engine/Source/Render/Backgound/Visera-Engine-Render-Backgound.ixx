@@ -34,7 +34,7 @@ namespace Visera
     private:
         FVertex BGCorners[6];
         TSharedPtr<FTexture> Background;
-        TSharedPtr<FBuffer> VertexBuffer;
+        TSharedPtr<FRHIVertexBuffer> VertexBuffer;
 
     public:
         FBackgroundRenderer()

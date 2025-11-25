@@ -37,76 +37,6 @@ namespace Visera
         EndFrame()
         {
 #if !defined(VISERA_OFFSCREEN_MODE)
-            static auto& Driver = GRHI->GetDriver();
-
-            ImGui::Render();
-
-            auto& CurrentFrame = Driver->GetCurrentFrame();
-            auto& Cmds = *CurrentFrame.DrawCalls->GetHandle();
-            auto& Extent = Driver->SwapChain.Extent;
-            auto& SwapChainImage = Driver->GetCurrentSwapChainImage();
-
-            auto& CurrentColorRT = CurrentFrame.ColorRT;
-            auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
-
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentColorRT->GetImage(),
-                EImageLayout::eTransferSrcOptimal,
-                EPipelineStage::eTopOfPipe,
-                EAccess::eNone,
-                EPipelineStage::eTransfer,
-                EAccess::eTransferWrite
-            );
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                SwapChainImage->GetImage(),
-                EImageLayout::eTransferDstOptimal,
-                EPipelineStage::eTopOfPipe,
-                EAccess::eNone,
-                EPipelineStage::eTransfer,
-                EAccess::eTransferWrite
-            );
-            CurrentFrame.DrawCalls->BlitImage(
-                CurrentColorRT->GetImage(),
-                SwapChainImage->GetImage());
-
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentColorRT->GetImage(),
-                OldColorRTLayout,
-                EPipelineStage::eTopOfPipe,
-                EAccess::eNone,
-                EPipelineStage::eTransfer,
-                EAccess::eTransferWrite
-            );
-            CurrentFrame.DrawCalls->ConvertImageLayout(
-                SwapChainImage->GetImage(),
-                EImageLayout::ePresentSrcKHR,
-                EPipelineStage::eTopOfPipe,
-                EAccess::eNone,
-                EPipelineStage::eTransfer,
-                EAccess::eTransferWrite
-            );
-            VkRenderingAttachmentInfo ColorAttachment
-            {
-                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .imageView   = *SwapChainImage->GetHandle(),
-                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
-                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-            };
-            VkRenderingInfo RenderingInfo
-            {
-                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-                .renderArea = { {0, 0}, Extent },
-                .layerCount = 1,
-                .colorAttachmentCount   = 1,
-                .pColorAttachments      = &ColorAttachment,
-            };
-            vkCmdBeginRendering(Cmds, &RenderingInfo);
-
-            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Cmds);
-
-            vkCmdEndRendering(Cmds);
-
             ImGui::EndFrame();
 #endif
         }
@@ -129,9 +59,6 @@ namespace Visera
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
         Font = FPath{VISERA_STUDIO_DIR "/Assets/Font/TsangerYunHei.ttf"};
-
-        GEvent->OnFrameBegin.Subscribe([this](){ BeginFrame(); });
-        GEvent->OnFrameEnd.Subscribe([this](){ EndFrame(); });
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -216,6 +143,42 @@ namespace Visera
         LOG_TRACE("Initializing Dear ImGUI Vulkan backend.");
         if (!ImGui_ImplVulkan_Init(&CreateInfo))
         { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
+
+        // Events
+        GEvent->OnFrameBegin.Subscribe([this](){ BeginFrame(); });
+        GEvent->OnFrameEnd.Subscribe([this](){ EndFrame(); });
+
+        auto& Driver = GRHI->GetDriver();
+        if (!Driver->StudioDrawCalls.TryBind([]
+        (TSharedRef<FVulkanCommandBuffer> I_CommandBuffer, TSharedRef<FVulkanImageView> I_SwapChainView)
+        {
+            ImGui::Render();
+
+            auto Cmds = *I_CommandBuffer->GetHandle();
+
+            VkRenderingAttachmentInfo ColorAttachment
+            {
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = *I_SwapChainView->GetHandle(),
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
+                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+            };
+            VkRenderingInfo RenderingInfo
+            {
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                .renderArea = { {0, 0}, { GWindow->GetWidth(), GWindow->GetHeight() } },
+                .layerCount = 1,
+                .colorAttachmentCount   = 1,
+                .pColorAttachments      = &ColorAttachment,
+            };
+            vkCmdBeginRendering(Cmds, &RenderingInfo);
+
+            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Cmds);
+
+            vkCmdEndRendering(Cmds);
+        }))
+        { LOG_FATAL("Failed to bind ImGui drawcalls to backend!"); }
 #endif
     }
 
