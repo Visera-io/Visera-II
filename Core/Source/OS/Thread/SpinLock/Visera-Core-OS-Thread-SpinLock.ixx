@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <atomic>
 export module Visera.Core.OS.Thread.SpinLock;
 #define VISERA_MODULE_NAME "Core.OS"
 

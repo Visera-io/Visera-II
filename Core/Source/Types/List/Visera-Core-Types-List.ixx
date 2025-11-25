@@ -1,9 +1,8 @@
 module;
 #include <Visera-Core.hpp>
-#include <ankerl/unordered_dense.h>
+#include <list>
 export module Visera.Core.Types.List;
 #define VISERA_MODULE_NAME "Core.Types"
-import Visera.Core.OS.Thread;
 
 export namespace Visera
 {

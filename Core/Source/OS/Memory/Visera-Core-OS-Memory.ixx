@@ -143,7 +143,7 @@ export namespace Visera
     #	if defined(_MSC_VER)
             _prefetch(static_cast<const char*>(I_Memory) + I_Offset);
     #	else
-            VISERA_WIP;
+            VISERA_UNIMPLEMENTED_API;
             //__asm__ I__volatile__("prfm pldl1keep, [%[ptr]]\n" ::[ptr] "r"(Ptr) : );
     #	endif
     #else

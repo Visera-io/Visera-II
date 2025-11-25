@@ -39,6 +39,8 @@ namespace Visera
         [[nodiscard]] inline TSharedRef<FDescriptorSet>
         GetDefaultDecriptorSet2() { return DefaultDescriptorSet2; }
 
+        [[nodiscard]] inline TSharedPtr<FDescriptorSet>
+        CreateDescriptorSet(const FRHISetLayout& I_SetLayout);
         [[nodiscard]] inline TSharedPtr<FBuffer>
         CreateStagingBuffer(UInt64 I_Size);
         [[nodiscard]] inline TSharedPtr<FBuffer>
@@ -77,7 +79,7 @@ namespace Visera
         };
 
     private:
-        TUniquePtr<FVulkanDriver>   Driver;
+        TUniquePtr<FVulkanDriver> Driver;
         TSharedPtr<FDescriptorSetLayout> DefaultDescriptorSetLayout;
         TSharedPtr<FPipelineLayout>      DefaultPipelineLayout;
         TSharedPtr<FDescriptorSet>       DefaultDescriptorSet;
@@ -253,6 +255,15 @@ namespace Visera
         return MakeShared<FStaticTexture2D>(
             RHIImageView,
             bLinearSampler? DefaultLinearSampler : DefaultNearestSampler);
+    }
+
+    TSharedPtr<FDescriptorSet> FRHI::
+    CreateDescriptorSet(const FRHISetLayout& I_SetLayout)
+    {
+        for (auto& Binding : I_SetLayout.Bindings)
+        {
+
+        }
     }
 
     void FRHI::

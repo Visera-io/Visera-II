@@ -26,7 +26,7 @@ export namespace Visera
         virtual ~IGlobalSingleton()
         {
             if (IsBootstrapped())
-            { VISERA_ASSERT(False, "NOT terminated properly!"); }
+            { VISERA_ASSERT(False && "NOT terminated properly!"); }
         }
 
     protected:
