@@ -4,7 +4,7 @@ export module Visera.Engine.Render.Sprite;
 #define VISERA_MODULE_NAME "Engine.Render"
 import Visera.Engine.AssetHub;
 import Visera.Engine.Render.Renderer;
-import Visera.Runtime.RHI; //[TODO]: Remove
+import Visera.Runtime.RHI;
 import Visera.Runtime.Input; //[TODO]: Remove
 
 namespace Visera
@@ -92,11 +92,27 @@ namespace Visera
     public:
         FSpriteRenderer()
         {
-            RenderPipeline = GRHI->CreateRenderPipeline(
-                "SpritePass",
-                GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode(),
-                GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
+            // RenderPipeline = GRHI->CreateRenderPipeline(
+            //     "SpritePass",
+            //     GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode(),
+            //     GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
+            // );
+            FRHIRenderPipelineState PSO{};
+            PSO.VertexShader = GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode();
+            PSO.FragmentShader = GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode();
+
+            PSO.AddDescriptorSet(0, FRHIDescriptorSetLayout{}
+            .AddBinding(FRHIDescriptorSetBinding::CombinedImageSampler(0, ERHIShaderStages::Fragment))
+            .AddBinding(FRHIDescriptorSetBinding::CombinedImageSampler(1, ERHIShaderStages::Fragment))
             );
+            PSO.AddPushConstant(FRHIPushConstantRange
+                {
+                    .Size   = sizeof(FRHI::FDefaultPushConstant),
+                    .Offset = 0,
+                    .Stages = ERHIShaderStages::All,
+                });
+            RenderPipeline = GRHI->CreateRenderPipeline(
+                "SpritePass", PSO);
             //RenderPipeline->SetRenderArea({{480,270}, {960, 540}});
 
             Sprite = GAssetHub->LoadTexture(FPath("Fairy.png"));

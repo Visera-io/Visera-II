@@ -23,7 +23,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Runtime.RHI.Vulkan.Allocator;
        import Visera.Runtime.RHI.Vulkan.Sync;
        import Visera.Runtime.RHI.Vulkan.ShaderModule;
-       import Visera.Runtime.RHI.SPIRV;
+       import Visera.Runtime.RHI.Types.Shader;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
        import Visera.Core.Log;

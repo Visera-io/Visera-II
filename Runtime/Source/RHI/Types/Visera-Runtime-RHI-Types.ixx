@@ -8,6 +8,7 @@ export import Visera.Runtime.RHI.Types.DescriptorSet;
 export import Visera.Runtime.RHI.Types.VertexBuffer;
 export import Visera.Runtime.RHI.Types.Texture;
 export import Visera.Runtime.RHI.Types.Sampler;
+export import Visera.Runtime.RHI.Types.Shader;
 export import Visera.Runtime.RHI.Types.Image;
 
 export namespace Visera

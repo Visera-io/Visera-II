@@ -23,7 +23,7 @@ namespace Visera
         GetStage() const { return ShaderStage; }
         [[nodiscard]] inline FStringView
         GetEntryPoint() const { return EntryPoint; }
-        [[nodiscard]] inline TSharedRef<FSPIRVShader>
+        [[nodiscard]] inline TSharedRef<FRHIShader>
         GetSPIRVCode() const { VISERA_ASSERT(SPIRVCode && "Compiled"); return SPIRVCode; }
 
     private:
@@ -31,7 +31,7 @@ namespace Visera
         const FString              EntryPoint;
         EShaderLanguage            Language;
         EShaderType                ShaderStage;
-        TSharedPtr<FSPIRVShader>   SPIRVCode;
+        TSharedPtr<FRHIShader>   SPIRVCode;
 
     public:
         FShader() = delete;
@@ -60,8 +60,8 @@ namespace Visera
 
         switch (SPIRVCode->GetStage())
         {
-        case FSPIRVShader::EStage::Vertex:   ShaderStage = EShaderType::Vertex;   break;
-        case FSPIRVShader::EStage::Fragment: ShaderStage = EShaderType::Fragment; break;
+        case FRHIShader::EStage::Vertex:   ShaderStage = EShaderType::Vertex;   break;
+        case FRHIShader::EStage::Fragment: ShaderStage = EShaderType::Fragment; break;
         default: LOG_FATAL("Unknown shader stage!");
         }
     }

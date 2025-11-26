@@ -1,12 +1,12 @@
 module;
 #include <Visera-Runtime.hpp>
-export module Visera.Runtime.RHI.SPIRV;
+export module Visera.Runtime.RHI.Types.Shader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
 
 namespace Visera
 {
-    export class VISERA_RUNTIME_API FSPIRVShader
+    export class VISERA_RUNTIME_API FRHIShader
     {
     public:
         enum class EStage { Unknown, Vertex, Fragment };
@@ -33,15 +33,15 @@ namespace Visera
         TArray<FByte> ShaderCode;
 
     public:
-        FSPIRVShader() = delete;
-        FSPIRVShader(EStage               I_Stage,
+        FRHIShader() = delete;
+        FRHIShader(EStage               I_Stage,
                      FStringView          I_EntryPoint,
                      const TArray<FByte>& I_ShaderCode);
-        ~FSPIRVShader() = default;
+        ~FRHIShader() = default;
     };
 
-    FSPIRVShader::
-    FSPIRVShader(EStage               I_Stage,
+    FRHIShader::
+    FRHIShader(EStage               I_Stage,
                  FStringView          I_EntryPoint,
                  const TArray<FByte>& I_ShaderCode)
     : Stage       (I_Stage),

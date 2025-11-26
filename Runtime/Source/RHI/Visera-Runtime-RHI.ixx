@@ -5,7 +5,6 @@ export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
 export import Visera.Runtime.RHI.Types;
-       import Visera.Runtime.RHI.SPIRV;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Media.Image;
        import Visera.Core.Types.Map;
@@ -50,8 +49,8 @@ namespace Visera
         CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType);
         [[nodiscard]] inline TSharedPtr<FVulkanRenderPipeline>
         CreateRenderPipeline(const FString&                    I_Name,
-                             TSharedRef<FSPIRVShader>          I_VertexShader,
-                             TSharedRef<FSPIRVShader>          I_FragmentShader,
+                             TSharedRef<FRHIShader>            I_VertexShader,
+                             TSharedRef<FRHIShader>            I_FragmentShader,
                              TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout = {})
         {
             VISERA_ASSERT(I_VertexShader->IsVertexShader());
@@ -68,6 +67,9 @@ namespace Visera
                 });
             return RenderPipeline;
         }
+        [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
+        CreateRenderPipeline(const FString&                 I_Name,
+                             const FRHIRenderPipelineState& I_PipelineState);
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
@@ -85,6 +87,8 @@ namespace Visera
 
         TMap<UInt64, TSharedPtr<FVulkanDescriptorSetLayout>>
         DescriptorSetLayoutPool;
+        TMap<UInt64, TSharedPtr<FVulkanPipelineLayout>>
+        PipelineLayoutPool;
 
         TSharedPtr<FVulkanDescriptorSetLayout> DefaultDescriptorSetLayout;
         TSharedPtr<FVulkanPipelineLayout>      DefaultPipelineLayout;
@@ -95,11 +99,35 @@ namespace Visera
 
     public:
         FRHI() : IGlobalSingleton("RHI") {}
-        ~FRHI() override;
         void inline
         Bootstrap() override;
         void inline
         Terminate() override;
+
+    private:
+        [[nodiscard]] TSharedRef<FVulkanDescriptorSetLayout> inline
+        GetDescriptorSetLayoutFromPool(const FRHIDescriptorSetLayout& I_DescriptorSetLayout)
+        {
+            auto Hash = I_DescriptorSetLayout.Hash();
+            auto& Layout = DescriptorSetLayoutPool[Hash];
+            if (!Layout)
+            {
+                LOG_DEBUG("Creating a new descriptor set layout (hash:{}).", Hash);
+                auto VulkanSetBindings = TArray<vk::DescriptorSetLayoutBinding>();
+                for (const auto& Binding : I_DescriptorSetLayout.GetBindings())
+                {
+                    VulkanSetBindings.push_back(vk::DescriptorSetLayoutBinding{}
+                        .setBinding         (Binding.Binding)
+                        .setDescriptorType  (TypeCast(Binding.Type))
+                        .setDescriptorCount (Binding.Count)
+                        .setStageFlags      (TypeCast(Binding.ShaderStages))
+                        //.setPImmutableSamplers()
+                    );
+                }
+                Layout = Driver->CreateDescriptorSetLayout(VulkanSetBindings);
+            }
+            return Layout;
+        }
     };
 
     export inline VISERA_RUNTIME_API TUniquePtr<FRHI>
@@ -148,18 +176,48 @@ namespace Visera
         DefaultDescriptorSet.reset();
         DefaultDescriptorSetLayout.reset();
         DescriptorSetLayoutPool.clear();
+        PipelineLayoutPool.clear();
         Driver.reset();
 
         Status = EStatus::Terminated;
     }
 
-    FRHI::
-    ~FRHI()
+    TSharedPtr<FRHIRenderPipeline> FRHI::
+    CreateRenderPipeline(const FString&                 I_Name,
+                         const FRHIRenderPipelineState& I_PipelineState)
     {
-        if (IsBootstrapped())
-        { LOG_WARN("RHI must be terminated properly!"); }
+        LOG_DEBUG("Creating the render pipeline (name: {}).", I_Name);
+        UInt64 PipelineLayoutHash = I_PipelineState.GetPipelineLayoutHash();
+        auto& PipelineLayout = PipelineLayoutPool[PipelineLayoutHash];
+        if (!PipelineLayout)
+        {
+            LOG_DEBUG("Creating a new pipeline layout for the pipeline \"{}\".", I_Name);
+            TArray<vk::DescriptorSetLayout> DescriptorSetLayouts;
+            for (const auto& DescriptorSetLayout : I_PipelineState.GetDescriptorLayouts())
+            {
+                auto& SetLayout = GetDescriptorSetLayoutFromPool(DescriptorSetLayout);
+                DescriptorSetLayouts.emplace_back(SetLayout->GetHandle());
+            }
+            TArray<vk::PushConstantRange> PushConstantRanges;
+            for (const auto& PushConstantRange : I_PipelineState.GetPushConstantRanges())
+            {
+                PushConstantRanges.emplace_back(vk::PushConstantRange{}
+                    .setSize(PushConstantRange.Size)
+                    .setOffset(PushConstantRange.Offset)
+                    .setStageFlags(TypeCast(PushConstantRange.Stages)));
+            }
+            PipelineLayout = Driver->CreatePipelineLayout(DescriptorSetLayouts,
+                                                          PushConstantRanges);
+        }
+        auto RenderPipeline = Driver->CreateRenderPipeline(PipelineLayout,
+            Driver->CreateShaderModule(I_PipelineState.VertexShader->GetShaderCode()),
+            Driver->CreateShaderModule(I_PipelineState.FragmentShader->GetShaderCode()));
+        RenderPipeline->SetRenderArea({
+                {0,0},
+                {1920, 1080}
+                });
+        return RenderPipeline;
     }
-
 
     TSharedPtr<FVulkanBuffer> FRHI::
     CreateStagingBuffer(UInt64 I_Size)
@@ -264,26 +322,7 @@ namespace Visera
     TSharedPtr<FVulkanDescriptorSet> FRHI::
     CreateDescriptorSet(const FRHIDescriptorSetLayout& I_SetLayout)
     {
-        auto Hash = I_SetLayout.GetOrderedHash();
-        auto& Layout = DescriptorSetLayoutPool[Hash];
-        if (!Layout)
-        {
-            LOG_DEBUG("Creating a new descriptor set layout (hash:{}).", Hash);
-            UInt32 BindingCount = I_SetLayout.GetBindingCount();
-            auto VulkanSetBindings = TArray<vk::DescriptorSetLayoutBinding>(BindingCount);
-            for (UInt32 Idx = 0; Idx < BindingCount; Idx++)
-            {
-                auto& Binding = I_SetLayout.GetBinding(Idx);
-                VulkanSetBindings[Idx] = vk::DescriptorSetLayoutBinding{}
-                    .setBinding         (Binding.Index)
-                    .setDescriptorType  (TypeCast(Binding.Type))
-                    .setDescriptorCount (Binding.Count)
-                    .setStageFlags      (TypeCast(Binding.ShaderStages))
-                    //.setPImmutableSamplers()
-                ;
-            }
-            Layout = Driver->CreateDescriptorSetLayout(VulkanSetBindings);
-        }
+        auto& Layout = GetDescriptorSetLayoutFromPool(I_SetLayout);
         return Driver->CreateDescriptorSet(Layout);
     }
 
