@@ -21,10 +21,16 @@ namespace Visera
         GetLayout() const { return Layout; }
         [[nodiscard]] inline const vk::Rect2D&
         GetRenderArea() const { return CurrentRenderingInfo.renderArea; }
+        [[nodiscard]] inline TSharedRef<FVulkanRenderTarget>
+        GetColorRT() const { return CurrentColorRT; }
         inline FVulkanRenderPipeline*
         SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT);
+        [[nodiscard]] inline TSharedRef<FVulkanRenderTarget>
+        GetDepthRT() const { return CurrentDepthRT; }
         inline FVulkanRenderPipeline*
         SetDepthRT(TSharedRef<FVulkanRenderTarget> I_DepthRT);
+        [[nodiscard]] inline TSharedRef<FVulkanRenderTarget>
+        GetStencilRT() const { return CurrentStencilRT; }
         inline FVulkanRenderPipeline*
         SetStencilRT(TSharedRef<FVulkanRenderTarget> I_StencilRT);
         inline FVulkanRenderPipeline*
@@ -32,7 +38,6 @@ namespace Visera
         [[nodiscard]] inline const vk::RenderingInfo&
         GetRenderingInfo() const { return CurrentRenderingInfo; }
 
-    protected:
         struct
         {
             TArray<vk::VertexInputAttributeDescription>
@@ -85,46 +90,9 @@ namespace Visera
                               TSharedRef<FVulkanShaderModule>   I_FragmentShader)
         :Layout         (I_PipelineLayout),
          VertexShader   (I_VertexShader),
-         FragmentShader (I_FragmentShader) { /* Use Create(...) */ }
-
-        void Create(const vk::raii::Device&          I_Device,
-                    TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
+         FragmentShader (I_FragmentShader)
         {
-            CurrentRenderingInfo
-                .setLayerCount(1)
-            ;
-            vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
-            ShaderStageCreateInfos[0]
-                .setStage  (vk::ShaderStageFlagBits::eVertex)
-                .setPName  (VertexShader->GetEntryPoint())
-                .setModule (VertexShader->GetHandle())
-            ;
-            ShaderStageCreateInfos[1]
-                .setStage  (vk::ShaderStageFlagBits::eFragment)
-                .setPName  (FragmentShader->GetEntryPoint())
-                .setModule (FragmentShader->GetHandle())
-            ;
-            DynamicStateCreateInfo
-                .setDynamicStateCount (MAX_DYNAMIC_STATE)
-                .setPDynamicStates    (DynamicStates)
-            ;
-            Settings.VertexAttributes.emplace_back()
-                .setLocation (0)
-                .setBinding  (0)
-                .setFormat   (vk::Format::eR32G32B32A32Sfloat)
-                .setOffset   (0)
-            ;
-            Settings.VertexBindings.emplace_back()
-                .setBinding     (0)
-                .setStride      (sizeof(float) * 4)
-                .setInputRate   (vk::VertexInputRate::eVertex)
-            ;
-            auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
-                .setVertexAttributeDescriptionCount (Settings.VertexAttributes.size())
-                .setPVertexAttributeDescriptions    (Settings.VertexAttributes.data())
-                .setVertexBindingDescriptionCount   (Settings.VertexBindings.size())
-                .setPVertexBindingDescriptions      (Settings.VertexBindings.data())
-            ;
+            /* Use Create(...) */
             Settings.InputAssembly
                 .setTopology (vk::PrimitiveTopology::eTriangleList)
             ;
@@ -161,6 +129,35 @@ namespace Visera
                 .setDstAlphaBlendFactor (vk::BlendFactor::eZero)
                 .setAlphaBlendOp        (vk::BlendOp::eAdd)
             ;
+        }
+
+        void Create(const vk::raii::Device&          I_Device,
+                    TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
+        {
+            CurrentRenderingInfo
+                .setLayerCount(1)
+            ;
+            vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
+            ShaderStageCreateInfos[0]
+                .setStage  (vk::ShaderStageFlagBits::eVertex)
+                .setPName  (VertexShader->GetEntryPoint())
+                .setModule (VertexShader->GetHandle())
+            ;
+            ShaderStageCreateInfos[1]
+                .setStage  (vk::ShaderStageFlagBits::eFragment)
+                .setPName  (FragmentShader->GetEntryPoint())
+                .setModule (FragmentShader->GetHandle())
+            ;
+            DynamicStateCreateInfo
+                .setDynamicStateCount (MAX_DYNAMIC_STATE)
+                .setPDynamicStates    (DynamicStates)
+            ;
+            auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
+                .setVertexAttributeDescriptionCount (Settings.VertexAttributes.size())
+                .setPVertexAttributeDescriptions    (Settings.VertexAttributes.data())
+                .setVertexBindingDescriptionCount   (Settings.VertexBindings.size())
+                .setPVertexBindingDescriptions      (Settings.VertexBindings.data())
+            ;
             auto ColorBlending = vk::PipelineColorBlendStateCreateInfo{}
                 .setLogicOpEnable   (vk::False)
                 .setLogicOp         (vk::LogicOp::eCopy)
@@ -194,6 +191,10 @@ namespace Visera
             { LOG_FATAL("Failed to create the pipeline!"); }
             else
             { Handle = std::move(*Result); }
+
+            // Clear Shader Modules
+            VertexShader.reset();
+            FragmentShader.reset();
         }
     };
     

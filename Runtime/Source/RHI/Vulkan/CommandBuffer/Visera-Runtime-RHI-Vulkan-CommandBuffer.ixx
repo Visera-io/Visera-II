@@ -182,7 +182,7 @@ namespace Visera
         Handle.beginRendering(RenderingInfo);
 
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                         CurrentRenderPipeline->GetHandle());
+                            CurrentRenderPipeline->GetHandle());
 
         if (!CurrentViewport.has_value())
         {

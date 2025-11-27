@@ -61,7 +61,8 @@ namespace Visera
     void FVulkanBuffer::
     Write(const void* I_Data, UInt64 I_Size)
     {
-        VISERA_ASSERT(I_Data && I_Size);
+        if(!I_Data || I_Size == 0) { return; }
+
         VISERA_ASSERT(I_Size <= GetMemorySize());
         void* MappedMemory = GetAllocation()->GetMappedData();
 

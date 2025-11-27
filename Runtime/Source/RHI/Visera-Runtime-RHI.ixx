@@ -47,6 +47,8 @@ namespace Visera
         CreateStagingBuffer(UInt64 I_Size);
         [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
         CreateVertexBuffer(UInt64 I_Size);
+        [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
+        CreateMappedVertexBuffer(UInt64 I_Size);
         [[nodiscard]] inline TSharedPtr<FRHIStaticTexture>
         CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType);
         [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
@@ -194,6 +196,43 @@ namespace Visera
         auto RenderPipeline = Driver->CreateRenderPipeline(PipelineLayout,
             I_PipelineState.VertexShader->GetShaderModule(),
             I_PipelineState.FragmentShader->GetShaderModule());
+
+        if (I_PipelineState.VertexAssembly.Topology == ERHIPrimitiveTopology::LineStrip)
+        {
+            LOG_WARN("Testing Line Renderer");
+            RenderPipeline->Settings.InputAssembly
+            .setTopology(TypeCast(I_PipelineState.VertexAssembly.Topology));
+            RenderPipeline->Settings.VertexAttributes = {
+                vk::VertexInputAttributeDescription{}
+                    .setBinding   (0)
+                    .setLocation  (0)
+                    .setFormat    (TypeCast(ERHIFormat::Vector2F))
+                    .setOffset    (0)
+            };
+            RenderPipeline->Settings.Rasterizer.polygonMode = vk::PolygonMode::eLine;
+            RenderPipeline->Settings.VertexBindings = {
+                vk::VertexInputBindingDescription{}
+                    .setBinding(0)
+                    .setStride(sizeof(float) * 2)
+                    .setInputRate  (vk::VertexInputRate::eVertex)
+            };
+        }
+        else
+        {
+            RenderPipeline->Settings.VertexAttributes.emplace_back()
+                .setLocation (0)
+                .setBinding  (0)
+                .setFormat   (vk::Format::eR32G32B32A32Sfloat)
+                .setOffset   (0)
+            ;
+            RenderPipeline->Settings.VertexBindings.emplace_back()
+                .setBinding     (0)
+                .setStride      (sizeof(float) * 4)
+                .setInputRate   (vk::VertexInputRate::eVertex)
+            ;
+        }
+        RenderPipeline->Create(Driver->GetNativeDevice(), Driver->GetPipelineCache());
+
         RenderPipeline->SetRenderArea({
                 {0,0},
                 {1920, 1080}
@@ -220,6 +259,17 @@ namespace Visera
             vk::BufferUsageFlagBits::eVertexBuffer,
             VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
             VMA::EMemoryPoolFlags::HostAccessSequentialWrite);
+    }
+
+    TSharedPtr<FVulkanBuffer> FRHI::
+    CreateMappedVertexBuffer(UInt64 I_Size)
+    {
+        return Driver->CreateBuffer(
+            I_Size,
+            vk::BufferUsageFlagBits::eVertexBuffer,
+            VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
+            VMA::EMemoryPoolFlags::HostAccessSequentialWrite |
+            VMA::EMemoryPoolFlags::Mapped);
     }
 
     TSharedPtr<FRHIStaticTexture> FRHI::

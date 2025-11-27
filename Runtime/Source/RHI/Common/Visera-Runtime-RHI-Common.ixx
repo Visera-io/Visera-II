@@ -22,6 +22,8 @@ export namespace Visera
         B8G8R8A8_sRGB       = vk::Format::eB8G8R8A8Srgb,
         B8G8R8A8_UNorm      = vk::Format::eB8G8R8A8Unorm,
 
+        Vector2F            = vk::Format::eR32G32Sfloat,
+        Vector3F            = vk::Format::eR32G32B32Sfloat,
         Vector4F            = vk::Format::eR32G32B32A32Sfloat,
 
         Undefined,
@@ -58,10 +60,20 @@ export namespace Visera
         Nearest,
     };
 
+    enum class ERHIAttachmentLoadOp
+    {
+        Load     = vk::AttachmentLoadOp::eLoad,
+        Clear    = vk::AttachmentLoadOp::eClear,
+        Whatever = vk::AttachmentLoadOp::eDontCare,
+    };
+    [[nodiscard]] constexpr vk::AttachmentLoadOp
+    TypeCast(ERHIAttachmentLoadOp I_AttachmentLoadOp) { return static_cast<vk::AttachmentLoadOp>(I_AttachmentLoadOp); }
+
     enum class ERHIPrimitiveTopology
     {
         PointList    = vk::PrimitiveTopology::ePointList,
         LineList     = vk::PrimitiveTopology::eLineList,
+        LineStrip    = vk::PrimitiveTopology::eLineStrip,
         TriangleList = vk::PrimitiveTopology::eTriangleList,
 
         Undefined,

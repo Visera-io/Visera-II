@@ -37,19 +37,14 @@ namespace Visera
         using FCursorMoveEvent = TMulticastDelegate<Float, Float>;
         FCursorMoveEvent OnCursorMoved;
 
-        union FPosition
-        {
-            struct { Float X, Y; };
-            FVector2F Vector{0, 0};
-        };
-        [[nodiscard]] inline const FPosition&
+        [[nodiscard]] inline const FVector2F&
         GetPosition() const { return Position; }
-        [[nodiscard]] inline const FPosition&
+        [[nodiscard]] inline const FVector2F&
         GetOffset()   const { return Offset; }
 
     private:
-        FPosition Position{0,0};
-        FPosition Offset  {0,0};
+        FVector2F Position{0,0};
+        FVector2F Offset  {0,0};
 
     public:
         FMouse()

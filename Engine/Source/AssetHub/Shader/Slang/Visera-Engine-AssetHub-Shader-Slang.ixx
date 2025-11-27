@@ -42,6 +42,8 @@ namespace Visera
     	CreateSession();
     	void inline
     	Process(const FPath&  I_File, FStringView   I_EntryPoint);
+    	[[nodiscard]] inline const char*
+    	GetErrorMessage(const Slang::ComPtr<slang::IBlob>& I_Diagnostics) const { return static_cast<const char*>(I_Diagnostics->getBufferPointer()); }
     };
 
 	Bool FSlangCompiler::
@@ -155,7 +157,7 @@ namespace Visera
 	 	if (Diagnostics)
 	 	{
 	 		LOG_ERROR("Failed to create the Shader Module: {}!",
-	 			      static_cast<const char*>(Diagnostics->getBufferPointer()));
+	 			      GetErrorMessage(Diagnostics));
 			return;
 	 	}
 
@@ -183,7 +185,7 @@ namespace Visera
 	 		Diagnostics.writeRef()) != SLANG_OK)
 	 	{
 	 		LOG_ERROR("Failed to create the Shader({}): {}!",
-	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
+	 			      I_File, GetErrorMessage(Diagnostics));
 	 		return;
 	 	}
 
@@ -194,7 +196,7 @@ namespace Visera
 	 		Diagnostics.writeRef()) != SLANG_OK)
 	 	{
 	 		LOG_ERROR("Failed to obtain compiled code from {}: {}!",
-	 		          I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
+	 		          I_File, GetErrorMessage(Diagnostics));
 	 		return;
 	 	}
 
@@ -203,11 +205,12 @@ namespace Visera
 	 	if (Diagnostics)
 		{
 	 		LOG_ERROR("Failed to get reflection info from Shader({}): {}!",
-	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
+	 			      I_File, GetErrorMessage(Diagnostics));
 	 		return;
 		}
 
 	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
+
 
 	 	// switch (EntryPointRef->getStage())
 	 	// {

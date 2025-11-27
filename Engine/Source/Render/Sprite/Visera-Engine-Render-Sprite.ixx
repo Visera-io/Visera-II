@@ -101,7 +101,7 @@ namespace Visera
             PSO.VertexShader   = GRHI->CreateShader( ERHIShaderStages::Vertex,
                 GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)
                 ->GetSPIRVCode());
-            PSO.FragmentShader = GRHI->CreateShader( ERHIShaderStages::Vertex,
+            PSO.FragmentShader = GRHI->CreateShader( ERHIShaderStages::Fragment,
                 GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)
                 ->GetSPIRVCode());
 
@@ -122,7 +122,7 @@ namespace Visera
             Sprite = GAssetHub->LoadTexture(FPath("Fairy.png"));
             Sprite->GetRHITexture()->WriteTo(GRHI->GetDefaultDecriptorSet(), 0);
 
-            VertexBuffer = GRHI->CreateVertexBuffer(sizeof(FVertex) * 6);
+            VertexBuffer = GRHI->CreateMappedVertexBuffer(sizeof(FVertex) * 6);
             Corners[0].X = -256; Corners[0].Y = -256; // Pos
             Corners[0].Z =  0.0; Corners[0].W =  0.0; // UV
             Corners[1].X =  256; Corners[1].Y = -256; // Pos
@@ -141,7 +141,7 @@ namespace Visera
             Background = GAssetHub->LoadTexture(FPath("Background.png"));
             Background->GetRHITexture()->WriteTo(GRHI->GetDefaultDecriptorSet2(), 0);
 
-            VertexBuffer2 = GRHI->CreateVertexBuffer(sizeof(FVertex) * 6);
+            VertexBuffer2 = GRHI->CreateMappedVertexBuffer(sizeof(FVertex) * 6);
             BGCorners[0].X = -1.00; BGCorners[0].Y = -1.00; // Pos
             BGCorners[0].Z =  0.0; BGCorners[0].W =  0.0; // UV
             BGCorners[1].X =  1.00; BGCorners[1].Y = -1.00; // Pos

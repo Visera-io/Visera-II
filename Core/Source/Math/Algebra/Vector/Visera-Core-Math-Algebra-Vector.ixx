@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <windowsx.h>
 #include <Eigen/Dense>
 export module Visera.Core.Math.Algebra.Vector;
 #define VISERA_MODULE_NAME "Core.Math"
@@ -7,9 +8,15 @@ export module Visera.Core.Math.Algebra.Vector;
 export namespace Visera
 {
 	using FVectorNF = Eigen::VectorX<Float>;
-	using FVector2F = Eigen::Vector2<Float>;
+	//using FVector2F = Eigen::Vector2<Float>;
 	using FVector3F = Eigen::Vector3<Float>;
 	using FVector4F = Eigen::Vector4<Float>;
+
+	struct VISERA_CORE_API FVector2F
+	{
+		Float X, Y;
+	};
+	static_assert(sizeof(FVector2F) == 8);
 
 	namespace Concepts
 	{

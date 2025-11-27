@@ -4,6 +4,7 @@ export module Visera.Engine.Render;
 #define VISERA_MODULE_NAME "Engine.Render"
 import Visera.Engine.Render.Background;
 import Visera.Engine.Render.Sprite;
+import Visera.Engine.Render.Line;
 import Visera.Core.Global;
 import Visera.Core.Log;
 
@@ -16,12 +17,14 @@ namespace Visera
         Tick(Float I_DeltaTime)
         {
             //BackgroundRenderer->Render(I_DeltaTime);
-            SpriteRenderer->Render(I_DeltaTime);
+            //SpriteRenderer->Render(I_DeltaTime);
+            LineRenderer->Render(I_DeltaTime);
         }
 
     private:
         TUniquePtr<FBackgroundRenderer> BackgroundRenderer;
         TUniquePtr<FSpriteRenderer>     SpriteRenderer;
+        TUniquePtr<FLineRenderer>       LineRenderer;
 
     public:
         void
@@ -30,11 +33,13 @@ namespace Visera
             LOG_TRACE("Bootstrapping Render.");
             BackgroundRenderer = MakeUnique<FBackgroundRenderer>();
             SpriteRenderer = MakeUnique<FSpriteRenderer>();
+            LineRenderer = MakeUnique<FLineRenderer>();
         }
         void
         Terminate() override
         {
             LOG_TRACE("Terminating Render.");
+            LineRenderer.reset();
             SpriteRenderer.reset();
             BackgroundRenderer.reset();
         }

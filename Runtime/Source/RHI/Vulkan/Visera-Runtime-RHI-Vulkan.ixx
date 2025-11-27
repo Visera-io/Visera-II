@@ -1097,8 +1097,7 @@ namespace Visera
                I_PipelineLayout,
                I_VertexShader,
                I_FragmentShader));
-        NewRenderPipeline->Create(Device.Context, PipelineCache);
-        return NewRenderPipeline;
+        return NewRenderPipeline; // Not be created!
     }
 
     TSharedPtr<FVulkanFence> FVulkanDriver::
