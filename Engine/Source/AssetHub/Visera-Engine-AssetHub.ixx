@@ -100,8 +100,8 @@ namespace Visera
         if (!Shader)
         { LOG_ERROR("Failed to load the shader \"{}\"", I_File); }
 
-        LOG_DEBUG("Loaded the shader \"{}\" (stage:{}, entry_point:{}, size:{}).",
-                  Shader->GetPath(), Shader->GetStage(), Shader->GetEntryPoint(), Shader->GetSize());
+        LOG_DEBUG("Loaded the shader \"{}\" (entry_point:{}, size:{}).",
+                  Shader->GetPath(), Shader->GetEntryPoint(), Shader->GetSize());
 
         return Shader;
     }

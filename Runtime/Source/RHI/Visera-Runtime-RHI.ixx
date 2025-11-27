@@ -39,6 +39,8 @@ namespace Visera
         [[nodiscard]] inline TSharedRef<FVulkanDescriptorSet>
         GetDefaultDecriptorSet2() { return DefaultDescriptorSet2; }
 
+        [[nodiscard]] inline TSharedPtr<FRHIShader>
+        CreateShader(ERHIShaderStages I_ShaderStage, const TArray<FByte>& I_SPIRVShaderCode);
         [[nodiscard]] inline TSharedPtr<FVulkanDescriptorSet>
         CreateDescriptorSet(const FRHIDescriptorSetLayout& I_SetLayout);
         [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
@@ -47,26 +49,6 @@ namespace Visera
         CreateVertexBuffer(UInt64 I_Size);
         [[nodiscard]] inline TSharedPtr<FRHIStaticTexture>
         CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType);
-        [[nodiscard]] inline TSharedPtr<FVulkanRenderPipeline>
-        CreateRenderPipeline(const FString&                    I_Name,
-                             TSharedRef<FRHIShader>            I_VertexShader,
-                             TSharedRef<FRHIShader>            I_FragmentShader,
-                             TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout = {})
-        {
-            VISERA_ASSERT(I_VertexShader->IsVertexShader());
-            VISERA_ASSERT(I_FragmentShader->IsFragmentShader());
-
-            LOG_DEBUG("Creating a Vulkan Render Pass (name:{}).", I_Name);
-            auto RenderPipeline = Driver->CreateRenderPipeline(
-                I_PipelineLayout? I_PipelineLayout : DefaultPipelineLayout,
-                   Driver->CreateShaderModule(I_VertexShader->GetShaderCode()),
-                   Driver->CreateShaderModule(I_FragmentShader->GetShaderCode()));
-            RenderPipeline->SetRenderArea({
-                {0,0},
-                {1920, 1080}
-                });
-            return RenderPipeline;
-        }
         [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
         CreateRenderPipeline(const FString&                 I_Name,
                              const FRHIRenderPipelineState& I_PipelineState);
@@ -210,8 +192,8 @@ namespace Visera
                                                           PushConstantRanges);
         }
         auto RenderPipeline = Driver->CreateRenderPipeline(PipelineLayout,
-            Driver->CreateShaderModule(I_PipelineState.VertexShader->GetShaderCode()),
-            Driver->CreateShaderModule(I_PipelineState.FragmentShader->GetShaderCode()));
+            I_PipelineState.VertexShader->GetShaderModule(),
+            I_PipelineState.FragmentShader->GetShaderModule());
         RenderPipeline->SetRenderArea({
                 {0,0},
                 {1920, 1080}
@@ -324,6 +306,23 @@ namespace Visera
     {
         auto& Layout = GetDescriptorSetLayoutFromPool(I_SetLayout);
         return Driver->CreateDescriptorSet(Layout);
+    }
+
+
+    TSharedPtr<FRHIShader> FRHI::
+    CreateShader(ERHIShaderStages I_ShaderStage, const TArray<FByte>& I_SPIRVShaderCode)
+    {
+        LOG_DEBUG("Creating a new shader (stage:{}, size:{}).",
+                  I_ShaderStage, I_SPIRVShaderCode.size());
+
+        auto ShaderModule = Driver->CreateShaderModule(I_SPIRVShaderCode);
+        if (!ShaderModule)
+        {
+            LOG_ERROR("Failed to create the shader (stage:{}, size:{})!",
+                      I_ShaderStage, I_SPIRVShaderCode.size());
+            return {};
+        }
+        return MakeShared<FRHIShader>(I_ShaderStage, ShaderModule);
     }
 
     void FRHI::

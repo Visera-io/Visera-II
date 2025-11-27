@@ -40,7 +40,7 @@ export namespace Visera
 VISERA_MAKE_HASH(Visera::FName,
                  return I_Object.GetIdentifier();
 )
-VISERA_MAKE_FORMATTER(Visera::FName,
+VISERA_MAKE_FORMATTER(Visera::FName, {},
                       "{}({})",
                       I_Formatee.GetName(), I_Formatee.GetNumber()
 )

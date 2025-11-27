@@ -98,8 +98,12 @@ namespace Visera
             //     GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode()
             // );
             FRHIRenderPipelineState PSO{};
-            PSO.VertexShader = GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)->GetSPIRVCode();
-            PSO.FragmentShader = GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)->GetSPIRVCode();
+            PSO.VertexShader   = GRHI->CreateShader( ERHIShaderStages::Vertex,
+                GAssetHub->LoadShader(FPath("Sprite.slang"), "VertexMain", EAssetSource::Engine)
+                ->GetSPIRVCode());
+            PSO.FragmentShader = GRHI->CreateShader( ERHIShaderStages::Vertex,
+                GAssetHub->LoadShader(FPath("Sprite.slang"), "FragmentMain", EAssetSource::Engine)
+                ->GetSPIRVCode());
 
             PSO.AddDescriptorSet(0, FRHIDescriptorSetLayout{}
             .AddBinding(FRHIDescriptorSetBinding::CombinedImageSampler(0, ERHIShaderStages::Fragment))

@@ -304,7 +304,7 @@ namespace Visera
 	static_assert(std::is_enum_v<EnumClass>);	\
 	template<> struct Visera::TEnableBitMaskOperators<EnumClass> : std::true_type {}
 
-#define VISERA_MAKE_FORMATTER(Type, FormatString, ...)                     \
+#define VISERA_MAKE_FORMATTER(Type, BODY, FormatString, ...)               \
 	template <>                                                            \
 	struct fmt::formatter<Type>                                            \
 	{                                                                      \
@@ -318,6 +318,7 @@ namespace Visera
 		auto format(const Type& I_Formatee, FormatContext& I_Context) const\
 		-> decltype(I_Context.out())									   \
 		{                                                                  \
+			BODY														   \
 			return fmt::format_to(I_Context.out(),                         \
                    FormatString, __VA_ARGS__);                             \
 		}                                                                  \

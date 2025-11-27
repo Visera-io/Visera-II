@@ -14,6 +14,9 @@ namespace Visera
         TMulticastDelegate<> OnFrameBegin;
         TMulticastDelegate<> OnFrameEnd;
 
+        TMulticastDelegate<> OnEngineBootstrap;
+        TMulticastDelegate<> OnEngineTerminate;
+
     public:
         FEvent() : IGlobalSingleton("Event") {}
         void

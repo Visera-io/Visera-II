@@ -109,3 +109,14 @@ export namespace Visera
     [[nodiscard]] constexpr vk::BlendOp
     TypeCast(ERHIBlendOp I_BlendOp) { return static_cast<vk::BlendOp>(I_BlendOp); }
 }
+
+VISERA_MAKE_FORMATTER(Visera::ERHIShaderStages,
+    const char* StageName = "Undefined";
+    switch (I_Formatee)
+    {
+        case Visera::ERHIShaderStages::Vertex:   StageName = "Vertex";   break;
+        case Visera::ERHIShaderStages::Fragment: StageName = "Fragment"; break;
+        default: break;
+    },
+    "{}", StageName
+);

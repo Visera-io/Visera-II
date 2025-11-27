@@ -4,10 +4,10 @@ module;
 #include <Slang/slang-com-ptr.h>
 export module Visera.Engine.AssetHub.Shader.Slang;
 #define VISERA_MODULE_NAME "Engine.AssetHub"
-export import Visera.Runtime.RHI.Types.Shader;
-       import Visera.Core.Types.Path;
-       import Visera.Core.Types.Set;
-       import Visera.Core.Log;
+import Visera.Core.Types.Path;
+import Visera.Core.Types.Set;
+import Visera.Core.Log;
+import Visera.Engine.Event;
 
 namespace Visera
 {
@@ -16,7 +16,7 @@ namespace Visera
     public:
     	[[nodiscard]] static inline Bool
     	AddSearchPath(const FPath& I_Path);
-        [[nodiscard]] inline TSharedPtr<FRHIShader>
+        [[nodiscard]] inline TArray<FByte>
     	Compile(const FPath& I_Path, FStringView I_EntryPoint);
 
     private:
@@ -40,7 +40,7 @@ namespace Visera
     private:
     	[[nodiscard]] Bool
     	CreateSession();
-    	[[nodiscard]] TSharedPtr<FRHIShader>
+    	void inline
     	Process(const FPath&  I_File, FStringView   I_EntryPoint);
     };
 
@@ -58,16 +58,20 @@ namespace Visera
 		return False;
 	}
 
-    TSharedPtr<FRHIShader> FSlangCompiler::
+    TArray<FByte> FSlangCompiler::
     Compile(const FPath& I_Path, FStringView I_EntryPoint)
     {
-		auto SPIRVShader = Process(I_Path.GetFileName(), I_EntryPoint);
-    	if (!SPIRVShader)
-    	{
-    		LOG_ERROR("Failed to compile the shader \"{}\"!", I_Path);
-    		return nullptr;
-    	}
-        return SPIRVShader;
+		Process(I_Path.GetFileName(), I_EntryPoint);
+		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
+
+		auto ShaderCode = TArray<FByte>(
+			Buffer,
+			Buffer + Session->CompiledCode->getBufferSize());
+
+		// Clean up
+		Session->CompiledCode.setNull();
+
+        return ShaderCode;
     }
 
     FSlangCompiler::
@@ -88,12 +92,13 @@ namespace Visera
 
     	if (!CreateSession())
     	{ LOG_FATAL("Failed to create the Slang Session!"); }
+
+		GEvent->OnEngineTerminate.Subscribe([this](){ delete this; });
     }
 
 	FSlangCompiler::
 	~FSlangCompiler()
     {
-        Session->Handle.setNull();
     	Session.reset();
 		slang::shutdown();
     }
@@ -133,7 +138,7 @@ namespace Visera
     	return True;
     }
 
-     TSharedPtr<FRHIShader> FSlangCompiler::
+     void FSlangCompiler::
 	 Process(const FPath& I_File, FStringView  I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);
@@ -151,7 +156,7 @@ namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to create the Shader Module: {}!",
 	 			      static_cast<const char*>(Diagnostics->getBufferPointer()));
-			return {};
+			return;
 	 	}
 
 	 	// Create Shader Program
@@ -162,7 +167,7 @@ namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to find the EntryPoint({}) from Shader({})!",
 	 		          I_EntryPoint.data(), I_File);
-			return {};
+			return;
 	 	}
 
 	 	slang::IComponentType* const ShaderComponents[2]
@@ -179,7 +184,7 @@ namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to create the Shader({}): {}!",
 	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
-	 		return {};
+	 		return;
 	 	}
 
 	 	if (ShaderProgram->getEntryPointCode(
@@ -190,7 +195,7 @@ namespace Visera
 	 	{
 	 		LOG_ERROR("Failed to obtain compiled code from {}: {}!",
 	 		          I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
-	 		return {};
+	 		return;
 	 	}
 
 	 	// Reflect Shader
@@ -199,28 +204,16 @@ namespace Visera
 		{
 	 		LOG_ERROR("Failed to get reflection info from Shader({}): {}!",
 	 			      I_File, static_cast<const char*>(Diagnostics->getBufferPointer()));
-	 		return {};
+	 		return;
 		}
 
 	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
 
-		auto ShaderType { FRHIShader::EStage::Unknown };
-	 	switch (EntryPointRef->getStage())
-	 	{
-	 		case SLANG_STAGE_VERTEX:	ShaderType = FRHIShader::EStage::Vertex;   break;
-	 		case SLANG_STAGE_FRAGMENT:	ShaderType = FRHIShader::EStage::Fragment; break;
-	 		default: LOG_ERROR("Unsupported Shader Stage!");
-	 	}
-
-		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
-		auto ShaderCode = TArray<FByte>(
-			Buffer,
-			Buffer + Session->CompiledCode->getBufferSize());
-		Session->CompiledCode.setNull();
-
-		return MakeShared<FRHIShader>(
-			ShaderType,
-			"main",
-			ShaderCode);
+	 	// switch (EntryPointRef->getStage())
+	 	// {
+	 	// 	case SLANG_STAGE_VERTEX:	ShaderType = FRHIShader::EStage::Vertex;   break;
+	 	// 	case SLANG_STAGE_FRAGMENT:	ShaderType = FRHIShader::EStage::Fragment; break;
+	 	// 	default: LOG_ERROR("Unsupported Shader Stage!");
+	 	// }
 	 }
 }

@@ -22,8 +22,6 @@ namespace Visera
     {
     public:
         TDelegate<Float>     AppTick;
-        TMulticastDelegate<> OnBootstrap;
-        TMulticastDelegate<> OnTerminate;
 
         void Run()
         {
@@ -107,7 +105,7 @@ namespace Visera
             GRender     ->Bootstrap();
             GAudio      ->Bootstrap();
 
-            OnBootstrap.Broadcast();
+            GEvent->OnEngineBootstrap.Broadcast();
 
             Status = EStatus::Bootstrapped;
         }
@@ -116,7 +114,7 @@ namespace Visera
         void Terminate() override
         {
             LOG_TRACE("Terminating Engine.");
-            OnTerminate.Broadcast();
+            GEvent->OnEngineTerminate.Broadcast();
 
             GAudio      ->Terminate();
             GRender     ->Terminate();

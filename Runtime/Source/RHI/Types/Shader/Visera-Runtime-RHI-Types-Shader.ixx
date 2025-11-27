@@ -2,6 +2,8 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Types.Shader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import Visera.Runtime.RHI.Common;
+import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Core.Log;
 
 namespace Visera
@@ -9,45 +11,35 @@ namespace Visera
     export class VISERA_RUNTIME_API FRHIShader
     {
     public:
-        enum class EStage { Unknown, Vertex, Fragment };
-
-        [[nodiscard]] inline EStage
+        [[nodiscard]] inline ERHIShaderStages
         GetStage()      const { return Stage; }
-        [[nodiscard]] inline UInt64
-        GetSize()       const { return ShaderCode.size(); }
         [[nodiscard]] inline FStringView
-        GetEntryPoint() const { return EntryPoint; }
-        [[nodiscard]] inline const TArray<FByte>&
-        GetShaderCode() const { return ShaderCode; }
+        GetEntryPoint() const { return "main"; }
+        [[nodiscard]] inline TSharedRef<FVulkanShaderModule>
+        GetShaderModule() const { return ShaderModule; }
 
         [[nodiscard]] inline Bool
-        IsEmpty()           const { return ShaderCode.empty(); }
+        IsVertexShader()    const { return Stage == ERHIShaderStages::Vertex; }
         [[nodiscard]] inline Bool
-        IsVertexShader()    const { return Stage == EStage::Vertex; }
-        [[nodiscard]] inline Bool
-        IsFragmentShader()  const { return Stage == EStage::Fragment; }
+        IsFragmentShader()  const { return Stage == ERHIShaderStages::Fragment; }
 
     private:
-        EStage        Stage        {EStage::Unknown};
-        FString       EntryPoint;
-        TArray<FByte> ShaderCode;
+        ERHIShaderStages                Stage        {ERHIShaderStages::Undefined};
+        TSharedPtr<FVulkanShaderModule> ShaderModule;
 
     public:
         FRHIShader() = delete;
-        FRHIShader(EStage               I_Stage,
-                     FStringView          I_EntryPoint,
-                     const TArray<FByte>& I_ShaderCode);
+        FRHIShader(ERHIShaderStages                I_Stage,
+                   TSharedPtr<FVulkanShaderModule> I_ShaderModule);
         ~FRHIShader() = default;
     };
 
     FRHIShader::
-    FRHIShader(EStage               I_Stage,
-                 FStringView          I_EntryPoint,
-                 const TArray<FByte>& I_ShaderCode)
-    : Stage       (I_Stage),
-      EntryPoint (I_EntryPoint),
-      ShaderCode (I_ShaderCode)
+    FRHIShader(ERHIShaderStages                I_Stage,
+               TSharedPtr<FVulkanShaderModule> I_ShaderModule)
+    : Stage         (I_Stage),
+      ShaderModule  (I_ShaderModule)
     {
-        VISERA_ASSERT(Stage != EStage::Unknown && !IsEmpty());
+        VISERA_ASSERT(Stage != ERHIShaderStages::Undefined);
     }
 }

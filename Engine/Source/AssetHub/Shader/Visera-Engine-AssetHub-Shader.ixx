@@ -14,24 +14,21 @@ namespace Visera
     {
     public:
         [[nodiscard]] const FByte*
-        GetData() const override { return SPIRVCode->GetShaderCode().data(); }
+        GetData() const override { return SPIRVCode.data(); }
         [[nodiscard]] UInt64
-        GetSize() const override { return SPIRVCode->GetSize(); }
+        GetSize() const override { return SPIRVCode.size(); }
         [[nodiscard]] inline EShaderLanguage
         GetLanguage() const { return Language; }
-        [[nodiscard]] inline EShaderType
-        GetStage() const { return ShaderStage; }
         [[nodiscard]] inline FStringView
         GetEntryPoint() const { return EntryPoint; }
-        [[nodiscard]] inline TSharedRef<FRHIShader>
-        GetSPIRVCode() const { VISERA_ASSERT(SPIRVCode && "Compiled"); return SPIRVCode; }
+        [[nodiscard]] inline const TArray<FByte>&
+        GetSPIRVCode() const { VISERA_ASSERT(GetSize() != 0); return SPIRVCode; }
 
     private:
         static inline TUniquePtr<FSlangCompiler> SlangCompiler;
-        const FString              EntryPoint;
-        EShaderLanguage            Language;
-        EShaderType                ShaderStage;
-        TSharedPtr<FRHIShader>   SPIRVCode;
+        const FString          EntryPoint;
+        EShaderLanguage        Language;
+        TArray<FByte>          SPIRVCode;
 
     public:
         FShader() = delete;
@@ -48,21 +45,15 @@ namespace Visera
         if (Extension == FPath(".slang"))
         {
             if (!SlangCompiler) { SlangCompiler = MakeUnique<FSlangCompiler>(); }
+
+            Language  = EShaderLanguage::Slang;
             SPIRVCode = SlangCompiler->Compile(GetPath(), EntryPoint);
-            VISERA_ASSERT(SPIRVCode);
         }
         else
         {
             LOG_ERROR("Failed to load the shader \"{}\""
                       "-- unsupported extension {}!", GetPath(), Extension);
             return;
-        }
-
-        switch (SPIRVCode->GetStage())
-        {
-        case FRHIShader::EStage::Vertex:   ShaderStage = EShaderType::Vertex;   break;
-        case FRHIShader::EStage::Fragment: ShaderStage = EShaderType::Fragment; break;
-        default: LOG_FATAL("Unknown shader stage!");
         }
     }
 }
