@@ -26,15 +26,6 @@
         ],
         "URL" : "https://www.vulkan.org/"
     },
-    "Slang" :
-    {
-        "Version" : "2025.19.1",
-        "Dependencies" :
-        [
-            
-        ],
-        "URL" : "https://github.com/shader-slang/slang"
-    },
     "LibPNG" :
     {
         "Version" : "1.6.50",
