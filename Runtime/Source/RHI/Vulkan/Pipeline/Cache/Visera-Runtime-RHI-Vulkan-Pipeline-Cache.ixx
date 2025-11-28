@@ -18,7 +18,6 @@ namespace Visera
     private:
         vk::raii::PipelineCache Handle {nullptr};
         FPath Path;
-        Bool  bExpired { False };
 
     public:
         FVulkanPipelineCache() = delete;
@@ -46,6 +45,7 @@ namespace Visera
         // Read from the file
         if (auto File = FFileSystem::OpenIStream(Path, EIOMode::Binary))
         {
+            File->seekg(0, std::ios::end);
             Int64 Size = File->tellg();
             File->seekg(0, std::ios::beg);
 
@@ -56,26 +56,30 @@ namespace Visera
                 return;
             }
 
-            auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.data());
-            auto  GPUProperties = I_GPU.getProperties();
+            Bool bExpired = CacheData.size() < sizeof(vk::PipelineCacheHeaderVersionOne);
+            if (!bExpired)
+            {
+                auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.data());
+                auto  GPUProperties = I_GPU.getProperties();
 
-            bExpired = (CacheData.empty() ||
-                        CacheHeader->deviceID != GPUProperties.deviceID ||
-                        CacheHeader->vendorID != GPUProperties.vendorID ||
-                        Memory::Memcmp(CacheHeader->pipelineCacheUUID,
-                                       GPUProperties.pipelineCacheUUID,
-                                       vk::UuidSize) != 0);
+                bExpired = CacheData.empty() ||
+                           CacheHeader->deviceID != GPUProperties.deviceID ||
+                           CacheHeader->vendorID != GPUProperties.vendorID ||
+                           Memory::Memcmp(CacheHeader->pipelineCacheUUID,
+                                          GPUProperties.pipelineCacheUUID,
+                                          vk::UuidSize) != 0;
+            }
+
             if (bExpired)
             {
-                LOG_DEBUG("Vulkan Pipeline Cache has been expired.");
+                LOG_DEBUG("Vulkan Pipeline Cache expired!");
                 CacheData.clear();
             }
 
             auto CreateInfo = vk::PipelineCacheCreateInfo()
-                .setInitialDataSize(CacheData.size())
-                .setPInitialData(CacheData.data())
+                .setInitialDataSize (CacheData.size())
+                .setPInitialData    (CacheData.data())
             ;
-
             auto Result = I_Device.createPipelineCache(CreateInfo);
             if (!Result.has_value())
             { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from \"{}\"!", Path); }
@@ -90,17 +94,9 @@ namespace Visera
     FVulkanPipelineCache::
     ~FVulkanPipelineCache()
     {
-        if (bExpired)
+        if (auto Result = Handle.getData(); Result.has_value())
         {
-            TArray<FByte> CacheData{};
-            auto Result = Handle.getData();
-            if (!Result.has_value())
-            {
-                LOG_ERROR("Failed to get Vulkan Pipeline Cache data, skipped to save the cache!");
-                return;
-            }
-
-            CacheData = std::move(*Result);
+            auto CacheData {std::move(*Result)};
             LOG_DEBUG("Caching Vulkan Pipeline Data (bytes:{}) at \"{}\".", CacheData.size(), Path);
 
             if (auto File = FFileSystem::OpenOStream(Path, EIOMode::Binary))
@@ -110,5 +106,6 @@ namespace Visera
             }
             else { LOG_ERROR("Failed to open the Vulkan Pipeline Data at \"{}\"!", Path); }
         }
+        else { LOG_ERROR("Failed to get Vulkan Pipeline Cache data, skipped to save the cache!"); }
     }
 }
