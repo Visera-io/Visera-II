@@ -42,6 +42,8 @@ export namespace Visera
         IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment);
         [[nodiscard]] inline Bool
         IsZero(const void* I_Memory, UInt64 I_Size);
+        template<typename T> [[nodiscard]] Bool
+        IsZero(const T& I_Object) { return IsZero(&I_Object, sizeof(T)); };
 
         /**Example: VE::Memory::GetDataOffset(&Foo::bar);*/
         template <class Structure, typename MemeberType> [[nodiscard]] constexpr UInt64
@@ -168,8 +170,8 @@ export namespace Visera
         Bool
         IsZero(const void* I_Memory, UInt64 I_Size)
         {
-            FByte* Start = (FByte*)(I_Memory);
-            FByte* End = Start + I_Size;
+            auto Start = static_cast<const FByte*>(I_Memory);
+            auto End   = Start + I_Size;
             while (Start < End)
             {  if ((*Start++) != 0) return False; }
             return True;

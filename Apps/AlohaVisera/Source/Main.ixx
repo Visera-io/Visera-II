@@ -17,6 +17,11 @@ struct Foo
 
 export int main(int argc, char *argv[])
 {
+    FVector3F Vec {1,1,1};
+    if (Vec.Normalize())
+    {
+        LOG_WARN("Vector = {} | L2 Norm: {}", Vec, Vec.L2Norm());
+    }
     /*LOG_WARN("Practicing C#.");
     {
         GPlatform->Bootstrap();
@@ -45,7 +50,7 @@ export int main(int argc, char *argv[])
 
         GAudio->Register(BankInit);
         auto ID = GAudio->Register(MainBGM);
-        GAudio->PostEvent("Play_Galaxy", ID);
+        GAudio->PostEvent("Play_MainBGM", ID);
 
         if (auto AppTick = GScripting->GetFunction(PLATFORM_STRING("Tick")))
         {

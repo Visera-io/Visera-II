@@ -190,9 +190,9 @@ public class ak
 			}
 			public class mediaPool
 			{
-				/// <summary>Retrieve files from media pool. Use the return options to specify which properties of the files to return.</summary>
+				/// <summary>Retrieve files from Media Pool. Use the return options to specify which properties of the files to return.</summary>
 				public const string get = "ak.wwise.core.mediaPool.get";
-				/// <summary>Retrieve all the fields known by the media pool. Use those fields to query the media pool. Some fields are discovered by media pool when scanning audio files. Some fields are always there, such as the WAV fields.</summary>
+				/// <summary>Retrieve all fields present in the Media Pool. You can then use the fields to query the Media Pool. The Media Pool discovers some fields when it scans audio files. Others, such as WAV fields, are always available.</summary>
 				public const string getFields = "ak.wwise.core.mediaPool.getFields";
 			}
 			public class @object
@@ -504,9 +504,9 @@ public class ak
 				/// <summary>Unregisters an array of add-on UI commands.</summary>
 				public const string unregister = "ak.wwise.ui.commands.unregister";
 			}
-			/// <summary>Retrieves the list of files currently selected by the user in the active view.</summary>
+			/// <summary>Retrieves the list of files currently selected by the user in the active view. Note that this function is not available in WwiseConsole.</summary>
 			public const string getSelectedFiles = "ak.wwise.ui.getSelectedFiles";
-			/// <summary>Retrieves the list of objects currently selected by the user in the active view.</summary>
+			/// <summary>Retrieves the list of objects currently selected by the user in the active view. Note that this function is not available in WwiseConsole.</summary>
 			public const string getSelectedObjects = "ak.wwise.ui.getSelectedObjects";
 			public class layout
 			{
@@ -534,6 +534,8 @@ public class ak
 				public const string moveSplitter = "ak.wwise.ui.layout.moveSplitter";
 				/// <summary>Unregisters a temporary layout, previously registered with \ref ak_wwise_ui_layout_setlayout.</summary>
 				public const string removeLayout = "ak.wwise.ui.layout.removeLayout";
+				/// <summary>Reset layouts to their default state.</summary>
+				public const string resetLayouts = "ak.wwise.ui.layout.resetLayouts";
 				/// <summary>Registers a new layout from a JSON format.</summary>
 				public const string setLayout = "ak.wwise.ui.layout.setLayout";
 				/// <summary>Switches the current layout.</summary>

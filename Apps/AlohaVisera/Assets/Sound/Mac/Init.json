@@ -3,14 +3,14 @@
   "Platform": "Mac",
   "BasePlatform": "Mac",
   "SchemaVersion": "16",
-  "SoundBankVersion": "171",
+  "SoundBankVersion": "172",
   "SoundBanks": [
    {
     "Id": "1355168291",
     "Type": "User",
     "GUID": "{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}",
     "Language": "SFX",
-    "Hash": "{4DB7EABC-2874-4CAB-4998-BBDA2C5A383C}",
+    "Hash": "{CE656BB0-40E9-F08D-77BB-B97F92370FA6}",
     "ObjectPath": "Init",
     "ShortName": "Init",
     "Path": "Init.bnk",
@@ -583,6 +583,6 @@
     ]
    }
   ],
-  "FileHash": "{4D710955-35FC-881E-B91D-566B71C776B9}"
+  "FileHash": "{9ED45A55-04C4-F31E-6CDA-C0CC73C06AE5}"
  }
 }

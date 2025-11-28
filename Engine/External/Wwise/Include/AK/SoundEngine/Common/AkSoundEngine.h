@@ -1500,6 +1500,7 @@ namespace AK
 		///     position array (out_puPositions) will not be updated.
 		/// - The io_pcPositions pointer must be non-NULL.
 		///     out_puPositions may be NULL if *io_pcPositions == 0, otherwise it must be non-NULL.
+		/// - Positions are returned in no particular order.
 		/// \return 
 		/// - \c AK_Success if successful.
 		/// - \c AK_InvalidParameter if the provided pointer is not valid.
@@ -1806,13 +1807,15 @@ namespace AK
 		//@{
 
 		/// Processes all pending asynchronous bank operations.
-		/// This function must be called periodically (once per game frame) when using asynchronous bank-loading functions.
+		/// This function must be called periodically (once per game frame, for example) when using asynchronous bank-loading functions. Its purpose is to 
+		/// process all queued asynchronous LoadBank, UnloadBank, PrepareBank, etc (functions using a callback). The work done in this function can be slow or blocking.
+		/// Therefore, the calling thread must not be a critical thread. It is recommended to have a dedicated thread for this, or a job/task if such a system exists.
 		/// 
 		/// When <tt>AkInitSettings::bUseSoundBankMgrThread</tt> is <tt>false</tt>, this function processes all pending operations immediately on the calling thread.
 		/// 
 		/// \akcaution
-		/// When <tt>AkInitSettings::bUseSoundBankMgrThread</tt> is <tt>false</tt>, this function is not thread-safe. There should be a dedicated thread to call
-		/// this function every game frame. In addition, synchronous Bank and Prepare calls implicitely call this function. Therefore, synchronous Bank and Prepare
+		/// Do not call this function from multiple different threads.
+		/// Synchronous Bank and Prepare (functions without callbacks) calls implicitely call this function. Therefore, synchronous Bank and Prepare
 		/// calls should always be called from the same thread that is calling <tt>AK::SoundEngine::ProcessBanks</tt>.
 		/// \endakcaution
 		/// 
@@ -4871,6 +4874,18 @@ namespace AK
 		/// To reset Game Object specific values, use AK::SoundEngine::UnregisterGameObj or AK::SoundEngine::UnregisterAllGameObj
 		/// then AK::SoundEngine::RegisterGameObj if the game object is still needed.
 		AK_EXTERNAPIFUNC(AKRESULT, ResetGlobalValues());
+
+		/// Sets the assertion handling function that the Sound Engine and other modules use.
+		/// The assertion hook can be set via this function prior to Sound Engine initialization in order to catch early initialization assertion failures.
+		/// However, during Sound Engine initialization, the assertion handler is replaced with the value of <tt>AkInitSettings:pfnAssertHook</tt>.
+		/// After Sound Engine initialization, the assertion handler cannot be replaced.
+		/// 
+		/// \aknote
+		/// This function has no effect on Release builds.
+		/// \endaknote
+		/// 
+		/// \return AK_Success when called before Sound Engine initialization, or AK_AlreadyInitialized if Sound Engine was already initialized
+		AK_EXTERNAPIFUNC(AKRESULT, SetAssertHook)(AkAssertHook in_pfnAssertHook);
 	}
 }
 

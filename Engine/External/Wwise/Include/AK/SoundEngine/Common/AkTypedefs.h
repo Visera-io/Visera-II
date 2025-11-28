@@ -28,14 +28,6 @@ the specific language governing permissions and limitations under the License.
 
 #include <AK/SoundEngine/Common/AkNumeralTypes.h>
 
-#ifndef NULL
-	#ifdef __cplusplus
-		#define NULL    0
-	#else
-		#define NULL    ((void *)0)
-	#endif
-#endif
-
 typedef AkUInt32 AkUniqueID;          ///< Unique 32-bit ID
 typedef AkUInt32 AkStateID;           ///< State ID
 typedef AkUInt32 AkStateGroupID;      ///< State group ID

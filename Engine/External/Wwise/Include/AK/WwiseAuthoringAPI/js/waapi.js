@@ -190,9 +190,9 @@ the specific language governing permissions and limitations under the License.
                 itemAdded: "ak.wwise.core.log.itemAdded"
             },
             mediaPool: {
-                /** Retrieve files from media pool. Use the return options to specify which properties of the files to return. */
+                /** Retrieve files from Media Pool. Use the return options to specify which properties of the files to return. */
                 get: "ak.wwise.core.mediaPool.get",
-                /** Retrieve all the fields known by the media pool. Use those fields to query the media pool. Some fields are discovered by media pool when scanning audio files. Some fields are always there, such as the WAV fields. */
+                /** Retrieve all fields present in the Media Pool. You can then use the fields to query the Media Pool. The Media Pool discovers some fields when it scans audio files. Others, such as WAV fields, are always available. */
                 getFields: "ak.wwise.core.mediaPool.getFields"
             },
             object: {
@@ -503,9 +503,9 @@ the specific language governing permissions and limitations under the License.
                 /** Unregisters an array of add-on UI commands. */
                 unregister: "ak.wwise.ui.commands.unregister"
             },
-            /** Retrieves the list of files currently selected by the user in the active view. */
+            /** Retrieves the list of files currently selected by the user in the active view. Note that this function is not available in WwiseConsole. */
             getSelectedFiles: "ak.wwise.ui.getSelectedFiles",
-            /** Retrieves the list of objects currently selected by the user in the active view. */
+            /** Retrieves the list of objects currently selected by the user in the active view. Note that this function is not available in WwiseConsole. */
             getSelectedObjects: "ak.wwise.ui.getSelectedObjects",
             layout: {
                 /** Requests to close a view by its unique id. The view might not yet be closed when returning from this function. */
@@ -532,6 +532,8 @@ the specific language governing permissions and limitations under the License.
                 moveSplitter: "ak.wwise.ui.layout.moveSplitter",
                 /** Unregisters a temporary layout, previously registered with \ref ak_wwise_ui_layout_setlayout. */
                 removeLayout: "ak.wwise.ui.layout.removeLayout",
+                /** Reset layouts to their default state. */
+                resetLayouts: "ak.wwise.ui.layout.resetLayouts",
                 /** Registers a new layout from a JSON format. */
                 setLayout: "ak.wwise.ui.layout.setLayout",
                 /** Switches the current layout. */

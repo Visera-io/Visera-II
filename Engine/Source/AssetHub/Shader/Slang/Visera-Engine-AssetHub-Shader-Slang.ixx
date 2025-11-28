@@ -210,6 +210,36 @@ namespace Visera
 		}
 
 	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
+		// slang::TypeReflection Type;
+		// switch (Type.getKind())
+		// {
+		// case slang::TypeReflection::Kind::Resource: // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/09-reflection.html#resources
+		// 	{
+		// 		auto Shape		= Type.getResourceShape();
+		// 		auto Access		= Type.getResourceAccess();
+		// 		auto ResultType = Type.getResourceResultType();
+		// 		UInt32 BaseShape = Shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
+		// 		switch (BaseShape)
+		// 		{
+		// 		case SLANG_TEXTURE_2D: LOG_INFO("Texture2D"); break;
+		// 		case SLANG_TEXTURE_CUBE: LOG_INFO("Cube"); break;
+		// 		default : LOG_WARN("Unsupported slang base shape {}!", BaseShape); break;
+		// 		}
+		// 		break;
+		// 	}
+		// case slang::TypeReflection::Kind::ConstantBuffer:
+		// 	{
+		// 		LOG_INFO("ConstantBuffer");
+		// 		break;
+		// 	}
+		// case slang::TypeReflection::Kind::SamplerState:
+		// 	{
+		// 		LOG_INFO("SamplerState");
+		// 		break;
+		// 	}
+		// default:
+		// 	LOG_WARN("Unsupported slang type reflection {}!", static_cast<UInt32>(Type.getKind()));
+		// }
 
 
 	 	// switch (EntryPointRef->getStage())

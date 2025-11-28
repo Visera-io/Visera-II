@@ -430,3 +430,11 @@ enum AkMotionInputProfile
 
 	AkMotionInputProfile_Last
 };
+
+/// Rendering modes of the overall Sound Engine
+enum AkEngineRenderingMode
+{
+	AkEngineRenderingMode_Online = 0,          ///< Regular operation, based on real audio sink cadence
+	AkEngineRenderingMode_Offline = 1,         ///< No audio output, rendering as fast as possible, every operation is serialized (streaming, monitoring, bank loads, etc)
+	AkEngineRenderingMode_OfflineThreaded = 2  ///< No audio output, rendering as fast as possible, but regular threaded operations still happen in threads. 
+};

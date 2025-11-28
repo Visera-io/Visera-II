@@ -36,61 +36,55 @@ namespace Visera
     {
         if(!FFileSystem::Exists(Path))
         {
-            // Try to create a new file
-
             if (auto File = FFileSystem::OpenOStream(Path, EIOMode::Binary))
             {
-                LOG_FATAL("Failed to create the Vulkan Pipeline Cache at \"{}\"!", Path);
+                LOG_DEBUG("Created a new Vulkan Pipeline Cache file at \"{}\".", Path);
             }
-            LOG_DEBUG("Created a new Vulkan Pipeline Cache file at \"{}\".", Path);
+            else { LOG_FATAL("Failed to create the Vulkan Pipeline Cache at \"{}\"!", Path); }
         }
 
         // Read from the file
-        auto File = FFileSystem::OpenIStream(Path, EIOMode::Binary);
-        if (!File)
+        if (auto File = FFileSystem::OpenIStream(Path, EIOMode::Binary))
         {
-            LOG_FATAL("Failed to open the Vulkan Pipeline Cache at \"{}\"!", Path);
-            return;
+            Int64 Size = File->tellg();
+            File->seekg(0, std::ios::beg);
+
+            std::vector<char> CacheData(Size);
+            if (Size > 0 && !File->read(CacheData.data(), Size))
+            {
+                LOG_ERROR("Failed to read Vulkan Pipeline Cache data from \"{}\".", Path);
+                return;
+            }
+
+            auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.data());
+            auto  GPUProperties = I_GPU.getProperties();
+
+            bExpired = (CacheData.empty() ||
+                        CacheHeader->deviceID != GPUProperties.deviceID ||
+                        CacheHeader->vendorID != GPUProperties.vendorID ||
+                        Memory::Memcmp(CacheHeader->pipelineCacheUUID,
+                                       GPUProperties.pipelineCacheUUID,
+                                       vk::UuidSize) != 0);
+            if (bExpired)
+            {
+                LOG_DEBUG("Vulkan Pipeline Cache has been expired.");
+                CacheData.clear();
+            }
+
+            auto CreateInfo = vk::PipelineCacheCreateInfo()
+                .setInitialDataSize(CacheData.size())
+                .setPInitialData(CacheData.data())
+            ;
+
+            auto Result = I_Device.createPipelineCache(CreateInfo);
+            if (!Result.has_value())
+            { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from \"{}\"!", Path); }
+            else
+            { Handle = std::move(*Result); }
+
+            LOG_DEBUG("Loaded Vulkan Pipeline Cache (bytes:{}) from \"{}\".", Size, Path);
         }
-
-        Int64 Size = File->tellg();
-        File->seekg(0, std::ios::beg);
-
-        std::vector<char> CacheData(Size);
-        if (Size > 0 && !File->read(CacheData.data(), Size))
-        {
-            LOG_ERROR("Failed to read Vulkan Pipeline Cache data from \"{}\".", Path);
-            return;
-        }
-
-        auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.data());
-        auto  GPUProperties = I_GPU.getProperties();
-
-        bExpired = (CacheData.empty() ||
-                    CacheHeader->deviceID != GPUProperties.deviceID ||
-                    CacheHeader->vendorID != GPUProperties.vendorID ||
-                    Memory::Memcmp(CacheHeader->pipelineCacheUUID,
-                                   GPUProperties.pipelineCacheUUID,
-                                   vk::UuidSize) != 0);
-
-        if (bExpired)
-        {
-            LOG_DEBUG("Vulkan Pipeline Cache has been expired.");
-            CacheData.clear();
-        }
-
-        auto CreateInfo = vk::PipelineCacheCreateInfo()
-            .setInitialDataSize(CacheData.size())
-            .setPInitialData(CacheData.data())
-        ;
-
-        auto Result = I_Device.createPipelineCache(CreateInfo);
-        if (!Result.has_value())
-        { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from \"{}\"!", Path); }
-        else
-        { Handle = std::move(*Result); }
-
-        LOG_DEBUG("Loaded Vulkan Pipeline Cache (bytes:{}) from \"{}\".", Size, Path);
+        else { LOG_FATAL("Failed to open the Vulkan Pipeline Cache at \"{}\"!", Path); }
     }
 
     FVulkanPipelineCache::

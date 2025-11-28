@@ -22,8 +22,8 @@ export namespace Visera
 
         explicit constexpr operator T() const { return static_cast<T>(Value); }
 
-        bool   operator==(TRadian I_Rival)	const { return Math::IsEqual(  Value, I_Rival.Value);}
-        bool   operator!=(TRadian I_Rival)	const { return !Math::IsEqual( Value, I_Rival.Value);}
+        bool   operator==(TRadian I_Rival)	const { return Math::IsNearlyEqual(  Value, I_Rival.Value);}
+        bool   operator!=(TRadian I_Rival)	const { return !Math::IsNearlyEqual( Value, I_Rival.Value);}
         bool   operator<(TRadian  I_Rival)	const { return Value < I_Rival.Value;}
         bool   operator>(TRadian  I_Rival)	const { return Value > I_Rival.Value;}
 

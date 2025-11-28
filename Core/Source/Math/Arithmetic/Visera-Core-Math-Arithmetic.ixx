@@ -13,8 +13,8 @@ export namespace Visera
 
 	namespace Math
 	{
-		template <Concepts::Arithmetical NumT, Concepts::Arithmetical ReT = NumT> ReT
-		Sqrt(NumT I_Num) { return std::sqrt(I_Num); }
+		template <Concepts::Arithmetical NumT, Concepts::FloatingPoint ReT = std::conditional_t<std::floating_point<NumT>, NumT, Double>> ReT
+		Sqrt(NumT I_Num) { return static_cast<ReT>(std::sqrt(I_Num)); }
 
 		template <Concepts::Arithmetical NumT> NumT
 		Abs(NumT I_Num) { return std::abs(I_Num); }
@@ -26,8 +26,8 @@ export namespace Visera
 		template<Concepts::Arithmetical NumT> constexpr auto
 		Epsilon() { return std::numeric_limits<NumT>::epsilon(); }
 
-		template<Concepts::Arithmetical NumT> constexpr Bool
-		IsEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
+		template<Concepts::FloatingPoint NumT> constexpr Bool
+		IsNearlyEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
 
 		template<Concepts::Arithmetical NumT> constexpr auto
 		UpperBound() { return std::numeric_limits<NumT>::max(); }
@@ -64,8 +64,8 @@ export namespace Visera
 			return Result;
 		}
 
-    	template<Concepts::Arithmetical NumT, Concepts::FloatingPoint FloatT> Double
+    	template<Concepts::Arithmetical NumT, Concepts::FloatingPoint FloatT, Concepts::FloatingPoint ReT = std::conditional_t<std::floating_point<NumT>, NumT, Double>> ReT
 		Pow(NumT I_Base, FloatT I_Exp)
-		{ return std::pow(I_Base, I_Exp); }
+		{ return static_cast<ReT>(std::pow(I_Base, I_Exp)); }
 	}
 }

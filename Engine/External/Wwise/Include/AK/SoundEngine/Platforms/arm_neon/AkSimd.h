@@ -669,6 +669,8 @@ AkForceInline AKSIMD_V4F32 AKSIMD_DIV_V4F32( AKSIMD_V4F32 a, AKSIMD_V4F32 b )
 #define AKSIMD_MSUB_V4F32( __a__, __b__, __c__ ) AKSIMD_SUB_V4F32( AKSIMD_MUL_V4F32( (__a__), (__b__) ), (__c__) )
 #define AKSIMD_MSUB_V2F32( __a__, __b__, __c__ ) AKSIMD_SUB_V2F32( AKSIMD_MUL_V2F32( (__a__), (__b__) ), (__c__) )
 
+#define AKSIMD_LERP_V4F32( _alpha_, __a__, __b__ ) AKSIMD_MADD_V4F32(_alpha_, AKSIMD_SUB_V4F32(__b__, __a__), __a__)
+
 /// Vector multiply-add operation.
 AkForceInline AKSIMD_V4F32 AKSIMD_MADD_SS_V4F32( const AKSIMD_V4F32& __a__, const AKSIMD_V4F32& __b__, const AKSIMD_V4F32& __c__ )
 {
@@ -982,6 +984,17 @@ static AkForceInline AKSIMD_V4COND AKSIMD_SETMASK_V4COND( AkUInt32 x )
     return AKSIMD_EQ_V4I32(temp, xand);
 }
 
+//@}
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+/// @name AKSIMD int16 helpers
+//@{
+// AKSIMD helpers for loading int16 data
+
+// Loads 64 bits (4 int16 values) into the low half of an "integer 128-bit" NEON vector (reinterpret as needed)
+// Supports unaligned memory
+#define AKSIMD_LOAD_V1I64_LO(addr) vmovl_s16(vld1_s16((const int16_t*)(addr)))
 
 //@}
 ////////////////////////////////////////////////////////////////////////

@@ -3,14 +3,14 @@
   "Platform": "Windows",
   "BasePlatform": "Windows",
   "SchemaVersion": "16",
-  "SoundBankVersion": "171",
+  "SoundBankVersion": "172",
   "SoundBanks": [
    {
     "Id": "3157003241",
     "Type": "User",
     "GUID": "{4B1EFEA8-E6D8-42AE-9430-E6A7BC8A70B4}",
     "Language": "SFX",
-    "Hash": "{326525A0-B4C9-D68A-CA98-B1FADF0630D6}",
+    "Hash": "{12FC250C-B6EC-5A7C-1DF6-C99A70DF7366}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\Test",
     "ShortName": "Test",
     "Path": "Test.bnk",
@@ -22,53 +22,9 @@
       "Location": "Memory",
       "ShortName": "Tavern Glow.wav",
       "CachePath": "F8/{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem"
-     },
-     {
-      "Id": "917113207",
-      "Language": "SFX",
-      "Streaming": "false",
-      "Location": "Memory",
-      "ShortName": "laser_effect.wav",
-      "CachePath": "A7/{A71985A2-CBBC-B467-C63C-E05B8F78BBEF}.wem"
-     },
-     {
-      "Id": "976217746",
-      "Language": "SFX",
-      "Streaming": "false",
-      "Location": "Memory",
-      "ShortName": "Galaxy.wav",
-      "CachePath": "11/{11CAE772-564B-5F3A-F8F0-1D5611A0D840}.wem"
      }
     ],
     "Events": [
-     {
-      "Id": "239407670",
-      "Name": "Play_Galaxy",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_Galaxy",
-      "GUID": "{36B5577F-1798-4305-975A-C99B50DA252D}",
-      "DurationType": "OneShot",
-      "DurationMin": "197.904",
-      "DurationMax": "197.904",
-      "MediaRefs": [
-       {
-        "Id": "976217746"
-       }
-      ]
-     },
-     {
-      "Id": "317493657",
-      "Name": "Play_laser_effect",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_laser_effect",
-      "GUID": "{442F57E1-ACFB-4772-9245-78308EF137F5}",
-      "DurationType": "OneShot",
-      "DurationMin": "0.5",
-      "DurationMax": "0.5",
-      "MediaRefs": [
-       {
-        "Id": "917113207"
-       }
-      ]
-     },
      {
       "Id": "1691765453",
       "Name": "Play_MainBGM",
@@ -86,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{9BB5273C-DFD9-44AB-2274-5334964B5CD3}"
+  "FileHash": "{8040819D-0D5D-67EE-F68E-C1D0D66E6AA7}"
  }
 }

@@ -396,7 +396,8 @@ namespace AK
 		/// To obtain all the output objects in a single array after having created objects using this function, use GetOutputObjects, or wait for the next call to AK::IAkOutOfPlaceObjectPlugin::Execute 
 		/// where output objects are passed via the in_pObjectBuffersOut/in_pObjectsOut arguments.
 		/// Object processors inform the host that an output object may be disposed of by setting its state to AK_NoMoreData from within AK::IAkOutOfPlaceObjectPlugin::Execute.
-		/// \aknote You should never store the pointers returned by out_ppBuffer/out_ppObjects, as the location of pointed objects may change at each frame, or after subsequent calls to CreateOutputObjects.\endaknote
+		/// \aknote You should never store the pointers returned in io_objects, as the objects point to may change across audio render passes, or after subsequent calls to CreateOutputObjects.\endaknote
+		/// \aknote This function can be called outside of the plug-in's Execute function, such as during Init, but audio buffer data for the object may not be available. \endaknote
 		/// \return AK_Success if all objects were created successfully, AK_Fail otherwise. 
 		/// The optional arguments out_ppBuffer and out_ppObjects may be used to obtain the output objects newly created.
 		/// \sa 
@@ -411,7 +412,7 @@ namespace AK
 
 		/// Access the output objects. This function is helpful when CreateOutputObjects is called from within AK::IAkOutOfPlaceObjectPlugin::Execute.
 		/// You need to allocate the array of pointers. You may initially obtain the number of objects that will be returned by calling this function with io_numObjects = 0.
-		/// \aknote You should never store the pointers returned by GetOutputObjects, as the location of pointed objects may change at each frame, or after calls to CreateOutputObjects.\endaknote
+		/// \aknote You should never store the pointers returned by GetOutputObjects, as the objects point to may change across audio render passes, or after calls to CreateOutputObjects.\endaknote
 		virtual void GetOutputObjects(
 			AkAudioObjects& io_objects	///< AkAudioObjects::uNumObjects, The number of objects. If 0 is passed, io_objects::numObjects returns with the total number of objects.
 											///< AkAudioObjects::ppObjectBuffers, Returned array of pointers to object buffers, allocated by the caller. The number of objects is the smallest between io_numObjects and the total number of objects.
@@ -663,6 +664,7 @@ namespace AK
 		/// channels will result in the last coordinates taking precedence.
 		/// \sa IAkMixerPluginContext::UnregisterAnonymousConfig
 		/// \sa IAkMixerPluginContext::ComputePositioning
+		/// \sa IAkMixerPluginContext::IAkMixerPluginContext
 		virtual AKRESULT RegisterAnonymousConfig(
 			AkUInt32 in_uNumChannels,                     ///< Number of channels of the anonymous configuration being registered.
 			const AkSphericalCoord* in_SphericalPositions ///< Array of points in spherical coordinates, containing the position of each channel.
@@ -671,8 +673,30 @@ namespace AK
 		/// Unregister an anonymous configuration previously registered with RegisterAnonymousConfig.
 		/// \sa IAkMixerPluginContext::RegisterAnonymousConfig
 		/// \sa IAkMixerPluginContext::ComputePositioning
+		/// \sa IAkMixerPluginContext::IAkMixerPluginContext
 		virtual void UnregisterAnonymousConfig(
 			AkUInt32 in_uNumChannels ///< Number of channels of the anonymous configuration being unregistered.
+			) = 0;
+
+		/// Retrieve the list of connected neighbors for a single speaker within a registered anonymous configuration.
+		/// This function is useful for anonymous configurations that use a 3D VBAP for panning. 
+		/// It queries the triangulation mesh created by the sound engine to determine the spatial relationship between speakers.
+		///
+		/// You may call this function with out_pNeighborIndices set to NULL to get the required number of neighbors in io_uNumNeighbors,
+		/// in order to allocate your array correctly. If out_pNeighborIndices is not NULL, the array is filled with up to io_uNumNeighbors indices.
+		///
+		/// \return AK_Success if the anonymous configuration was found and the query was successful.
+		/// \return AK_Fail if no anonymous configuration matching in_uNumChannels has been registered for this plugin context.
+		/// \return AK_InvalidParameter if in_uSpeakerIndexToQuery is out of bounds.
+		/// \return AK_InsufficientMemory if not enough memory is available to calculate the list of connections
+		/// \sa IAkMixerPluginContext::RegisterAnonymousConfig
+		/// \sa IAkMixerPluginContext::UnregisterAnonymousConfig
+		/// \sa IAkMixerPluginContext::ComputePositioning
+		virtual AKRESULT GetAnonymousConnections(
+			AkUInt32 in_uNumChannels,				///< Number of channels of the anonymous configuration being queried.
+			AkUInt32 in_uSpeakerIndexToQuery,		///< Speaker index to get neighbors for.
+			AkUInt32* out_pNeighborIndices,			///< Array of neighbor indices to fill or NULL to query the size needed.
+			AkUInt32& io_uNumNeighbors				///< In: size of the array. Out: number of neighbors written, or required size.
 			) = 0;
 	};
 
@@ -2097,7 +2121,7 @@ namespace AK
 
 #define DEFINE_PLUGIN_REGISTER_HOOK AK_DLLEXPORT AK::PluginRegistration * g_pAKPluginList = NULL;
 
-#ifdef AK_ENABLE_ASSERTS
+#if defined(AK_ENABLE_ASSERTS)
 #define DEFINE_PLUGIN_ASSERT_HOOK \
 		extern "C" AK_DLLEXPORT AkAssertHook g_pAssertHook; \
 		AK_DLLEXPORT AkAssertHook g_pAssertHook = NULL;

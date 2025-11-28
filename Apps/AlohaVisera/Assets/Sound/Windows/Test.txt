@@ -1,10 +1,6 @@
 Event	ID	Name			Wwise Object Path	Notes
-	239407670	Play_Galaxy			\Default Work Unit\Play_Galaxy	
-	317493657	Play_laser_effect			\Default Work Unit\Play_laser_effect	
 	1691765453	Play_MainBGM			\Default Work Unit\Play_MainBGM	
 
 In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
 	19794180	Tavern Glow	.cache\F8\{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem		\Containers\Default Work Unit\Tavern Glow\Tavern Glow		26864732
-	917113207	laser_effect	.cache\A7\{A71985A2-CBBC-B467-C63C-E05B8F78BBEF}.wem		\Containers\Default Work Unit\laser_effect\laser_effect		44196
-	976217746	Galaxy	.cache\11\{11CAE772-564B-5F3A-F8F0-1D5611A0D840}.wem		\Containers\Default Work Unit\Galaxy\Galaxy		37997664
 

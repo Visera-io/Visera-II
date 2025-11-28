@@ -46,7 +46,7 @@ the specific language governing permissions and limitations under the License.
 struct AkCommSettings
 {
 	AkCommSettings()
-		: commSystem(AkCommSystem_Socket)
+		:commSystem(AkCommSystem_Socket)
 	{
 		szAppNetworkName[0] = 0;
 		szCommProxyServerUrl[0] = 0;
@@ -95,8 +95,8 @@ struct AkCommSettings
 	/// Allows selecting the communication system used to connect remotely the Authoring tool on the device.
 	enum AkCommSystem
 	{
-		AkCommSystem_Socket,	/// The recommended default communication system
-		AkCommSystem_HTCS, 		/// HTCS when available only, will default to AkCommSystem_Socket if the HTCS system is not available.
+		AkCommSystem_Socket,	/// The default communication system when other systems are unavailable.
+		AkCommSystem_HTCS, 		/// HTCS is prioritized if available.
 		AkCommSystem_Last		/// End of enum, invalid value.
 	};
 
