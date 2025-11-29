@@ -247,8 +247,9 @@ namespace Visera
         return Driver->CreateBuffer(
             I_Size,
             vk::BufferUsageFlagBits::eTransferSrc,
-            VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
-            VMA::EMemoryPoolFlags::HostAccessSequentialWrite);
+            static_cast<EVulkanMemoryPoolFlags>(
+            EVulkanMemoryPoolFlags::HostAccessAllowTransferInstead |
+            EVulkanMemoryPoolFlags::HostAccessSequentialWrite));
     }
 
     TSharedPtr<FVulkanBuffer> FRHI::
@@ -257,8 +258,9 @@ namespace Visera
         return Driver->CreateBuffer(
             I_Size,
             vk::BufferUsageFlagBits::eVertexBuffer,
-            VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
-            VMA::EMemoryPoolFlags::HostAccessSequentialWrite);
+            static_cast<EVulkanMemoryPoolFlags>(
+            EVulkanMemoryPoolFlags::HostAccessAllowTransferInstead |
+            EVulkanMemoryPoolFlags::HostAccessSequentialWrite));
     }
 
     TSharedPtr<FVulkanBuffer> FRHI::
@@ -267,9 +269,10 @@ namespace Visera
         return Driver->CreateBuffer(
             I_Size,
             vk::BufferUsageFlagBits::eVertexBuffer,
-            VMA::EMemoryPoolFlags::HostAccessAllowTransferInstead |
-            VMA::EMemoryPoolFlags::HostAccessSequentialWrite |
-            VMA::EMemoryPoolFlags::Mapped);
+            static_cast<EVulkanMemoryPoolFlags>(
+            EVulkanMemoryPoolFlags::HostAccessAllowTransferInstead |
+            EVulkanMemoryPoolFlags::HostAccessSequentialWrite |
+            EVulkanMemoryPoolFlags::Mapped));
     }
 
     TSharedPtr<FRHIStaticTexture> FRHI::

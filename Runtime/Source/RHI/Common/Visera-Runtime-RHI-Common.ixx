@@ -8,34 +8,34 @@ import Visera.Core.Log;
 
 export namespace Visera
 {
-    enum class ERHIFormat
+    enum class ERHIFormat : UInt32
     {
-        R8G8B8_sRGB         = vk::Format::eR8G8B8Srgb,
-        R8G8B8_UNorm        = vk::Format::eR8G8B8Unorm,
+        R8G8B8_sRGB         = static_cast<UInt32>(vk::Format::eR8G8B8Srgb),
+        R8G8B8_UNorm        = static_cast<UInt32>(vk::Format::eR8G8B8Unorm),
 
-        B8G8R8_sRGB         = vk::Format::eB8G8R8Srgb,
-        B8G8R8_UNorm        = vk::Format::eB8G8R8Unorm,
+        B8G8R8_sRGB         = static_cast<UInt32>(vk::Format::eB8G8R8Srgb),
+        B8G8R8_UNorm        = static_cast<UInt32>(vk::Format::eB8G8R8Unorm),
 
-        R8G8B8A8_sRGB       = vk::Format::eR8G8B8A8Srgb,
-        R8G8B8A8_UNorm      = vk::Format::eR8G8B8A8Unorm,
+        R8G8B8A8_sRGB       = static_cast<UInt32>(vk::Format::eR8G8B8A8Srgb),
+        R8G8B8A8_UNorm      = static_cast<UInt32>(vk::Format::eR8G8B8A8Unorm),
 
-        B8G8R8A8_sRGB       = vk::Format::eB8G8R8A8Srgb,
-        B8G8R8A8_UNorm      = vk::Format::eB8G8R8A8Unorm,
+        B8G8R8A8_sRGB       = static_cast<UInt32>(vk::Format::eB8G8R8A8Srgb),
+        B8G8R8A8_UNorm      = static_cast<UInt32>(vk::Format::eB8G8R8A8Unorm),
 
-        Vector2F            = vk::Format::eR32G32Sfloat,
-        Vector3F            = vk::Format::eR32G32B32Sfloat,
-        Vector4F            = vk::Format::eR32G32B32A32Sfloat,
+        Vector2F            = static_cast<UInt32>(vk::Format::eR32G32Sfloat),
+        Vector3F            = static_cast<UInt32>(vk::Format::eR32G32B32Sfloat),
+        Vector4F            = static_cast<UInt32>(vk::Format::eR32G32B32A32Sfloat),
 
         Undefined,
     };
     [[nodiscard]] constexpr vk::Format
     TypeCast(ERHIFormat I_Format) { return static_cast<vk::Format>(I_Format); }
 
-    enum class ERHIDescriptorType
+    enum class ERHIDescriptorType : UInt32
     {
-        CombinedImageSampler    = vk::DescriptorType::eCombinedImageSampler,
-        UniformBuffer           = vk::DescriptorType::eUniformBuffer,
-        StorageBuffer           = vk::DescriptorType::eStorageBuffer,
+        CombinedImageSampler    = static_cast<UInt32>(vk::DescriptorType::eCombinedImageSampler),
+        UniformBuffer           = static_cast<UInt32>(vk::DescriptorType::eUniformBuffer),
+        StorageBuffer           = static_cast<UInt32>(vk::DescriptorType::eStorageBuffer),
 
         Undefined,
     };
@@ -44,9 +44,9 @@ export namespace Visera
 
     enum class ERHIShaderStages : UInt32
     {
-        Vertex    = vk::ShaderStageFlagBits::eVertex,
-        Fragment  = vk::ShaderStageFlagBits::eFragment,
-        All       = vk::ShaderStageFlagBits::eAll,
+        Vertex    = static_cast<UInt32>(vk::ShaderStageFlagBits::eVertex),
+        Fragment  = static_cast<UInt32>(vk::ShaderStageFlagBits::eFragment),
+        All       = static_cast<UInt32>(vk::ShaderStageFlagBits::eAll),
 
         Undefined,
     };
@@ -54,27 +54,27 @@ export namespace Visera
     [[nodiscard]] constexpr vk::ShaderStageFlags
     TypeCast(ERHIShaderStages I_ShaderStages) { return static_cast<vk::ShaderStageFlagBits>(I_ShaderStages); }
 
-    enum class ERHISamplerType
+    enum class ERHISamplerType : UInt32
     {
         Linear,
         Nearest,
     };
 
-    enum class ERHIAttachmentLoadOp
+    enum class ERHIAttachmentLoadOp : UInt32
     {
-        Load     = vk::AttachmentLoadOp::eLoad,
-        Clear    = vk::AttachmentLoadOp::eClear,
-        Whatever = vk::AttachmentLoadOp::eDontCare,
+        Load     = static_cast<UInt32>(vk::AttachmentLoadOp::eLoad),
+        Clear    = static_cast<UInt32>(vk::AttachmentLoadOp::eClear),
+        Whatever = static_cast<UInt32>(vk::AttachmentLoadOp::eDontCare),
     };
     [[nodiscard]] constexpr vk::AttachmentLoadOp
     TypeCast(ERHIAttachmentLoadOp I_AttachmentLoadOp) { return static_cast<vk::AttachmentLoadOp>(I_AttachmentLoadOp); }
 
     enum class ERHIPrimitiveTopology
     {
-        PointList    = vk::PrimitiveTopology::ePointList,
-        LineList     = vk::PrimitiveTopology::eLineList,
-        LineStrip    = vk::PrimitiveTopology::eLineStrip,
-        TriangleList = vk::PrimitiveTopology::eTriangleList,
+        PointList    = static_cast<UInt32>(vk::PrimitiveTopology::ePointList),
+        LineList     = static_cast<UInt32>(vk::PrimitiveTopology::eLineList),
+        LineStrip    = static_cast<UInt32>(vk::PrimitiveTopology::eLineStrip),
+        TriangleList = static_cast<UInt32>(vk::PrimitiveTopology::eTriangleList),
 
         Undefined,
     };
@@ -83,9 +83,9 @@ export namespace Visera
 
     enum class ERHIPolygonMode
     {
-        Fill         = vk::PolygonMode::eFill,
-        Line         = vk::PolygonMode::eLine,
-        Point        = vk::PolygonMode::ePoint,
+        Fill         = static_cast<UInt32>(vk::PolygonMode::eFill),
+        Line         = static_cast<UInt32>(vk::PolygonMode::eLine),
+        Point        = static_cast<UInt32>(vk::PolygonMode::ePoint),
 
         Undefined,
     };
@@ -94,27 +94,27 @@ export namespace Visera
 
     enum class ERHICullMode
     {
-        None        = vk::CullModeFlagBits::eNone,
-        Front       = vk::CullModeFlagBits::eFront,
-        Back        = vk::CullModeFlagBits::eBack,
-        TwoSided    = vk::CullModeFlagBits::eFrontAndBack,
+        None        = static_cast<UInt32>(vk::CullModeFlagBits::eNone),
+        Front       = static_cast<UInt32>(vk::CullModeFlagBits::eFront),
+        Back        = static_cast<UInt32>(vk::CullModeFlagBits::eBack),
+        TwoSided    = static_cast<UInt32>(vk::CullModeFlagBits::eFrontAndBack),
     };
     [[nodiscard]] constexpr vk::CullModeFlags
     TypeCast(ERHICullMode I_CullMode) { return static_cast<vk::CullModeFlagBits>(I_CullMode); }
 
     enum class ERHISamplingRate
     {
-        X1 = vk::SampleCountFlagBits::e1,
-        X2 = vk::SampleCountFlagBits::e2,
-        X4 = vk::SampleCountFlagBits::e4,
-        X8 = vk::SampleCountFlagBits::e8,
+        X1 = static_cast<UInt32>(vk::SampleCountFlagBits::e1),
+        X2 = static_cast<UInt32>(vk::SampleCountFlagBits::e2),
+        X4 = static_cast<UInt32>(vk::SampleCountFlagBits::e4),
+        X8 = static_cast<UInt32>(vk::SampleCountFlagBits::e8),
     };
     [[nodiscard]] constexpr vk::SampleCountFlags
     TypeCast(ERHISamplingRate I_SamplingRate) { return static_cast<vk::SampleCountFlagBits>(I_SamplingRate); }
 
     enum class ERHIBlendOp
     {
-        Add  = vk::BlendOp::eAdd,
+        Add  = static_cast<UInt32>(vk::BlendOp::eAdd),
 
         None,
     };

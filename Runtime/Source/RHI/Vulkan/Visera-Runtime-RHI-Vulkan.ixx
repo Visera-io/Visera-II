@@ -33,11 +33,11 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Core.Types.Name;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Set;
+       import Visera.Core.Traits.Flags;
 
 namespace Visera
 {
-    export namespace VMA
-    {  using EMemoryPoolFlags = EVMAMemoryPoolFlags; }
+    export using EVulkanMemoryPoolFlags = EVMAMemoryPoolFlags;
 
     export class VISERA_RUNTIME_API FVulkanDriver
     {
@@ -160,9 +160,9 @@ namespace Visera
                              vk::CompareOp   I_CompareOp,
                              vk::BorderColor I_BorderColor);
         [[nodiscard]] TSharedPtr<FVulkanBuffer>
-        CreateBuffer(UInt64                 I_Size,
-                     vk::BufferUsageFlags   I_Usages,
-                     VMA::EMemoryPoolFlags  I_MemoryPoolFlags = EVMAMemoryPoolFlags::None);
+        CreateBuffer(UInt64                  I_Size,
+                     vk::BufferUsageFlags    I_Usages,
+                     EVulkanMemoryPoolFlags  I_MemoryPoolFlags = EVulkanMemoryPoolFlags::None);
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(vk::QueueFlagBits I_Queue);
         [[nodiscard]] TSharedPtr<FVulkanDescriptorSetLayout>
@@ -1009,7 +1009,7 @@ namespace Visera
     Bool FVulkanDriver::
     Present()
     {
-#if !define(VISERA_OFFSCREEN_MODE)
+#if !defined(VISERA_OFFSCREEN_MODE)
         const auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
             .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor]->GetHandle()))
@@ -1153,9 +1153,9 @@ namespace Visera
     }
 
     TSharedPtr<FVulkanBuffer> FVulkanDriver::
-    CreateBuffer(UInt64                 I_Size,
-                 vk::BufferUsageFlags   I_Usages,
-                 VMA::EMemoryPoolFlags  I_MemoryPoolFlags /* = EVMAMemoryPoolFlags::None */)
+    CreateBuffer(UInt64                  I_Size,
+                 vk::BufferUsageFlags    I_Usages,
+                 EVulkanMemoryPoolFlags  I_MemoryPoolFlags /* = EVulkanMemoryPoolFlags::None */)
     {
         VISERA_ASSERT(I_Size != 0);
         LOG_TRACE("Creating a Vulkan Buffer ({} bytes).", I_Size);

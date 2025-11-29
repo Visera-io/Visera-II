@@ -5,19 +5,17 @@ module;
 #include <vk_mem_alloc.h>
 export module Visera.Runtime.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Core.Traits.Flags;
 import Visera.Core.Log;
 
 export namespace Visera
 {
-    enum class EVMAMemoryPoolFlags : VmaAllocationCreateFlags
+    enum EVMAMemoryPoolFlags : UInt32
     {
         None                           = 0,
         Mapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
         HostAccessAllowTransferInstead = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
         HostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
     };
-    VISERA_MAKE_FLAGS(EVMAMemoryPoolFlags);
 
     class VISERA_RUNTIME_API FVulkanAllocator
     {
@@ -129,7 +127,7 @@ export namespace Visera
     {
         VmaAllocationCreateInfo AllocationCreateInfo
         {
-            .flags          = ToUnderlying(I_MemoryPoolFlags),
+            .flags          = I_MemoryPoolFlags,
             .usage          = VMA_MEMORY_USAGE_AUTO,
             .requiredFlags  = 0x0,
             .preferredFlags = 0x0,

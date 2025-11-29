@@ -46,6 +46,7 @@ namespace Visera
         GLFWwindow* Handle = nullptr;
 
     private:
+        static void WindowContentScaleCallback(GLFWwindow* I_Handle, Float I_ScaleX, Float I_ScaleY);
         static void KeyCallback(GLFWwindow* I_Handle, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods);
         static void MouseButtonCallback(GLFWwindow* I_Handle, Int32 I_Button, Int32 I_Action, Int32 I_Mods);
         static void CursorMoveCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY);
@@ -101,11 +102,14 @@ namespace Visera
 
         glfwSetWindowIcon(Handle, 1, &Icon);
 #endif
+        // Make static callbacks able to reach this instance.
+        glfwSetWindowUserPointer          (Handle, this);
 
-        glfwSetMouseButtonCallback  (Handle, FGLFWWindow::MouseButtonCallback);
-        glfwSetCursorPosCallback    (Handle, FGLFWWindow::CursorMoveCallback);
-        glfwSetScrollCallback       (Handle, FGLFWWindow::ScrollCallback);
-        glfwSetKeyCallback          (Handle, FGLFWWindow::KeyCallback);
+        glfwSetWindowContentScaleCallback (Handle, FGLFWWindow::WindowContentScaleCallback);
+        glfwSetMouseButtonCallback        (Handle, FGLFWWindow::MouseButtonCallback);
+        glfwSetCursorPosCallback          (Handle, FGLFWWindow::CursorMoveCallback);
+        glfwSetScrollCallback             (Handle, FGLFWWindow::ScrollCallback);
+        glfwSetKeyCallback                (Handle, FGLFWWindow::KeyCallback);
 
         if (!GInput->GetKeyboard()->OnGetKey.TryBind(
         [this](FKeyboard::EKey I_Key, FKeyboard::EAction* O_Status)
@@ -123,9 +127,20 @@ namespace Visera
     ~FGLFWWindow()
     {
         LOG_TRACE("Terminating GLFW Window.");
-        glfwDestroyWindow(Handle);
+        if (Handle)
+        {
+            // Prevent callbacks from touching destroyed engine singletons during teardown.
+            glfwSetMouseButtonCallback       (Handle, nullptr);
+            glfwSetCursorPosCallback         (Handle, nullptr);
+            glfwSetScrollCallback            (Handle, nullptr);
+            glfwSetKeyCallback               (Handle, nullptr);
+            glfwSetWindowContentScaleCallback(Handle, nullptr);
+            glfwSetWindowUserPointer         (Handle, nullptr);
+
+            glfwDestroyWindow(Handle);
+            Handle = nullptr;
+        }
         glfwTerminate();
-        Handle = nullptr;
     }
 
     GLFWmonitor* FGLFWWindow::
@@ -148,6 +163,16 @@ namespace Visera
             else { LOG_ERROR("No monitors found!"); }
         }
         return PrimaryMonitor;
+    }
+
+    void FGLFWWindow::
+    WindowContentScaleCallback(GLFWwindow* I_Handle, Float I_ScaleX, Float I_ScaleY)
+    {
+        if (auto* Self = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Handle)))
+        {
+            Self->ScaleX = I_ScaleX;
+            Self->ScaleY = I_ScaleY;
+        }
     }
 
     void FGLFWWindow::
@@ -179,7 +204,10 @@ namespace Visera
     void FGLFWWindow::
     CursorMoveCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY)
     {
-        GInput->GetMouse()->OnCursorMoved.Broadcast(I_PosX, I_PosY);
+        if (auto* Self = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Handle)))
+        {
+            GInput->GetMouse()->OnCursorMoved.Broadcast(I_PosX * Self->ScaleX, I_PosY * Self->ScaleY);
+        }
     }
 
     void FGLFWWindow::

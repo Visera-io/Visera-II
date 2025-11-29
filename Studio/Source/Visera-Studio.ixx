@@ -150,7 +150,7 @@ namespace Visera
 
         auto& Driver = GRHI->GetDriver();
         if (!Driver->StudioDrawCalls.TryBind([]
-        (TSharedRef<FVulkanCommandBuffer> I_CommandBuffer, TSharedRef<FVulkanImageView> I_SwapChainView)
+        (TSharedRef<FRHICommandBuffer> I_CommandBuffer, TSharedRef<FRHIImageView> I_SwapChainView)
         {
             ImGui::Render();
 
