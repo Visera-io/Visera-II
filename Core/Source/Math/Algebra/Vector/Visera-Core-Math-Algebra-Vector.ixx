@@ -21,13 +21,37 @@ export namespace Visera
 
 		[[nodiscard]] inline Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f; }
+		[[nodiscard]] constexpr Bool
+		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f); }
+		[[nodiscard]] constexpr Float
+		Dot(const FVector2F& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y; }
+		[[nodiscard]] constexpr Float
+		SquaredNorm() const noexcept { return X * X + Y * Y; }
+		[[nodiscard]] inline Float
+		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
+		[[nodiscard]] inline Bool
+		Normalize() noexcept { Float Norm = L2Norm(); if(Math::IsNearlyEqual(Norm, 0.0f)) { return False; } Float InvNorm = 1.0f / Norm; X *= InvNorm; Y *= InvNorm; return True; }
 
 		constexpr Float&
 		operator[](UInt32 I_Index)       { CHECK(I_Index < 2); return (&X)[I_Index]; }
 		constexpr const Float&
 		operator[](UInt32 I_Index) const { CHECK(I_Index < 2); return (&X)[I_Index]; }
+		constexpr FVector2F
+		operator+(const FVector2F& I_Vector) const { return {X + I_Vector.X , Y + I_Vector.Y}; }
+		constexpr FVector2F
+		operator-(const FVector2F& I_Vector) const { return {X - I_Vector.X , Y - I_Vector.Y}; }
+		constexpr FVector2F
+		operator*(Float I_Factor) const { return {X * I_Factor , Y * I_Factor}; }
+		constexpr FVector2F
+		operator/(Float I_Factor) const { return {X / I_Factor , Y / I_Factor}; }
+
 		FVector2F() noexcept = default;
 		FVector2F(Float I_X, Float I_Y) noexcept : X(I_X), Y(I_Y) {}
+
+		[[nodiscard]] Eigen::Map<Eigen::Vector2f>
+		GetView()       { return Eigen::Map<Eigen::Vector2f, Eigen::Unaligned>(&X); }
+		[[nodiscard]] Eigen::Map<const Eigen::Vector2f>
+		GetView() const { return Eigen::Map<const Eigen::Vector2f, Eigen::Unaligned>(&X); }
 	};
 	static_assert(sizeof(FVector2F) == 8);
 
@@ -79,13 +103,37 @@ export namespace Visera
 
 		[[nodiscard]] inline Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f && W == 0.0f; }
+		[[nodiscard]] constexpr Bool
+		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f) && Math::IsNearlyEqual(W, 0.0f); }
+		[[nodiscard]] constexpr Float
+		Dot(const FVector4F& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z + W * I_Vector.W; }
+		[[nodiscard]] constexpr Float
+		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z + W * W; }
+		[[nodiscard]] inline Float
+		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
+		[[nodiscard]] inline Bool
+		Normalize() noexcept { Float Norm = L2Norm(); if(Math::IsNearlyEqual(Norm, 0.0f)) { return False; } Float InvNorm = 1.0f / Norm; X *= InvNorm; Y *= InvNorm; Z *= InvNorm; W *= InvNorm; return True; }
 
 		constexpr Float&
 		operator[](UInt32 I_Index)       { CHECK(I_Index < 4); return (&X)[I_Index]; }
 		constexpr const Float&
 		operator[](UInt32 I_Index) const { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		constexpr FVector4F
+		operator+(const FVector4F& I_Vector) const { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z, W + I_Vector.W}; }
+		constexpr FVector4F
+		operator-(const FVector4F& I_Vector) const { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z, W - I_Vector.W}; }
+		constexpr FVector4F
+		operator*(Float I_Factor) const { return {X * I_Factor , Y * I_Factor , Z * I_Factor, W * I_Factor}; }
+		constexpr FVector4F
+		operator/(Float I_Factor) const { return {X / I_Factor , Y / I_Factor , Z / I_Factor, W / I_Factor}; }
+
 		constexpr FVector4F() noexcept = default;
 		constexpr FVector4F(Float I_X, Float I_Y, Float I_Z, Float I_W) noexcept : X(I_X), Y(I_Y), Z(I_Z), W(I_W) {}
+
+		[[nodiscard]] Eigen::Map<Eigen::Vector4f>
+		GetView()       { return Eigen::Map<Eigen::Vector4f, Eigen::Unaligned>(&X); }
+		[[nodiscard]] Eigen::Map<const Eigen::Vector4f>
+		GetView() const { return Eigen::Map<const Eigen::Vector4f, Eigen::Unaligned>(&X); }
 	};
 	static_assert(sizeof(FVector4F) == 16);
 
