@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Trigonometry;
-#define VISERA_MODULE_NAME "Core.Math.Trigonometry"
+#define VISERA_MODULE_NAME "Core.Math"
 export import Visera.Core.Math.Trigonometry.Degree;
 export import Visera.Core.Math.Trigonometry.Radian;
 import Visera.Core.Math.Constants;

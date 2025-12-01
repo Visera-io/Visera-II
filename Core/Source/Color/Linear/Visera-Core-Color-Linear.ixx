@@ -2,37 +2,53 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Color.Linear;
 #define VISERA_MODULE_NAME "Core.Color"
-export import Visera.Core.Color.Common;
+import Visera.Core.Color.Common;
 
 export namespace Visera
 {
-    struct VISERA_CORE_API FLinearColor
+    class VISERA_CORE_API FLinearColor
     {
+    public:
         union
         {
             struct { Float R, G, B, A; };
-            Float RGBA[4];
+            Float RGBA[4] {0.0f, 0.0f, 0.0f, 0.0f};
+            Float Data[4];
         };
-        static const FLinearColor White;
-        static const FLinearColor Gray;
-        static const FLinearColor Black;
-        static const FLinearColor Transparent;
-        static const FLinearColor Red;
-        static const FLinearColor Green;
-        static const FLinearColor Blue;
-        static const FLinearColor Yellow;
 
-        FLinearColor() : R{ 0 }, G{ 0 }, B{ 0 }, A{ 0 } {}
-        constexpr
-        FLinearColor(Float I_Red, Float I_Green, Float I_Blue, Float I_Alpha = 1.0f)
-        : R{ I_Red }, G{ I_Green }, B{ I_Blue }, A{ I_Alpha } { }
+        [[nodiscard]] static constexpr FLinearColor
+        White() noexcept { return FLinearColor{1.0f,1.0f,1.0f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Gray() noexcept { return FLinearColor{0.5f,0.5f,0.5f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Black() noexcept { return FLinearColor{0.0f,0.0f,0.0f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Transparent() noexcept { return FLinearColor{0.0f,0.0f,0.0f,0.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Red() noexcept { return FLinearColor{1.0f,0.0f,0.0f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Green() noexcept { return FLinearColor{0.0f,1.0f,0.0f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Blue() noexcept { return FLinearColor{0.0f,0.0f,1.0f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Yellow() noexcept { return FLinearColor{1.0f,1.0f,0.0f,1.0f}; }
+
+        constexpr FLinearColor() noexcept = default;
+        constexpr FLinearColor(Float I_Red, Float I_Green, Float I_Blue, Float I_Alpha) noexcept
+        : R{ I_Red }, G{ I_Green }, B{ I_Blue }, A{ I_Alpha } {}
 
         /** Static lookup table used for FColor -> FLinearColor conversion. sRGB */
         static const Float LUT_sRGBToLinear[256];
         /** Static lookup table used for FColor -> FLinearColor conversion. Pow(2.2) */
         static const Float LUT_Pow22over255[256];
-    };
 
+        [[nodiscard]] constexpr Bool
+        operator==(const FLinearColor& I_Rhs) const noexcept { return R==I_Rhs.R && G==I_Rhs.G && B==I_Rhs.B && A==I_Rhs.A; }
+        [[nodiscard]] constexpr Bool
+        operator!=(const FLinearColor& I_Rhs) const noexcept { return !(*this == I_Rhs); }
+    };
+    static_assert(sizeof(FLinearColor) == 16);
+    static_assert(std::is_standard_layout_v<FLinearColor>);
 
     /**
      * Pow table for fast FColor -> FLinearColor conversion.
@@ -133,35 +149,5 @@ export namespace Visera
         0.921581853023715f, 0.930110855104312f, 0.938685725169219f, 0.947306533426946f, 0.955973349925421f,
         0.964686244552961f, 0.973445287039244f, 0.982250546956257f, 0.991102093719252f, 1.0f
     };
-
-    const FLinearColor FLinearColor::White      (1.f,1.f,1.f);
-    const FLinearColor FLinearColor::Gray       (0.5f,0.5f,0.5f);
-    const FLinearColor FLinearColor::Black      (0,0,0);
-    const FLinearColor FLinearColor::Transparent(0,0,0,0);
-    const FLinearColor FLinearColor::Red        (1.f,0,0);
-    const FLinearColor FLinearColor::Green      (0,1.f,0);
-    const FLinearColor FLinearColor::Blue       (0,0,1.f);
-    const FLinearColor FLinearColor::Yellow     (1.f,1.f,0);
 }
-
-template <>
-struct fmt::formatter<Visera::FLinearColor>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::FLinearColor& I_Color, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        return fmt::format_to(
-            I_Context.out(),
-            "[R:{}, G:{}, B:{}, A:{}]",
-            I_Color.R, I_Color.G, I_Color.B, I_Color.A
-        );
-    }
-};
+VISERA_MAKE_FORMATTER(Visera::FLinearColor, {}, "[R:{}, G:{}, B:{}, A:{}]_LinearColor", I_Formatee.R, I_Formatee.G, I_Formatee.B, I_Formatee.A)

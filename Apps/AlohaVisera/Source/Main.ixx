@@ -24,6 +24,7 @@ export int main(int argc, char *argv[])
         LOG_WARN("Vector = {} | L2 Norm: {}", Vec, Vec.L2Norm());
     }
     LOG_WARN("{}", FMatrix4x4F::Identity() * FMatrix4x4F::Zero());
+    LOG_WARN("{}", FColor::Black());
     /*LOG_WARN("Practicing C#.");
     {
         GPlatform->Bootstrap();

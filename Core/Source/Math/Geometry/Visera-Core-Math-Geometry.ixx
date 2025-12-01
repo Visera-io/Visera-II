@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Geometry;
-#define VISERAII_MODULEII_NAME "Core.Math.Geometry"
+#define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Algebra.Vector;
 import Visera.Core.Math.Arithmetic;
 
