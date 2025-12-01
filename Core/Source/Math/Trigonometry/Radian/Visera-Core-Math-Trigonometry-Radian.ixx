@@ -4,53 +4,41 @@ export module Visera.Core.Math.Trigonometry.Radian;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic;
 
+//#define VISERA_SAFE_MODE;
+#if defined(VISERA_SAFE_MODE)
+#define CHECK(I_Statement) VISERA_ASSERT(I_Statement)
+#else
+#define CHECK(I_Statement) VISERA_NO_OPERATION
+#endif
+
 export namespace Visera
 {
-    template<Concepts::FloatingPoint T>
-    class TRadian
+    class VISERA_CORE_API FRadian
     {
     public:
-        T GetValue() const { return Value; }
+        Float Value{0.0f};
 
-        explicit constexpr TRadian(T Value) : Value{ Value } {};
-        explicit  TRadian() = default;
-        TRadian&   operator=(T   NewValue)      { Value = NewValue; return *this; }
-        TRadian&   operator=(TRadian NewRadian) { Value = NewRadian.Value; return *this; }
+        constexpr FRadian() noexcept = default;
+        explicit constexpr FRadian(Float I_Value) noexcept : Value{ I_Value } {}
 
-        TRadian operator*(T  I_Multiplicand)	const { return TRadian(Value * I_Multiplicand); };
-        TRadian operator/(T  I_Divisor)		    const { return TRadian(Value / I_Divisor); };
+        FRadian&
+        operator=(Float I_NewValue) noexcept { Value = I_NewValue; return *this; }
+        FRadian&
+        operator=(const FRadian& I_NewRadian) noexcept { Value = I_NewRadian.Value; return *this; }
 
-        explicit constexpr operator T() const { return static_cast<T>(Value); }
+        [[nodiscard]] constexpr FRadian
+        operator*(Float I_Multiplicand) const noexcept { return FRadian{ Value * I_Multiplicand }; }
+        [[nodiscard]] constexpr FRadian
+        operator/(Float I_Divisor) const noexcept { CHECK(!Math::IsNearlyEqual(I_Divisor, 0.0f)); return FRadian{ Value / I_Divisor }; }
 
-        bool   operator==(TRadian I_Rival)	const { return Math::IsNearlyEqual(  Value, I_Rival.Value);}
-        bool   operator!=(TRadian I_Rival)	const { return !Math::IsNearlyEqual( Value, I_Rival.Value);}
-        bool   operator<(TRadian  I_Rival)	const { return Value < I_Rival.Value;}
-        bool   operator>(TRadian  I_Rival)	const { return Value > I_Rival.Value;}
-
-    private:
-        T Value = 0.0;
+        [[nodiscard]] constexpr Bool
+        operator==(FRadian I_Rival) const noexcept { return Math::IsNearlyEqual(Value, I_Rival.Value); }
+        [[nodiscard]] constexpr Bool
+        operator!=(FRadian I_Rival) const noexcept { return !Math::IsNearlyEqual(Value, I_Rival.Value); }
+        [[nodiscard]] constexpr Bool
+        operator<(FRadian I_Rival) const noexcept { return Value < I_Rival.Value; }
+        [[nodiscard]] constexpr Bool
+        operator>(FRadian I_Rival) const noexcept { return Value > I_Rival.Value; }
     };
-
 }
-
-template <Visera::Concepts::FloatingPoint T>
-struct fmt::formatter<Visera::TRadian<T>>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::TRadian<T>& I_Radian, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        return fmt::format_to(
-            I_Context.out(),
-            "{}rad",
-            I_Radian.GetValue()
-        );
-    }
-};
+VISERA_MAKE_FORMATTER(Visera::FRadian, {}, "{}rad", I_Formatee.Value);

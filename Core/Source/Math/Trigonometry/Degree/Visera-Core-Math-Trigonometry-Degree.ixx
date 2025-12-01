@@ -4,51 +4,41 @@ export module Visera.Core.Math.Trigonometry.Degree;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic;
 
+//#define VISERA_SAFE_MODE;
+#if defined(VISERA_SAFE_MODE)
+#define CHECK(I_Statement) VISERA_ASSERT(I_Statement)
+#else
+#define CHECK(I_Statement) VISERA_NO_OPERATION
+#endif
+
 export namespace Visera
 {
-    template<Concepts::FloatingPoint T>
-    class TDegree
+    class VISERA_CORE_API FDegree
     {
     public:
-        T GetValue() const { return Value; }
+        Float Value{0.0f};
 
-        explicit  constexpr TDegree(T I_Value) : Value{ I_Value } {};
-        explicit  TDegree() = default;
-        TDegree& operator=(T  I_NewValue)       { Value = I_NewValue; return *this; }
-        TDegree& operator=(TDegree I_NewDegree) { Value = I_NewDegree.Value; return *this; }
+        constexpr FDegree() noexcept = default;
+        explicit constexpr FDegree(Float I_Value) noexcept : Value{ I_Value } {}
 
-        explicit constexpr operator T() const { return static_cast<T>(Value); }
+        FDegree&
+        operator=(Float I_NewValue) noexcept { Value = I_NewValue; return *this; }
+        FDegree&
+        operator=(const FDegree& I_NewDegree) noexcept { Value = I_NewDegree.Value; return *this; }
 
-        TDegree operator*(T  I_Multiplicand)const { return TDegree(Value * I_Multiplicand); };
-        TDegree operator/(T  I_Divisor)	    const { return TDegree(Value / I_Divisor);      };
-        bool   operator==(TDegree I_Rival)	const { return Math::IsNearlyEqual(  Value, I_Rival.Value);}
-        bool   operator!=(TDegree I_Rival)	const { return !Math::IsNearlyEqual( Value, I_Rival.Value);}
-        bool   operator<(TDegree  I_Rival)	const { return Value < I_Rival.Value;}
-        bool   operator>(TDegree  I_Rival)	const { return Value < I_Rival.Value;}
+        [[nodiscard]] constexpr FDegree
+        operator*(Float I_Multiplicand) const noexcept { return FDegree{ Value * I_Multiplicand }; }
+        [[nodiscard]] constexpr FDegree
+        operator/(Float I_Divisor) const noexcept { CHECK(!Math::IsNearlyEqual(I_Divisor, 0.0f)); return FDegree{ Value / I_Divisor }; }
 
-    private:
-        T Value = 0.0;
+        [[nodiscard]] constexpr Bool
+        operator==(FDegree I_Rival) const noexcept { return Math::IsNearlyEqual(Value, I_Rival.Value); }
+        [[nodiscard]] constexpr Bool
+        operator!=(FDegree I_Rival) const noexcept { return !Math::IsNearlyEqual(Value, I_Rival.Value); }
+        [[nodiscard]] constexpr Bool
+        operator<(FDegree I_Rival) const noexcept { return Value < I_Rival.Value; }
+        [[nodiscard]] constexpr Bool
+        operator>(FDegree I_Rival) const noexcept { return Value > I_Rival.Value; }
     };
-
 }
-
-template <Visera::Concepts::FloatingPoint T>
-struct fmt::formatter<Visera::TDegree<T>>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::TDegree<T>& I_Degree, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        return fmt::format_to(
-            I_Context.out(),
-            "{}°",
-            I_Degree.GetValue());
-    }
-};
+VISERA_MAKE_FORMATTER(Visera::FDegree, {}, "{}°", I_Formatee.Value);
