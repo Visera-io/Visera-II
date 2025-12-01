@@ -1,6 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#include <Eigen/Core>
 export module Visera.Core.Math.Algebra.Vector;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic;
@@ -17,7 +16,11 @@ export namespace Visera
 	class VISERA_CORE_API FVector2F
 	{
 	public:
-		Float X{0}, Y{0};
+		union
+		{
+			struct { Float X, Y; };
+			Float Data[2]{0.0f, 0.0f};
+		};
 
 		[[nodiscard]] inline Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f; }
@@ -30,35 +33,43 @@ export namespace Visera
 		[[nodiscard]] inline Float
 		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
 		[[nodiscard]] inline Bool
-		Normalize() noexcept { Float Norm = L2Norm(); if(Math::IsNearlyEqual(Norm, 0.0f)) { return False; } Float InvNorm = 1.0f / Norm; X *= InvNorm; Y *= InvNorm; return True; }
+		Normalize() noexcept { Float SqrNorm = SquaredNorm(); if(Math::IsNearlyEqual(SqrNorm, 0.0f)) { return False; } Float InvNorm = 1.0f / Math::Sqrt(SqrNorm); X *= InvNorm; Y *= InvNorm; return True; }
 
 		constexpr Float&
-		operator[](UInt32 I_Index)       { CHECK(I_Index < 2); return (&X)[I_Index]; }
+		operator[](UInt32 I_Index)		 noexcept { CHECK(I_Index < 2); return (&X)[I_Index]; }
 		constexpr const Float&
-		operator[](UInt32 I_Index) const { CHECK(I_Index < 2); return (&X)[I_Index]; }
+		operator[](UInt32 I_Index) const noexcept{ CHECK(I_Index < 2); return (&X)[I_Index]; }
 		constexpr FVector2F
-		operator+(const FVector2F& I_Vector) const { return {X + I_Vector.X , Y + I_Vector.Y}; }
+		operator+(const FVector2F& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y}; }
 		constexpr FVector2F
-		operator-(const FVector2F& I_Vector) const { return {X - I_Vector.X , Y - I_Vector.Y}; }
+		operator-(const FVector2F& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y}; }
 		constexpr FVector2F
-		operator*(Float I_Factor) const { return {X * I_Factor , Y * I_Factor}; }
+		operator*(Float I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor}; }
 		constexpr FVector2F
-		operator/(Float I_Factor) const { return {X / I_Factor , Y / I_Factor}; }
+		operator/(Float I_Factor) const noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); return {X / I_Factor , Y / I_Factor}; }
+		constexpr FVector2F&
+		operator+=(const FVector2F& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; return *this; }
+		constexpr FVector2F&
+		operator-=(const FVector2F& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; return *this; }
+		constexpr FVector2F&
+		operator*=(Float I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; return *this; }
+		constexpr FVector2F&
+		operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); X /= I_Factor; Y /= I_Factor; return *this; }
 
-		FVector2F() noexcept = default;
-		FVector2F(Float I_X, Float I_Y) noexcept : X(I_X), Y(I_Y) {}
-
-		[[nodiscard]] Eigen::Map<Eigen::Vector2f>
-		GetView()       { return Eigen::Map<Eigen::Vector2f, Eigen::Unaligned>(&X); }
-		[[nodiscard]] Eigen::Map<const Eigen::Vector2f>
-		GetView() const { return Eigen::Map<const Eigen::Vector2f, Eigen::Unaligned>(&X); }
+		constexpr FVector2F() noexcept = default;
+		constexpr FVector2F(Float I_X, Float I_Y) noexcept : Data{I_X, I_Y} {}
 	};
 	static_assert(sizeof(FVector2F) == 8);
+	static_assert(std::is_standard_layout_v<FVector2F>);
 
 	class VISERA_CORE_API FVector3F
 	{
 	public:
-		Float X{0}, Y{0}, Z{0};
+		union
+		{
+			struct { Float X, Y, Z; };
+			Float Data[3]{0.0f, 0.0f, 0.0f};
+		};
 
 		[[nodiscard]] constexpr Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f; }
@@ -71,35 +82,43 @@ export namespace Visera
 		[[nodiscard]] inline Float
 		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
 		[[nodiscard]] inline Bool
-		Normalize() noexcept { Float Norm = L2Norm(); if(Math::IsNearlyEqual(Norm, 0.0f)) { return False; } Float InvNorm = 1.0f / Norm; X *= InvNorm; Y *= InvNorm; Z *= InvNorm; return True; }
+		Normalize() noexcept { Float SqrNorm = SquaredNorm(); if(Math::IsNearlyEqual(SqrNorm, 0.0f)) { return False; } Float InvNorm = 1.0f / Math::Sqrt(SqrNorm); X *= InvNorm; Y *= InvNorm; Z *= InvNorm; return True; }
 
 		constexpr Float&
-		operator[](UInt32 I_Index)       { CHECK(I_Index < 3); return (&X)[I_Index]; }
+		operator[](UInt32 I_Index)       noexcept { CHECK(I_Index < 3); return (&X)[I_Index]; }
 		constexpr const Float&
-		operator[](UInt32 I_Index) const { CHECK(I_Index < 3); return (&X)[I_Index]; }
+		operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 3); return (&X)[I_Index]; }
 		constexpr FVector3F
-		operator+(const FVector3F& I_Vector) const { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z}; }
+		operator+(const FVector3F& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z}; }
 		constexpr FVector3F
-		operator-(const FVector3F& I_Vector) const { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z}; }
+		operator-(const FVector3F& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z}; }
 		constexpr FVector3F
-		operator*(Float I_Factor) const { return {X * I_Factor , Y * I_Factor , Z * I_Factor}; }
+		operator*(Float I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor , Z * I_Factor}; }
 		constexpr FVector3F
-		operator/(Float I_Factor) const { return {X / I_Factor , Y / I_Factor , Z / I_Factor}; }
+		operator/(Float I_Factor) const noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); return {X / I_Factor , Y / I_Factor , Z / I_Factor}; }
+		constexpr FVector3F&
+		operator+=(const FVector3F& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; Z += I_Vector.Z; return *this; }
+		constexpr FVector3F&
+		operator-=(const FVector3F& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; Z -= I_Vector.Z; return *this; }
+		constexpr FVector3F&
+		operator*=(Float I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; Z *= I_Factor; return *this; }
+		constexpr FVector3F&
+		operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; return *this; }
 
 		constexpr FVector3F() noexcept = default;
-		constexpr FVector3F(Float I_X, Float I_Y, Float I_Z) noexcept : X(I_X), Y(I_Y), Z(I_Z) {}
-
-		[[nodiscard]] Eigen::Map<Eigen::Vector3f>
-		GetView()       { return Eigen::Map<Eigen::Vector3f, Eigen::Unaligned>(&X); }
-		[[nodiscard]] Eigen::Map<const Eigen::Vector3f>
-		GetView() const { return Eigen::Map<const Eigen::Vector3f, Eigen::Unaligned>(&X); }
+		constexpr FVector3F(Float I_X, Float I_Y, Float I_Z) noexcept : Data{I_X, I_Y, I_Z} {}
 	};
 	static_assert(sizeof(FVector3F) == 12);
+	static_assert(std::is_standard_layout_v<FVector3F>);
 
 	class VISERA_CORE_API FVector4F
 	{
 	public:
-		Float X{0}, Y{0}, Z{0}, W{0};
+		union
+		{
+			struct { Float X, Y, Z, W; };
+			Float Data[4]{0.0f, 0.0f, 0.0f, 0.0f};
+		};
 
 		[[nodiscard]] inline Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f && W == 0.0f; }
@@ -112,64 +131,44 @@ export namespace Visera
 		[[nodiscard]] inline Float
 		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
 		[[nodiscard]] inline Bool
-		Normalize() noexcept { Float Norm = L2Norm(); if(Math::IsNearlyEqual(Norm, 0.0f)) { return False; } Float InvNorm = 1.0f / Norm; X *= InvNorm; Y *= InvNorm; Z *= InvNorm; W *= InvNorm; return True; }
+		Normalize() noexcept { Float SqrNorm = SquaredNorm(); if(Math::IsNearlyEqual(SqrNorm, 0.0f)) { return False; } Float InvNorm = 1.0f / Math::Sqrt(SqrNorm); X *= InvNorm; Y *= InvNorm; Z *= InvNorm; W *= InvNorm; return True; }
 
 		constexpr Float&
-		operator[](UInt32 I_Index)       { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		operator[](UInt32 I_Index)       noexcept { CHECK(I_Index < 4); return (&X)[I_Index]; }
 		constexpr const Float&
-		operator[](UInt32 I_Index) const { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 4); return (&X)[I_Index]; }
 		constexpr FVector4F
-		operator+(const FVector4F& I_Vector) const { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z, W + I_Vector.W}; }
+		operator+(const FVector4F& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z, W + I_Vector.W}; }
 		constexpr FVector4F
-		operator-(const FVector4F& I_Vector) const { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z, W - I_Vector.W}; }
+		operator-(const FVector4F& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z, W - I_Vector.W}; }
 		constexpr FVector4F
-		operator*(Float I_Factor) const { return {X * I_Factor , Y * I_Factor , Z * I_Factor, W * I_Factor}; }
+		operator*(Float I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor , Z * I_Factor, W * I_Factor}; }
 		constexpr FVector4F
-		operator/(Float I_Factor) const { return {X / I_Factor , Y / I_Factor , Z / I_Factor, W / I_Factor}; }
+		operator/(Float I_Factor) const noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); return {X / I_Factor , Y / I_Factor , Z / I_Factor, W / I_Factor}; }
+		constexpr FVector4F&
+		operator+=(const FVector4F& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; Z += I_Vector.Z; W += I_Vector.W; return *this; }
+		constexpr FVector4F&
+		operator-=(const FVector4F& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; Z -= I_Vector.Z; W -= I_Vector.W; return *this; }
+		constexpr FVector4F&
+		operator*=(Float I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; Z *= I_Factor; W *= I_Factor; return *this; }
+		constexpr FVector4F&
+		operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; W /= I_Factor; return *this; }
 
 		constexpr FVector4F() noexcept = default;
-		constexpr FVector4F(Float I_X, Float I_Y, Float I_Z, Float I_W) noexcept : X(I_X), Y(I_Y), Z(I_Z), W(I_W) {}
-
-		[[nodiscard]] Eigen::Map<Eigen::Vector4f>
-		GetView()       { return Eigen::Map<Eigen::Vector4f, Eigen::Unaligned>(&X); }
-		[[nodiscard]] Eigen::Map<const Eigen::Vector4f>
-		GetView() const { return Eigen::Map<const Eigen::Vector4f, Eigen::Unaligned>(&X); }
+		constexpr FVector4F(Float I_X, Float I_Y, Float I_Z, Float I_W) noexcept : Data{I_X, I_Y, I_Z, I_W} {}
 	};
 	static_assert(sizeof(FVector4F) == 16);
+	static_assert(std::is_standard_layout_v<FVector4F>);
 
 	namespace Concepts
 	{
-		template<typename T> concept
-		Vectorial = std::is_class_v<FVector2F> ||
-					std::is_class_v<FVector3F> ||
-					std::is_class_v<FVector4F>;
-	}
-
-	namespace Math
-	{
-	// 	template<Concepts::Vectorial T> T
-	// 	Normalized(const T& I_Vector) { return I_Vector.normalized(); }
-	//
-	// 	template<Concepts::Vectorial T> void
-	// 	Normalize(T* IO_Vector) { *IO_Vector = GetNormalized(IO_Vector); }
-	//
-	// 	template<Concepts::Vectorial T> Bool
-	// 	IsUnit(const T& I_Vector) { return IsEqual(1.0f, I_Vector.norm()); }
-	//
-	// 	template<Concepts::Vectorial T> Bool
-	// 	IsZero(const T& I_Vector) { return I_Vector.isZero(); }
-	//
-	// 	template<Concepts::Vectorial T> Bool
-	// 	IsIdentity(const T& I_Vector) { return I_Vector.isIdentity(); }
-	//
-	// 	//Even though this looks like it returns a new vector, Eigen is smart: if a is on both sides, Eigen avoids allocating a temporary and does it in-place behind the scenes (thanks to expression templates and lazy evaluation).
-	// 	template<Concepts::Vectorial T> T
-	// 	ComponentwiseMax(const T& I_VecA, const T& I_VecB) { return I_VecA.cwiseMax(I_VecB); }
-	// 	template<Concepts::Vectorial T> T
-	// 	ComponentwiseMin(const T& I_VecA, const T& I_VecB) { return I_VecA.cwiseMin(I_VecB); }
+		template<class T>
+		concept Vectorial = std::same_as<std::remove_cvref_t<T>, FVector2F> ||
+							std::same_as<std::remove_cvref_t<T>, FVector3F> ||
+							std::same_as<std::remove_cvref_t<T>, FVector4F>;
 	}
 
 }
-VISERA_MAKE_FORMATTER(Visera::FVector2F, {}, "[{}, {}]^T",			I_Formatee.X, I_Formatee.Y)
-VISERA_MAKE_FORMATTER(Visera::FVector3F, {}, "[{}, {}, {}]^T",		I_Formatee.X, I_Formatee.Y, I_Formatee.Z)
-VISERA_MAKE_FORMATTER(Visera::FVector4F, {}, "[{}, {}, {}, {}]^T",	I_Formatee.X, I_Formatee.Y, I_Formatee.Z, I_Formatee.W)
+VISERA_MAKE_FORMATTER(Visera::FVector2F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |_Vector2F", I_Formatee.X, I_Formatee.Y);
+VISERA_MAKE_FORMATTER(Visera::FVector3F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |_Vector3F", I_Formatee.X, I_Formatee.Y, I_Formatee.Z);
+VISERA_MAKE_FORMATTER(Visera::FVector4F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |_Vector4F", I_Formatee.X, I_Formatee.Y, I_Formatee.Z, I_Formatee.W);
