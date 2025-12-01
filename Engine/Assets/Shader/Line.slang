@@ -35,6 +35,6 @@ struct PushConstants
 [shader("fragment")]
 float4 FragmentMain(PSInput input) : SV_Target
 {
-    float4 Color = float4(1.0, 0.0, 0.0, 1.0);
+    float4 Color = float4(0.5 * sin(PC.Time) + 0.5, 0, 0, 1.0);
     return Color;
 }

@@ -943,6 +943,7 @@ namespace Visera
         auto& CurrentColorRT = CurrentFrame.ColorRT->GetImage();
 
         auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
+        VISERA_ASSERT(OldColorRTLayout == vk::ImageLayout::eColorAttachmentOptimal);
 
         CurrentFrame.DrawCalls->ConvertImageLayout(
                 CurrentColorRT,
@@ -969,16 +970,16 @@ namespace Visera
             OldColorRTLayout,
             vk::PipelineStageFlagBits2::eTopOfPipe,
             vk::AccessFlagBits2::eNone,
-            vk::PipelineStageFlagBits2::eTransfer,
-            vk::AccessFlagBits2::eTransferWrite
+            vk::PipelineStageFlagBits2::eBottomOfPipe,
+            vk::AccessFlagBits2::eNone
         );
         CurrentFrame.DrawCalls->ConvertImageLayout(
             CurrentSwapChainImage,
             vk::ImageLayout::ePresentSrcKHR,
             vk::PipelineStageFlagBits2::eTopOfPipe,
             vk::AccessFlagBits2::eNone,
-            vk::PipelineStageFlagBits2::eTransfer,
-            vk::AccessFlagBits2::eTransferWrite
+            vk::PipelineStageFlagBits2::eBottomOfPipe,
+            vk::AccessFlagBits2::eNone
         );
 
         StudioDrawCalls.Invoke(CurrentFrame.DrawCalls,

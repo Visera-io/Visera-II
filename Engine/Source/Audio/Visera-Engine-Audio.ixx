@@ -47,7 +47,7 @@ namespace Visera
         TMap<FName, FToken>      Playlist;
 
     public:
-        FAudio() : IGlobalSingleton("Audio") {}
+        FAudio() : IGlobalSingleton("Audio") { Engine = MakeUnique<FNullAudioEngine>(); }
         void
         Bootstrap() override;
         void

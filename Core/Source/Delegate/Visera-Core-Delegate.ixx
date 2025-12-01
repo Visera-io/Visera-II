@@ -37,7 +37,7 @@ namespace Visera
         [[nodiscard]] inline Bool
         TryBind(FCallback I_Callback) { if (IsBind()) { return False; }  Callback = std::move(I_Callback); return True; }
         void inline
-        Invoke(T_Args... I_Args)   const { if (Callback) { Callback(I_Args...); } }
+        Invoke(T_Args... I_Args) const { if (Callback) { Callback(I_Args...); } }
 
         [[nodiscard]] inline Bool
         IsBind() const { return Callback != nullptr; }

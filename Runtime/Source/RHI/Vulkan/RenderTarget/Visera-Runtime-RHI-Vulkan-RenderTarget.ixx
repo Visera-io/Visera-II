@@ -46,9 +46,9 @@ namespace Visera
     private:
         TSharedPtr<FVulkanImageView> TargetImageView;
 
-        vk::AttachmentLoadOp       LoadOp     { vk::AttachmentLoadOp::eNone  };
-        vk::AttachmentStoreOp      StoreOp    { vk::AttachmentStoreOp::eNone };
-        vk::ClearColorValue   ClearColor { vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f)} ;
+        vk::AttachmentLoadOp    LoadOp     { vk::AttachmentLoadOp::eClear  };
+        vk::AttachmentStoreOp   StoreOp    { vk::AttachmentStoreOp::eStore };
+        vk::ClearColorValue     ClearColor { vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f) };
 
     public:
         FVulkanRenderTarget()                                      = delete;

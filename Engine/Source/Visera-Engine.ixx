@@ -21,7 +21,7 @@ namespace Visera
     export class VISERA_ENGINE_API FEngine : public IGlobalSingleton<FEngine>
     {
     public:
-        TDelegate<Float>     AppTick;
+        TExclusiveDelegate<Float> AppTick;
 
         void Run()
         {
@@ -50,19 +50,6 @@ namespace Visera
             };
             static_assert(sizeof(FTestPushConstantRange) <= 128);
             FTestPushConstantRange MouseContext{};
-//
-//             auto PipelineLayout = Driver->CreatePipelineLayout({},
-// {{ EShaderStage::eFragment, 0U, UInt32(sizeof MouseContext) }});
-//             auto RenderPass = GRHI->CreateRenderPipeline(
-//              "TestPass",
-//              GAssetHub->LoadShader(FPath("Skybox.slang"), "VertexMain")->GetSPIRVCode(),
-//              GAssetHub->LoadShader(FPath("Skybox.slang"), "FragmentMain")->GetSPIRVCode(),
-//              PipelineLayout
-//             );
-//              RenderPass->SetRenderArea({
-//                  {0,0},
-//                  {1920, 1080},
-//              });
 
              while (!GWindow->ShouldClose())
              {
@@ -74,12 +61,6 @@ namespace Visera
                  GRHI->BeginFrame();
                  {
                      GEvent->OnFrameBegin.Broadcast();
-                     // auto& Cmd = GRHI->GetDrawCommands();
-                     //
-                     // Cmd->EnterRenderPass(RenderPass);
-                     //  Cmd->PushConstants(EShaderStage::eFragment, &MouseContext, 0, sizeof MouseContext);
-                     //  Cmd->Draw(3,1,0,0);
-                     //  Cmd->LeaveRenderPass();
 
                      AppTick.Invoke(DeltaTime);
                      GRender->Tick(DeltaTime);

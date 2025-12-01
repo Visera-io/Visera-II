@@ -56,6 +56,9 @@ namespace Visera
             auto& Cmds = GRHI->GetDrawCommands();
             Cmds->EnterRenderPass(RenderPipeline);
             {
+                static Float TotalTime = I_DeltaTime;
+                TotalTime += I_DeltaTime;
+                Cmds->PushConstants(TotalTime);
                 Cmds->BindVertexBuffer(0, VertexBuffer, 0);
                 Cmds->Draw(Points.size(), 1, 0, 0);
             }

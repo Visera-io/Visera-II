@@ -212,9 +212,9 @@ namespace Visera
             RenderPipeline->Settings.Rasterizer.polygonMode = vk::PolygonMode::eLine;
             RenderPipeline->Settings.VertexBindings = {
                 vk::VertexInputBindingDescription{}
-                    .setBinding(0)
-                    .setStride(sizeof(float) * 2)
-                    .setInputRate  (vk::VertexInputRate::eVertex)
+                    .setBinding     (0)
+                    .setStride      (sizeof(float) * 2)
+                    .setInputRate   (vk::VertexInputRate::eVertex)
             };
         }
         else
