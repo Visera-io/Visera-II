@@ -150,4 +150,4 @@ export namespace Visera
         0.964686244552961f, 0.973445287039244f, 0.982250546956257f, 0.991102093719252f, 1.0f
     };
 }
-VISERA_MAKE_FORMATTER(Visera::FLinearColor, {}, "[R:{}, G:{}, B:{}, A:{}]_LinearColor", I_Formatee.R, I_Formatee.G, I_Formatee.B, I_Formatee.A)
+VISERA_MAKE_FORMATTER(Visera::FLinearColor, {}, "[R:{}, G:{}, B:{}, A:{}]", I_Formatee.R, I_Formatee.G, I_Formatee.B, I_Formatee.A)

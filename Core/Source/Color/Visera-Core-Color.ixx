@@ -83,4 +83,4 @@ export namespace Visera
     }
 }
 VISERA_MAKE_HASH(Visera::FColor, return static_cast<std::size_t>(I_Object.Bits););
-VISERA_MAKE_FORMATTER(Visera::FColor, {}, "[R:{}, G:{}, B:{}, A:{}]_Color", I_Formatee.R, I_Formatee.G, I_Formatee.B, I_Formatee.A)
+VISERA_MAKE_FORMATTER(Visera::FColor, {}, "[R:{}, G:{}, B:{}, A:{}]", I_Formatee.R, I_Formatee.G, I_Formatee.B, I_Formatee.A)

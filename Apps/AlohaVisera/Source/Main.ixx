@@ -17,33 +17,6 @@ struct Foo
 
 export int main(int argc, char *argv[])
 {
-    FVector3F Vec {1,1,1};
-
-    if (Vec.Normalize())
-    {
-        LOG_WARN("Vector = {} | L2 Norm: {}", Vec, Vec.L2Norm());
-    }
-    LOG_WARN("{}", FMatrix4x4F::Identity() * FMatrix4x4F::Zero());
-    LOG_WARN("{}", FColor::Black());
-    /*LOG_WARN("Practicing C#.");
-    {
-        GPlatform->Bootstrap();
-        GScripting->Bootstrap();
-        GAssetHub->Bootstrap();
-
-        if (auto AppMain = GScripting->GetFunction(PLATFORM_STRING("Main")))
-        {
-            AppMain(nullptr, 0);
-        }
-        else LOG_FATAL("Failed to load the \"Main\"!");
-
-        GAssetHub->Terminate();
-        GScripting->Terminate();
-        GPlatform->Terminate();
-        GLog->Terminate();
-        return 0;
-    }*/
-
     GEngine->Bootstrap();
     {
         GStudio->Bootstrap();
