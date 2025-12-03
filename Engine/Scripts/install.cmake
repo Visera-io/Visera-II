@@ -10,16 +10,13 @@ add_library(${VISERA_ENGINE} SHARED)
 target_compile_definitions(${VISERA_ENGINE} PRIVATE VISERA_ENGINE_BUILD_SHARED)
 add_library(Visera::Engine ALIAS ${VISERA_ENGINE})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>")
-add_custom_command(
-    TARGET Visera::Engine
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_FILE:Visera::Engine>
-    $<TARGET_FILE_DIR:${VISERA_APP}>)
+set_target_properties(${VISERA_ENGINE} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>"
+    LIBRARY_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>"
+)
 if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 add_custom_command(
-    TARGET Visera::Engine
+    TARGET ${VISERA_ENGINE}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "$<TARGET_PDB_FILE:Visera::Engine>"

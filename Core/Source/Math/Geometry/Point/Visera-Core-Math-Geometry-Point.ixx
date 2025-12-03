@@ -111,9 +111,6 @@ export namespace Visera
         [[nodiscard]] constexpr Bool
         IsPositive() const noexcept { return X > 0U && Y > 0U; }
 
-        [[nodiscard]] constexpr FPoint2I
-        ToPoint2I() const noexcept { return FPoint2I{ static_cast<Int32>(X), static_cast<Int32>(Y) }; }
-
         constexpr FPoint2U() noexcept = default;
         constexpr FPoint2U(UInt32 I_X, UInt32 I_Y) noexcept : X(I_X), Y(I_Y) {}
     };
@@ -123,7 +120,7 @@ export namespace Visera
     namespace Math
     {
         [[nodiscard]] constexpr void
-        Clamp(TMutable<FPoint2I> IO_Point, const FPoint2I& I_Min, const FPoint2I& I_Max) const noexcept
+        Clamp(TMutable<FPoint2I> IO_Point, const FPoint2I& I_Min, const FPoint2I& I_Max) noexcept
         {
             Math::Clamp(&IO_Point->X, I_Min.X, I_Max.X);
             Math::Clamp(&IO_Point->X, I_Min.Y, I_Max.Y);
