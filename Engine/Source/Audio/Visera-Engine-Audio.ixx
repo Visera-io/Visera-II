@@ -63,6 +63,13 @@ namespace Visera
         LOG_TRACE("Bootstrapping Audio.");
 
         Engine = MakeUnique<FWwiseAudioEngine>();
+
+        switch (Engine->GetType())
+        {
+            case IAudioEngine::EType::Null : LOG_INFO("Audio Engine: Null.");  break;
+            case IAudioEngine::EType::Wwise: LOG_INFO("Audio Engine: Wwise."); break;
+            default: LOG_FATAL("Unknown Audio Engine!");  break;
+        }
         // Set Default Listeners
         UInt64 MainID{0};
         if (AK_Success != AK::SoundEngine::RegisterGameObj(MainID, "Player"))

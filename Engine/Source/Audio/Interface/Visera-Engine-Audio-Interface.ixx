@@ -15,7 +15,8 @@ namespace Visera
             Null,
             Wwise,
         };
-
+        [[nodiscard]] inline EType
+        GetType() const { return Type; }
         virtual void
         Tick(Float I_Seconds) = 0;
 
@@ -24,17 +25,7 @@ namespace Visera
 
     public:
         explicit IAudioEngine() = delete;
-        explicit IAudioEngine(EType I_Type) : Type{I_Type}
-        {
-            const char* AudioEngineName = "Unknown";
-            switch (Type)
-            {
-            case EType::Null:  AudioEngineName = "Null";  break;
-            case EType::Wwise: AudioEngineName = "Wwise"; break;
-            default: LOG_FATAL("Unknown Audio Engine!");  break;
-            }
-            LOG_INFO("Audio Engine: {}", AudioEngineName);
-        }
+        explicit IAudioEngine(EType I_Type) : Type{I_Type} {}
         virtual ~IAudioEngine() = default;
     };
 }

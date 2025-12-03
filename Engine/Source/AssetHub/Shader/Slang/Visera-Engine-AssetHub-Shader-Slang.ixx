@@ -35,7 +35,7 @@ namespace Visera
 
     public:
         FSlangCompiler();
-    	~FSlangCompiler();
+    	~FSlangCompiler() = default;
 
     private:
     	[[nodiscard]] Bool
@@ -95,14 +95,7 @@ namespace Visera
     	if (!CreateSession())
     	{ LOG_FATAL("Failed to create the Slang Session!"); }
 
-		GEvent->OnEngineTerminate.Subscribe([this](){ delete this; });
-    }
-
-	FSlangCompiler::
-	~FSlangCompiler()
-    {
-    	Session.reset();
-		slang::shutdown();
+		GEvent->OnEngineTerminate.Subscribe([this](){ Session.reset(); slang::shutdown(); });
     }
 
 	Bool FSlangCompiler::

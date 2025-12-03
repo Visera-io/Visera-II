@@ -21,12 +21,12 @@ export int main(int argc, char *argv[])
     {
         GStudio->Bootstrap();
 
-        //auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
-        //auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
+        auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
+        auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
 
-        //GAudio->Register(BankInit);
-        //auto ID = GAudio->Register(MainBGM);
-        //GAudio->PostEvent("Play_MainBGM", ID);
+        GAudio->Register(BankInit);
+        auto ID = GAudio->Register(MainBGM);
+        GAudio->PostEvent("Play_MainBGM", ID);
 
         if (auto AppTick = GScripting->GetFunction(PLATFORM_STRING("Tick")))
         {
