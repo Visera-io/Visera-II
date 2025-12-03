@@ -63,6 +63,7 @@ namespace Visera
         void Terminate() override
         {
             LOG_TRACE("Terminating Window.");
+            Window.reset();
 
             Status = EStatus::Terminated;
         }
