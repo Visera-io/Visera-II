@@ -19,14 +19,6 @@ public static class App
     public static int
     Tick(IntPtr Data, int Size)
     {
-//         bool bInitGVS = false;
-//         if(!bInitGVS)
-//         {
-//             Log.Info("GVS", "initing GVS");
-//             var GVS = new GVSController();
-//             GVS.Start();
-//             Log.Fatal("GVS", "Testing");
-//         }
         float DeltaTime = Marshal.PtrToStructure<float>(Data);
         if(DeltaTime > 1.0)
         {

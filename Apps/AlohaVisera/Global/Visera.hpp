@@ -3,3 +3,5 @@
 #if defined(VISERA_ENGINE_API)
 #undef VISERA_ENGINE_API
 #endif
+
+#include <entt/entt.hpp>

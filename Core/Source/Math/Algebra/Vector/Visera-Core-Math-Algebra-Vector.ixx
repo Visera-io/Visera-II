@@ -167,7 +167,6 @@ export namespace Visera
 							std::same_as<std::remove_cvref_t<T>, FVector3F> ||
 							std::same_as<std::remove_cvref_t<T>, FVector4F>;
 	}
-
 }
 VISERA_MAKE_FORMATTER(Visera::FVector2F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |_Vector2F", I_Formatee.X, I_Formatee.Y);
 VISERA_MAKE_FORMATTER(Visera::FVector3F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |_Vector3F", I_Formatee.X, I_Formatee.Y, I_Formatee.Z);

@@ -1286,7 +1286,7 @@ namespace Visera
     TSharedPtr<FVulkanSampler> FVulkanDriver::
     CreateImageSampler(vk::Filter             I_Filter,
                        vk::SamplerAddressMode I_AddressMode,
-                       Float                     I_MaxAnisotropy /*= 1.0*/)
+                       Float                  I_MaxAnisotropy /*= 1.0*/)
     {
         Bool bAnisotropy = I_MaxAnisotropy > 1.0;
         while (bAnisotropy)

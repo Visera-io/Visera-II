@@ -28,9 +28,11 @@ namespace Visera
         {
             LOG_INFO("Initializing Runtime.");
             GPlatform   ->Bootstrap();
-            GInput      ->Bootstrap();
-            GMedia      ->Bootstrap();
+#if !defined(VISERA_OFFSCREEN_MODE)
             GWindow     ->Bootstrap();
+            GInput      ->Bootstrap();
+#endif
+            GMedia      ->Bootstrap();
             GRHI        ->Bootstrap();
 
             Status = EStatus::Bootstrapped;
@@ -39,9 +41,11 @@ namespace Visera
         {
             LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
             GRHI        ->Terminate();
-            GWindow     ->Terminate();
             GMedia      ->Terminate();
+#if !defined(VISERA_OFFSCREEN_MODE)
             GInput      ->Terminate();
+            GWindow     ->Terminate();
+#endif
             GPlatform   ->Terminate();
 
             Status = EStatus::Terminated;

@@ -124,4 +124,5 @@ target_sources(WwiseSamples PRIVATE
         ${WWISE_SAMPLES_COMMON}
         ${WWISE_SAMPLES_PLATFORM}
 )
+target_compile_definitions(WwiseSamples PRIVATE UNICODE)
 target_link_libraries(WwiseSamples PRIVATE Wwise)

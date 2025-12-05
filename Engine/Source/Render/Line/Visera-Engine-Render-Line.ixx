@@ -88,6 +88,7 @@ namespace Visera
                 });
             RenderPipeline = GRHI->CreateRenderPipeline(
                 "LinePass", PSO);
+
             VertexBuffer = GRHI->CreateMappedVertexBuffer(sizeof(FVector2F) * 60000); // 1000point/s
         }
     };

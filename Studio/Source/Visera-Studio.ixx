@@ -30,6 +30,9 @@ namespace Visera
 
             ImGui::ShowDemoWindow();
             ImGui::Begin("こんにちは");
+            {
+                
+            }
             ImGui::End();
 #endif
         }

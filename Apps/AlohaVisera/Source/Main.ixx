@@ -23,6 +23,13 @@ export int main(int argc, char *argv[])
 
         auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
+        auto Entity = GWorld->CreateEntity(FName{"player_0"});
+        Entity.Add<CTransform2D>();
+        if (auto Transform = Entity.TryGet<CTransform2D>())
+        {
+            LOG_INFO("GET!!!");
+        }
+        LOG_INFO("{}", Entity.Has<CTransform2D>());
 
         GAudio->Register(BankInit);
         auto ID = GAudio->Register(MainBGM);

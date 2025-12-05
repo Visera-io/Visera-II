@@ -18,16 +18,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
 set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(
-        -Wno-nullability-completeness        # hides "_Nonnull/_Nullable" notes
-        -Wno-nullability-extension           # suppresses "pointer is missing nullability specifier"
-        -Wno-unused-parameter                # quiets unused args in engine stubs
-        -Wno-missing-field-initializers      # silences C-style struct init warnings
-        -Wno-unknown-pragmas                 # hides vendor #pragma notes in external libs
-        -Wno-ignored-qualifiers              # avoids 'type qualifiers ignored on cast' noise
-        -Wno-extra-semi                      # some headers (GLSL, SPIR-V) produce these
-        -Wno-deprecated-declarations         # prevents spam from deprecated macOS APIs
-    )
+add_compile_options(
+    -Wno-nullability-completeness        # hides "_Nonnull/_Nullable" notes
+    -Wno-nullability-extension           # suppresses "pointer is missing nullability specifier"
+    -Wno-unused-parameter                # quiets unused args in engine stubs
+    -Wno-missing-field-initializers      # silences C-style struct init warnings
+    -Wno-unknown-pragmas                 # hides vendor #pragma notes in external libs
+    -Wno-ignored-qualifiers              # avoids 'type qualifiers ignored on cast' noise
+    -Wno-extra-semi                      # some headers (GLSL, SPIR-V) produce these
+    -Wno-deprecated-declarations         # prevents spam from deprecated macOS APIs
+)
 endif()
 
 if(VISERA_OFFSCREEN_MODE)
