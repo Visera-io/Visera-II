@@ -27,8 +27,8 @@ export int main(int argc, char *argv[])
                     Transform.Translation,
                     Transform.Rotation,
                     Transform.Scale));
-                GStudio->UI->Slider("Velocity X", &Velocity.X, 0.0, 100.0);
-                GStudio->UI->Slider("Velocity Y", &Velocity.Y, 0.0, 100.0);
+                GStudio->UI->Slider("Velocity X", &Velocity.X, -1.0, 1.0);
+                GStudio->UI->Slider("Velocity Y", &Velocity.Y, -1.0, 1.0);
             }
         };
 

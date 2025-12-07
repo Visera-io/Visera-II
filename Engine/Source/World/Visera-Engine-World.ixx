@@ -30,6 +30,7 @@ namespace Visera
         entt::registry          GlobalRegistry{};
         TMap<FName, FEntity>    Entities{};
         SMovement               MovementSystem;
+        SPhysics2D              Physics2DSystem;
 
     public:
         FWorld() : IGlobalSingleton("World") {}
@@ -44,6 +45,7 @@ namespace Visera
     Tick(Float I_DeltaTime)
     {
         MovementSystem.Tick(GlobalRegistry, I_DeltaTime);
+        Physics2DSystem.Tick();
     }
 
     FEntity FWorld::

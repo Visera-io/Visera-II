@@ -63,6 +63,12 @@ link_libpng(${VISERA_RUNTIME})
 include(install_miniaudio)
 link_miniaudio(${VISERA_RUNTIME})
 
+include(install_bvh)
+link_bvh(${VISERA_RUNTIME})
+
+include(install_box2d)
+link_box2d(${VISERA_RUNTIME})
+
 #
 #
 #

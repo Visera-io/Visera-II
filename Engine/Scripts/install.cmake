@@ -42,9 +42,6 @@ list(APPEND CMAKE_MODULE_PATH ${VISERA_ENGINE_SCRIPTS_DIR})
 include(install_entt)
 link_entt(${VISERA_ENGINE})
 
-include(install_bvh)
-link_bvh(${VISERA_ENGINE})
-
 include(install_dotnet)
 link_dotnet(${VISERA_ENGINE})
 
