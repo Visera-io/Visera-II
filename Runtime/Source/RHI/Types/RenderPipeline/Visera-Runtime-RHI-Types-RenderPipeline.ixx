@@ -21,7 +21,7 @@ export namespace Visera
         ERHIShaderStages Stages {ERHIShaderStages::Undefined};
 
         [[nodiscard]] inline UInt64
-        Hash() const { return GoldenRatioHashCombine(0, Size, Offset, Stages); }
+        Hash() const { return Math::GoldenRatioHashCombine(0, Size, Offset, Stages); }
 
         friend constexpr Bool
         operator==(const FRHIPushConstantRange& I_A, const FRHIPushConstantRange& I_B) noexcept = default;
@@ -121,9 +121,9 @@ export namespace Visera
             UInt64 Seed = 0;
             {
                 for (const auto& PushConstant : PushConstantRanges)
-                { Seed = GoldenRatioHash(Seed, PushConstant.Hash()); }
+                { Seed = Math::GoldenRatioHash(Seed, PushConstant.Hash()); }
                 for (const auto& DescriptorSet : DescriptorSetLayouts)
-                { Seed = GoldenRatioHash(Seed, DescriptorSet.Hash()); }
+                { Seed = Math::GoldenRatioHash(Seed, DescriptorSet.Hash()); }
             }
             CachedPipelineLayoutHash = Seed;
             return CachedPipelineLayoutHash.value();

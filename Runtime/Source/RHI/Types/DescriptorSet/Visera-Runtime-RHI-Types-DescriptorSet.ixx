@@ -64,7 +64,7 @@ export namespace Visera
         [[nodiscard]] UInt64
         Hash(UInt64 I_Seed = 0) const noexcept
         {
-            return GoldenRatioHashCombine(I_Seed,
+            return Math::GoldenRatioHashCombine(I_Seed,
                 Binding,
                 Type,
                 Count,
@@ -108,7 +108,7 @@ export namespace Visera
             UInt64 Seed = 0;
             for (const auto& Binding : Bindings)
             {
-                Seed = GoldenRatioHash(Seed, Binding.Hash());
+                Seed = Math::GoldenRatioHash(Seed, Binding.Hash());
             }
             CachedHash = Seed;
             return CachedHash.value();

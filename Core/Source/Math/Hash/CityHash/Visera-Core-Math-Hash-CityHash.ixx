@@ -738,7 +738,7 @@ export namespace Google
     #endif
 } // namespace Google
 
-export namespace Visera
+export namespace Visera::Math
 {
   static_assert(std::is_same_v<UInt128, Google::uint128>);
 

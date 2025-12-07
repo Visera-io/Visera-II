@@ -22,6 +22,12 @@ export int main(int argc, char *argv[])
             LOG_INFO("GET!!!");
         }
         LOG_INFO("{}", Entity.Has<CTransform2D>());
+        FSeedPool SeedPool{};
+        FPCG32    PCG32{0, SeedPool.Get()};
+        for (int i = 0; i < 32; ++i)
+        {
+            LOG_INFO("{}", PCG32.Uniform());
+        }
 
         GAudio->Register(BankInit);
         auto ID = GAudio->Register(MainBGM);

@@ -50,7 +50,7 @@ export namespace Visera
 		UInt32 GetTokenProbeHash()			const { return (Value >> 61) & TokenProbeHashMask; }
 
 		FNameHash() = delete;
-		FNameHash(FStringView _ParsedName) : Value{ CityHash64(_ParsedName) } {}
+		FNameHash(FStringView _ParsedName) : Value{ Math::CityHash64(_ParsedName) } {}
 
 	private:
 		UInt64 Value = 0;

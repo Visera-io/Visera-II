@@ -3,7 +3,7 @@ module;
 export module Visera.Core.Math.Hash.GoldenRatio;
 #define VISERA_MODULE_NAME "Core.Math"
 
-export namespace Visera
+export namespace Visera::Math
 {
 	constexpr UInt64 GoldenRatio = 0x9e3779b97f4a7c15ull;
 
