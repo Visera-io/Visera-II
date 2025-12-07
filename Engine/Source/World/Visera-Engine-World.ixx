@@ -20,7 +20,8 @@ namespace Visera
         void inline
         Tick(Float I_DeltaTime);
 
-        [[nodiscard]] FEntity // Managed by Registry rather than SharedPtr
+        // Managed by Registry rather than SharedPtr
+        VISERA_NOINLINE FEntity
         CreateEntity(FName I_Name);
 
     private:
