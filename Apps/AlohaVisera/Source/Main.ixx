@@ -2,18 +2,10 @@ module;
 #include <Visera.hpp>
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
-import Visera.Demos;
 import Visera.Core;
-import Visera.Runtime;
 import Visera.Engine;
 import Visera.Studio;
 using namespace Visera;
-
-struct Foo
-{
-    using FOnInit = TDelegate<FString, FString>;
-    FOnInit OnInit;
-};
 
 export int main(int argc, char *argv[])
 {
@@ -46,6 +38,7 @@ export int main(int argc, char *argv[])
         else LOG_FATAL("Failed to load the \"AppTick()\" from .NET runtime!");
 
         GEngine->Run();
+
         GStudio->Terminate();
     }
     GEngine->Terminate();

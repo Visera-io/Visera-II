@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
-export module Visera.Core.Hash.GoldenRatio;
-#define VISERA_MODULE_NAME "Core.Hash"
+export module Visera.Core.Math.Hash.GoldenRatio;
+#define VISERA_MODULE_NAME "Core.Math"
 
 export namespace Visera
 {

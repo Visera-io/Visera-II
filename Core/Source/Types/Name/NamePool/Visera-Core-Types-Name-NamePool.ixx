@@ -6,7 +6,7 @@ import :Common;
 import :NameTokenTable;
 import :NameEntryTable;
 
-import Visera.Core.Hash.CityHash;
+import Visera.Core.Math.Hash.CityHash;
 import Visera.Core.Types.Map;
 import Visera.Core.Log;
 

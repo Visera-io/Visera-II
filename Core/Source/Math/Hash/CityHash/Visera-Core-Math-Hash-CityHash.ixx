@@ -127,8 +127,8 @@ module;
 #endif
 #endif
 
-#define VISERA_MODULE_NAME "Core.Hash"
-export module Visera.Core.Hash.CityHash;
+#define VISERA_MODULE_NAME "Core.Math"
+export module Visera.Core.Math.Hash.CityHash;
 
 namespace Google
 {

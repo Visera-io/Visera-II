@@ -4,7 +4,7 @@ export module Visera.Runtime.RHI.Types.DescriptorSet;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Common;
 import Visera.Runtime.RHI.Vulkan.DescriptorSet;
-import Visera.Core.Hash.GoldenRatio;
+import Visera.Core.Math.Hash.GoldenRatio;
 import Visera.Core.Traits.Flags;
 import Visera.Core.Log;
 
