@@ -1,5 +1,6 @@
 module;
 #include <Visera-Engine.hpp>
+#include <entt/entt.hpp>
 export module Visera.Engine;
 #define VISERA_MODULE_NAME "Engine"
 export import Visera.Engine.AssetHub;
@@ -60,12 +61,15 @@ namespace Visera
 
                  GRHI->BeginFrame();
                  {
-                     GEvent->OnFrameBegin.Broadcast();
+                     GEvent ->OnFrameBegin.Broadcast();
 
+                     // Logic
                      AppTick.Invoke(DeltaTime);
+                     GWorld ->Tick(DeltaTime);
+                     // Render
                      GRender->Tick(DeltaTime);
 
-                     GEvent->OnFrameEnd.Broadcast();
+                     GEvent ->OnFrameEnd.Broadcast();
                  }
                  GRHI->EndFrame();
                  GRHI->Present();

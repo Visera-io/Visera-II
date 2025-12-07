@@ -38,6 +38,7 @@ export int main(int argc, char *argv[])
             if (!GEngine->AppTick.TryBind([AppTick](Float I_DeltaTime)
             {
                 AppTick(&I_DeltaTime, sizeof(Float));
+                if (auto W = GStudio->UI->Window("Hi App")) { GStudio->UI->Text("??"); }
             }))
             { LOG_FATAL("Failed to bind the AppTick()!"); }
         }

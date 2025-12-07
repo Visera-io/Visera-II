@@ -23,12 +23,27 @@
 
 #if defined(_MSC_VER)
 #define VISERA_ON_MSVC_COMPILER
+#elif defined(__clang__)
+#define VISERA_ON_CLANG_COMPILER
+#elif defined(__GNUC__)
+#define VISERA_ON_GCC_COMPILER
 #endif
 
 #if defined(VISERA_ON_MSVC_COMPILER)
 #define VISERA_NO_OPERATION __noop
 #else
 #define VISERA_NO_OPERATION (void)(0)
+#endif
+
+#if defined(VISERA_ON_MSVC_COMPILER)
+	#define VISERA_NOINLINE      __declspec(noinline)
+	#define VISERA_FORCEINLINE   __forceinline
+#elif defined(VISERA_ON_GCC_COMPILER) || defined(VISERA_ON_CLANG_COMPILER)
+	#define VISERA_NOINLINE      __attribute__((noinline))
+	#define VISERA_FORCEINLINE   inline __attribute__((always_inline))
+#else
+	#define VISERA_NOINLINE
+	#define VISERA_FORCEINLINE   inline
 #endif
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)

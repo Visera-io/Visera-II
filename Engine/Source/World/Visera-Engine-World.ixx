@@ -7,6 +7,7 @@ export module Visera.Engine.World;
        import Visera.Core.Global;
        import Visera.Core.Types.Name;
        import Visera.Core.Types.Map;
+       import Visera.Core.Math.Random.Seed;
        import Visera.Engine.World.Entity;
 export import Visera.Engine.World.Component;
 export import Visera.Engine.World.System;
@@ -16,12 +17,18 @@ namespace Visera
     export class VISERA_ENGINE_API FWorld : public IGlobalSingleton<FWorld>
     {
     public:
+        void inline
+        Tick(Float I_DeltaTime);
+
         [[nodiscard]] FEntity // Managed by Registry rather than SharedPtr
         CreateEntity(FName I_Name);
 
     private:
+        UInt32                  Seed {0};
+
         entt::registry          GlobalRegistry{};
         TMap<FName, FEntity>    Entities{};
+        SMovement               MovementSystem;
 
     public:
         FWorld() : IGlobalSingleton("World") {}
@@ -31,6 +38,12 @@ namespace Visera
 
     export inline VISERA_ENGINE_API TUniquePtr<FWorld>
     GWorld = MakeUnique<FWorld>();
+
+    void FWorld::
+    Tick(Float I_DeltaTime)
+    {
+        MovementSystem.Tick(GlobalRegistry, I_DeltaTime);
+    }
 
     FEntity FWorld::
     CreateEntity(FName I_Name)
@@ -47,6 +60,9 @@ namespace Visera
     Bootstrap()
     {
         LOG_DEBUG("Bootstrapping World");
+
+        Seed = FSeedPool{}.Get();
+        LOG_INFO("World Seed: {}.", Seed);
 
         Status = EStatus::Bootstrapped;
     }
