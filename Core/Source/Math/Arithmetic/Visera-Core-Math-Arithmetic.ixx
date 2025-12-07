@@ -24,15 +24,29 @@ export namespace Visera
 		Min(NumT I_NumA, NumT I_NumB) { return std::min(I_NumA, I_NumB); }
 
 		template<Concepts::Arithmetical NumT> constexpr auto
-		Epsilon() { return std::numeric_limits<NumT>::epsilon(); }
-
-		template<Concepts::FloatingPoint NumT> constexpr Bool
+    	Epsilon() { return std::numeric_limits<NumT>::epsilon(); }
+    	template<Concepts::Arithmetical NumT> constexpr auto
+		UpperBound() { return std::numeric_limits<NumT>::max(); }
+    	template<Concepts::Arithmetical NumT> constexpr auto
+		LowerBound() { return std::numeric_limits<NumT>::min(); }
+    	template <Concepts::FloatingPoint T> Bool
+		IsNaN(T I_Num) { return std::isnan(I_Num); }
+    	template <Concepts::Integeral T> Bool
+		IsNaN(T I_Num) { return False; }
+    	template <Concepts::FloatingPoint T> Bool
+		IsInfinite(T I_Num) { return std::isinf(I_Num); }
+    	template <Concepts::Integeral T> Bool
+		IsInfinite(T I_Num) { return False; }
+    	template <Concepts::FloatingPoint T> Bool
+		IsFinite(T I_Num) { return std::isfinite(I_Num); }
+    	template <Concepts::Integeral T> Bool
+		IsFinite(T I_Num) { return true; }
+    	template<Concepts::FloatingPoint NumT> constexpr Bool
 		IsNearlyEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
 
-		template<Concepts::Arithmetical NumT> constexpr auto
-		UpperBound() { return std::numeric_limits<NumT>::max(); }
-		template<Concepts::Arithmetical NumT> constexpr auto
-		LowerBound() { return std::numeric_limits<NumT>::min(); }
+    	// More Precise and Faster A * B + C
+    	template <Concepts::FloatingPoint T> T
+		MulAdd(T I_A, T I_B, T I_C) { return std::fma(I_A, I_B, I_C); }
 
 		template<Concepts::Arithmetical NumT> constexpr void
 		Clamp(TMutable<NumT> IO_Value, NumT I_Min, NumT I_Max)

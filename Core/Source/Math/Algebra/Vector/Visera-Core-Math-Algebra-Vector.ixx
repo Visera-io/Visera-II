@@ -26,10 +26,10 @@ export namespace Visera
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f; }
 		[[nodiscard]] constexpr Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f); }
-		[[nodiscard]] constexpr Float
-		Dot(const FVector2F& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y; }
-		[[nodiscard]] constexpr Float
-		SquaredNorm() const noexcept { return X * X + Y * Y; }
+		[[nodiscard]] inline Float
+		Dot(const FVector2F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Y * I_Vector.Y); }
+		[[nodiscard]] inline Float
+		SquaredNorm() const noexcept { return Math::MulAdd(X, X, Y * Y); }
 		[[nodiscard]] inline Float
 		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
 		[[nodiscard]] inline Bool
@@ -75,10 +75,10 @@ export namespace Visera
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f; }
 		[[nodiscard]] constexpr Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f); }
-		[[nodiscard]] constexpr Float
-		Dot(const FVector3F& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z; }
-		[[nodiscard]] constexpr Float
-		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z; }
+		[[nodiscard]] inline Float
+		Dot(const FVector3F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Math::MulAdd(Y, I_Vector.Y, Z * I_Vector.Z)); }
+		[[nodiscard]] inline Float
+		SquaredNorm() const noexcept { return Math::MulAdd(X, X, Math::MulAdd(Y, Y, Z * Z)); }
 		[[nodiscard]] inline Float
 		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
 		[[nodiscard]] inline Bool
@@ -124,10 +124,10 @@ export namespace Visera
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f && W == 0.0f; }
 		[[nodiscard]] constexpr Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f) && Math::IsNearlyEqual(W, 0.0f); }
-		[[nodiscard]] constexpr Float
-		Dot(const FVector4F& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z + W * I_Vector.W; }
-		[[nodiscard]] constexpr Float
-		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z + W * W; }
+		[[nodiscard]] inline Float
+		Dot(const FVector4F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Math::MulAdd(Y, I_Vector.Y, Math::MulAdd(Z, I_Vector.Z, W * I_Vector.W))); }
+		[[nodiscard]] inline Float
+		SquaredNorm() const noexcept { return Math::MulAdd(X, X, Math::MulAdd(Y, Y, Math::MulAdd(Z, Z, W * W))); }
 		[[nodiscard]] inline Float
 		L2Norm() const noexcept { return Math::Sqrt(SquaredNorm()); }
 		[[nodiscard]] inline Bool
