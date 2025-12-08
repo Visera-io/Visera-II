@@ -5,6 +5,7 @@ export module Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Core.Log;
+import Visera.Core.Types.Array;
 
 namespace Visera
 {

@@ -9,6 +9,7 @@ import Visera.Runtime.RHI.Vulkan.Pipeline.Cache;
 import Visera.Runtime.RHI.Vulkan.Pipeline.Layout;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Core.Log;
+import Visera.Core.Types.Array;
 
 namespace Visera
 {

@@ -6,6 +6,7 @@ export module Visera.Core.Compression;
 #define VISERA_MODULE_NAME "Core.Compression"
 import Visera.Core.Log;
 import Visera.Core.OS.Memory;
+import Visera.Core.Types.Array;
 
 export namespace Visera
 {

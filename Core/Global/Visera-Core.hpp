@@ -169,7 +169,6 @@
 
 // << PCHs >>
 #include <cassert>
-#include <vector>
 #include <ranges>
 #include <memory>
 #include <string>
@@ -245,12 +244,6 @@ namespace Visera
 			requires !std::is_const_v<std::remove_pointer_t<T>>;
 		};
 	}
-
-    template<typename T>
-    using TArray    = std::vector<T>;
-
-	template <typename T>
-	using TArrayView= const TArray<T>&;
 
 	template <Concepts::Mutable T>
 	using TMutable  = T*;

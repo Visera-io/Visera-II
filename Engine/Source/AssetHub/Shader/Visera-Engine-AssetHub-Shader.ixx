@@ -7,6 +7,7 @@ export import Visera.Engine.AssetHub.Shader.Common;
        import Visera.Engine.AssetHub.Asset;
        import Visera.Runtime.RHI;
        import Visera.Core.Log;
+       import Visera.Core.Types.Array;
 
 namespace Visera
 {

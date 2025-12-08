@@ -6,6 +6,7 @@ import Visera.Engine.Scripting.DotNET;
 import Visera.Core.Global;
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
+import Visera.Core.Types.Array;
 import Visera.Runtime.Platform;
 
 namespace Visera

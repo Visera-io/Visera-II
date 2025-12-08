@@ -12,6 +12,7 @@ export import Visera.Runtime.Media.Image.Common;
        import Visera.Runtime.Media.Image.Wrapper;
        import Visera.Runtime.Media.Image.PNG;
        import Visera.Core.Log;
+       import Visera.Core.Types.Array;
 
 namespace Visera
 {

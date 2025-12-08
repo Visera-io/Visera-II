@@ -6,6 +6,7 @@ import Visera.Runtime.RHI.Common;
 import Visera.Runtime.RHI.Vulkan.DescriptorSet;
 import Visera.Core.Math.Hash.GoldenRatio;
 import Visera.Core.Traits.Flags;
+import Visera.Core.Types.Array;
 import Visera.Core.Log;
 
 export namespace Visera

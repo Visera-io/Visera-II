@@ -8,6 +8,7 @@ export module Visera.Engine.Scripting.DotNET;
 import Visera.Core.Log;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Map;
+import Visera.Core.Types.Array;
 import Visera.Core.OS.FileSystem;
 import Visera.Runtime.Platform;
 

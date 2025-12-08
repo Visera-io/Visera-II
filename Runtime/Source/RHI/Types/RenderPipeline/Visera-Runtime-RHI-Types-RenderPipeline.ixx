@@ -8,6 +8,7 @@ import Visera.Runtime.RHI.Types.DescriptorSet;
 import Visera.Runtime.RHI.Vulkan.Pipeline.Render;
 import Visera.Core.Math.Hash.GoldenRatio;
 import Visera.Core.Traits.Flags;
+import Visera.Core.Types.Array;
 import Visera.Core.Log;
 
 export namespace Visera

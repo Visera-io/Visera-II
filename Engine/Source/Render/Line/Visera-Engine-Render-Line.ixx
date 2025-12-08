@@ -3,6 +3,7 @@ module;
 export module Visera.Engine.Render.Line;
 #define VISERA_MODULE_NAME "Engine.Render"
 import Visera.Core.Math.Algebra.Vector;
+import Visera.Core.Types.Array;
 import Visera.Core.Log;
 import Visera.Engine.Render.Renderer;
 import Visera.Engine.AssetHub;

@@ -9,6 +9,7 @@ export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.Log;
 import Visera.Core.Math.Bit;
+import Visera.Core.OS.Memory.Arena;
 
 export namespace Visera
 {
@@ -20,27 +21,30 @@ export namespace Visera
 
     namespace Memory
     {
-        inline auto
+        template<UInt64 ByteSize> [[nodiscard]] TUniquePtr<TMemoryArena<ByteSize>>
+        CreateArena() noexcept { return MakeUnique<TMemoryArena<ByteSize>>(); }
+
+        VISERA_FORCEINLINE auto
         Memset(void* I_Memory, Int32 I_Value, UInt64 I_Size) -> void;
-        inline auto
+        VISERA_FORCEINLINE auto
         Memcpy(void* I_Destination, const void* I_Source, UInt64 I_Size) -> void { std::memcpy(I_Destination, I_Source, I_Size); }
-        [[nodiscard]] inline auto
+        [[nodiscard]] VISERA_FORCEINLINE auto
         Memcmp(const void* I_MemA, const void* I_MemB, UInt64 I_Size) { return std::memcmp(I_MemA, I_MemB, I_Size); }
-        [[nodiscard]] inline void*
+        [[nodiscard]] VISERA_FORCEINLINE void*
         Malloc(UInt64 I_Size, UInt32 I_Alignment);
-        [[nodiscard]] inline void*
+        [[nodiscard]] VISERA_FORCEINLINE void*
         MallocNow(UInt64 I_Size, UInt32 I_Alignment, Int32 I_Value = 0) { void* AllocatedMemory = Malloc(I_Size, I_Alignment); Memset(AllocatedMemory, I_Value, I_Size); return AllocatedMemory; }
-        [[nodiscard]] inline void*
+        [[nodiscard]] VISERA_FORCEINLINE void*
         Realloc(void* I_Memory, UInt64 I_OldSize, UInt32 I_OldAlignment, UInt64 I_NewSize, UInt32 I_NewAlignment);
-        inline auto
+        VISERA_FORCEINLINE auto
         Free(void* I_Memory, UInt32 I_Alignment) -> void;
 
-        inline auto
+        VISERA_FORCEINLINE auto
         Prefetch(const void* I_Memory, UInt32 I_Offset = 0) -> void;
 
-        [[nodiscard]] inline Bool
+        [[nodiscard]] VISERA_FORCEINLINE Bool
         IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment);
-        [[nodiscard]] inline Bool
+        [[nodiscard]] VISERA_FORCEINLINE Bool
         IsZero(const void* I_Memory, UInt64 I_Size);
         template<typename T> [[nodiscard]] Bool
         IsZero(const T& I_Object) { return IsZero(&I_Object, sizeof(T)); };

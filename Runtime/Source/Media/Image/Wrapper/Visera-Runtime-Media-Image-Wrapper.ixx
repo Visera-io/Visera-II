@@ -4,6 +4,7 @@ export module Visera.Runtime.Media.Image.Wrapper;
 #define VISERA_MODULE_NAME "Runtime.Media"
 export import Visera.Runtime.Media.Image.Common;
 export import Visera.Core.Types.Path;
+       import Visera.Core.Types.Array;
 
 namespace Visera
 {

@@ -149,13 +149,8 @@ namespace Visera
 		// 	5 * 1024, // N MB per file,
 		// 	1         // keep N backups
 		// );
-		TArray<spdlog::sink_ptr> Sinks
-		{
-			ConsoleSink,
-			//RotatingSink,
-		};
-
-		Logger = MakeUnique<spdlog::logger>("System Log", Sinks.begin(), Sinks.end());
+		Logger = MakeUnique<spdlog::logger>("System Log",
+			spdlog::sinks_init_list{ ConsoleSink /*, RotatingSink*/ });
 
 		Logger->set_level(spdlog::level::level_enum(VISERA_LOG_SYSTEM_VERBOSITY));
 		Logger->set_pattern("%^[%L] [%Y-%m-%d %H:%M:%S.%e] [T:%t] %v%$");

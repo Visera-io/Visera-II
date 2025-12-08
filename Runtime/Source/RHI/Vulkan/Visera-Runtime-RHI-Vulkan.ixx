@@ -33,6 +33,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Core.Types.Name;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Set;
+       import Visera.Core.Types.Array;
        import Visera.Core.Traits.Flags;
 
 namespace Visera
