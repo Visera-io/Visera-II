@@ -8,6 +8,14 @@ set(VISERA_APP_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
 if(APPLE)
 add_executable(${VISERA_APP} MACOSX_BUNDLE)
+#[Apple Developer](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html)
+set(CMAKE_MACOSX_RPATH ON)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set_target_properties(${VISERA_APP} PROPERTIES
+    MACOSX_BUNDLE TRUE
+    INSTALL_RPATH "@executable_path/../Frameworks"
+    BUILD_RPATH   "@executable_path/../Frameworks"
+)
 else()
 add_executable(${VISERA_APP})
 endif()

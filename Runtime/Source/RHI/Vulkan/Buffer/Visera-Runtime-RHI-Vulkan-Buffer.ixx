@@ -1,12 +1,12 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.Buffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
 import Visera.Runtime.RHI.Vulkan.Allocator;
 import Visera.Core.Log;
 import Visera.Core.OS.Memory;
+import vulkan_hpp;
 
 namespace Visera
 {

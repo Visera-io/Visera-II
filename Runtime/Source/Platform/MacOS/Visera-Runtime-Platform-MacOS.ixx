@@ -19,11 +19,14 @@ namespace Visera
         LoadLibrary(const FPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
         [[nodiscard]] const FPath&
         GetExecutableDirectory() const override { return ExecutableDirectory; }
+        [[nodiscard]] const FPath&
+        GetResourceDirectory() const override { return ResourceDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 
     private:
         FPath ExecutableDirectory;
+        FPath ResourceDirectory;
 
     public:
         FMacOSPlatform();
@@ -37,9 +40,11 @@ namespace Visera
         uint32_t PathLength = sizeof(Path);
         if (_NSGetExecutablePath(Path, &PathLength) == 0/*Success(0)*/)
         {
-            ExecutableDirectory = FPath{reinterpret_cast<char8_t*>(Path)}.GetParent();
+            ExecutableDirectory = FPath{Path}.GetParent();
         }
         else { LOG_FATAL("Failed to get executable path!"); }
+
+        ResourceDirectory = ExecutableDirectory.GetParent() / FPath{"Resources"};
     }
 
     Bool FMacOSPlatform::

@@ -24,7 +24,7 @@ namespace Visera
             [[nodiscard]] explicit
             operator Bool() const { return Status; }
         };
-        VISERA_NOINLINE [[nodiscard]] FWindow
+        [[nodiscard]] VISERA_NOINLINE FWindow
         Window(FStringView I_Title) { return FWindow{I_Title};  }
         VISERA_NOINLINE void
         Text(FStringView I_Text) { ImGui::TextUnformatted(I_Text.data()); }

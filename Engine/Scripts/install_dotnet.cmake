@@ -165,12 +165,6 @@ macro(link_dotnet in_target)
     if(WIN32)
         target_compile_definitions(${in_target} PRIVATE
             HOSTFXR_LIBRARY_NAME="hostfxr.dll")
-#        add_custom_command(
-#            TARGET ${in_target} POST_BUILD
-#            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#            ${NETHOST_DLL}
-#            $<TARGET_FILE_DIR:${VISERA_APP}>
-#        )
     elseif(APPLE)
         target_compile_definitions(${in_target} PRIVATE
             HOSTFXR_LIBRARY_NAME="libhostfxr.dylib")
@@ -181,19 +175,13 @@ macro(link_dotnet in_target)
     target_include_directories(${in_target} PRIVATE "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET")
     target_link_libraries(${in_target} PRIVATE ${NETHOST_LIBRARY})
 
-    add_custom_target(DotNET)
-    target_sources(DotNET PRIVATE
+    if(NOT TARGET DotNET)
+        add_custom_target(DotNET)
+        target_sources(DotNET PRIVATE
             "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/coreclr_delegates.h"
             "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/hostfxr.h"
-            #"${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/nethost.h"
-    )
-    set_target_properties(DotNET PROPERTIES FOLDER "Visera/Engine/External/DotNET")
-
-    add_custom_command(
-        TARGET ${in_target}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${HOSTFXR_DLL}
-        $<TARGET_FILE_DIR:${VISERA_APP}>
-    )
+            "${VISERA_ENGINE_EXTERNAL_DIR}/DotNET/nethost.h"
+        )
+        set_target_properties(DotNET PROPERTIES FOLDER "Visera/Engine/External/DotNET")
+    endif()
 endmacro()

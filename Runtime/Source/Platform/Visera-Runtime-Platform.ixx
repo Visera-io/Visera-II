@@ -20,6 +20,8 @@ namespace Visera
         LoadLibrary(const FPath& I_Path) const { return Platform->LoadLibrary(I_Path); }
         [[nodiscard]] inline const FPath&
         GetExecutableDirectory() const { return Platform->GetExecutableDirectory(); }
+        [[nodiscard]] inline const FPath&
+        GetResourceDirectory() const { return Platform->GetResourceDirectory(); }
         [[nodiscard]] inline Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const { return Platform->SetEnvironmentVariable(I_Variable, I_Value); }
 

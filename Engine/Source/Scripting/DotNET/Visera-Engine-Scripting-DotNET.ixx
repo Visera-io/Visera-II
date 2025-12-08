@@ -1,6 +1,6 @@
 module;
 #include <Visera-Engine.hpp>
-//#include <nethost.h>
+#include <nethost.h>
 #include <hostfxr.h>
 #include <coreclr_delegates.h>
 export module Visera.Engine.Scripting.DotNET;
@@ -93,14 +93,30 @@ namespace Visera
     private:
         TSharedPtr<ILibrary>      HostFXR;
 
-
     public:
         FDotNET()
         {
             LOG_TRACE("Initializing .NET");
-            //[Optional]: Using the nethost library, discover the location of hostfxr and get exports
-            HostFXR = GPlatform->LoadLibrary(GPlatform->GetExecutableDirectory() / FPath{HOSTFXR_LIBRARY_NAME});
-            if (!HostFXR->IsLoaded()) { LOG_FATAL("Failed to load HostFXR"); }
+            // Using nethost to discover the location of hostfxr, then loading it explicitly.
+            // This avoids relying on a hard-coded hostfxr location next to the executable.
+            size_t BufferSize = 1024;
+            TArray<FPlatformChar> Buffer(BufferSize);
+            Int32 Status = get_hostfxr_path(Buffer.data(), &BufferSize, nullptr);
+            if (Status != HostFXR::Success)
+            {
+                Buffer.resize(BufferSize);
+                Status = get_hostfxr_path(Buffer.data(), &BufferSize, nullptr);
+            }
+
+            if (Status != HostFXR::Success)
+            { LOG_FATAL("Failed to locate hostfxr via nethost (error:{})", Status); }
+
+            const FPath HostFXRPath{ Buffer.data() };
+            LOG_TRACE("Discovered HostFXR at {}", HostFXRPath);
+
+            HostFXR = GPlatform->LoadLibrary(HostFXRPath);
+            if (!HostFXR || !HostFXR->IsLoaded())
+            { LOG_FATAL("Failed to load HostFXR at {}", HostFXRPath); }
 
             LOG_TRACE("Loading HostFXR functions.");
             HostFXR::InitializeForRuntimeConfig = reinterpret_cast<hostfxr_initialize_for_runtime_config_fn>

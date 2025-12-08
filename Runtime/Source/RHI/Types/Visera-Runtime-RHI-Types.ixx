@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan.hpp>
 export module Visera.Runtime.RHI.Types;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Types.RenderPipeline;
