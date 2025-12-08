@@ -21,6 +21,8 @@ namespace Visera
         LoadLibrary(const FPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
         [[nodiscard]] const FPath&
         GetExecutableDirectory() const override { return ExecutableDirectory; }
+        [[nodiscard]] const FPath&
+        GetResourceDirectory() const override { VISERA_UNIMPLEMENTED_API; return ExecutableDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 

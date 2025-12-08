@@ -10,5 +10,5 @@ macro(link_box2d in_target)
         set_target_properties(box2d PROPERTIES FOLDER "Visera/Runtime/External/Box2D")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC box2d)
+    target_link_libraries(${in_target} PRIVATE box2d)
 endmacro()

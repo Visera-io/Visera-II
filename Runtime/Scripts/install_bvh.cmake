@@ -11,5 +11,5 @@ macro(link_bvh in_target)
         set_target_properties(bvh PROPERTIES FOLDER "Visera/Runtime/External/BVH")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC bvh)
+    target_link_libraries(${in_target} PRIVATE bvh)
 endmacro()

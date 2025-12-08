@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan.hpp>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
@@ -11,6 +10,7 @@ export import Visera.Runtime.RHI.Types;
        import Visera.Core.Types.Array;
        import Visera.Core.Global;
        import Visera.Core.Log;
+       import vulkan_hpp;
 
 namespace Visera
 {

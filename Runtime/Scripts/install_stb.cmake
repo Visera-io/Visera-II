@@ -13,5 +13,5 @@ macro(link_stb in_target)
         set_target_properties(STB PROPERTIES FOLDER "Visera/Runtime/External/STB")
     endif()
 
-    target_include_directories(${in_target} PUBLIC "${VISERA_RUNTIME_EXTERNAL_DIR}/STB/")
+    target_include_directories(${in_target} PRIVATE "${VISERA_RUNTIME_EXTERNAL_DIR}/STB/")
 endmacro()

@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 #if defined(CreateSemaphore)
 #undef CreateSemaphore
 #endif
@@ -35,6 +34,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Core.Types.Set;
        import Visera.Core.Types.Array;
        import Visera.Core.Traits.Flags;
+       import vulkan_hpp;
 
 namespace Visera
 {
@@ -253,24 +253,25 @@ namespace Visera
     FVulkanDriver::
     FVulkanDriver()
     {
+#if defined(VISERA_ON_APPLE_SYSTEM)
+        auto VulkanICDPath = FPath{ GPlatform->GetResourceDirectory() / FPath{"Vulkan/MoltenVK_icd.json"}}.GetUTF8Path();
+        if (!GPlatform->SetEnvironmentVariable(
+            "VK_ICD_FILENAMES", VulkanICDPath))
+        { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\" as {}!", VulkanICDPath); }
+#if !defined(VISERA_RELEASE_MODE)
+        auto VulkanLayerPath = FPath{ GPlatform->GetResourceDirectory() / FPath{"Vulkan"}}.GetUTF8Path();
+        if (!GPlatform->SetEnvironmentVariable(
+            "VK_LAYER_PATH", VulkanLayerPath))
+        { LOG_FATAL("Failed to set \"VK_LAYER_PATH\" as {}!", VulkanLayerPath); }
+#endif
+#endif
         AppInfo = vk::ApplicationInfo{}
         .setPApplicationName    (VISERA_APP)
         .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
         .setPEngineName         ("Visera")
         .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
-        .setApiVersion          (vk::ApiVersion13);
-
-#if defined(VISERA_ON_APPLE_SYSTEM)
-        if (!GPlatform->SetEnvironmentVariable(
-            "VK_ICD_FILENAMES",
-            VISERA_VULKAN_SDK_PATH "/share/vulkan/icd.d/MoltenVK_icd.json"))
-        { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\"!"); }
-        if (!GPlatform->SetEnvironmentVariable(
-            "VK_LAYER_PATH",
-            VISERA_VULKAN_SDK_PATH "/share/vulkan/explicit_layer.d"))
-        { LOG_FATAL("Failed to set \"VK_LAYER_PATH\"!"); }
-#endif
-
+        .setApiVersion          (vk::ApiVersion13)
+        ;
         Loader = MakeUnique<FVulkanLoader>();
         CollectInstanceLayersAndExtensions();
         CreateInstance();
@@ -525,8 +526,6 @@ namespace Visera
     void FVulkanDriver::
     PickPhysicalDevice()
     {
-        VISERA_ASSERT(Instance != nullptr);
-
         auto Result = Instance.enumeratePhysicalDevices();
         if (!Result.has_value())
         { LOG_FATAL("Failed to find PhysicalDevices with Vulkan support!"); }
@@ -582,7 +581,6 @@ namespace Visera
                 { GPU.TransferQueueFamilies.insert(Idx); }
 
 #if !defined(VISERA_OFFSCREEN_MODE)
-                VISERA_ASSERT(Surface != nullptr);
                 auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
                 if (Result.has_value())
                 { GPU.PresentQueueFamilies.insert(std::move(*Result)); }
@@ -633,8 +631,6 @@ namespace Visera
     void FVulkanDriver::
     CreateDevice()
     {
-        VISERA_ASSERT(GPU.Context != nullptr);
-
         constexpr Float Priority = 0.0f;
 
         TArray<vk::DeviceQueueCreateInfo> DeviceQueueCreateInfos(1);
@@ -750,8 +746,6 @@ namespace Visera
     CreateSwapChain()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        VISERA_ASSERT(Surface != nullptr);
-
         // Check Present Mode
         {
             Bool bFoundRequiredPresentMode {False};

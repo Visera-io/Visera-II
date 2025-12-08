@@ -1,2 +1,0 @@
-# Vulkan
-> Load from VulkanSDK.

@@ -1,10 +1,10 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan.hpp>
 export module Visera.Runtime.RHI.Common;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Traits.Flags;
 import Visera.Core.Log;
+import vulkan_hpp;
 
 export namespace Visera
 {

@@ -12,5 +12,5 @@ macro(link_miniaudio in_target)
         set_target_properties(MiniAudio PROPERTIES FOLDER "Visera/Runtime/External/MiniAudio")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC MiniAudio)
+    target_link_libraries(${in_target} PRIVATE MiniAudio)
 endmacro()

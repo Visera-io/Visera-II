@@ -1,8 +1,8 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.Common;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+import vulkan_hpp;
 
 export namespace Visera
 {

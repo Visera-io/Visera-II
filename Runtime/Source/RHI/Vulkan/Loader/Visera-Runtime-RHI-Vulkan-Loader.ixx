@@ -4,6 +4,7 @@ module;
 export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
+import vulkan_hpp;
 
 namespace Visera
 {
@@ -19,8 +20,6 @@ namespace Visera
         ~FVulkanLoader();
 
     private:
-        vk::detail::DynamicLoader DynamicLoader;
-
         mutable Bool bLoadedInstance = False;
         mutable Bool bLoadedDevice   = False;
     };
@@ -45,12 +44,8 @@ namespace Visera
     {
         VISERA_ASSERT(I_Instance != nullptr);
 
-        auto Func_vkGetInstanceProcAddr = DynamicLoader.getProcAddress<PFN_vkGetInstanceProcAddr>
-            ("vkGetInstanceProcAddr");
-        if (!Func_vkGetInstanceProcAddr)
-        { LOG_FATAL("Failed to get the 'vkGetInstanceProcAddr'!"); }
-
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Instance, Func_vkGetInstanceProcAddr);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Instance);
         bLoadedInstance = True;
     }
 
@@ -59,7 +54,6 @@ namespace Visera
     {
         VISERA_ASSERT(I_Device != nullptr);
         VISERA_ASSERT(bLoadedInstance);
-
         VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Device);
         bLoadedDevice = True;
     }

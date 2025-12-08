@@ -1,11 +1,11 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 export module Visera.Runtime.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
+import vulkan_hpp;
 
 export namespace Visera
 {
@@ -47,10 +47,9 @@ export namespace Visera
     {
         const VmaVulkanFunctions VulkanFunctions
         {
-            .vkGetInstanceProcAddr               = vkGetInstanceProcAddr,
-            .vkGetDeviceProcAddr                 = vkGetDeviceProcAddr,
-            .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
-            .vkGetDeviceImageMemoryRequirements  = vkGetDeviceImageMemoryRequirements
+            .vkGetInstanceProcAddr                  = vkGetInstanceProcAddr,
+            .vkGetDeviceProcAddr                    = vkGetDeviceProcAddr,
+            // Other functions can be null (@ref: vk_mem_alloc.h line 2927)
         };
 
         const VmaAllocatorCreateInfo CreateInfo

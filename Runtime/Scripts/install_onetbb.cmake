@@ -14,7 +14,7 @@ macro(link_onetbb in_target)
         set_target_properties(tbbmalloc PROPERTIES FOLDER "Visera/Runtime/External/OneTBB")
         set_target_properties(tbbmalloc_proxy PROPERTIES FOLDER "Visera/Runtime/External/OneTBB")
     endif()
-    target_link_libraries(${in_target} PUBLIC TBB::tbb)
+    target_link_libraries(${in_target} PRIVATE TBB::tbb)
 
     add_custom_command(
         TARGET ${in_target}

@@ -3,54 +3,55 @@ if(NOT VISERA_RUNTIME_EXTERNAL_DIR)
 endif()
 
 macro(link_vulkan in_target)
-    message(STATUS "\nLinking Vulkan (Vulkan::Vulkan)")
+    message(STATUS "\nLinking Vulkan (VulkanModule)")
+    set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328.0")
+    set(VULKAN_DIR "${VISERA_RUNTIME_EXTERNAL_DIR}/Vulkan")
 
-    if(NOT TARGET Vulkan::Vulkan)
-        if(APPLE)
-            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328.0") # Vulkan Hpp
-        else()
-            set(VULKAN_REQUIRED_MINIMAL_VERSION "1.4.328.0") # MoltenVk 1.4.0
-        endif()
-
-        if(NOT DEFINED ENV{VULKAN_SDK})
-            if(APPLE)
-                # Try to locate Vulkan SDK on macOS (default install location)
-                file(GLOB VULKAN_SDK_CANDIDATES "/Users/*/VulkanSDK/*/macOS")
-                list(SORT VULKAN_SDK_CANDIDATES COMPARE NATURAL)
-                list(REVERSE VULKAN_SDK_CANDIDATES) # prefer latest
-                list(GET VULKAN_SDK_CANDIDATES 0 VULKAN_SDK_PATH)
-
-                if(EXISTS "${VULKAN_SDK_PATH}")
-                    set(ENV{VULKAN_SDK} ${VULKAN_SDK_PATH})
-                endif()
-            endif(APPLE)
-
-            message(FATAL_ERROR "Failed to find VulkanSDK on your system! Please set VULKAN_SDK.")
-        endif()
-
-        # Extract the version from the path
-        string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+" VULKAN_VERSION $ENV{VULKAN_SDK})
-
-        if(VULKAN_VERSION)
-            message(STATUS "Found VulkanSDK ${VULKAN_VERSION} on current system")
-
-            if(VULKAN_VERSION VERSION_LESS ${VULKAN_REQUIRED_MINIMAL_VERSION})
-                message(FATAL_ERROR "VulkanSDK version is required >=  ${VULKAN_REQUIRED_MINIMAL_VERSION}, while current version is ${VULKAN_VERSION}")
-            endif()
-        else()
-            message(FATAL_ERROR "Could not determine Vulkan SDK version.")
-        endif()
-
-        add_custom_target(Vulkan)
-        set_target_properties(Vulkan PROPERTIES FOLDER "Visera/Runtime/External/Vulkan")
+    if(NOT TARGET VulkanModule)
+        add_subdirectory(${VULKAN_DIR})
+        set_target_properties(VulkanModule PROPERTIES FOLDER "Visera/Runtime/External/Vulkan")
     endif()
 
-    find_package(Vulkan REQUIRED)
-    target_link_libraries(${in_target} PUBLIC Vulkan::Vulkan)
+    target_link_libraries(${in_target} PUBLIC VulkanModule)
+    if(APPLE)
+    target_link_libraries(${in_target} PUBLIC VulkanLoader)
+    endif()
 
-    target_compile_definitions(${in_target} PRIVATE
-            VISERA_VULKAN_SDK_PATH="$ENV{VULKAN_SDK}"
-            VULKAN_HPP_NO_EXCEPTIONS
-            VULKAN_HPP_RAII_NO_EXCEPTIONS
-    )
+    message(STATUS "Vulkan files will be copied into the app bundle.")
+    if(APPLE)
+        add_custom_command(TARGET ${in_target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan"
+            # Vulkan
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/libvulkan.1.dylib" # Note: this is a renamed lib
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            # MoltenVk
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/libMoltenVK.dylib"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/MoltenVK_icd.json"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+            # Synchronization2
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/libVkLayer_khronos_synchronization2.dylib"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/VkLayer_khronos_synchronization2.json"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+        )
+        if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET ${in_target} POST_BUILD
+            # Validation Layer
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/libVkLayer_khronos_validation.dylib"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VULKAN_DIR}/MacOS/VkLayer_khronos_validation.json"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+        )
+        endif()
+    endif()
 endmacro()

@@ -1,6 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <vulkan/vulkan_raii.hpp>
 export module Visera.Runtime.RHI.Vulkan.Pipeline.Render;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
@@ -10,6 +9,7 @@ import Visera.Runtime.RHI.Vulkan.Pipeline.Layout;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
 import Visera.Core.Log;
 import Visera.Core.Types.Array;
+import vulkan_hpp;
 
 namespace Visera
 {

@@ -36,5 +36,5 @@ macro(link_libpng in_target)
         $<TARGET_FILE:png>
         $<TARGET_FILE_DIR:${in_target}>
     )
-    target_link_libraries(${in_target} PUBLIC png)
+    target_link_libraries(${in_target} PRIVATE png)
 endmacro()

@@ -14,7 +14,7 @@ macro(link_glfw in_target)
         set_target_properties(update_mappings PROPERTIES FOLDER "Visera/Runtime/External/GLFW")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC glfw)
+    target_link_libraries(${in_target} PRIVATE glfw)
 
     add_custom_command(
         TARGET ${in_target}
