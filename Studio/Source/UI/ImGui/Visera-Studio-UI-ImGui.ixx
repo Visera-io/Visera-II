@@ -13,6 +13,7 @@ import Visera.Core.Log;
 import Visera.Core.Types.Path;
 import Visera.Runtime.RHI;
 import Visera.Runtime.Window;
+import Visera.Runtime.Platform;
 
 namespace Visera
 {
@@ -47,7 +48,7 @@ namespace Visera
     FImGui()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        Font = FPath{VISERA_STUDIO_DIR "/Assets/Font/TsangerYunHei.ttf"};
+        Font = GPlatform->GetExecutableDirectory() / FPath{"Assets/Font/TsangerYunHei.ttf"};
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();

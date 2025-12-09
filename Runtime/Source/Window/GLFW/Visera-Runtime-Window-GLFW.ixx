@@ -7,6 +7,7 @@ export module Visera.Runtime.Window.GLFW;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Window.Interface;
 import Visera.Runtime.Input;
+import Visera.Runtime.Platform;
 import Visera.Core.Log;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 import Visera.Core.Types.Path;
@@ -92,7 +93,7 @@ namespace Visera
         }
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-        FImage IconImage{ FPath{VISERA_ENGINE_DIR "/Assets/Image/Visera.png"} };
+        FImage IconImage{ GPlatform->GetExecutableDirectory() / FPath{"Assets/Image/Visera.png"} };
         VISERA_ASSERT(IconImage.HasAlpha());
 
         GLFWimage Icon;

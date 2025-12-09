@@ -80,16 +80,7 @@ if(NOT EXISTS "${VISERA_APP_PROJECT}")
 message(FATAL_ERROR "Failed to find the \"${VISERA_APP_PROJECT}\"!")
 endif()
 set(VISERA_APP ${VISERA_APP_NAME})
-
-add_compile_definitions(
-    VISERA_CORE_DIR=u8"${VISERA_CORE_DIR}"
-    VISERA_RUNTIME_DIR=u8"${VISERA_RUNTIME_DIR}"
-    VISERA_ENGINE_DIR=u8"${VISERA_ENGINE_DIR}"
-    VISERA_STUDIO_DIR=u8"${VISERA_STUDIO_DIR}"
-    VISERA_APP_DIR=u8"${VISERA_APP_DIR}"
-
-    VISERA_APP="${VISERA_APP_NAME}"
-)
+add_compile_definitions(VISERA_APP=\"${VISERA_APP_NAME}\")
 
 if(WIN32)
     add_compile_definitions(VISERA_ON_WINDOWS_SYSTEM)

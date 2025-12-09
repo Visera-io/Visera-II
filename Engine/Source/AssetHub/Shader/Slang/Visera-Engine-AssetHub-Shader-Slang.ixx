@@ -8,6 +8,7 @@ import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
 import Visera.Core.Log;
+import Visera.Runtime.Platform;
 import Visera.Engine.Event;
 
 namespace Visera
@@ -87,10 +88,8 @@ namespace Visera
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
 
-    		if (!AddSearchPath(FPath{VISERA_ENGINE_DIR "/Assets/Shader"}))
-    		{ VISERA_ASSERT(False && "Failed to add Engine shader path!"); }
-    		if (!AddSearchPath(FPath{VISERA_APP_DIR "/Assets/Shader"}))
-    		{ VISERA_ASSERT(False && "Failed to add App shader path!"); }
+    		if (!AddSearchPath(GPlatform->GetExecutableDirectory() / FPath{"Assets/Shader"}))
+    		{ VISERA_ASSERT(False && "Failed to add shader search path!"); }
     	}
 
     	if (!CreateSession())
