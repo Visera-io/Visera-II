@@ -11,10 +11,11 @@ macro(link_libpng in_target)
             message(FATAL_ERROR "ZLIB::ZLIB target not found. Please ensure Visera-Core is installed before Visera-Runtime.")
         endif()
 
-        set(PNG_SHARED ON  CACHE BOOL " " FORCE)
-        set(PNG_STATIC OFF CACHE BOOL " " FORCE)
+        set(PNG_SHARED OFF CACHE BOOL " " FORCE)
+        set(PNG_STATIC ON  CACHE BOOL " " FORCE)
         set(PNG_TESTS  OFF CACHE BOOL " " FORCE)
         set(PNG_SKIP_INSTALL_ALL TRUE)
+        set(BUILD_SHARED_LIBS OFF)
 
         if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
             set(PNG_ARM_NEON "on" CACHE STRING " " FORCE)
@@ -24,17 +25,17 @@ macro(link_libpng in_target)
         add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/LibPNG)
         
         # Ensure LibPNG can find the Zlib target from Core
-        target_link_libraries(png PRIVATE ZLIB::ZLIB)
-        set_target_properties(png PROPERTIES FOLDER "Visera/Runtime/External/LibPNG")
+        target_link_libraries(png_static PRIVATE ZLIB::ZLIB)
+        set_target_properties(png_static PROPERTIES FOLDER "Visera/Runtime/External/LibPNG")
         set_target_properties(png_genfiles PROPERTIES FOLDER "Visera/Runtime/External/LibPNG")
     endif()
-    
-    add_custom_command(
-        TARGET ${in_target}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:png>
-        $<TARGET_FILE_DIR:${in_target}>
-    )
-    target_link_libraries(${in_target} PRIVATE png)
+
+#    add_custom_command(
+#        TARGET ${in_target}
+#        POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#        $<TARGET_FILE:png>
+#        $<TARGET_FILE_DIR:${in_target}>
+#    )
+    target_link_libraries(${in_target} PRIVATE png_static)
 endmacro()

@@ -14,7 +14,7 @@ namespace Visera
     export class VISERA_RUNTIME_API FVulkanDescriptorSet
     {
     public:
-        inline void
+        VISERA_NOINLINE void
         WriteImage(UInt32                       I_Binding,
                    TSharedRef<FVulkanImageView> I_ImageView,
                    TSharedRef<FVulkanSampler>   I_Sampler);

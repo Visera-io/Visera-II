@@ -17,15 +17,6 @@
     ],
     "URL" : "https://github.com/shader-slang/slang"
   },
-  ".NET" :
-  {
-    "Version" : "10.X.X",
-    "Dependencies" :
-    [
-
-    ],
-    "URL" : "https://dotnet.microsoft.com"
-  },
   "EnTT" :
   {
     "Version" : "3.16.0",

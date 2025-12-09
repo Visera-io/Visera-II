@@ -32,8 +32,8 @@ endif()
 if(NOT EXISTS "${WWISE_EXTRACT_DIR}/${WWISE_BUILD_TYPE}")
     message(STATUS "Extracting ${WWISE_ARCHIVE}")
     file(ARCHIVE_EXTRACT
-            INPUT       "${WWISE_ARCHIVE}"
-            DESTINATION "${WWISE_EXTRACT_DIR}"
+         INPUT       "${WWISE_ARCHIVE}"
+         DESTINATION "${WWISE_EXTRACT_DIR}"
     )
 endif()
 

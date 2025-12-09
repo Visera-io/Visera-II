@@ -11,9 +11,9 @@ namespace Visera
     export class VISERA_RUNTIME_API FVulkanFence
     {
     public:
-        [[nodiscard]] inline Bool
+        VISERA_NOINLINE [[nodiscard]] Bool
         Wait(UInt64 I_Timeout = ~0U) const;
-        [[nodiscard]] inline Bool
+        VISERA_NOINLINE [[nodiscard]] Bool
         Reset() const;
 
         [[nodiscard]] inline const vk::raii::Fence&

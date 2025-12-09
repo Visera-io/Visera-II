@@ -116,7 +116,7 @@ add_subdirectory(${VISERA_APP_DIR}) #[TODO]: App -> Engine
 add_custom_target(
     "Visera-App" ALL
     COMMAND
-    ${DOTNET_EXECUTABLE} build ${VISERA_APP_PROJECT}
+    dotnet build ${VISERA_APP_PROJECT}
     -c $<IF:$<CONFIG:Release>,Release,Debug>
 
     -p:VISERA_ENGINE_APIS=${VISERA_ENGINE_DIR}/APIs/

@@ -1,4 +1,13 @@
 {
+    ".NET" :
+    {
+        "Version" : "10.0.0",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://dotnet.microsoft.com"
+    },
     "GLFW" :
     {
         "Version" : "3.4",

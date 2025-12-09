@@ -1,6 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
-#include "Visera-Runtime-RHI-Vulkan-Loader.inl"
+
+#include "vulkan/vulkan_core.h"
 export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
@@ -43,9 +44,8 @@ namespace Visera
     Load(const vk::Instance& I_Instance) const
     {
         VISERA_ASSERT(I_Instance != nullptr);
-
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Instance);
+        vk::detail::defaultDispatchLoaderDynamic.init(vkGetInstanceProcAddr);
+        vk::detail::defaultDispatchLoaderDynamic.init(I_Instance);
         bLoadedInstance = True;
     }
 
@@ -54,7 +54,7 @@ namespace Visera
     {
         VISERA_ASSERT(I_Device != nullptr);
         VISERA_ASSERT(bLoadedInstance);
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(I_Device);
+        vk::detail::defaultDispatchLoaderDynamic.init(I_Device);
         bLoadedDevice = True;
     }
 }

@@ -6,7 +6,6 @@ export module Visera.Engine;
 export import Visera.Engine.AssetHub;
 export import Visera.Engine.Audio;
 export import Visera.Engine.Render;
-export import Visera.Engine.Scripting;
 export import Visera.Engine.Event;
 export import Visera.Engine.World;
 export import Visera.Engine.UI;
@@ -27,6 +26,16 @@ namespace Visera
         void Run()
         {
             VISERA_ASSERT(IsBootstrapped());
+
+            if (auto Tick = GScripting->GetFunction(PLATFORM_STRING("Tick")))
+            {
+                if (!AppTick.TryBind([Tick](Float I_DeltaTime)
+                {
+                    Tick(&I_DeltaTime, sizeof(Float));
+                }))
+                { LOG_FATAL("Failed to bind the AppTick()!"); }
+            }
+            else LOG_FATAL("Failed to load the \"AppTick()\" from .NET runtime!");
 
             if (!GWindow->IsBootstrapped())
             {
@@ -85,7 +94,6 @@ namespace Visera
             GRuntime    ->Bootstrap();
 
             GEvent      ->Bootstrap();
-            GScripting  ->Bootstrap();
             GAssetHub   ->Bootstrap();
             GRender     ->Bootstrap();
             GAudio      ->Bootstrap();
@@ -104,7 +112,6 @@ namespace Visera
             GAudio      ->Terminate();
             GRender     ->Terminate();
             GAssetHub   ->Terminate();
-            GScripting  ->Terminate();
             GEvent      ->Terminate();
 
             GRuntime    ->Terminate();

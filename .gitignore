@@ -1,11 +1,13 @@
 Build/
-Toolkit/CSharp/*App
 .idea/
+.DS_Store
 cmake-build*/
+
+**/External/**/Windows/**
+**/External/**/MacOS/**
+**/External/**/Linux/**
 *.a
 *.lib
-
-.DS_Store
 *.pdb
 *.dll
 *.dylib

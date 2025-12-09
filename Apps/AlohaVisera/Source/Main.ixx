@@ -36,17 +36,6 @@ export int main(int argc, char *argv[])
         auto ID = GAudio->Register(MainBGM);
         GAudio->PostEvent("Play_MainBGM", ID);
 
-        if (auto AppTick = GScripting->GetFunction(PLATFORM_STRING("Tick")))
-        {
-            if (!GEngine->AppTick.TryBind([AppTick, DebugTick](Float I_DeltaTime)
-            {
-                AppTick(&I_DeltaTime, sizeof(Float));
-                DebugTick();
-            }))
-            { LOG_FATAL("Failed to bind the AppTick()!"); }
-        }
-        else LOG_FATAL("Failed to load the \"AppTick()\" from .NET runtime!");
-
         GEngine->Run();
 
         GStudio->Terminate();

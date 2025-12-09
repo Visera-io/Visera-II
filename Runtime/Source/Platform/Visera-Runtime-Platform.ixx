@@ -41,11 +41,15 @@ namespace Visera
 #elif defined(VISERA_ON_APPLE_SYSTEM)
             Platform = MakeUnique<FMacOSPlatform>();
 #endif
+
+            Status = EStatus::Bootstrapped;
         }
         void Terminate() override
         {
             LOG_TRACE("Terminating Platform.");
             Platform.reset();
+
+            Status = EStatus::Terminated;
         }
     };
 
