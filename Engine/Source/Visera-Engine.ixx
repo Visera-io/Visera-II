@@ -10,7 +10,8 @@ export import Visera.Engine.Event;
 export import Visera.Engine.World;
 export import Visera.Engine.UI;
        import Visera.Core.Types.Name;
-       import Visera.Core.Delegate;
+       import Visera.Core.Delegate.Unicast;
+       import Visera.Core.Traits.Policy;
        import Visera.Core.OS.Time;
        import Visera.Core.Global;
        import Visera.Core.Log;
@@ -21,7 +22,8 @@ namespace Visera
     export class VISERA_ENGINE_API FEngine : public IGlobalSingleton<FEngine>
     {
     public:
-        TExclusiveUnicastDelegate<Float> AppTick;
+        TUnicastDelegate<void(Float), Policy::Exclusive>
+        AppTick;
 
         void Run()
         {

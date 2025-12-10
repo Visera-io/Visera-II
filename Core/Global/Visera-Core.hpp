@@ -1,9 +1,15 @@
 #pragma once
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-	#define VISERA_CORE_API __declspec(dllexport)
+  #if defined(VISERA_CORE_BUILD_STATIC)
+    #define VISERA_CORE_API
+  #elif defined(VISERA_CORE_BUILD_SHARED)
+    #define VISERA_CORE_API __declspec(dllexport)
+  #else
+    #define VISERA_CORE_API __declspec(dllimport)
+  #endif
 #else
-	#define VISERA_CORE_API __attribute__((visibility("default")))
+  #define VISERA_CORE_API __attribute__((visibility("default")))
 #endif
 
 #if (defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__amd64__) || defined(__x86_64__)) && !defined(_M_ARM64EC)

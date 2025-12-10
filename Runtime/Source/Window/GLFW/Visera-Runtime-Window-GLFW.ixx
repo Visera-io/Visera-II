@@ -23,21 +23,21 @@ namespace Visera
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor();
 
-        [[nodiscard]] inline void*
+        [[nodiscard]] VISERA_FORCEINLINE void*
         GetHandle() const override { return Handle; }
-        [[nodiscard]] inline Bool
+        [[nodiscard]] VISERA_FORCEINLINE Bool
         ShouldClose() const override { return glfwWindowShouldClose(Handle); }
-        inline void
+        VISERA_FORCEINLINE void
         WaitEvents() const override { glfwWaitEvents(); }
-        inline void
+        VISERA_FORCEINLINE void
         PollEvents() const override { glfwPollEvents(); }
-        void inline
+        VISERA_FORCEINLINE void
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
-        void inline
+        VISERA_FORCEINLINE void
         SetPosition(Int32 I_X, Int32 I_Y) const override { glfwSetWindowPos(Handle, I_X, I_Y); }
-        [[nodiscard]] FStringView
+        [[nodiscard]] VISERA_FORCEINLINE FStringView
         GetTitle() const override { return glfwGetWindowTitle(Handle); }
-        void inline
+        VISERA_FORCEINLINE void
         SetTitle(FStringView I_Title) override { glfwSetWindowTitle(Handle, I_Title.data()); }
 
         FGLFWWindow();

@@ -29,11 +29,6 @@ add_custom_command(
 )
 endif()
 
-if(NOT TARGET Visera::Core)
-    message(FATAL_ERROR "Visera-Core is not installed!")
-endif()
-target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Core)
-
 if(NOT TARGET Visera::Runtime)
     message(FATAL_ERROR "Visera-Runtime is not installed!")
 endif()

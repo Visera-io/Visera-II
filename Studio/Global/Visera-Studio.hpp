@@ -5,16 +5,13 @@
 #endif
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-    #if defined(VISERA_STUDIO_BUILD_SHARED)
-        #define VISERA_STUDIO_API __declspec(dllexport)
-    #else
-        #define VISERA_STUDIO_API __declspec(dllimport)
-    #endif
+  #if defined(VISERA_STUDIO_BUILD_STATIC)
+    #define VISERA_STUDIO_API
+  #elif defined(VISERA_STUDIO_BUILD_SHARED)
+    #define VISERA_STUDIO_API __declspec(dllexport)
+  #else
+    #define VISERA_STUDIO_API __declspec(dllimport)
+  #endif
 #else
-    #define VISERA_STUDIO_API __attribute__((visibility("default")))
+  #define VISERA_STUDIO_API __attribute__((visibility("default")))
 #endif
-
-namespace Visera
-{
-
-}

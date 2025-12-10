@@ -33,7 +33,6 @@ target_sources(${VISERA_APP}
 target_link_libraries(${VISERA_APP}
         PRIVATE
         Visera::Core
-        Visera::Runtime
         Visera::Engine
         Visera::Studio
 )

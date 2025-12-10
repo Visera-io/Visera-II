@@ -26,7 +26,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Runtime.Platform;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
-       import Visera.Core.Delegate;
+       import Visera.Core.Delegate.Unicast;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Name;
@@ -34,6 +34,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
        import Visera.Core.Types.Set;
        import Visera.Core.Types.Array;
        import Visera.Core.Traits.Flags;
+       import Visera.Core.Traits.Policy;
        import vulkan_hpp;
 
 namespace Visera
@@ -116,8 +117,7 @@ namespace Visera
         GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex]; }
         inline void
         EndFrame();
-        TExclusiveUnicastDelegate<TSharedRef<FVulkanCommandBuffer>,
-                           TSharedRef<FVulkanImageView>>
+        TUnicastDelegate<void(TSharedRef<FVulkanCommandBuffer>, TSharedRef<FVulkanImageView>), Policy::Exclusive>
         StudioDrawCalls;
         [[nodiscard]] inline Bool
         Present();

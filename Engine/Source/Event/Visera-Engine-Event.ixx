@@ -3,7 +3,7 @@ module;
 export module Visera.Engine.Event;
 #define VISERA_MODULE_NAME "Engine.Event"
 import Visera.Core.Global;
-import Visera.Core.Delegate;
+import Visera.Core.Delegate.Multicast;
 import Visera.Core.Log;
 
 namespace Visera
