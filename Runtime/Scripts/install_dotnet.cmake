@@ -10,7 +10,7 @@ macro(link_dotnet in_target)
     add_subdirectory("${VISERA_RUNTIME_EXTERNAL_DIR}/DotNET")
     add_dependencies(${in_target} DotNETRuntime)
     target_include_directories(${in_target} PRIVATE "${VISERA_RUNTIME_EXTERNAL_DIR}/DotNET/Include")
-    add_compile_definitions(${in_target} PRIVATE
+    add_compile_definitions(
         VISERA_DOTNET_ROOT=\"${VISERA_DOTNET_RELATIVE_PATH}\"
         VISERA_DOTNET_HOSTFXR_PATH=\"${VISERA_DOTNET_RELATIVE_PATH}/host/fxr/${VISERA_DOTNET_VERSION}/${VISERA_DOTNET_HOSTFXR_NAME}\"
     )

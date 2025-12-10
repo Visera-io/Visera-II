@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 4.0.0 FATAL_ERROR)
 
-add_library(VulkanModule STATIC)
+add_library(VulkanModule STATIC
+                         ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanLoader.cpp)
 target_sources(VulkanModule PUBLIC
     FILE_SET  CXX_MODULES
     FILES     ${CMAKE_CURRENT_SOURCE_DIR}/Include/vulkan/vulkan.cppm
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanLoader.cpp
 )
 target_include_directories(VulkanModule PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Include
