@@ -48,7 +48,7 @@ export namespace Visera
 	    Determinant() const noexcept
         {
             auto& M = *this;
-            return M(0,0) * M(1,1) - M(0,1) * M(1,0);
+            return Math::MulAdd(M(0,0), M(1,1), - M(0,1) * M(1,0));
         }
         [[nodiscard]] constexpr FMatrix2x2F
 	    Transposed() const noexcept
@@ -77,16 +77,15 @@ export namespace Visera
         constexpr FMatrix2x2F&
         operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyEqual(I_Factor, 0.0f)); return (*this) *= (1.0f / I_Factor); }
         [[nodiscard]] constexpr FMatrix2x2F
-	    operator*(const FMatrix2x2F& I_Rhs) const noexcept
+        operator*(const FMatrix2x2F& I_Rhs) const noexcept
         {
             auto R = FMatrix2x2F::Zero();
             for (UInt32 Row = 0; Row < 2; ++Row)
             {
                 for (UInt32 Col = 0; Col < 2; ++Col)
                 {
-                    Float Sum = 0.0f;
-                    for (UInt32 K = 0; K < 2; ++K) { Sum += (*this)(Row, K) * I_Rhs(K, Col); }
-                    R(Row, Col) = Sum;
+                    R(Row, Col) = (*this)(Row, 0) * I_Rhs(0, Col) +
+                                  (*this)(Row, 1) * I_Rhs(1, Col);
                 }
             }
             return R;
@@ -98,12 +97,12 @@ export namespace Visera
         {
         	auto& M = *this;
             return {
-                M(0,0)*I_Vector.X + M(0,1)*I_Vector.Y,
-                M(1,0)*I_Vector.X + M(1,1)*I_Vector.Y};
+                Math::MulAdd(M(0,0), I_Vector.X, M(0,1)*I_Vector.Y),
+                Math::MulAdd(M(1,0), I_Vector.X, M(1,1)*I_Vector.Y)};
         }
         constexpr FMatrix2x2F() noexcept = default;
         constexpr FMatrix2x2F(Float I_M00, Float I_M01, Float I_M10, Float I_M11) noexcept
-		: Data { I_M00, I_M01, I_M10, I_M11} {}
+		: Data { I_M00, I_M10, I_M01, I_M11 } {}
 
     private:
         // Internal helper: not exported as public API necessity, just to support Transposed() compactly.
@@ -160,7 +159,10 @@ export namespace Visera
             const Float A00 = M(0,0), A01 = M(0,1), A02 = M(0,2);
             const Float A10 = M(1,0), A11 = M(1,1), A12 = M(1,2);
             const Float A20 = M(2,0), A21 = M(2,1), A22 = M(2,2);
-            return A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20);
+
+            return Math::MulAdd(A00,  Math::MulAdd(A11, A22, - A12*A21),
+                   Math::MulAdd(-A01, Math::MulAdd(A10, A22, - A12*A20),
+                   Math::MulAdd(A02,  Math::MulAdd(A10, A21, - A11*A20), 0.0f)));
         }
         [[nodiscard]] constexpr FMatrix3x3F
         Transposed() const noexcept
@@ -168,7 +170,8 @@ export namespace Visera
             auto R = FMatrix3x3F::Zero();
             for (UInt32 Row = 0; Row < 3; ++Row)
             {
-                for (UInt32 Col = 0; Col < 3; ++Col) { R(Row, Col) = (*this)(Col, Row); }
+                for (UInt32 Col = 0; Col < 3; ++Col)
+                { R(Row, Col) = (*this)(Col, Row); }
             }
             return R;
         }
@@ -198,7 +201,8 @@ export namespace Visera
                 for (UInt32 Col = 0; Col < 3; ++Col)
                 {
                     Float Sum = 0.0f;
-                    for (UInt32 K = 0; K < 3; ++K) { Sum += (*this)(Row, K) * I_Rhs(K, Col); }
+                    for (UInt32 K = 0; K < 3; ++K)
+                    { Sum = Math::MulAdd((*this)(Row, K), I_Rhs(K, Col), Sum); }
                     R(Row, Col) = Sum;
                 }
             }
@@ -211,9 +215,9 @@ export namespace Visera
         {
             auto& M = *this;
             return {
-                M(0,0)*I_Vector.X + M(0,1)*I_Vector.Y + M(0,2)*I_Vector.Z,
-                M(1,0)*I_Vector.X + M(1,1)*I_Vector.Y + M(1,2)*I_Vector.Z,
-                M(2,0)*I_Vector.X + M(2,1)*I_Vector.Y + M(2,2)*I_Vector.Z };
+                Math::MulAdd(M(0,0), I_Vector.X, Math::MulAdd(M(0,1), I_Vector.Y, M(0,2)*I_Vector.Z)),
+                Math::MulAdd(M(1,0), I_Vector.X, Math::MulAdd(M(1,1), I_Vector.Y, M(1,2)*I_Vector.Z)),
+                Math::MulAdd(M(2,0), I_Vector.X, Math::MulAdd(M(2,1), I_Vector.Y, M(2,2)*I_Vector.Z)) };
         }
 
         constexpr FMatrix3x3F() noexcept = default;
@@ -268,12 +272,23 @@ export namespace Visera
             const Float A20 = M(2,0), A21 = M(2,1), A22 = M(2,2), A23 = M(2,3);
             const Float A30 = M(3,0), A31 = M(3,1), A32 = M(3,2), A33 = M(3,3);
 
-            const Float Det0 = A11*(A22*A33 - A23*A32) - A12*(A21*A33 - A23*A31) + A13*(A21*A32 - A22*A31);
-            const Float Det1 = A10*(A22*A33 - A23*A32) - A12*(A20*A33 - A23*A30) + A13*(A20*A32 - A22*A30);
-            const Float Det2 = A10*(A21*A33 - A23*A31) - A11*(A20*A33 - A23*A30) + A13*(A20*A31 - A21*A30);
-            const Float Det3 = A10*(A21*A32 - A22*A31) - A11*(A20*A32 - A22*A30) + A12*(A20*A31 - A21*A30);
+            const Float X0 = Math::MulAdd(A22, A33, -(A23 * A32)); // (A22*A33 - A23*A32)
+            const Float Y0 = Math::MulAdd(A21, A33, -(A23 * A31)); // (A21*A33 - A23*A31)
+            const Float Z0 = Math::MulAdd(A21, A32, -(A22 * A31)); // (A21*A32 - A22*A31)
 
-            return A00 * Det0 - A01 * Det1 + A02 * Det2 - A03 * Det3;
+            const Float Y1 = Math::MulAdd(A20, A33, -(A23 * A30)); // (A20*A33 - A23*A30)
+            const Float Z1 = Math::MulAdd(A20, A32, -(A22 * A30)); // (A20*A32 - A22*A30)
+
+            const Float Z2 = Math::MulAdd(A20, A31, -(A21 * A30)); // (A20*A31 - A21*A30)
+
+            const Float Det0 = Math::MulAdd(A11, X0, Math::MulAdd(-A12, Y0,  (A13 * Z0)));
+            const Float Det1 = Math::MulAdd(A10, X0, Math::MulAdd(-A12, Y1,  (A13 * Z1)));
+            const Float Det2 = Math::MulAdd(A10, Y0, Math::MulAdd(-A11, Y1,  (A13 * Z2)));
+            const Float Det3 = Math::MulAdd(A10, Z0, Math::MulAdd(-A11, Z1,  (A12 * Z2)));
+
+            return Math::MulAdd(A00,  Det0,
+                   Math::MulAdd(-A01, Det1,
+                   Math::MulAdd(A02,  Det2, -(A03 * Det3))));
         }
         [[nodiscard]] constexpr FMatrix4x4F
         Transposed() const noexcept
@@ -281,7 +296,8 @@ export namespace Visera
             auto R = FMatrix4x4F::Zero();
             for (UInt32 Row = 0; Row < 4; ++Row)
             {
-                for (UInt32 Col = 0; Col < 4; ++Col) { R(Row, Col) = (*this)(Col, Row); }
+                for (UInt32 Col = 0; Col < 4; ++Col)
+                { R(Row, Col) = (*this)(Col, Row); }
             }
             return R;
         }
@@ -310,9 +326,14 @@ export namespace Visera
             {
                 for (UInt32 Col = 0; Col < 4; ++Col)
                 {
-                    Float Sum = 0.0f;
-                    for (UInt32 K = 0; K < 4; ++K) { Sum += (*this)(Row, K) * I_Rhs(K, Col); }
-                    R(Row, Col) = Sum;
+                    const Float A0 = (*this)(Row, 0), A1 = (*this)(Row, 1),
+                                A2 = (*this)(Row, 2), A3 = (*this)(Row, 3);
+                    const Float B0 = I_Rhs(0, Col)  , B1 = I_Rhs(1, Col)  ,
+                                B2 = I_Rhs(2, Col)  , B3 = I_Rhs(3, Col);
+                    const Float S0 = Math::MulAdd(A0, B0, A2 * B2); // (A0*B0 + A2*B2)
+                    const Float S1 = Math::MulAdd(A1, B1, A3 * B3); // (A1*B1 + A3*B3)
+
+                    R(Row, Col) = S0 + S1;
                 }
             }
             return R;
@@ -324,12 +345,12 @@ export namespace Visera
         {
             auto& M = *this;
             return {
-                M(0,0)*I_Vector.X + M(0,1)*I_Vector.Y + M(0,2)*I_Vector.Z + M(0,3)*I_Vector.W,
-                M(1,0)*I_Vector.X + M(1,1)*I_Vector.Y + M(1,2)*I_Vector.Z + M(1,3)*I_Vector.W,
-                M(2,0)*I_Vector.X + M(2,1)*I_Vector.Y + M(2,2)*I_Vector.Z + M(2,3)*I_Vector.W,
-                M(3,0)*I_Vector.X + M(3,1)*I_Vector.Y + M(3,2)*I_Vector.Z + M(3,3)*I_Vector.W };
+                Math::MulAdd(M(0,0), I_Vector.X, Math::MulAdd(M(0,1), I_Vector.Y, Math::MulAdd(M(0,2), I_Vector.Z, M(0,3) * I_Vector.W))),
+                Math::MulAdd(M(1,0), I_Vector.X, Math::MulAdd(M(1,1), I_Vector.Y, Math::MulAdd(M(1,2), I_Vector.Z, M(1,3) * I_Vector.W))),
+                Math::MulAdd(M(2,0), I_Vector.X, Math::MulAdd(M(2,1), I_Vector.Y, Math::MulAdd(M(2,2), I_Vector.Z, M(2,3) * I_Vector.W))),
+                Math::MulAdd(M(3,0), I_Vector.X, Math::MulAdd(M(3,1), I_Vector.Y, Math::MulAdd(M(3,2), I_Vector.Z, M(3,3) * I_Vector.W)))
+            };
         }
-
         constexpr FMatrix4x4F() noexcept = default;
         constexpr FMatrix4x4F(Float I_M00, Float I_M01, Float I_M02, Float I_M03,
                               Float I_M10, Float I_M11, Float I_M12, Float I_M13,
@@ -346,9 +367,9 @@ export namespace Visera
 	namespace Concepts
 	{
 		template<typename T> concept
-		Matrical = std::is_class_v<FMatrix2x2F> ||
-				   std::is_class_v<FMatrix3x3F> ||
-				   std::is_class_v<FMatrix4x4F>;
+		Matrical = std::is_same_v<std::remove_cvref_t<T>, FMatrix2x2F> ||
+                   std::is_same_v<std::remove_cvref_t<T>, FMatrix3x3F> ||
+                   std::is_same_v<std::remove_cvref_t<T>, FMatrix4x4F>;
 	}
 }
 VISERA_MAKE_FORMATTER(Visera::FMatrix2x2F, {},
