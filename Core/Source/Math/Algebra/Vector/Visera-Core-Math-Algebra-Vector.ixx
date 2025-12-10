@@ -22,11 +22,11 @@ export namespace Visera
 			Float Data[2]{0.0f, 0.0f};
 		};
 
-		[[nodiscard]] inline Bool
+		[[nodiscard]] constexpr Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f; }
 		[[nodiscard]] constexpr Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f); }
-		[[nodiscard]] inline Float
+		[[nodiscard]] constexpr Float
 		Dot(const FVector2F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Y * I_Vector.Y); }
 		[[nodiscard]] inline Float
 		SquaredNorm() const noexcept { return Math::MulAdd(X, X, Y * Y); }
@@ -57,7 +57,7 @@ export namespace Visera
 		operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); X /= I_Factor; Y /= I_Factor; return *this; }
 
 		constexpr FVector2F() noexcept = default;
-		constexpr FVector2F(Float I_X, Float I_Y) noexcept : Data{I_X, I_Y} {}
+		constexpr FVector2F(Float I_X, Float I_Y) noexcept : X{I_X}, Y{I_Y} {}
 	};
 	static_assert(sizeof(FVector2F) == 8);
 	static_assert(std::is_standard_layout_v<FVector2F>);
@@ -75,7 +75,7 @@ export namespace Visera
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f; }
 		[[nodiscard]] constexpr Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f); }
-		[[nodiscard]] inline Float
+		[[nodiscard]] constexpr Float
 		Dot(const FVector3F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Math::MulAdd(Y, I_Vector.Y, Z * I_Vector.Z)); }
 		[[nodiscard]] inline Float
 		SquaredNorm() const noexcept { return Math::MulAdd(X, X, Math::MulAdd(Y, Y, Z * Z)); }
@@ -106,7 +106,7 @@ export namespace Visera
 		operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; return *this; }
 
 		constexpr FVector3F() noexcept = default;
-		constexpr FVector3F(Float I_X, Float I_Y, Float I_Z) noexcept : Data{I_X, I_Y, I_Z} {}
+		constexpr FVector3F(Float I_X, Float I_Y, Float I_Z) noexcept : X{I_X}, Y{I_Y}, Z{I_Z} {}
 	};
 	static_assert(sizeof(FVector3F) == 12);
 	static_assert(std::is_standard_layout_v<FVector3F>);
@@ -120,11 +120,11 @@ export namespace Visera
 			Float Data[4]{0.0f, 0.0f, 0.0f, 0.0f};
 		};
 
-		[[nodiscard]] inline Bool
+		[[nodiscard]] constexpr Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f && W == 0.0f; }
 		[[nodiscard]] constexpr Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f) && Math::IsNearlyEqual(W, 0.0f); }
-		[[nodiscard]] inline Float
+		[[nodiscard]] constexpr Float
 		Dot(const FVector4F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Math::MulAdd(Y, I_Vector.Y, Math::MulAdd(Z, I_Vector.Z, W * I_Vector.W))); }
 		[[nodiscard]] inline Float
 		SquaredNorm() const noexcept { return Math::MulAdd(X, X, Math::MulAdd(Y, Y, Math::MulAdd(Z, Z, W * W))); }
@@ -155,7 +155,7 @@ export namespace Visera
 		operator/=(Float I_Factor) noexcept { CHECK(!Math::IsNearlyZero(I_Factor, 0.0f)); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; W /= I_Factor; return *this; }
 
 		constexpr FVector4F() noexcept = default;
-		constexpr FVector4F(Float I_X, Float I_Y, Float I_Z, Float I_W) noexcept : Data{I_X, I_Y, I_Z, I_W} {}
+		constexpr FVector4F(Float I_X, Float I_Y, Float I_Z, Float I_W) noexcept : X{I_X}, Y{I_Y}, Z{I_Z}, W{I_W} {}
 	};
 	static_assert(sizeof(FVector4F) == 16);
 	static_assert(std::is_standard_layout_v<FVector4F>);

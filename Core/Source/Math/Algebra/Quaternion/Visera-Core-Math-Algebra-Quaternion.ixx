@@ -46,7 +46,7 @@ export namespace Visera
         operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 4); return Data[I_Index]; }
 
         [[nodiscard]] constexpr Float
-        Dot(const FQuaternion& I_Rhs) const noexcept { return X*I_Rhs.X + Y*I_Rhs.Y + Z*I_Rhs.Z + W*I_Rhs.W; }
+        Dot(const FQuaternion& I_Rhs) const noexcept { return Math::MulAdd(X, I_Rhs.X, Math::MulAdd(Y, I_Rhs.Y, Math::MulAdd(Z, I_Rhs.Z, W * I_Rhs.W))); }
         [[nodiscard]] constexpr Float
         SquaredNorm() const noexcept { return Dot(*this); }
         [[nodiscard]] inline Float
@@ -107,21 +107,21 @@ export namespace Visera
             const FVector3F Qv{ X, Y, Z };
 
             const FVector3F T{
-                2.0f * (Qv.Y * I_Vector.Z - Qv.Z * I_Vector.Y),
-                2.0f * (Qv.Z * I_Vector.X - Qv.X * I_Vector.Z),
-                2.0f * (Qv.X * I_Vector.Y - Qv.Y * I_Vector.X)
+                2.0f * (Math::MulAdd(Qv.Y, I_Vector.Z, - Qv.Z * I_Vector.Y)),
+                2.0f * (Math::MulAdd(Qv.Z, I_Vector.X, - Qv.X * I_Vector.Z)),
+                2.0f * (Math::MulAdd(Qv.X, I_Vector.Y, - Qv.Y * I_Vector.X))
             };
 
             const FVector3F QvXT{
-                Qv.Y * T.Z - Qv.Z * T.Y,
-                Qv.Z * T.X - Qv.X * T.Z,
-                Qv.X * T.Y - Qv.Y * T.X
+                Math::MulAdd(Qv.Y, T.Z, - Qv.Z * T.Y),
+                Math::MulAdd(Qv.Z, T.X, - Qv.X * T.Z),
+                Math::MulAdd(Qv.X, T.Y, - Qv.Y * T.X)
             };
 
             return {
-                I_Vector.X + W * T.X + QvXT.X,
-                I_Vector.Y + W * T.Y + QvXT.Y,
-                I_Vector.Z + W * T.Z + QvXT.Z
+                I_Vector.X + Math::MulAdd(W, T.X, QvXT.X),
+                I_Vector.Y + Math::MulAdd(W, T.Y, QvXT.Y),
+                I_Vector.Z + Math::MulAdd(W, T.Z, QvXT.Z)
             };
         }
 
@@ -141,7 +141,7 @@ export namespace Visera
         [[nodiscard]] static inline FQuaternion
         FromAxisAngle(const FVector3F& I_Axis, FDegree I_Degree) noexcept { return FromAxisAngle(I_Axis, Math::Radian(I_Degree)); }
 
-        [[nodiscard]] inline FMatrix3x3F
+        [[nodiscard]] constexpr FMatrix3x3F
         ToMatrix3x3() const noexcept
         {
             auto& Q = *this;
@@ -157,7 +157,7 @@ export namespace Visera
             };
         }
 
-        [[nodiscard]] inline FMatrix4x4F
+        [[nodiscard]] constexpr FMatrix4x4F
         ToMatrix4x4() const noexcept
         {
             FMatrix3x3F R = ToMatrix3x3();

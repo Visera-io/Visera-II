@@ -84,8 +84,8 @@ export namespace Visera
         // I_Seed = I_Seed? I_Seed : GetRandomSeed();
         State = 0U;
         Increment = (I_SequenceIndex << 1U) | 1U;
-        Uniform<UInt32>();
+        (void)Uniform<UInt32>();
         State += I_Seed;
-        Uniform<UInt32>();
+        (void)Uniform<UInt32>();
     }
 } // namespace Visera
