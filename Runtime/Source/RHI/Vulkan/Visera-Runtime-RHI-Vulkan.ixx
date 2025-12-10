@@ -116,7 +116,7 @@ namespace Visera
         GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex]; }
         inline void
         EndFrame();
-        TExclusiveDelegate<TSharedRef<FVulkanCommandBuffer>,
+        TExclusiveUnicastDelegate<TSharedRef<FVulkanCommandBuffer>,
                            TSharedRef<FVulkanImageView>>
         StudioDrawCalls;
         [[nodiscard]] inline Bool

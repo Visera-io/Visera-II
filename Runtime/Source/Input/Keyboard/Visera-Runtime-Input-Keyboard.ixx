@@ -70,7 +70,7 @@ namespace Visera
         FKeyEvent OnHeld;
         FKeyEvent OnDetached;
 
-        using FCheckKeyStatusEvent = TExclusiveDelegate<EKey, EAction*>;
+        using FCheckKeyStatusEvent = TExclusiveUnicastDelegate<EKey, EAction*>;
         FCheckKeyStatusEvent OnGetKey;
 
     private:

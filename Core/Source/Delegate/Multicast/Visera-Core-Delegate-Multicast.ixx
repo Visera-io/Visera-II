@@ -4,9 +4,9 @@ export module Visera.Core.Delegate.Multicast;
 #define VISERA_MODULE_NAME "Core.Delegate"
 import Visera.Core.Types.Array;
 
-namespace Visera
+export namespace Visera
 {
-    export template<typename... T_Args>
+    template<typename... T_Args>
     class VISERA_CORE_API TMulticastDelegate
     {
     public:
@@ -18,7 +18,7 @@ namespace Visera
         {
             FHandle   Handle  {0};
             FCallback Callback{};
-            bool      bPendingRemove{False};
+            Bool      bPendingRemove{False};
         };
 
     public:

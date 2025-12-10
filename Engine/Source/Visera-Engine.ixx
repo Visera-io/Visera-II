@@ -21,7 +21,7 @@ namespace Visera
     export class VISERA_ENGINE_API FEngine : public IGlobalSingleton<FEngine>
     {
     public:
-        TExclusiveDelegate<Float> AppTick;
+        TExclusiveUnicastDelegate<Float> AppTick;
 
         void Run()
         {
