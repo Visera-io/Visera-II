@@ -42,6 +42,10 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${VISERA_APP_ASSETS_DIR}"
     "${VISERA_APP_RESOURCE_DIR}/Assets/App"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/Visera-App.runtimeconfig.json"
+    "${VISERA_APP_FRAMEWORK_DIR}"
 )
 # <<App Icon>>
 if(WIN32)

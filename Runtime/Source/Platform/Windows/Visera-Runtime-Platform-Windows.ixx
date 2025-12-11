@@ -2,6 +2,7 @@ module;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 #include <windows.h>
 #undef LoadLibrary
+#undef CreateDirectory
 #undef SetEnvironmentVariable
 #endif
 #include <Visera-Runtime.hpp>
@@ -10,6 +11,7 @@ export module Visera.Runtime.Platform.Windows;
 import Visera.Runtime.Platform.Interface;
 import Visera.Runtime.Platform.Windows.Library;
 import Visera.Core.Log;
+import Visera.Core.OS.FileSystem;
 
 namespace Visera
 {
@@ -25,6 +27,8 @@ namespace Visera
         GetResourceDirectory() const override { return ExecutableDirectory; }
         [[nodiscard]] const FPath&
         GetFrameworkDirectory() const override { return ExecutableDirectory; }
+        [[nodiscard]] const FPath&
+        GetCacheDirectory() const override { return CacheDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 

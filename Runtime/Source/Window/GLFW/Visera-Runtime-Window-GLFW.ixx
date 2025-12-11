@@ -93,7 +93,7 @@ namespace Visera
         }
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-        FImage IconImage{ GPlatform->GetExecutableDirectory() / FPath{"Assets/Image/Visera.png"} };
+        FImage IconImage{ GPlatform->GetResourceDirectory() / FPath{"Assets/Engine/Image/Visera.png"} };
         VISERA_ASSERT(IconImage.HasAlpha());
 
         GLFWimage Icon;
