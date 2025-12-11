@@ -10,22 +10,22 @@ target_compile_definitions(${VISERA_STUDIO} PRIVATE VISERA_STUDIO_BUILD_SHARED)
 add_library(Visera::Studio ALIAS ${VISERA_STUDIO})
 
 set_target_properties(${VISERA_STUDIO} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>"
-    LIBRARY_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>"
+    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
 )
 add_custom_command(
     TARGET Visera::Studio
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_FILE:Visera::Studio>
-    $<TARGET_FILE_DIR:${VISERA_APP}>)
+    ${VISERA_APP_FRAMEWORK_DIR})
 if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 add_custom_command(
     TARGET Visera::Studio
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "$<TARGET_PDB_FILE:Visera::Studio>"
-    "$<TARGET_FILE_DIR:${VISERA_APP}>"
+    "${VISERA_APP_FRAMEWORK_DIR}"
 )
 endif()
 

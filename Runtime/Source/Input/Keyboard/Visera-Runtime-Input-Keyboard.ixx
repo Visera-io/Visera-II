@@ -3,8 +3,7 @@ module;
 //#include <GLFW/glfw3.h>
 export module Visera.Runtime.Input.Keyboard;
 #define VISERA_MODULE_NAME "Runtime.Input"
-import Visera.Core.Delegate.Unicast;
-import Visera.Core.Delegate.Multicast;
+import Visera.Core.Delegate;
 import Visera.Core.Traits.Policy;
 
 namespace Visera

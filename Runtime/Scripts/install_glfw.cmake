@@ -16,11 +16,23 @@ macro(link_glfw in_target)
 
     target_link_libraries(${in_target} PRIVATE glfw)
 
+    if(WIN32)
     add_custom_command(
         TARGET ${in_target}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:glfw>
-        $<TARGET_FILE_DIR:${VISERA_APP}>
+        ${VISERA_APP_FRAMEWORK_DIR}
     )
+    elseif(APPLE)
+    add_custom_command(
+            TARGET ${in_target}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:glfw>
+            ${VISERA_APP_FRAMEWORK_DIR}
+    )
+    else()
+    message(FATAL_ERROR "Unsupported platform!")
+    endif()
 endmacro()

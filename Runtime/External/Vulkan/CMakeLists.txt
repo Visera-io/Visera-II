@@ -34,33 +34,6 @@ if(APPLE)
     set_target_properties(VulkanLoader PROPERTIES
         IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libvulkan.1.dylib"
     )
-    add_custom_command(TARGET VulkanModule POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks"
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan"
-        # Vulkan
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libvulkan.1.dylib" # Note: this is a renamed lib
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
-        # MoltenVk
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libMoltenVK.dylib"
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/MoltenVK_icd.json"
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
-    )
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-        add_custom_command(TARGET VulkanModule POST_BUILD
-            # Validation Layer
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libVkLayer_khronos_validation.dylib"
-            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/VkLayer_khronos_validation.json"
-            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
-        )
-    endif()
 elseif(WIN32)
     set(VULKAN_ARCHIVE     "${CMAKE_CURRENT_SOURCE_DIR}/Windows.zip")
     set(VULKAN_EXTRACT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Windows")
@@ -80,29 +53,59 @@ elseif(WIN32)
         IMPORTED_LOCATION_RELEASE "${VULKAN_LIB}"
         IMPORTED_LOCATION_DEVELOP "${VULKAN_LIB}"
     )
-    #    add_custom_command(TARGET VulkanModule POST_BUILD
-#        # Vulkan
-#        # (vulkan-1.dll is implicitly provided by video card driver.)
-#    )
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-        add_custom_command(TARGET VulkanModule POST_BUILD
-            # Validation Layer
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.dll"
-            "$<TARGET_FILE_DIR:${VISERA_APP}>"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.json"
-            "$<TARGET_FILE_DIR:${VISERA_APP}>"
-        )
-        add_custom_command(TARGET VulkanModule POST_BUILD
-            # PDB files
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.pdb"
-            "$<TARGET_FILE_DIR:${VISERA_APP}>"
-        )
-    endif()
 else()
     mssage(FATAL_ERROR "Unsupported platform!")
 endif()
 
 target_link_libraries(VulkanModule PUBLIC VulkanLoader)
+
+message(STATUS "Vulkan files will be copied into the app bundle.")
+if(APPLE)
+    add_custom_command(TARGET VulkanModule POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan"
+            # Vulkan
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libvulkan.1.dylib" # Note: this is a renamed lib
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            # MoltenVk
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libMoltenVK.dylib"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/MoltenVK_icd.json"
+            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+    )
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET VulkanModule POST_BUILD
+                # Validation Layer
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libVkLayer_khronos_validation.dylib"
+                "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/VkLayer_khronos_validation.json"
+                "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+        )
+    endif()
+elseif(WIN32)
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET VulkanModule POST_BUILD
+                # Validation Layer
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.dll"
+                "${VISERA_APP_FRAMEWORK_DIR}"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.json"
+                "${VISERA_APP_FRAMEWORK_DIR}"
+        )
+        add_custom_command(TARGET VulkanModule POST_BUILD
+                # PDB files
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.pdb"
+                "${VISERA_APP_FRAMEWORK_DIR}"
+        )
+    endif()
+else()
+    mssage(FATAL_ERROR "Unsupported platform!")
+endif()

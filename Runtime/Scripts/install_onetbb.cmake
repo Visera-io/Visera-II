@@ -21,6 +21,6 @@ macro(link_onetbb in_target)
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:TBB::tbb>
-        $<TARGET_FILE_DIR:${VISERA_APP}>
+        ${VISERA_APP_FRAMEWORK_DIR}
     )
 endmacro()

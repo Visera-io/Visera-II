@@ -10,30 +10,31 @@ target_compile_definitions(${VISERA_RUNTIME} PRIVATE VISERA_RUNTIME_BUILD_SHARED
 add_library(Visera::Runtime ALIAS ${VISERA_RUNTIME})
 
 set_target_properties(${VISERA_RUNTIME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>"
-    LIBRARY_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${VISERA_APP}>"
+    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
 )
+add_custom_command(
+    TARGET Visera::Runtime
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E
+    copy_if_different
+    $<TARGET_FILE:Visera::Runtime>
+    ${VISERA_APP_FRAMEWORK_DIR})
+if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+add_custom_command(
+    TARGET Visera::Runtime
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_PDB_FILE:Visera::Runtime>"
+    "${VISERA_APP_FRAMEWORK_DIR}"
+)
+endif()
 
 if(NOT TARGET Visera::Core)
     message(FATAL_ERROR "Visera-Core is not installed!")
 endif()
 target_link_libraries(${VISERA_RUNTIME} PUBLIC Visera::Core)
-add_custom_command(
-        TARGET Visera::Runtime
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E
-        copy_if_different
-        $<TARGET_FILE:Visera::Runtime>
-        $<TARGET_FILE_DIR:${VISERA_APP}>)
-if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_custom_command(
-            TARGET Visera::Runtime
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_PDB_FILE:Visera::Runtime>"
-            "$<TARGET_FILE_DIR:${VISERA_APP}>"
-    )
-endif()
+
 #
 # << Install External Packages >>
 #

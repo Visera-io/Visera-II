@@ -84,8 +84,10 @@ add_compile_definitions(VISERA_APP=\"${VISERA_APP_NAME}\")
 
 if(WIN32)
     add_compile_definitions(VISERA_ON_WINDOWS_SYSTEM)
+    set(VISERA_APP_FRAMEWORK_DIR "$<TARGET_FILE_DIR:${VISERA_APP}>")
 elseif(APPLE)
     add_compile_definitions(VISERA_ON_APPLE_SYSTEM)
+    set(VISERA_APP_FRAMEWORK_DIR "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -112,7 +114,7 @@ add_custom_target(
 
     -p:VISERA_ENGINE_APIS=${VISERA_ENGINE_DIR}/APIs/
 
-    -p:OutputPath=$<TARGET_FILE_DIR:${VISERA_APP}>/
+    -p:OutputPath=${VISERA_APP_FRAMEWORK_DIR}/
     -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
     -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
 

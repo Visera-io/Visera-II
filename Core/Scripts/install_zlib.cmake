@@ -31,6 +31,6 @@ macro(link_zlib in_target)
 #        POST_BUILD
 #        COMMAND ${CMAKE_COMMAND} -E copy_if_different
 #        $<TARGET_FILE:ZLIB::ZLIB>
-#        $<TARGET_FILE_DIR:${VISERA_APP}>
+#        ${VISERA_APP_FRAMEWORK_DIR}
 #    )
 endmacro()
