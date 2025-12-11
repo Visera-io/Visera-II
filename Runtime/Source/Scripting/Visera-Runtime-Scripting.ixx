@@ -42,8 +42,8 @@ namespace Visera
 
         DotNETRuntime = MakeUnique<FDotNETRuntime>();
         APIs = DotNETRuntime->CreateComponent(
-            GPlatform->GetExecutableDirectory() / FPath("Visera-App.dll"),
-            GPlatform->GetExecutableDirectory() / FPath{"Visera-App.runtimeconfig.json"}
+            GPlatform->GetFrameworkDirectory() / FPath("Visera-App.dll"),
+            GPlatform->GetFrameworkDirectory() / FPath{"Visera-App.runtimeconfig.json"}
         );
         if (!APIs->IsValid())
         { LOG_FATAL("Failed to load APIs!"); }

@@ -8,6 +8,7 @@ export module Visera.Runtime.Platform.MacOS;
 import Visera.Runtime.Platform.Interface;
 import Visera.Runtime.Platform.MacOS.Library;
 import Visera.Core.Log;
+import Visera.Core.OS.FileSystem;
 
 namespace Visera
 {
@@ -21,12 +22,18 @@ namespace Visera
         GetExecutableDirectory() const override { return ExecutableDirectory; }
         [[nodiscard]] const FPath&
         GetResourceDirectory() const override { return ResourceDirectory; }
+        [[nodiscard]] const FPath&
+        GetFrameworkDirectory() const override { return FrameworkDirectory; }
+        [[nodiscard]] const FPath&
+        GetCacheDirectory() const override { return CacheDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 
     private:
         FPath ExecutableDirectory;
         FPath ResourceDirectory;
+        FPath FrameworkDirectory;
+        FPath CacheDirectory;
 
     public:
         FMacOSPlatform();
@@ -44,7 +51,12 @@ namespace Visera
         }
         else { LOG_FATAL("Failed to get executable path!"); }
 
-        ResourceDirectory = ExecutableDirectory.GetParent() / FPath{"Resources"};
+        ResourceDirectory  = ExecutableDirectory.GetParent() / FPath{"Resources"};
+        FrameworkDirectory = ExecutableDirectory.GetParent() / FPath{"Frameworks"};
+
+        CacheDirectory     = ResourceDirectory / FPath{"Cache"};
+        if (!FFileSystem::Exists(CacheDirectory))
+        { (void)FFileSystem::CreateDirectory(CacheDirectory); }
     }
 
     Bool FMacOSPlatform::

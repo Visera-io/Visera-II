@@ -25,6 +25,8 @@ export namespace Visera
         [[nodiscard]] Bool static inline
         CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
         [[nodiscard]] Bool static inline
+        CreateDirectory(const FPath& I_Path);
+        [[nodiscard]] Bool static inline
         Exists(const FPath& I_Path) { return std::filesystem::exists(I_Path.GetNativePath()); }
         [[nodiscard]] TUniquePtr<std::ifstream> static inline
         OpenIStream(const FPath& I_Path, EIOMode I_Mode = EIOMode::None);
@@ -43,8 +45,6 @@ export namespace Visera
 
         [[nodiscard]] Bool inline
         CreateFile(const FPath& I_FileName) const;
-        [[nodiscard]] Bool inline
-        CreateDirectory(const FPath& I_RelativePath) const;
         [[nodiscard]] Bool inline
         DeleteDirectory(const FPath& I_RelativePath, Bool I_bForce = False) const;
 
@@ -97,19 +97,18 @@ export namespace Visera
     }
 
     Bool FFileSystem::
-    CreateDirectory(const FPath& I_RelativePath) const
+    CreateDirectory(const FPath& I_Path)
     {
-        const auto Path = GetRoot()/I_RelativePath;
         std::error_code ErrorCode{};
 
-        if (!std::filesystem::exists(Path.GetNativePath(), ErrorCode))
+        if (!std::filesystem::exists(I_Path.GetNativePath(), ErrorCode))
         {
-            if (!std::filesystem::create_directories(Path.GetNativePath(), ErrorCode))
-            { LOG_ERROR("Failed to create directory at \"{}\" -- {}.", Path, ErrorCode.message()); }
+            if (!std::filesystem::create_directories(I_Path.GetNativePath(), ErrorCode))
+            { LOG_ERROR("Failed to create directory at \"{}\" -- {}.", I_Path, ErrorCode.message()); }
             else
-            { LOG_INFO("Created a new directory at \"{}\"", Path); return True; }
+            { LOG_INFO("Created a new directory at \"{}\"", I_Path); return True; }
         }
-        else { LOG_ERROR("Failed to create the directory \"{}\" -- {}.", Path, ErrorCode.message()); }
+        else { LOG_ERROR("Failed to create the directory \"{}\" -- {}.", I_Path, ErrorCode.message()); }
 
         return False;
     }

@@ -24,6 +24,10 @@ namespace Visera
         GetExecutableDirectory() const = 0;
         [[nodiscard]] virtual const FPath&
         GetResourceDirectory() const = 0;
+        [[nodiscard]] virtual const FPath&
+        GetFrameworkDirectory() const = 0;
+        [[nodiscard]] virtual const FPath&
+        GetCacheDirectory() const = 0;
         [[nodiscard]] virtual Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const = 0;
 

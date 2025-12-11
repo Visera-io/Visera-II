@@ -22,12 +22,15 @@ namespace Visera
         [[nodiscard]] const FPath&
         GetExecutableDirectory() const override { return ExecutableDirectory; }
         [[nodiscard]] const FPath&
-        GetResourceDirectory() const override { VISERA_UNIMPLEMENTED_API; return ExecutableDirectory; }
+        GetResourceDirectory() const override { return ExecutableDirectory; }
+        [[nodiscard]] const FPath&
+        GetFrameworkDirectory() const override { return ExecutableDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
 
     private:
         FPath ExecutableDirectory;
+        FPath CacheDirectory;
 
     public:
         FWindowsPlatform();
@@ -46,6 +49,10 @@ namespace Visera
         Buffer.resize(Size);
 
         ExecutableDirectory = FPath{Buffer}.GetParent();
+
+        CacheDirectory = ExecutableDirectory / FPath{"Cache"};
+        if (!FFileSystem::Exists(CacheDirectory))
+        { (void)FFileSystem::CreateDirectory(CacheDirectory); }
     }
 
     Bool FWindowsPlatform::

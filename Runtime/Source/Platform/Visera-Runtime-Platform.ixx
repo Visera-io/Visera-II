@@ -22,6 +22,8 @@ namespace Visera
         GetExecutableDirectory() const { return Platform->GetExecutableDirectory(); }
         [[nodiscard]] inline const FPath&
         GetResourceDirectory() const { return Platform->GetResourceDirectory(); }
+        [[nodiscard]] inline const FPath&
+        GetFrameworkDirectory() const { return Platform->GetFrameworkDirectory(); }
         [[nodiscard]] inline Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const { return Platform->SetEnvironmentVariable(I_Variable, I_Value); }
 

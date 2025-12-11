@@ -48,7 +48,7 @@ namespace Visera
     FImGui()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        Font = GPlatform->GetExecutableDirectory() / FPath{"Assets/Font/TsangerYunHei.ttf"};
+        Font = GPlatform->GetResourceDirectory() / FPath{"Assets/Studio/Font/TsangerYunHei.ttf"};
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();

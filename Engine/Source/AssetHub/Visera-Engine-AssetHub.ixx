@@ -51,9 +51,10 @@ namespace Visera
     {
         LOG_TRACE("Bootstrapping AssetHub.");
 
-        Roots[EAssetSource::App]    = FFileSystem{ GPlatform->GetExecutableDirectory() / FPath("Assets") };
-        Roots[EAssetSource::Engine] = FFileSystem{ GPlatform->GetExecutableDirectory() / FPath("Assets") };
-        
+        Roots[EAssetSource::App]    = FFileSystem{ GPlatform->GetResourceDirectory() / FPath("Assets/App") };
+        Roots[EAssetSource::Engine] = FFileSystem{ GPlatform->GetResourceDirectory() / FPath("Assets/Engine") };
+        Roots[EAssetSource::Studio] = FFileSystem{ GPlatform->GetResourceDirectory() / FPath("Assets/Studio") };
+
         Status = EStatus::Bootstrapped;
     }
 

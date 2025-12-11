@@ -58,3 +58,11 @@ target_sources(${VISERA_ENGINE}
                FILES ${VISERA_ENGINE_MODULES})
 
 set_target_properties(${VISERA_ENGINE} PROPERTIES FOLDER "Visera/Engine")
+
+add_custom_command(
+    TARGET ${VISERA_ENGINE}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${VISERA_ENGINE_ASSETS_DIR}"
+    "${VISERA_APP_RESOURCE_DIR}/Assets/Engine"
+)

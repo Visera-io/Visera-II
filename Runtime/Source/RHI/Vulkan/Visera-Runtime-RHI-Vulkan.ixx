@@ -709,7 +709,6 @@ namespace Visera
         this
 #if !defined(VISERA_RELEASE_MODE)
             ->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
-            ->AddInstanceLayer("VK_LAYER_KHRONOS_synchronization2")
         ;
 #else
 
@@ -825,8 +824,8 @@ namespace Visera
             .setPreTransform    (SurfaceCapabilities.currentTransform)
             .setCompositeAlpha  (SwapChain.CompositeAlpha)
             .setPresentMode     (SwapChain.PresentMode)
-            .setClipped         (SwapChain.bClipped);
-
+            .setClipped         (SwapChain.bClipped)
+        ;
         // Create Swapchain
         {
             auto Result = Device.Context.createSwapchainKHR(CreateInfo);
@@ -856,7 +855,6 @@ namespace Visera
                     SwapChain.ImageUsage));
             }
         }
-
         // Create Image Views
         for (const auto& Image : SwapChain.Images)
         {
@@ -886,9 +884,10 @@ namespace Visera
 #if defined(VISERA_ON_APPLE_SYSTEM)
             ->AddDeviceExtension("VK_KHR_portability_subset")
 #endif
+#if !defined(VISERA_OFFSCREEN_MODE)
+            ->AddDeviceExtension(vk::KHRSwapchainExtensionName)
+#endif
         ;
-        if (GWindow->IsBootstrapped())
-        { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
     }
 
     Bool FVulkanDriver::
@@ -900,7 +899,6 @@ namespace Visera
             LOG_FATAL("Failed to wait the fence (desc:{})!",
                       CurrentFrame.Fence->GetDescription());
         }
-
         CurrentFrame.DrawCalls->Reset();
         CurrentFrame.DrawCalls->Begin();
 
@@ -1183,7 +1181,7 @@ namespace Visera
             PipelineCache = MakeUnique<FVulkanPipelineCache>(
                 GPU.Context,
                 Device.Context,
-                GPlatform->GetExecutableDirectory() / FPath("VulkanPipelines.cache")
+                GPlatform->GetResourceDirectory() / FPath("Cache/VulkanPipelines.cache")
             );
         }
     }

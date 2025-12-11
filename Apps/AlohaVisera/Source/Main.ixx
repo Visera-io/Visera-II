@@ -13,8 +13,8 @@ export int main(int argc, char *argv[])
     {
         GStudio->Bootstrap();
 
-        auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
-        auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
+        //auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
+        //auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
         auto Entity = GWorld->CreateEntity(FName{"player_0"});
         auto& Transform = Entity.Add<CTransform2D>();
         auto& Velocity  = Entity.Add<CVelocity2D>();
@@ -32,9 +32,9 @@ export int main(int argc, char *argv[])
             }
         };
 
-        GAudio->Register(BankInit);
-        auto ID = GAudio->Register(MainBGM);
-        GAudio->PostEvent("Play_MainBGM", ID);
+        //GAudio->Register(BankInit);
+        //auto ID = GAudio->Register(MainBGM);
+        //GAudio->PostEvent("Play_MainBGM", ID);
 
         GEngine->Run();
 

@@ -1,6 +1,7 @@
 message(STATUS "\nInstalling Visera Studio...")
 
 set(VISERA_STUDIO_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
+set(VISERA_STUDIO_ASSETS_DIR "${PROJECT_SOURCE_DIR}/Assets")
 set(VISERA_STUDIO_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
 set(VISERA_STUDIO_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
 set(VISERA_STUDIO_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
@@ -66,3 +67,11 @@ target_sources(${VISERA_STUDIO}
                FILES ${VISERA_STUDIO_MODULES})
 
 set_target_properties(${VISERA_STUDIO} PROPERTIES FOLDER "Visera/Studio")
+
+add_custom_command(
+    TARGET ${VISERA_STUDIO}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${VISERA_STUDIO_ASSETS_DIR}"
+    "${VISERA_APP_RESOURCE_DIR}/Assets/Studio"
+)
