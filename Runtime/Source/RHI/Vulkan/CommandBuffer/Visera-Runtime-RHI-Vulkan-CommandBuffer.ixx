@@ -58,6 +58,10 @@ namespace Visera
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
         void inline
+        DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount,
+                    UInt32 I_FirstIndex, Int32  I_VertexOffset,
+                    UInt32 I_FirstInstance) const;
+        void inline
         LeaveRenderPass();
         void inline
         BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
@@ -266,6 +270,19 @@ namespace Visera
         Handle.draw(I_VertexCount,
             I_InstanceCount,
             I_FirstVertex,
+            I_FirstInstance);
+    }
+
+    void FVulkanCommandBuffer::
+    DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount,
+                UInt32 I_FirstIndex, Int32  I_VertexOffset,
+                UInt32 I_FirstInstance) const
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+        Handle.drawIndexed(I_IndexCount,
+            I_InstanceCount,
+            I_FirstIndex,
+            I_VertexOffset,
             I_FirstInstance);
     }
 

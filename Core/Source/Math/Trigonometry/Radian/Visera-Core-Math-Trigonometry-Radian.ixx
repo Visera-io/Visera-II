@@ -21,15 +21,20 @@ export namespace Visera
         constexpr FRadian() noexcept = default;
         explicit constexpr FRadian(Float I_Value) noexcept : Value{ I_Value } {}
 
-        FRadian&
+        constexpr FRadian&
         operator=(Float I_NewValue) noexcept { Value = I_NewValue; return *this; }
-        FRadian&
+        constexpr FRadian&
         operator=(const FRadian& I_NewRadian) noexcept { Value = I_NewRadian.Value; return *this; }
 
         [[nodiscard]] constexpr FRadian
         operator*(Float I_Multiplicand) const noexcept { return FRadian{ Value * I_Multiplicand }; }
         [[nodiscard]] constexpr FRadian
-        operator/(Float I_Divisor) const noexcept { CHECK(!Math::IsNearlyEqual(I_Divisor, 0.0f)); return FRadian{ Value / I_Divisor }; }
+        operator/(Float I_Divisor) const noexcept
+        {
+            if consteval { /* no CHECK in constant evaluation */ }
+            else { CHECK(!Math::IsNearlyEqual(I_Divisor, 0.0f)); }
+            return FRadian{ Value / I_Divisor };
+        }
 
         [[nodiscard]] constexpr Bool
         operator==(FRadian I_Rival) const noexcept { return Math::IsNearlyEqual(Value, I_Rival.Value); }

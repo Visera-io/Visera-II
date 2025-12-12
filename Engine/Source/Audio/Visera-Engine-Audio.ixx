@@ -115,7 +115,7 @@ namespace Visera
     FAudio::FEventID FAudio::
     PostEvent(FStringView I_Event, FToken I_Token)
     {
-        LOG_DEBUG("Posting event {}", I_Event);
+        LOG_TRACE("Posting event {}", I_Event);
 
         auto EventID = AK::SoundEngine::PostEvent(I_Event.data(), I_Token);
 

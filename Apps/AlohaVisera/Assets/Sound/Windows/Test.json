@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{4B1EFEA8-E6D8-42AE-9430-E6A7BC8A70B4}",
     "Language": "SFX",
-    "Hash": "{12FC250C-B6EC-5A7C-1DF6-C99A70DF7366}",
+    "Hash": "{8648ACFA-1A7C-53B9-96B9-6EEF5A5CC03D}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\Test",
     "ShortName": "Test",
     "Path": "Test.bnk",
@@ -22,9 +22,39 @@
       "Location": "Memory",
       "ShortName": "Tavern Glow.wav",
       "CachePath": "F8/{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem"
+     },
+     {
+      "Id": "501755045",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Advanture.wav",
+      "CachePath": "BC/{BCC07424-0D37-68CE-7437-098D5C3C9046}.wem"
+     },
+     {
+      "Id": "1017552667",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "rubber_dong_collision.wav",
+      "CachePath": "69/{69B2CF64-28C1-E468-21D8-E432DDC4AF5F}.wem"
      }
     ],
     "Events": [
+     {
+      "Id": "1344756874",
+      "Name": "Play_Advanture",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_Advanture",
+      "GUID": "{8B858527-C3FF-4705-8A9E-6FB1ED5B911C}",
+      "DurationType": "OneShot",
+      "DurationMin": "183.95999",
+      "DurationMax": "183.95999",
+      "MediaRefs": [
+       {
+        "Id": "501755045"
+       }
+      ]
+     },
      {
       "Id": "1691765453",
       "Name": "Play_MainBGM",
@@ -38,10 +68,24 @@
         "Id": "19794180"
        }
       ]
+     },
+     {
+      "Id": "450987158",
+      "Name": "Play_SFX_Collision",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_SFX_Collision",
+      "GUID": "{6DF1841C-CD50-4BC7-8225-F1259D236A34}",
+      "DurationType": "OneShot",
+      "DurationMin": "0.22",
+      "DurationMax": "0.22",
+      "MediaRefs": [
+       {
+        "Id": "1017552667"
+       }
+      ]
      }
     ]
    }
   ],
-  "FileHash": "{8040819D-0D5D-67EE-F68E-C1D0D66E6AA7}"
+  "FileHash": "{A352C79E-B3C9-6A60-A90E-7E06E4B0C713}"
  }
 }

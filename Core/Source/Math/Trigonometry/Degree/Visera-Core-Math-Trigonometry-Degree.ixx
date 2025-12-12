@@ -21,15 +21,20 @@ export namespace Visera
         constexpr FDegree() noexcept = default;
         explicit constexpr FDegree(Float I_Value) noexcept : Value{ I_Value } {}
 
-        FDegree&
+        constexpr FDegree&
         operator=(Float I_NewValue) noexcept { Value = I_NewValue; return *this; }
-        FDegree&
+        constexpr FDegree&
         operator=(const FDegree& I_NewDegree) noexcept { Value = I_NewDegree.Value; return *this; }
 
         [[nodiscard]] constexpr FDegree
         operator*(Float I_Multiplicand) const noexcept { return FDegree{ Value * I_Multiplicand }; }
         [[nodiscard]] constexpr FDegree
-        operator/(Float I_Divisor) const noexcept { CHECK(!Math::IsNearlyEqual(I_Divisor, 0.0f)); return FDegree{ Value / I_Divisor }; }
+        operator/(Float I_Divisor) const noexcept
+        {
+            if consteval { /* no CHECK in constant evaluation */ }
+            else { CHECK(!Math::IsNearlyEqual(I_Divisor, 0.0f)); }
+            return FDegree{ Value / I_Divisor };
+        }
 
         [[nodiscard]] constexpr Bool
         operator==(FDegree I_Rival) const noexcept { return Math::IsNearlyEqual(Value, I_Rival.Value); }

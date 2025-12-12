@@ -1,6 +1,10 @@
 Event	ID	Name			Wwise Object Path	Notes
+	450987158	Play_SFX_Collision			\Default Work Unit\Play_SFX_Collision	
+	1344756874	Play_Advanture			\Default Work Unit\Play_Advanture	
 	1691765453	Play_MainBGM			\Default Work Unit\Play_MainBGM	
 
 In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
 	19794180	Tavern Glow	.cache\F8\{F8DE467E-202B-4407-CD17-9F66BC32DB73}.wem		\Containers\Default Work Unit\Tavern Glow\Tavern Glow		26864732
+	501755045	Advanture	.cache\BC\{BCC07424-0D37-68CE-7437-098D5C3C9046}.wem		\Containers\Default Work Unit\Advanture\Advanture		35320412
+	1017552667	SFX_Collision	.cache\69\{69B2CF64-28C1-E468-21D8-E432DDC4AF5F}.wem		\Containers\Default Work Unit\SFX_Collision		38904
 

@@ -27,7 +27,7 @@ endif()
 if(NOT TARGET Visera::Runtime)
     message(FATAL_ERROR "Visera-Runtime is not installed!")
 endif()
-target_link_libraries(${VISERA_ENGINE} PRIVATE Visera::Runtime)
+target_link_libraries(${VISERA_ENGINE} PUBLIC Visera::Runtime)
 
 #
 # << Install External Packages >>
