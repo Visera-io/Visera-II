@@ -1,7 +1,7 @@
 module;
 #include <Visera-Engine.hpp>
-export module Visera.Engine.API;
-#define VISERA_MODULE_NAME "Engine.API"
+export module Visera.API;
+#define VISERA_MODULE_NAME "API"
 import Visera.Core.Log;
 import Visera.Runtime.Input;
 import Visera.Runtime.Window;

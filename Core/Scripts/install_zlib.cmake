@@ -13,8 +13,12 @@ macro(link_zlib in_target)
         set(BUILD_SHARED_LIBS OFF)
         add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/ZLib)
 
-        #set_property(TARGET zlib PROPERTY FOLDER "dependencies")
-        set(ZLIB_LIBRARY zlib PARENT_SCOPE) # For LibPNG
+        # For LibPNG set_property(TARGET zlib PROPERTY FOLDER "dependencies")
+        if(VISERA_MONOLITHIC_MODE)
+            set(ZLIB_LIBRARY zlib)
+        else()
+            set(ZLIB_LIBRARY zlib PARENT_SCOPE)
+        endif()
         set(ZLIB_INCLUDE_DIR "${VISERA_CORE_EXTERNAL_DIR}/ZLib" CACHE BOOL " " FORCE)
 
         # libpng expects zlib to be a modern CMake package, let's make an alias for it
@@ -25,12 +29,4 @@ macro(link_zlib in_target)
     endif()
 
     target_link_libraries(${in_target} PUBLIC ZLIB::ZLIB)
-#
-#    add_custom_command(
-#        TARGET ${in_target}
-#        POST_BUILD
-#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#        $<TARGET_FILE:ZLIB::ZLIB>
-#        ${VISERA_APP_FRAMEWORK_DIR}
-#    )
 endmacro()

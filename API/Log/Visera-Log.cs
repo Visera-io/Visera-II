@@ -5,7 +5,7 @@ static class Log
     public enum ELevel : byte
     { Trace = 0, Debug = 1, Info = 2, Warn = 3, Error = 4, Fatal = 5 }
 
-    [DllImport("Visera-Engine", EntryPoint="Print", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("Visera", EntryPoint="Print", CallingConvention = CallingConvention.Cdecl)]
     public static extern void
     Print(ELevel I_Level, string I_Module, string I_Message);
 

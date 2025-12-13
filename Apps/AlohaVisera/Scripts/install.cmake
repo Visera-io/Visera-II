@@ -32,8 +32,7 @@ target_sources(${VISERA_APP}
 
 target_link_libraries(${VISERA_APP}
         PRIVATE
-        Visera::Core
-        Visera::Engine
+        Visera
         Visera::Studio
 )
 add_custom_command(

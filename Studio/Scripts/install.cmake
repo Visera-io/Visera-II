@@ -30,15 +30,10 @@ add_custom_command(
 )
 endif()
 
-if(NOT TARGET Visera::Runtime)
-    message(FATAL_ERROR "Visera-Runtime is not installed!")
+if(NOT TARGET Visera)
+    message(FATAL_ERROR "Visera is not installed!")
 endif()
-target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Runtime)
-
-if(NOT TARGET Visera::Engine)
-    message(FATAL_ERROR "Visera-Engine is not installed!")
-endif()
-target_link_libraries(${VISERA_STUDIO} PRIVATE Visera::Engine)
+target_link_libraries(${VISERA_STUDIO} PRIVATE Visera)
 
 #
 # << Install External Packages >>

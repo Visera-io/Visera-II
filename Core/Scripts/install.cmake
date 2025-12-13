@@ -1,59 +1,62 @@
-message(STATUS "\nInstalling Visera Core...")
+set(VISERA_CORE_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"     CACHE PATH "")
+set(VISERA_CORE_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External"   CACHE PATH "")
+set(VISERA_CORE_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global"     CACHE PATH "")
+set(VISERA_CORE_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"    CACHE PATH "")
 
-set(VISERA_CORE_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
-set(VISERA_CORE_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
-set(VISERA_CORE_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
-set(VISERA_CORE_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
+macro(install_visera_core in_target)
+    message(STATUS "\nInstalling Visera Core...")
 
-add_library(${VISERA_CORE} SHARED)
-target_compile_definitions(${VISERA_CORE} PRIVATE VISERA_CORE_BUILD_SHARED)
-add_library(Visera::Core ALIAS ${VISERA_CORE})
+    list(APPEND CMAKE_MODULE_PATH ${VISERA_CORE_SCRIPTS_DIR})
 
-set_target_properties(${VISERA_CORE} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-)
-if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-add_custom_command(
-    TARGET Visera::Core
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "$<TARGET_PDB_FILE:Visera::Core>"
-    "${VISERA_APP_FRAMEWORK_DIR}"
-)
-endif()
-#
-# << Install External Packages >>
-#
-list(APPEND CMAKE_MODULE_PATH ${VISERA_CORE_SCRIPTS_DIR})
+    include(install_spdlog)
+    link_spdlog(${in_target})
 
-include(install_spdlog)
-link_spdlog(${VISERA_CORE})
+    include(install_json)
+    link_json(${in_target})
 
-include(install_json)
-link_json(${VISERA_CORE})
+    include(install_eigen)
+    link_eigen(${in_target})
 
-include(install_eigen)
-link_eigen(${VISERA_CORE})
+    include(install_zlib)
+    link_zlib(${in_target})
 
-include(install_zlib)
-link_zlib(${VISERA_CORE})
+    include(install_ankerl)
+    link_ankerl(${in_target})
 
-include(install_ankerl)
-link_ankerl(${VISERA_CORE})
+    file(GLOB_RECURSE VISERA_CORE_MODULES "${VISERA_CORE_SOURCE_DIR}/*.ixx")
 
-#
-#
-#
-file(GLOB_RECURSE VISERA_CORE_MODULES "${VISERA_CORE_SOURCE_DIR}/*.ixx")
+    target_include_directories(${in_target}
+            PUBLIC
+            ${VISERA_CORE_GLOBAL_DIR})
 
-target_include_directories(${VISERA_CORE}
-                           PUBLIC
-                           ${VISERA_CORE_GLOBAL_DIR})
-
-target_sources(${VISERA_CORE}
+    target_sources(${in_target}
             PUBLIC
             FILE_SET "visera_core_modules" TYPE CXX_MODULES
             FILES ${VISERA_CORE_MODULES})
+endmacro()
 
-set_target_properties(${VISERA_CORE} PROPERTIES FOLDER "Visera/Core")
+if(VISERA_MONOLITHIC_MODE)
+    message(STATUS "\n[Monolithic Mode]: please call \"install_visera_core\".")
+    #install_visera_core(...)
+else()
+    add_library(${VISERA_CORE} SHARED)
+    target_compile_definitions(${VISERA_CORE} PRIVATE VISERA_CORE_BUILD_SHARED)
+    add_library(Visera::Core ALIAS ${VISERA_CORE})
+
+    set_target_properties(${VISERA_CORE} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+        LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+    )
+    if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_custom_command(
+        TARGET Visera::Core
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_PDB_FILE:Visera::Core>"
+        "${VISERA_APP_FRAMEWORK_DIR}"
+    )
+    endif()
+
+    install_visera_core(${VISERA_CORE})
+    set_target_properties(${VISERA_CORE} PROPERTIES FOLDER "Visera/Core")
+endif()

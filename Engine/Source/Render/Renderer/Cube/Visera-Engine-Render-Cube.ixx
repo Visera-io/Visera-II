@@ -5,7 +5,7 @@ export module Visera.Engine.Render.Cube;
 import Visera.Core.Math.Algebra.Vector;
 import Visera.Core.Math.Algebra.Matrix;
 import Visera.Core.Log;
-import Visera.Engine.Render.Renderer.Interface;
+import Visera.Engine.Render.Renderer;
 import Visera.Engine.AssetHub;
 import Visera.Engine.Audio;
 import Visera.Runtime.Input;

@@ -30,6 +30,9 @@ add_compile_options(
 )
 endif()
 
+option(VISERA_OFFSCREEN_MODE    "Create a headless application"     OFF)
+option(VISERA_MONOLITHIC_MODE   "Create a single Visera.dll"        OFF)
+
 if(VISERA_OFFSCREEN_MODE)
     message(STATUS "Off-Screen Mode")
     add_compile_definitions (VISERA_OFFSCREEN_MODE)
@@ -54,6 +57,7 @@ else()
     set(CMAKE_SHARED_LINKER_FLAGS_DEVELOP "")
 endif()
 
+set(VISERA_API_DIR      "${PROJECT_SOURCE_DIR}/API")
 set(VISERA_CORE_DIR     "${PROJECT_SOURCE_DIR}/Core")
 set(VISERA_RUNTIME_DIR  "${PROJECT_SOURCE_DIR}/Runtime")
 set(VISERA_ENGINE_DIR   "${PROJECT_SOURCE_DIR}/Engine")
@@ -82,16 +86,6 @@ endif()
 set(VISERA_APP ${VISERA_APP_NAME})
 add_compile_definitions(VISERA_APP=\"${VISERA_APP_NAME}\")
 
-if(WIN32)
-    add_compile_definitions(VISERA_ON_WINDOWS_SYSTEM)
-    set(VISERA_APP_FRAMEWORK_DIR "$<TARGET_FILE_DIR:${VISERA_APP}>")
-    set(VISERA_APP_RESOURCE_DIR "$<TARGET_FILE_DIR:${VISERA_APP}>")
-elseif(APPLE)
-    add_compile_definitions(VISERA_ON_APPLE_SYSTEM)
-    set(VISERA_APP_FRAMEWORK_DIR "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks")
-    set(VISERA_APP_RESOURCE_DIR "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources")
-endif()
-
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(VISERA_DEBUG_MODE)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Develop")
@@ -102,23 +96,65 @@ else()
     message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
+if(WIN32)
+    add_compile_definitions(VISERA_ON_WINDOWS_SYSTEM)
+    set(VISERA_APP_FRAMEWORK_DIR "$<TARGET_FILE_DIR:${VISERA_APP}>")
+    set(VISERA_APP_RESOURCE_DIR "$<TARGET_FILE_DIR:${VISERA_APP}>")
+elseif(APPLE)
+    add_compile_definitions(VISERA_ON_APPLE_SYSTEM)
+    set(VISERA_APP_FRAMEWORK_DIR "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks")
+    set(VISERA_APP_RESOURCE_DIR "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources")
+endif()
+
+add_library(${VISERA} SHARED)
+set_target_properties(${VISERA} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+)
+file(GLOB_RECURSE VISERA_API_MODULES "${VISERA_API_DIR}/Source/*.ixx")
+
+#target_include_directories(${in_target}
+#        PUBLIC
+#        ${VISERA_ENGINE_GLOBAL_DIR})
+
+target_sources(${VISERA}
+        PUBLIC
+        FILE_SET "visera_api_modules" TYPE CXX_MODULES
+        FILES ${VISERA_API_MODULES})
+
+if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+add_custom_command(
+    TARGET ${VISERA}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_PDB_FILE:${VISERA}>"
+    "${VISERA_APP_FRAMEWORK_DIR}"
+)
+endif()
+
 add_subdirectory(${VISERA_CORE_DIR})
 add_subdirectory(${VISERA_RUNTIME_DIR})
 add_subdirectory(${VISERA_ENGINE_DIR})
+if(VISERA_MONOLITHIC_MODE)
+install_visera_core(${VISERA})
+install_visera_runtime(${VISERA})
+install_visera_engine(${VISERA})
+else()
+target_link_libraries(${VISERA} PUBLIC Visera::Engine)
+endif()
 add_subdirectory(${VISERA_STUDIO_DIR})
 add_subdirectory(${VISERA_APP_DIR}) #[TODO]: App -> Engine
 
 add_custom_target(
-    "Visera-App" ALL
-    COMMAND
+    "Visera-App" ALL COMMAND
     dotnet build ${VISERA_APP_PROJECT}
     -c $<IF:$<CONFIG:Release>,Release,Debug>
 
-    -p:VISERA_ENGINE_APIS=${VISERA_ENGINE_DIR}/APIs/
+    -p:VISERA_ENGINE_APIS=${VISERA_API_DIR}
 
     -p:OutputPath=${VISERA_APP_FRAMEWORK_DIR}/
-    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
-    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/App/
+    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/API/
+    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/API/
 
     WORKING_DIRECTORY ${VISERA_APP_DIR}
 )
