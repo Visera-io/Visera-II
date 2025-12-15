@@ -1,32 +1,61 @@
 cmake_minimum_required(VERSION 4.0.0 FATAL_ERROR)
 
-SET(VISERA_ENGINE_VERSION_MAJOR 1)
-SET(VISERA_ENGINE_VERSION_MINOR 0)
-SET(VISERA_ENGINE_VERSION_PATCH 0)
-SET(VISERA_ENGINE_VERSION "${VISERA_ENGINE_VERSION_MAJOR}.${VISERA_ENGINE_VERSION_MINOR}.${VISERA_ENGINE_VERSION_PATCH}")
-
-set(VISERA_ENGINE "Visera-Engine")
-project("${VISERA_ENGINE} (${VISERA_ENGINE_VERSION})"
-    VERSION         "${VISERA_ENGINE_VERSION}"
-    HOMEPAGE_URL    "www.visera.io"
-    LANGUAGES       CXX
-)
-
-set(CMAKE_CXX_STANDARD          23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
-set(CMAKE_CXX_EXTENSIONS        OFF) # Vendor-specific Extensions
-
-if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-    message(FATAL_ERROR
-      "\n"
-      "In-source builds are not allowed.\n"
-      "Instead, provide a path to build tree like so:\n"
-      "cmake -B <destination>\n"
-      "\n"
-      "To remove files you accidentally created execute:\n"
-      "rm -rf CMakeFiles CMakeCache.txt\n"
-    )
+if(VISERA_OFFSCREEN_MODE)
+    message(STATUS "Off-Screen Mode")
+    add_compile_definitions (VISERA_OFFSCREEN_MODE)
 endif()
 
-#[Install]
-include("Scripts/install.cmake")
+if(MSVC)
+    add_compile_definitions (NOMINMAX)
+    add_compile_options     (/utf-8)
+endif()
+
+set(VISERA_API_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/API")
+set(VISERA_ASSETS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
+set(VISERA_CORE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/Core")
+set(VISERA_RUNTIME_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/Runtime")
+set(VISERA_GAME_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/Game")
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(VISERA_DEBUG_MODE)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Develop")
+    add_compile_definitions(VISERA_DEVELOP_MODE)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_definitions(VISERA_RELEASE_MODE)
+else()
+    message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
+endif()
+
+add_library(${VISERA} SHARED)
+set_target_properties(${VISERA} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+)
+if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+add_custom_command(
+    TARGET ${VISERA}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_PDB_FILE:${VISERA}>"
+    "${VISERA_APP_FRAMEWORK_DIR}"
+)
+endif()
+add_subdirectory(${VISERA_CORE_DIR})
+add_subdirectory(${VISERA_RUNTIME_DIR})
+add_subdirectory(${VISERA_API_DIR})
+if(VISERA_MONOLITHIC_MODE)
+target_compile_definitions(${VISERA} PRIVATE VISERA_MONOLITHIC_MODE)
+install_visera_core     (${VISERA})
+install_visera_runtime  (${VISERA})
+else()
+target_link_libraries   (${VISERA} PUBLIC Visera::Runtime)
+endif()
+install_visera_api      (${VISERA})
+
+add_custom_command(
+    TARGET ${VISERA}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${VISERA_ASSETS_DIR}"
+    "${VISERA_APP_RESOURCE_DIR}/Assets/Engine"
+)
