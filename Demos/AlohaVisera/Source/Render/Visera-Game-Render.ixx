@@ -7,7 +7,7 @@ import Visera.Game.Render.Sprite;
 import Visera.Game.Render.Cube;
 import Visera.Game.Render.Line;
 import Visera.Core.Global;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

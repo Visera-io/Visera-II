@@ -2,9 +2,9 @@ module;
 #include <Visera-Game.hpp>
 export module Visera.Game.AssetHub.Asset;
 #define VISERA_MODULE_NAME "Game.AssetHub"
-export import Visera.Core.Types.Name;
+export import Visera.Runtime.Name;
 export import Visera.Core.Types.Path;
-       import Visera.Core.Log;
+       import Visera.Runtime.Log;
 
 namespace Visera
 {

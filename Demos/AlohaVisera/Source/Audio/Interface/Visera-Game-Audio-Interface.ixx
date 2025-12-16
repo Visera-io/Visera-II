@@ -2,7 +2,7 @@ module;
 #include <Visera-Game.hpp>
 export module Visera.Game.Audio.Interface;
 #define VISERA_MODULE_NAME "Game.Audio"
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

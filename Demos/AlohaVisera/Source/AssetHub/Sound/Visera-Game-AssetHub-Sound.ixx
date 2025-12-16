@@ -4,7 +4,7 @@ module;
 export module Visera.Game.AssetHub.Sound;
 #define VISERA_MODULE_NAME "Game.AssetHub"
 import Visera.Game.AssetHub.Asset;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

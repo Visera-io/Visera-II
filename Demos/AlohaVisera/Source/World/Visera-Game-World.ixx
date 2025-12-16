@@ -3,9 +3,9 @@ module;
 #include <entt/entt.hpp>
 export module Visera.Game.World;
 #define VISERA_MODULE_NAME "Game.World"
-       import Visera.Core.Log;
+       import Visera.Runtime.Log;
        import Visera.Core.Global;
-       import Visera.Core.Types.Name;
+       import Visera.Runtime.Name;
        import Visera.Core.Types.Map;
        import Visera.Core.Math.Random.Seed;
        import Visera.Game.World.Entity;

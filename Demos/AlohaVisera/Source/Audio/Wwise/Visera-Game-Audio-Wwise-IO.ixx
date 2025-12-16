@@ -8,7 +8,7 @@ module;
 #endif
 export module Visera.Game.Audio.Wwise.IO;
 #define VISERA_MODULE_NAME "Game.Audio"
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

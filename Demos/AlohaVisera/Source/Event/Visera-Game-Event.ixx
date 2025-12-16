@@ -4,7 +4,7 @@ export module Visera.Game.Event;
 #define VISERA_MODULE_NAME "Game.Event"
 import Visera.Core.Global;
 import Visera.Core.Delegate.Multicast;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

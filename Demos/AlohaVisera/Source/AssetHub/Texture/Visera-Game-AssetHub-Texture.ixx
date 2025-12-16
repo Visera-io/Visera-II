@@ -5,7 +5,7 @@ export module Visera.Game.AssetHub.Texture;
 import Visera.Game.AssetHub.Asset;
 import Visera.Runtime.Media;
 import Visera.Runtime.RHI;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

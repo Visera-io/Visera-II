@@ -8,12 +8,12 @@ export import Visera.Game.Audio;
 export import Visera.Game.Render;
 export import Visera.Game.Event;
 export import Visera.Game.World;
-       import Visera.Core.Types.Name;
+       import Visera.Runtime.Name;
        import Visera.Core.Delegate.Unicast;
        import Visera.Core.Traits.Policy;
        import Visera.Core.OS.Time;
        import Visera.Core.Global;
-       import Visera.Core.Log;
+       import Visera.Runtime.Log;
        import Visera.Runtime;
 
 namespace Visera

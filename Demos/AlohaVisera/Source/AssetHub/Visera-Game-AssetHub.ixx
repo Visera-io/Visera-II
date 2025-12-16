@@ -11,7 +11,7 @@ export import Visera.Core.Types.Path;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Types.Map;
        import Visera.Core.Global;
-       import Visera.Core.Log;
+       import Visera.Runtime.Log;
 
 namespace Visera
 {

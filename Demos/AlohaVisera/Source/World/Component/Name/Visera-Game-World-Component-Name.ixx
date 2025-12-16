@@ -2,7 +2,7 @@ module;
 #include <Visera-Game.hpp>
 export module Visera.Game.World.Component.Name;
 #define VISERA_MODULE_NAME "Game.World"
-import Visera.Core.Types.Name;
+import Visera.Runtime.Name;
 
 namespace Visera
 {

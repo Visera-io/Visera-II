@@ -10,10 +10,10 @@ import Visera.Game.Audio.Null;
 import Visera.Game.Audio.Wwise;
 import Visera.Game.AssetHub.Sound;
 import Visera.Core.Global;
-import Visera.Core.Types.Name;
+import Visera.Runtime.Name;
 import Visera.Core.Types.Map;
 import Visera.Core.OS.Time;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 
 namespace Visera
 {

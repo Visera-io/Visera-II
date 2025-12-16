@@ -4,7 +4,7 @@ export module Visera.Game.Render.Line;
 #define VISERA_MODULE_NAME "Game.Render"
 import Visera.Core.Math.Algebra.Vector;
 import Visera.Core.Types.Array;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 import Visera.Game.Render.Renderer.Interface;
 import Visera.Game.AssetHub;
 import Visera.Runtime.RHI;

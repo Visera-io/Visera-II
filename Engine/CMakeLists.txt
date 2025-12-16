@@ -12,9 +12,8 @@ endif()
 
 set(VISERA_API_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/API")
 set(VISERA_ASSETS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
-set(VISERA_CORE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/Core")
-set(VISERA_RUNTIME_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/Runtime")
-set(VISERA_GAME_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/Game")
+set(VISERA_CORE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Core")
+set(VISERA_RUNTIME_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Runtime")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(VISERA_DEBUG_MODE)
@@ -40,6 +39,7 @@ add_custom_command(
     "${VISERA_APP_FRAMEWORK_DIR}"
 )
 endif()
+
 add_subdirectory(${VISERA_CORE_DIR})
 add_subdirectory(${VISERA_RUNTIME_DIR})
 add_subdirectory(${VISERA_API_DIR})

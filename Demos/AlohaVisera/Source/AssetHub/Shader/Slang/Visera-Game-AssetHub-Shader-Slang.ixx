@@ -7,7 +7,7 @@ export module Visera.Game.AssetHub.Shader.Slang;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 import Visera.Runtime.Platform;
 import Visera.Game.Event;
 

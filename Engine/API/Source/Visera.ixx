@@ -2,9 +2,11 @@ module;
 #include <Visera.hpp>
 export module Visera;
 #define VISERA_MODULE_NAME "Visera"
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 import Visera.Runtime.Input;
 import Visera.Runtime.Window;
+import Visera.Core.Logger;
+import Visera.Runtime.Log;
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 #define VISERA_API __declspec(dllexport) auto __cdecl

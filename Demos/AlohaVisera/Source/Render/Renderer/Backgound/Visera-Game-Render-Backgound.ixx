@@ -2,7 +2,7 @@ module;
 #include <Visera-Game.hpp>
 export module Visera.Game.Render.Background;
 #define VISERA_MODULE_NAME "Game.Render"
-import Visera.Core.Log;
+import Visera.Runtime.Log;
 import Visera.Game.AssetHub;
 import Visera.Game.Render.Renderer.Interface;
 import Visera.Runtime.RHI; //[TODO]: Remove
