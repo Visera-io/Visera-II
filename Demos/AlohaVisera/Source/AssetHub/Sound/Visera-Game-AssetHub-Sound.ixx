@@ -1,5 +1,5 @@
 module;
-#include <../../../Global/Visera-Game.hpp>
+#include <Visera-Game.hpp>
 #include <AK/SoundEngine/Common/AkSoundEngine.h>
 export module Visera.Game.AssetHub.Sound;
 #define VISERA_MODULE_NAME "Game.AssetHub"

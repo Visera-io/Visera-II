@@ -1,5 +1,5 @@
 module;
-#include <../../../Global/Visera-Game.hpp>
+#include <Visera-Game.hpp>
 #include <AK/SoundEngine/Common/AkStreamMgrModule.h>
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 #include <AKSamples/SoundEngine/Win32/AkDefaultIOHookDeferred.h>

@@ -1,5 +1,5 @@
 module;
-#include <../../../Global/Visera-Game.hpp>
+#include <Visera-Game.hpp>
 #include <AK/SoundEngine/Common/AkTypes.h>
 #include <AK/SoundEngine/Common/AkSoundEngine.h>
 #include <AK/SoundEngine/Common/AkMemoryMgrModule.h>

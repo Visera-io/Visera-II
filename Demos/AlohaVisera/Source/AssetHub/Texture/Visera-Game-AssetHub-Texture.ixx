@@ -1,5 +1,5 @@
 module;
-#include <../../../Global/Visera-Game.hpp>
+#include <Visera-Game.hpp>
 export module Visera.Game.AssetHub.Texture;
 #define VISERA_MODULE_NAME "Game.AssetHub"
 import Visera.Game.AssetHub.Asset;

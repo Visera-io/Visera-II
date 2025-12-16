@@ -1,5 +1,5 @@
 module;
-#include <../../../Global/Visera-Game.hpp>
+#include <Visera-Game.hpp>
 export module Visera.Game.Audio.Null;
 #define VISERA_MODULE_NAME "Game.Audio"
 import Visera.Game.Audio.Interface;
