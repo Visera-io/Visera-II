@@ -70,7 +70,7 @@ export namespace Visera
     CreateDirectory(const FPath& I_Path)
     {
         FErrorCode ErrorCode;
-        if (std::filesystem::exists(I_Path.GetNativePath(), ErrorCode))
+        if (!std::filesystem::exists(I_Path.GetNativePath(), ErrorCode))
         {
             std::filesystem::create_directories(I_Path.GetNativePath(), ErrorCode);
         }
@@ -90,9 +90,7 @@ export namespace Visera
             else
             {
                 if (std::filesystem::is_empty(I_Path.GetNativePath(), ErrorCode))
-                {
-                    std::filesystem::remove(I_Path.GetNativePath(), ErrorCode);
-                }
+                { std::filesystem::remove(I_Path.GetNativePath(), ErrorCode); }
             }
         }
         return ErrorCode;

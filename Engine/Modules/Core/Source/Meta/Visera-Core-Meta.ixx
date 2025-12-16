@@ -5,6 +5,5 @@ export module Visera.Core.Meta;
 
 export namespace Visera
 {
-    [[editorable]]
-    void Foo() { }
+
 }

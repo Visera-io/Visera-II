@@ -4,6 +4,7 @@ export module Visera.Runtime.Debug;
 #define VISERA_MODULE_NAME "Runtime.Debug"
 import Visera.Runtime.Debug.UI;
 import Visera.Runtime.Window;
+import Visera.Runtime.Log;
 import Visera.Core.Global;
 
 namespace Visera

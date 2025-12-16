@@ -1,6 +1,6 @@
 module;
 #include <Visera-Game.hpp>
-export module Visera.Game.Render.Renderer;
+export module Visera.Game.Render.Camera;
 #define VISERA_MODULE_NAME "Game.Render"
 import Visera.Core.Math.Algebra;
 import Visera.Core.Math.Trigonometry;

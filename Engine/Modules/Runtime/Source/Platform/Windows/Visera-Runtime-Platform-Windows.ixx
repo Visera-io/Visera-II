@@ -11,7 +11,6 @@ export module Visera.Runtime.Platform.Windows;
 import Visera.Runtime.Platform.Interface;
 import Visera.Runtime.Platform.Windows.Library;
 import Visera.Runtime.Log;
-import Visera.Core.OS.FileSystem;
 
 namespace Visera
 {
@@ -55,8 +54,6 @@ namespace Visera
         ExecutableDirectory = FPath{Buffer}.GetParent();
 
         CacheDirectory = ExecutableDirectory / FPath{"Cache"};
-        if (!FFileSystem::Exists(CacheDirectory))
-        { (void)FFileSystem::CreateDirectory(CacheDirectory); }
     }
 
     Bool FWindowsPlatform::

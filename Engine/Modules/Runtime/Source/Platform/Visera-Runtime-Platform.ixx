@@ -9,6 +9,7 @@ import Visera.Runtime.Platform.Windows;
 import Visera.Runtime.Platform.MacOS;
 #endif
 import Visera.Core.Global;
+import Visera.Core.OS.FileSystem;
 import Visera.Runtime.Log;
 
 namespace Visera
@@ -43,6 +44,9 @@ namespace Visera
 #elif defined(VISERA_ON_APPLE_SYSTEM)
             Platform = MakeUnique<FMacOSPlatform>();
 #endif
+
+            if (auto Error = FFileSystem::CreateDirectory(Platform->GetCacheDirectory()); Error)
+            { LOG_ERROR("Failed to create cache directory -- {}!", Error.message()); }
 
             Status = EStatus::Bootstrapped;
         }
