@@ -128,9 +128,12 @@ namespace Visera
         CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
                              const TArray<vk::PushConstantRange>&   I_PushConstants);
         [[nodiscard]] TSharedPtr<FVulkanRenderPipeline>
-        CreateRenderPipeline(TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout,
+        CreateRenderPipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
                              TSharedRef<FVulkanShaderModule>   I_VertexShader,
                              TSharedRef<FVulkanShaderModule>   I_FragmentShader);
+        [[nodiscard]] TSharedPtr<FVulkanComputePipeline>
+        CreateComputePipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
+                              TSharedRef<FVulkanShaderModule>   I_ComputeShader);
         [[nodiscard]] TSharedPtr<FVulkanFence>
         CreateFence(Bool        I_bSignaled,
                     FStringView I_Description);
@@ -1075,7 +1078,7 @@ namespace Visera
     }
 
     TSharedPtr<FVulkanRenderPipeline> FVulkanDriver::
-    CreateRenderPipeline(TSharedPtr<FVulkanPipelineLayout> I_PipelineLayout,
+    CreateRenderPipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
                          TSharedRef<FVulkanShaderModule>   I_VertexShader,
                          TSharedRef<FVulkanShaderModule>   I_FragmentShader)
     {
@@ -1085,6 +1088,18 @@ namespace Visera
                I_VertexShader,
                I_FragmentShader));
         return NewRenderPipeline; // Not be created!
+    }
+
+    TSharedPtr<FVulkanComputePipeline> FVulkanDriver::
+    CreateComputePipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
+                          TSharedRef<FVulkanShaderModule>   I_ComputeShader)
+    {
+        LOG_TRACE("Creating a Vulkan Compute Pipeline.");
+        return MakeShared<FVulkanComputePipeline>(
+            Device.Context,
+            I_PipelineLayout,
+            I_ComputeShader,
+            PipelineCache);
     }
 
     TSharedPtr<FVulkanFence> FVulkanDriver::

@@ -153,25 +153,25 @@ namespace Visera
                 .setDynamicStateCount (MAX_DYNAMIC_STATE)
                 .setPDynamicStates    (DynamicStates)
             ;
-            auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
+            const auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
                 .setVertexAttributeDescriptionCount (Settings.VertexAttributes.size())
                 .setPVertexAttributeDescriptions    (Settings.VertexAttributes.data())
                 .setVertexBindingDescriptionCount   (Settings.VertexBindings.size())
                 .setPVertexBindingDescriptions      (Settings.VertexBindings.data())
             ;
-            auto ColorBlending = vk::PipelineColorBlendStateCreateInfo{}
+            const auto ColorBlending = vk::PipelineColorBlendStateCreateInfo{}
                 .setLogicOpEnable   (vk::False)
                 .setLogicOp         (vk::LogicOp::eCopy)
                 .setAttachmentCount (1)
                 .setPAttachments    (&Settings.ColorBlendAttachment)
             ;
-            auto PipelineRenderingCreateInfo = vk::PipelineRenderingCreateInfo{}
+            const auto PipelineRenderingCreateInfo = vk::PipelineRenderingCreateInfo{}
                 .setPColorAttachmentFormats (&Settings.ColorRTFormat)
                 .setColorAttachmentCount    (1)
                 .setDepthAttachmentFormat   (Settings.DepthRTFormat)
                 .setStencilAttachmentFormat (Settings.StencilRTFormat)
             ;
-            auto CreateInfo = vk::GraphicsPipelineCreateInfo{}
+            const auto CreateInfo = vk::GraphicsPipelineCreateInfo{}
                 .setPNext               (&PipelineRenderingCreateInfo)
                 .setStageCount          (2)
                 .setPStages             (ShaderStageCreateInfos)
@@ -189,7 +189,7 @@ namespace Visera
             ;
             auto Result = I_Device.createGraphicsPipeline(I_PipelineCache->GetHandle(), CreateInfo);
             if (!Result.has_value())
-            { LOG_FATAL("Failed to create the pipeline!"); }
+            { LOG_FATAL("Failed to create the graphics pipeline!"); }
             else
             { Handle = std::move(*Result); }
 

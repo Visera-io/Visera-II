@@ -2,7 +2,9 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.RHI.Types;
 #define VISERA_MODULE_NAME "Runtime.RHI"
+export import Visera.Runtime.RHI.Types.PipelineLayout;
 export import Visera.Runtime.RHI.Types.RenderPipeline;
+export import Visera.Runtime.RHI.Types.ComputePipeline;
 export import Visera.Runtime.RHI.Types.CommandBuffer;
 export import Visera.Runtime.RHI.Types.DescriptorSet;
 export import Visera.Runtime.RHI.Types.VertexBuffer;

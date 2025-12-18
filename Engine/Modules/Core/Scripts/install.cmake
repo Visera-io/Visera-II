@@ -26,13 +26,13 @@ macro(install_visera_core in_target)
     file(GLOB_RECURSE VISERA_CORE_MODULES "${VISERA_CORE_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}
-            PUBLIC
-            ${VISERA_CORE_GLOBAL_DIR})
+        PUBLIC
+        ${VISERA_CORE_GLOBAL_DIR})
 
     target_sources(${in_target}
-            PUBLIC
-            FILE_SET "visera_core_modules" TYPE CXX_MODULES
-            FILES ${VISERA_CORE_MODULES})
+        PUBLIC
+        FILE_SET "visera_core_modules" TYPE CXX_MODULES
+        FILES ${VISERA_CORE_MODULES})
 endmacro()
 
 if(VISERA_MONOLITHIC_MODE)

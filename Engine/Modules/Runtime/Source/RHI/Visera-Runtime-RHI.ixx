@@ -64,6 +64,9 @@ namespace Visera
         [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
         CreateRenderPipeline(const FString&                 I_Name,
                              const FRHIRenderPipelineState& I_PipelineState);
+        // [[nodiscard]] TSharedPtr<FRHIComputePipeline>
+        // CreateComputePipeline(const FString&                  I_Name,
+        //                       const  FRHIComputePipelineState& I_PipelineState);
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
