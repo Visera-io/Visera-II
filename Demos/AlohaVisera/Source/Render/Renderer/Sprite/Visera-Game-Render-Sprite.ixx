@@ -4,7 +4,7 @@ export module Visera.Game.Render.Sprite;
 #define VISERA_MODULE_NAME "Game.Render"
 import Visera.Game.AssetHub;
 import Visera.Game.Render.Renderer.Interface;
-import Visera.Runtime.RHI;
+import Visera.RHI;
 import Visera.Runtime.Input; //[TODO]: Remove
 
 namespace Visera

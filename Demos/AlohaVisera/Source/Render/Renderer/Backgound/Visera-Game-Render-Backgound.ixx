@@ -5,7 +5,7 @@ export module Visera.Game.Render.Background;
 import Visera.Runtime.Log;
 import Visera.Game.AssetHub;
 import Visera.Game.Render.Renderer.Interface;
-import Visera.Runtime.RHI; //[TODO]: Remove
+import Visera.RHI; //[TODO]: Remove
 
 namespace Visera
 {

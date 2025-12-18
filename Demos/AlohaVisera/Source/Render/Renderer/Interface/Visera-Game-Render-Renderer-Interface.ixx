@@ -2,7 +2,7 @@ module;
 #include <Visera-Game.hpp>
 export module Visera.Game.Render.Renderer.Interface;
 #define VISERA_MODULE_NAME "Game.Render"
-export import Visera.Runtime.RHI;
+export import Visera.RHI;
 
 namespace Visera
 {

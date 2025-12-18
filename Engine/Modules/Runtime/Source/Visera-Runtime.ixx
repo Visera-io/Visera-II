@@ -5,11 +5,8 @@ export module Visera.Runtime;
 export import Visera.Runtime.Platform;
 export import Visera.Runtime.Window;
 export import Visera.Runtime.Input;
-export import Visera.Runtime.Debug;
 export import Visera.Runtime.Log;
-export import Visera.Runtime.RHI;
 export import Visera.Runtime.Media;
-export import Visera.Runtime.Physics;
        import Visera.Runtime.Scripting;
        import Visera.Runtime.Scheduler;
        import Visera.Core.OS.Time;
@@ -31,16 +28,13 @@ namespace Visera
         {
             LOG_INFO("Initializing Runtime.");
 
-            GDebug      ->Bootstrap();
             GPlatform   ->Bootstrap();
 #if !defined(VISERA_OFFSCREEN_MODE)
             GWindow     ->Bootstrap();
             GInput      ->Bootstrap();
 #endif
-            GRHI        ->Bootstrap();
 
             GMedia      ->Bootstrap();
-            GPhysics    ->Bootstrap();
 
             Status = EStatus::Bootstrapped;
         }
@@ -48,16 +42,12 @@ namespace Visera
         {
             LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
 
-            GPhysics    ->Terminate();
             GMedia      ->Terminate();
-
-            GRHI        ->Terminate();
 #if !defined(VISERA_OFFSCREEN_MODE)
             GInput      ->Terminate();
             GWindow     ->Terminate();
 #endif
             GPlatform   ->Terminate();
-            GDebug      ->Terminate();
 
             Status = EStatus::Terminated;
         }

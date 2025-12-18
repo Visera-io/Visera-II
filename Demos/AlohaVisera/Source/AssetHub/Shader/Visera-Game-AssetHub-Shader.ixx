@@ -5,7 +5,7 @@ export module Visera.Game.AssetHub.Shader;
 export import Visera.Game.AssetHub.Shader.Common;
        import Visera.Game.AssetHub.Shader.Slang;
        import Visera.Game.AssetHub.Asset;
-       import Visera.Runtime.RHI;
+       import Visera.RHI;
        import Visera.Runtime.Log;
        import Visera.Core.Types.Array;
 

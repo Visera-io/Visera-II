@@ -14,22 +14,6 @@
     include(install_onetbb)
     link_onetbb(${in_target})
 
-    include(install_vma)
-    link_vma(${in_target})
-
-    include(install_vulkan)
-    link_vulkan(${in_target})
-
-    include(install_freetype)
-    link_freetype(${in_target})
-
-    if(NOT VISERA_OFFSCREEN_MODE)
-    include(install_glfw)
-    link_glfw(${in_target})
-    include(install_imgui)
-    link_imgui(${in_target})
-    endif()
-
     include(install_stb)
     link_stb(${in_target})
 
@@ -42,8 +26,10 @@
     include(install_bvh)
     link_bvh(${in_target})
 
-    include(install_box2d)
-    link_box2d(${in_target})
+    if(NOT VISERA_OFFSCREEN_MODE)
+    include(install_glfw)
+    link_glfw(${in_target})
+    endif()
 
     file(GLOB_RECURSE VISERA_RUNTIME_MODULES "${VISERA_RUNTIME_SOURCE_DIR}/*.ixx")
 

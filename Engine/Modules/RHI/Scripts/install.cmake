@@ -8,6 +8,12 @@ macro(install_visera_rhi in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_RHI_SCRIPTS_DIR})
 
+    include(install_vma)
+    link_vma(${in_target})
+
+    include(install_vulkan)
+    link_vulkan(${in_target})
+
     file(GLOB_RECURSE VISERA_RHI_MODULES "${VISERA_RHI_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}

@@ -8,6 +8,14 @@ macro(install_visera_graphics in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GRAPHICS_SCRIPTS_DIR})
 
+    include(install_freetype)
+    link_freetype(${in_target})
+
+    if(NOT VISERA_OFFSCREEN_MODE)
+    include(install_imgui)
+    link_imgui(${in_target})
+    endif()
+
     file(GLOB_RECURSE VISERA_GRAPHICS_MODULES "${VISERA_GRAPHICS_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}
@@ -45,6 +53,11 @@ else()
         message(FATAL_ERROR "Visera-Runtime is not installed!")
     endif()
     target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::Runtime)
+
+    if(NOT TARGET Visera::RHI)
+        message(FATAL_ERROR "Visera-RHI is not installed!")
+    endif()
+    target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::RHI)
 
     install_visera_graphics(${VISERA_GRAPHICS})
     set_target_properties(${VISERA_GRAPHICS} PROPERTIES FOLDER "Visera/Graphics")

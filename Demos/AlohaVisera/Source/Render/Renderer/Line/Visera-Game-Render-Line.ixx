@@ -7,7 +7,7 @@ import Visera.Core.Types.Array;
 import Visera.Runtime.Log;
 import Visera.Game.Render.Renderer.Interface;
 import Visera.Game.AssetHub;
-import Visera.Runtime.RHI;
+import Visera.RHI;
 import Visera.Runtime.Input;
 
 namespace Visera

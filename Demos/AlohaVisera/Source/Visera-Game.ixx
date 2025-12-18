@@ -15,6 +15,8 @@ export import Visera.Game.World;
        import Visera.Core.Global;
        import Visera.Runtime.Log;
        import Visera.Runtime;
+       import Visera.RHI;
+       import Visera.Graphics;
 
 namespace Visera
 {
@@ -50,40 +52,29 @@ namespace Visera
                 GRHI->EndFrame();
                 return;
             }
-            
-             auto& Driver = GRHI->GetDriver();
 
-            struct alignas(16) FTestPushConstantRange
+            while (!GWindow->ShouldClose())
             {
-                Float Time{0};
-                Float CursorX{0}, CursorY{0};
-                Float OffsetX{0}, OffsetY{0};
-            };
-            static_assert(sizeof(FTestPushConstantRange) <= 128);
-            FTestPushConstantRange MouseContext{};
+                GWindow->PollEvents();
+                GAudio->Tick();
 
-             while (!GWindow->ShouldClose())
-             {
-                 GWindow->PollEvents();
-                 GAudio->Tick();
+                Float DeltaTime = Timer.Tick().Microseconds() / 1000000.0; Timer.Reset();
 
-                 Float DeltaTime = Timer.Tick().Microseconds() / 1000000.0; Timer.Reset();
+                GRHI->BeginFrame();
+                {
+                 GEvent ->OnFrameBegin.Broadcast();
 
-                 GRHI->BeginFrame();
-                 {
-                     GEvent ->OnFrameBegin.Broadcast();
+                 // Logic
+                 AppTick.Invoke(DeltaTime);
+                 GWorld ->Tick(DeltaTime);
+                 // Render
+                 GRender->Tick(DeltaTime);
 
-                     // Logic
-                     AppTick.Invoke(DeltaTime);
-                     GWorld ->Tick(DeltaTime);
-                     // Render
-                     GRender->Tick(DeltaTime);
-
-                     GEvent ->OnFrameEnd.Broadcast();
-                 }
-                 GRHI->EndFrame();
-                 GRHI->Present();
-             }
+                 GEvent ->OnFrameEnd.Broadcast();
+                }
+                GRHI->EndFrame();
+                GRHI->Present();
+            }
         }
     private:
         FHiResClock Timer;
@@ -93,6 +84,8 @@ namespace Visera
         {
             LOG_TRACE("Bootstrapping Engine.");
             GRuntime    ->Bootstrap();
+            GRHI        ->Bootstrap();
+            Graphics::GDebug->Bootstrap(); //[TODO]: Remove
 
             GEvent      ->Bootstrap();
             GAssetHub   ->Bootstrap();
@@ -115,6 +108,8 @@ namespace Visera
             GAssetHub   ->Terminate();
             GEvent      ->Terminate();
 
+            Graphics::GDebug->Terminate(); //[TODO]: Remove
+            GRHI        ->Terminate();
             GRuntime    ->Terminate();
 
             Status = EStatus::Terminated;
