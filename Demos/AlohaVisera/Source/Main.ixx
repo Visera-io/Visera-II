@@ -4,12 +4,20 @@ export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
 import Visera.Game;
+import Visera.Platform;
+import Visera.Assets.Image;
 using namespace Visera;
 
 export int main(int argc, char *argv[])
 {
     GEngine->Bootstrap();
     {
+        if (GWindow->IsBootstrapped())
+        {
+            FImage AppIcon { GPlatform->GetResourceDirectory() / FPath{"Assets/Engine/Image/Visera.png"} };
+            GWindow->SetIcon(AppIcon.Access(), AppIcon.GetWidth(), AppIcon.GetHeight());
+        }
+
         auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
         auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
 

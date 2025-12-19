@@ -8,28 +8,8 @@
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_RUNTIME_SCRIPTS_DIR})
 
-    include(install_dotnet)
-    link_dotnet(${in_target})
-
     include(install_onetbb)
     link_onetbb(${in_target})
-
-    include(install_stb)
-    link_stb(${in_target})
-
-    include(install_libpng)
-    link_libpng(${in_target})
-
-    include(install_miniaudio)
-    link_miniaudio(${in_target})
-
-    include(install_bvh)
-    link_bvh(${in_target})
-
-    if(NOT VISERA_OFFSCREEN_MODE)
-    include(install_glfw)
-    link_glfw(${in_target})
-    endif()
 
     file(GLOB_RECURSE VISERA_RUNTIME_MODULES "${VISERA_RUNTIME_SOURCE_DIR}/*.ixx")
 
@@ -55,13 +35,13 @@ else()
         LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
     )
     if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-        add_custom_command(
-            TARGET Visera::Runtime
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_PDB_FILE:Visera::Runtime>"
-            "${VISERA_APP_FRAMEWORK_DIR}"
-        )
+    add_custom_command(
+        TARGET Visera::Runtime
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_PDB_FILE:Visera::Runtime>"
+        "${VISERA_APP_FRAMEWORK_DIR}"
+    )
     endif()
 
     if(NOT TARGET Visera::Core)

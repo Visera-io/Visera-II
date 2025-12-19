@@ -1,0 +1,32 @@
+module;
+#include <Visera-Platform.hpp>
+export module Visera.Platform.OS.Interface.Library;
+#define VISERA_MODULE_NAME "Platform.OS"
+export import Visera.Core.Types.Path;
+
+namespace Visera
+{
+    export class VISERA_PLATFORM_API ILibrary
+    {
+    public:
+        [[nodiscard]] virtual void*
+        LoadFunction(const char* I_Name) const = 0;
+
+        [[nodiscard]] inline const FPath&
+        GetPath() const { return Path; }
+
+        [[nodiscard]] inline Bool
+        IsLoaded() const { return Handle != nullptr; }
+
+        ILibrary() = delete;
+        ILibrary(const FPath& I_Path) : Path(I_Path) { }
+        virtual ~ILibrary()
+        {
+            Handle = nullptr; // Always set Handle to nullptr to prevent double-free
+        }
+
+    protected:
+        FPath Path;
+        void* Handle{nullptr};
+    };
+}

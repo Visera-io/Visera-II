@@ -48,7 +48,7 @@ elseif(WIN32)
     add_library(VulkanLoader UNKNOWN IMPORTED GLOBAL)
     set(VULKAN_LIB "${CMAKE_CURRENT_SOURCE_DIR}/Windows/vulkan-1.lib")
     set_target_properties(VulkanLoader PROPERTIES
-        IMPORTED_CONFIGURATIONS "Debug;Release;Develop"
+        IMPORTED_CONFIGURATIONS   "Debug;Release;Develop"
         IMPORTED_LOCATION_DEBUG   "${VULKAN_LIB}"
         IMPORTED_LOCATION_RELEASE "${VULKAN_LIB}"
         IMPORTED_LOCATION_DEVELOP "${VULKAN_LIB}"
@@ -59,7 +59,6 @@ endif()
 
 target_link_libraries(VulkanModule PUBLIC VulkanLoader)
 
-message(STATUS "Vulkan files will be copied into the app bundle.")
 if(APPLE)
     add_custom_command(TARGET VulkanModule POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory

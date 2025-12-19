@@ -3,7 +3,7 @@ module;
 export module Visera.Game.AssetHub.Texture;
 #define VISERA_MODULE_NAME "Game.AssetHub"
 import Visera.Game.AssetHub.Asset;
-import Visera.Runtime.Media;
+import Visera.Assets;
 import Visera.Runtime.Log;
 import Visera.RHI;
 
@@ -33,7 +33,7 @@ namespace Visera
    FTexture(const FName& I_Name, const FPath& I_Path)
    : IAsset(EType::Texture, I_Name, I_Path)
    {
-      auto Image = GMedia->CreateImage(I_Path);
+      auto Image = GAssets->CreateImage(I_Path);
       Data = GRHI->CreateTexture2D(Image, ERHISamplerType::Linear);
    }
 

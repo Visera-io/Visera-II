@@ -8,15 +8,15 @@ export import Visera.Game.Audio;
 export import Visera.Game.Render;
 export import Visera.Game.Event;
 export import Visera.Game.World;
-       import Visera.Runtime.Name;
        import Visera.Core.Delegate.Unicast;
        import Visera.Core.Traits.Policy;
        import Visera.Core.OS.Time;
        import Visera.Core.Global;
-       import Visera.Runtime.Log;
        import Visera.Runtime;
+       import Visera.Platform;
        import Visera.RHI;
        import Visera.Graphics;
+       import Visera.Assets;
 
 namespace Visera
 {
@@ -84,6 +84,8 @@ namespace Visera
         {
             LOG_TRACE("Bootstrapping Engine.");
             GRuntime    ->Bootstrap();
+            GPlatform   ->Bootstrap();
+            GAssets     ->Bootstrap();
             GRHI        ->Bootstrap();
             Graphics::GDebug->Bootstrap(); //[TODO]: Remove
 
@@ -110,6 +112,8 @@ namespace Visera
 
             Graphics::GDebug->Terminate(); //[TODO]: Remove
             GRHI        ->Terminate();
+            GAssets     ->Terminate();
+            GPlatform   ->Terminate();
             GRuntime    ->Terminate();
 
             Status = EStatus::Terminated;

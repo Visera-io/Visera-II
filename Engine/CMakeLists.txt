@@ -11,9 +11,10 @@ if(MSVC)
 endif()
 
 set(VISERA_API_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/API")
-set(VISERA_ASSETS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
 set(VISERA_CORE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Core")
 set(VISERA_RUNTIME_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Runtime")
+set(VISERA_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Platform")
+set(VISERA_ASSETS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Assets")
 set(VISERA_RHI_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/Modules/RHI")
 set(VISERA_GRAPHICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Graphics")
 set(VISERA_AUDIO_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/Modules/Audio")
@@ -45,6 +46,8 @@ endif()
 
 add_subdirectory(${VISERA_CORE_DIR})
 add_subdirectory(${VISERA_RUNTIME_DIR})
+add_subdirectory(${VISERA_PLATFORM_DIR})
+add_subdirectory(${VISERA_ASSETS_DIR})
 add_subdirectory(${VISERA_RHI_DIR})
 add_subdirectory(${VISERA_GRAPHICS_DIR})
 add_subdirectory(${VISERA_AUDIO_DIR})
@@ -53,11 +56,15 @@ if(VISERA_MONOLITHIC_MODE)
 target_compile_definitions(${VISERA} PRIVATE VISERA_MONOLITHIC_MODE)
 install_visera_core     (${VISERA})
 install_visera_runtime  (${VISERA})
+install_visera_platform (${VISERA})
+install_visera_assets   (${VISERA})
 install_visera_rhi      (${VISERA})
 install_visera_graphics (${VISERA})
 install_visera_audio    (${VISERA})
 else()
 target_link_libraries   (${VISERA} PUBLIC Visera::Runtime)
+target_link_libraries   (${VISERA} PUBLIC Visera::Platform)
+target_link_libraries   (${VISERA} PUBLIC Visera::Assets)
 target_link_libraries   (${VISERA} PUBLIC Visera::RHI)
 target_link_libraries   (${VISERA} PUBLIC Visera::Graphics)
 target_link_libraries   (${VISERA} PUBLIC Visera::Audio)
@@ -68,6 +75,6 @@ add_custom_command(
     TARGET ${VISERA}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${VISERA_ASSETS_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Assets" #[TODO]: Redesign Engine/Assets
     "${VISERA_APP_RESOURCE_DIR}/Assets/Engine"
 )

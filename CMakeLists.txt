@@ -38,7 +38,7 @@ if(MSVC)
     add_compile_options     (/utf-8)
 endif()
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Develop;Release;" CACHE STRING "" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Debug;Develop;Release" CACHE STRING "" FORCE)
 if (MSVC)
     set(CMAKE_C_FLAGS_DEVELOP             "/O2 /Zi")
     set(CMAKE_CXX_FLAGS_DEVELOP           "/O2 /Zi")

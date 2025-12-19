@@ -11,7 +11,7 @@ export module Visera.Graphics.Debug.UI;
 #define VISERA_MODULE_NAME "Graphics.Debug"
 import Visera.Core.Global;
 import Visera.RHI;
-import Visera.Runtime.Window;
+import Visera.Platform.Window;
 import Visera.Runtime.Log;
 
 namespace Visera::Graphics

@@ -1,0 +1,10 @@
+module;
+#include <Visera-Assets.hpp>
+export module Visera.Game.AssetHub.Audio;
+#define VISERA_MODULE_NAME "Assets.Audio"
+import Visera.Runtime.Log;
+
+namespace Visera
+{
+   
+}

@@ -1,0 +1,29 @@
+{
+    "LibPNG" :
+    {
+        "Version" : "1.6.50",
+        "Dependencies" :
+        [
+            "ZLib"
+        ],
+        "URL" : "https://libpng.sourceforge.io/"
+    },
+    "MiniAudio" :
+    {
+        "Version" : "0.11.23",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/mackron/miniaudio"
+    },
+    "STB" :
+    {
+        "Version" : "Date >= 2025.5.1",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/nothings/stb"
+    }
+}

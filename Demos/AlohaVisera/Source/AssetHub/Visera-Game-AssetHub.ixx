@@ -7,7 +7,7 @@ export import Visera.Game.AssetHub.Shader;
 export import Visera.Game.AssetHub.Texture;
 export import Visera.Core.Types.Path;
        import Visera.Game.AssetHub.Asset;
-       import Visera.Runtime.Platform;
+       import Visera.Platform;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Types.Map;
        import Visera.Core.Global;

@@ -8,7 +8,7 @@ import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
 import Visera.Runtime.Log;
-import Visera.Runtime.Platform;
+import Visera.Platform;
 import Visera.Game.Event;
 
 namespace Visera

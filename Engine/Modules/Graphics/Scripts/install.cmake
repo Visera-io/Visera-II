@@ -8,6 +8,9 @@ macro(install_visera_graphics in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GRAPHICS_SCRIPTS_DIR})
 
+    include(install_bvh)
+    link_bvh(${in_target})
+    
     include(install_freetype)
     link_freetype(${in_target})
 
@@ -53,6 +56,11 @@ else()
         message(FATAL_ERROR "Visera-Runtime is not installed!")
     endif()
     target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::Runtime)
+
+    if(NOT TARGET Visera::Platform)
+        message(FATAL_ERROR "Visera-Platform is not installed!")
+    endif()
+    target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::Platform)
 
     if(NOT TARGET Visera::RHI)
         message(FATAL_ERROR "Visera-RHI is not installed!")

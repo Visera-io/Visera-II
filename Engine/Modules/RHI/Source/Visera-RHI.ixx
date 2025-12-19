@@ -5,7 +5,7 @@ export module Visera.RHI;
 export import Visera.RHI.Common;
 export import Visera.RHI.Types;
        import Visera.RHI.Vulkan;
-       import Visera.Runtime.Media.Image;
+       import Visera.Assets.Image;
        import Visera.Runtime.Log;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Array;

@@ -3,8 +3,7 @@ module;
 export module Visera;
 #define VISERA_MODULE_NAME "Visera"
 import Visera.Runtime.Log;
-import Visera.Runtime.Input;
-import Visera.Runtime.Window;
+import Visera.Platform;
 import Visera.Core.Logger;
 import Visera.Runtime.Log;
 

@@ -3,7 +3,7 @@ module;
 export module Visera.Graphics.Debug;
 #define VISERA_MODULE_NAME "Graphics.Debug"
 import Visera.Graphics.Debug.UI;
-import Visera.Runtime.Window;
+import Visera.Platform.Window;
 import Visera.Runtime.Log;
 import Visera.Core.Global;
 

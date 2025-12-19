@@ -5,7 +5,7 @@ export module Visera.Game.Render.Sprite;
 import Visera.Game.AssetHub;
 import Visera.Game.Render.Renderer.Interface;
 import Visera.RHI;
-import Visera.Runtime.Input; //[TODO]: Remove
+import Visera.Platform.Input; //[TODO]: Remove
 
 namespace Visera
 {

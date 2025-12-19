@@ -1,0 +1,11 @@
+{
+    "GLFW" :
+    {
+        "Version" : "3.4",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/glfw/glfw"
+    },
+}
