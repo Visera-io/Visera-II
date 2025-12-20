@@ -1,19 +1,18 @@
 module;
-#include <Visera-Game.hpp>
+#include <Visera-Shader.hpp>
 #include <Slang/slang.h>
 #include <Slang/slang-com-ptr.h>
-export module Visera.Game.AssetHub.Shader.Slang;
-#define VISERA_MODULE_NAME "Game.AssetHub"
+export module Visera.Shader.Slang;
+#define VISERA_MODULE_NAME "Shader.Slang"
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
 import Visera.Runtime.Log;
 import Visera.Platform;
-import Visera.Game.Event;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FSlangCompiler
+    export class VISERA_SHADER_API FSlangCompiler
     {
     public:
     	[[nodiscard]] static inline Bool
@@ -37,7 +36,7 @@ namespace Visera
 
     public:
         FSlangCompiler();
-    	~FSlangCompiler() = default;
+    	~FSlangCompiler() { Session.reset(); slang::shutdown(); }
 
     private:
     	[[nodiscard]] Bool
@@ -98,8 +97,6 @@ namespace Visera
 
     	if (!CreateSession())
     	{ LOG_FATAL("Failed to create the Slang Session!"); }
-
-		GEvent->OnEngineTerminate.Subscribe([this](){ Session.reset(); slang::shutdown(); });
     }
 
 	Bool FSlangCompiler::

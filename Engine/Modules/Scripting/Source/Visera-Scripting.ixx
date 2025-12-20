@@ -3,7 +3,7 @@ module;
 export module Visera.Scripting;
 #define VISERA_MODULE_NAME "Scripting"
 import Visera.Scripting.DotNET;
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 import Visera.Scripting.Log;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Array;

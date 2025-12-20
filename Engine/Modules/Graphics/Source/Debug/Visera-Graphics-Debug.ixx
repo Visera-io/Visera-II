@@ -5,7 +5,7 @@ export module Visera.Graphics.Debug;
 import Visera.Graphics.Debug.UI;
 import Visera.Platform.Window;
 import Visera.Runtime.Log;
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 
 namespace Visera::Graphics
 {

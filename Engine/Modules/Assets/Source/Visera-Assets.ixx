@@ -3,7 +3,7 @@ module;
 export module Visera.Assets;
 #define VISERA_MODULE_NAME "Assets"
 import Visera.Core.Types.Path;
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 import Visera.Runtime.Log;
 import Visera.Assets.Image;
 

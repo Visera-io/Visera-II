@@ -11,7 +11,7 @@ export import Visera.Game.World;
        import Visera.Core.Delegate.Unicast;
        import Visera.Core.Traits.Policy;
        import Visera.Core.OS.Time;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import Visera.Runtime;
        import Visera.Platform;
        import Visera.RHI;

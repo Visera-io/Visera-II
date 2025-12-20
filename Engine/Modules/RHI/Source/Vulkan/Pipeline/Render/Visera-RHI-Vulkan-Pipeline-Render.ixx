@@ -56,7 +56,7 @@ namespace Visera
             vk::PipelineColorBlendAttachmentState
             ColorBlendAttachment{};
             vk::Format
-            ColorRTFormat    {vk::Format::eR8G8B8A8Srgb};
+            ColorRTFormat    {vk::Format::eR16G16B16A16Sfloat};
             vk::Format
             DepthRTFormat    {vk::Format::eUndefined};
             vk::Format

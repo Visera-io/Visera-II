@@ -4,7 +4,7 @@ export module Visera.Platform.Input;
 #define VISERA_MODULE_NAME "Platform.Input"
 export import Visera.Platform.Input.Keyboard;
 export import Visera.Platform.Input.Mouse;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import Visera.Runtime.Log;
 
 namespace Visera

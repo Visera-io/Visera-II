@@ -5,7 +5,7 @@ export module Visera.Game.World;
 #define VISERA_MODULE_NAME "Game.World"
        import Visera.Runtime.Log;
 export import Visera.Runtime.Name;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import Visera.Core.Types.Map;
        import Visera.Core.Math.Random.Seed;
        import Visera.Game.World.Entity;

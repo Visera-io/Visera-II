@@ -33,9 +33,6 @@ link_entt(${VISERA_APP})
 include(install_wwise)
 link_wwise(${VISERA_APP})
 
-include(install_slang)
-link_slang(${VISERA_APP})
-
 file(GLOB_RECURSE VISERA_APP_MODULES  "${VISERA_APP_SOURCE_DIR}/*.ixx")
 
 target_sources(${VISERA_APP}

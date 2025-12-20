@@ -1,12 +1,12 @@
 module;
-#include <Visera-Core.hpp>
-export module Visera.Core.Global;
-#define VISERA_MODULE_NAME "Core.Global"
+#include <Visera-Runtime.hpp>
+export module Visera.Runtime.Global;
+#define VISERA_MODULE_NAME "Runtime.Global"
 
 export namespace Visera
 {
     template<typename T>
-    class VISERA_CORE_API IGlobalSingleton
+    class VISERA_RUNTIME_API IGlobalSingleton
     {
     public:
         enum class EStatus { Disabled, Bootstrapped, Terminated };

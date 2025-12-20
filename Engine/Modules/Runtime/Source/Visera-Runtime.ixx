@@ -5,7 +5,7 @@ export module Visera.Runtime;
 export import Visera.Runtime.Log;
        import Visera.Runtime.Scheduler;
        import Visera.Core.OS.Time;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
 
 namespace Visera
 {

@@ -5,7 +5,7 @@ export module Visera.Platform.Window;
 import Visera.Platform.Window.Interface;
 import Visera.Platform.Window.Null;
 import Visera.Platform.Window.GLFW;
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 import Visera.Runtime.Log;
 import Visera.Core.Delegate.Multicast;
 

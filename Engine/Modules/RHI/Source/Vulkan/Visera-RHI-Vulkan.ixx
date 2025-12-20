@@ -181,7 +181,7 @@ namespace Visera
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
     private:
-        const vk::Extent2D                       ColorRTRes { 1920, 1080 };
+        const vk::Extent2D                          ColorRTRes { 1920, 1080 };
         TArray<FInFlightFrame>                      InFlightFrames;
         UInt8                                       InFlightFrameIndex {0};
 
@@ -1215,7 +1215,7 @@ namespace Visera
                 auto TargetImage = CreateImage(
                     vk::ImageType::e2D,
                     {ColorRTRes.width, ColorRTRes.height, 1},
-                    vk::Format::eR8G8B8A8Srgb,
+                    vk::Format::eR16G16B16A16Sfloat,
                     vk::ImageUsageFlagBits::eColorAttachment |
                     vk::ImageUsageFlagBits::eTransferSrc);
 

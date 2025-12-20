@@ -3,14 +3,13 @@ module;
 export module Visera.Game.AssetHub;
 #define VISERA_MODULE_NAME "Game.AssetHub"
 export import Visera.Game.AssetHub.Sound;
-export import Visera.Game.AssetHub.Shader;
 export import Visera.Game.AssetHub.Texture;
 export import Visera.Core.Types.Path;
        import Visera.Game.AssetHub.Asset;
        import Visera.Platform;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Types.Map;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import Visera.Runtime.Log;
 
 namespace Visera
@@ -25,8 +24,6 @@ namespace Visera
     public:
         [[nodiscard]] inline TSharedPtr<FTexture>
         LoadTexture(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
-        [[nodiscard]] inline TSharedPtr<FShader>
-        LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FSound>
         LoadSound(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
 
@@ -64,46 +61,6 @@ namespace Visera
         LOG_TRACE("Terminating AssetHub.");
 
         Status = EStatus::Terminated;
-    }
-
-    TSharedPtr<FShader> FAssetHub::
-    LoadShader(const FPath& I_File, const FString& I_EntryPoint, EAssetSource I_Source /* = EAssetSource::Any */)
-    {
-        VISERA_ASSERT(IsBootstrapped());
-
-        TSharedPtr<FShader> Shader{};
-
-        if (I_Source != EAssetSource::Any)
-        {
-            const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / FPath("Shader") / I_File;
-
-            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-            {
-                Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path, I_EntryPoint);
-            }
-        }
-        else
-        {
-            for (const auto& [_, Root] : Roots)
-            {
-                FPath Path = Root.GetRoot() / FPath("Shader") / I_File;
-
-                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-                {
-                    Shader = MakeShared<FShader>(FName{Path.GetUTF8Path()}, Path, I_EntryPoint);
-                    break;
-                }
-            }
-        }
-
-        if (!Shader)
-        { LOG_ERROR("Failed to load the shader \"{}\"", I_File); }
-
-        LOG_DEBUG("Loaded the shader \"{}\" (entry_point:{}, size:{}).",
-                  Shader->GetPath(), Shader->GetEntryPoint(), Shader->GetSize());
-
-        return Shader;
     }
 
     TSharedPtr<FTexture> FAssetHub::

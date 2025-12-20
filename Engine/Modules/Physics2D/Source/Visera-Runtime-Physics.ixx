@@ -5,7 +5,7 @@ export module Visera.Physics2D;
 #define VISERA_MODULE_NAME "Physics2D"
 export import Visera.Physics2D.Common;
        import Visera.Physics2D.RigidBody;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import Visera.Runtime.Log;
 
 namespace Visera

@@ -9,7 +9,7 @@ import Visera.Game.Audio.Interface;
 import Visera.Game.Audio.Null;
 import Visera.Game.Audio.Wwise;
 import Visera.Game.AssetHub.Sound;
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 import Visera.Runtime.Name;
 import Visera.Core.Types.Map;
 import Visera.Core.OS.Time;

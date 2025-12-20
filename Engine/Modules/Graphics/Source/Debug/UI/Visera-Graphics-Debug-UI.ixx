@@ -9,7 +9,7 @@ module;
 #endif
 export module Visera.Graphics.Debug.UI;
 #define VISERA_MODULE_NAME "Graphics.Debug"
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 import Visera.RHI;
 import Visera.Platform.Window;
 import Visera.Runtime.Log;

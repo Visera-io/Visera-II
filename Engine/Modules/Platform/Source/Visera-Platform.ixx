@@ -6,7 +6,7 @@ export module Visera.Platform;
        import Visera.Platform.OS.Interface; //[TODO]: Redesign
 export import Visera.Platform.Window;
 export import Visera.Platform.Input;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import Visera.Core.OS.FileSystem;
        import Visera.Runtime.Log;
 

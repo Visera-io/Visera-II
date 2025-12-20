@@ -11,7 +11,7 @@ export import Visera.RHI.Types;
        import Visera.Core.Types.Array;
        import Visera.Core.Delegate;
        import Visera.Core.Traits.Policy;
-       import Visera.Core.Global;
+       import Visera.Runtime.Global;
        import vulkan_hpp;
 
 namespace Visera

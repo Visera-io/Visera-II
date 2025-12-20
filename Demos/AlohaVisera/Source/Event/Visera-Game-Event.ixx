@@ -2,7 +2,7 @@ module;
 #include <Visera-Game.hpp>
 export module Visera.Game.Event;
 #define VISERA_MODULE_NAME "Game.Event"
-import Visera.Core.Global;
+import Visera.Runtime.Global;
 import Visera.Core.Delegate.Multicast;
 import Visera.Runtime.Log;
 
