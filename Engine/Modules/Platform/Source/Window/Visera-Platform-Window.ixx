@@ -33,7 +33,12 @@ namespace Visera
         inline void
         SetTitle(FStringView I_Title) { Window->SetTitle(I_Title); }
         inline void
-        SetIcon(TMutable<FByte> I_Data, Int32 I_Width, Int32 I_Height) { Window->SetIcon(I_Data, I_Width, I_Height); }
+        SetIcon(TMutable<FByte> I_Data, Int32 I_Width, Int32 I_Height)
+        {
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+            Window->SetIcon(I_Data, I_Width, I_Height);
+#endif
+        }
 
         [[nodiscard]] inline UInt32
         GetWidth() const  { return Window->GetWidth(); }

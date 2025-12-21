@@ -27,7 +27,7 @@ export namespace Visera
         virtual ~IGlobalSingleton()
         {
             if (IsBootstrapped())
-            { printf(Format("{} NOT terminated properly!", GetDebugName()).data()); }
+            { printf("%s",Format("{} NOT terminated properly!", GetDebugName()).data()); }
         }
 
     protected:
