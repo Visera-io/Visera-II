@@ -2,6 +2,7 @@ module;
 #include <Visera-Platform.hpp>
 #if defined(VISERA_ON_APPLE_SYSTEM)
 #include <mach-o/dyld.h>
+#include <uuid/uuid.h>
 #endif
 export module Visera.Platform.OS.MacOS;
 #define VISERA_MODULE_NAME "Platform.OS"
@@ -28,7 +29,8 @@ namespace Visera
         GetCacheDirectory() const override { return CacheDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
-
+        [[nodiscard]] UInt128
+        GenerateUUID() const override { uuid_t UUID; uuid_generate(UUID); return {UUID[0], UUID[8]}; }
     private:
         FPath ExecutableDirectory;
         FPath ResourceDirectory;

@@ -30,7 +30,8 @@ namespace Visera
         GetCacheDirectory() const = 0;
         [[nodiscard]] virtual Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const = 0;
-
+        [[nodiscard]] virtual UInt128
+        GenerateUUID() const = 0;
         [[nodiscard]] inline EPlatform
         GetType() const { return Type; }
 
