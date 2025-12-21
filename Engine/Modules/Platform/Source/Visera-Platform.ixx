@@ -25,6 +25,8 @@ namespace Visera
         GetFrameworkDirectory() const { return Platform->GetFrameworkDirectory(); }
         [[nodiscard]] inline Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const { return Platform->SetEnvironmentVariable(I_Variable, I_Value); }
+        [[nodiscard]] inline FUUID
+        GenerateUUID() const { return Platform->GenerateUUID(); }
 
         [[nodiscard]] inline EPlatform
         GetType() const { return Platform->GetType(); }

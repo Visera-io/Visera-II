@@ -8,4 +8,4 @@ export import Visera.Core.Math.Hash.GoldenRatio;
 export namespace Visera
 {
 
-} // namespace Visera
+}

@@ -30,6 +30,8 @@ namespace Visera
         GetCacheDirectory() const override { return CacheDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
+        [[nodiscard]] FUUID
+        GenerateUUID() const override;
 
     private:
         FPath ExecutableDirectory;
@@ -69,6 +71,52 @@ namespace Visera
         LOG_DEBUG("Set environment variable \"{}\" as \"{}\".",
                   I_Variable, I_Value);
         return True;
+    }
+
+    /**
+     * Generates a UUID using Windows OS API.
+     *
+     * Notes:
+     * - Windows GUID binary layout is NOT the same as RFC 4122 canonical octet sequence.
+     *   Data1/Data2/Data3 are stored as little-endian integers in the GUID struct, while
+     *   the canonical UUID byte sequence (and the common text form) orders bytes as
+     *   {time_low, time_mid, time_hi_and_version, clock_seq, node}.
+     *
+     * Ref: MS-DTYP GUID packet representation.
+     */
+    FUUID FWindowsPlatform::
+    GenerateUUID() const
+    {
+        GUID Buffer{};
+        const HRESULT HResult = ::CoCreateGuid(&Buffer);
+        VISERA_ASSERT(SUCCEEDED(HResult));
+
+        FUUID UUID;
+        // time_low (Data1)
+        UUID.Data[0] = static_cast<FByte>((Buffer.Data1 >> 24) & 0xFFu);
+        UUID.Data[1] = static_cast<FByte>((Buffer.Data1 >> 16) & 0xFFu);
+        UUID.Data[2] = static_cast<FByte>((Buffer.Data1 >>  8) & 0xFFu);
+        UUID.Data[3] = static_cast<FByte>((Buffer.Data1 >>  0) & 0xFFu);
+
+        // time_mid (Data2)
+        UUID.Data[4] = static_cast<FByte>((Buffer.Data2 >> 8) & 0xFFu);
+        UUID.Data[5] = static_cast<FByte>((Buffer.Data2 >> 0) & 0xFFu);
+
+        // time_hi_and_version (Data3)
+        UUID.Data[6] = static_cast<FByte>((Buffer.Data3 >> 8) & 0xFFu);
+        UUID.Data[7] = static_cast<FByte>((Buffer.Data3 >> 0) & 0xFFu);
+
+        // clock_seq + node (Data4)
+        UUID.Data[8]  = static_cast<FByte>(Buffer.Data4[0]);
+        UUID.Data[9]  = static_cast<FByte>(Buffer.Data4[1]);
+        UUID.Data[10] = static_cast<FByte>(Buffer.Data4[2]);
+        UUID.Data[11] = static_cast<FByte>(Buffer.Data4[3]);
+        UUID.Data[12] = static_cast<FByte>(Buffer.Data4[4]);
+        UUID.Data[13] = static_cast<FByte>(Buffer.Data4[5]);
+        UUID.Data[14] = static_cast<FByte>(Buffer.Data4[6]);
+        UUID.Data[15] = static_cast<FByte>(Buffer.Data4[7]);
+
+        return UUID;
     }
 #endif
 }

@@ -4,6 +4,7 @@ export module Visera.Platform.OS.Interface;
 #define VISERA_MODULE_NAME "Platform.OS"
 export import Visera.Platform.OS.Interface.Library;
 export import Visera.Core.Types.Path;
+export import Visera.Core.Types.UUID;
 
 namespace Visera
 {
@@ -30,7 +31,7 @@ namespace Visera
         GetCacheDirectory() const = 0;
         [[nodiscard]] virtual Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const = 0;
-        [[nodiscard]] virtual UInt128
+        [[nodiscard]] virtual FUUID
         GenerateUUID() const = 0;
         [[nodiscard]] inline EPlatform
         GetType() const { return Type; }

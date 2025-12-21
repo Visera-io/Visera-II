@@ -12,7 +12,7 @@ export import Visera.Game.World;
        import Visera.Core.Traits.Policy;
        import Visera.Core.OS.Time;
        import Visera.Runtime.Global;
-       import Visera.Runtime;
+export import Visera.Runtime;
        import Visera.Platform;
        import Visera.RHI;
        import Visera.Graphics;

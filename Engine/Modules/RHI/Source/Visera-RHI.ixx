@@ -209,6 +209,7 @@ namespace Visera
         auto RenderPipeline = Driver->CreateRenderPipeline(PipelineLayout,
             I_PipelineState.VertexShader->GetShaderModule(),
             I_PipelineState.FragmentShader->GetShaderModule());
+        VISERA_ASSERT(RenderPipeline != nullptr);
 
         if (I_PipelineState.VertexAssembly.Topology == ERHIPrimitiveTopology::LineStrip)
         {

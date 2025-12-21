@@ -103,13 +103,14 @@ namespace Visera
     using Double 	    = double;
     using Int8          = char;
     using UInt8         = unsigned char;
+    using FByte         = UInt8;
     using Int16         = int16_t;
     using UInt16        = uint16_t;
     using Int32  	    = std::int32_t;
     using UInt32 	    = std::uint32_t;
     using Int64  	    = std::int64_t;
     using UInt64 	    = std::uint64_t;
-	using UInt128       = std::pair<UInt64, UInt64>;
+	using UInt128		= std::pair<UInt64, UInt64>;
 
     using FString         = std::string;
     using FStringView     = std::string_view;
@@ -117,7 +118,6 @@ namespace Visera
 	using FWideStringView = std::wstring_view;
 	using FUTF8StringView = std::u8string_view;
 
-    using FByte         = UInt8;
     using FANSIChar	    = char;
     using FWideChar     = wchar_t;
 

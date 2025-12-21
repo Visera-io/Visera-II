@@ -29,8 +29,8 @@ namespace Visera
         GetCacheDirectory() const override { return CacheDirectory; }
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
-        [[nodiscard]] UInt128
-        GenerateUUID() const override { uuid_t UUID; uuid_generate(UUID); return {UUID[0], UUID[8]}; }
+        [[nodiscard]] FUUID
+        GenerateUUID() const override;
     private:
         FPath ExecutableDirectory;
         FPath ResourceDirectory;
@@ -74,6 +74,22 @@ namespace Visera
         LOG_DEBUG("Set environment variable \"{}\" as \"{}\".",
                   I_Variable, I_Value);
         return True;
+    }
+
+    /**
+     * Generates a UUID using macOS OS API.
+     *
+     * Notes:
+     * - uuid_generate_random() produces an RFC 4122 version-4 UUID (random-based). :contentReference[oaicite:0]{index=0}
+     * - uuid_t is a 16-byte array; we treat it as the canonical 16-octet UUID sequence.
+     * - No endianness normalization is needed here as long as you always format/serialize via FUUID::Data[16].
+     */
+    FUUID FMacOSPlatform::
+    GenerateUUID() const
+    {
+        FUUID UUID;
+        ::uuid_generate_random(UUID.Data); // v4 random UUID :contentReference[oaicite:1]{index=1}
+        return UUID;
     }
 #endif
 }

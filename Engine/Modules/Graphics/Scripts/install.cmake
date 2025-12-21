@@ -67,6 +67,11 @@ else()
     endif()
     target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::RHI)
 
+    if(NOT TARGET Visera::Shader)
+        message(FATAL_ERROR "Visera-Shader is not installed!")
+    endif()
+    target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::Shader)
+
     install_visera_graphics(${VISERA_GRAPHICS})
     set_target_properties(${VISERA_GRAPHICS} PROPERTIES FOLDER "Visera/Graphics")
 endif()

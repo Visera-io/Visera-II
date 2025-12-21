@@ -36,4 +36,4 @@ export namespace Visera::Math
 		((I_Seed = GoldenRatioHash(I_Seed, I_Values)), ...);
 		return I_Seed;
 	}
-} // namespace Visera
+}
