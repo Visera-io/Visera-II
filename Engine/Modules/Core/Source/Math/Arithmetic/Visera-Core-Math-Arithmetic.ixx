@@ -31,15 +31,15 @@ export namespace Visera
 		LowerBound() { return std::numeric_limits<NumT>::min(); }
     	template <Concepts::FloatingPoint T> [[nodiscard]] Bool
 		IsNaN(T I_Num) { return std::isnan(I_Num); }
-    	template <Concepts::Integeral T> [[nodiscard]] Bool
+    	template <Concepts::Integral T> [[nodiscard]] Bool
 		IsNaN(T I_Num) { return False; }
     	template <Concepts::FloatingPoint T> [[nodiscard]] Bool
 		IsInfinite(T I_Num) { return std::isinf(I_Num); }
-    	template <Concepts::Integeral T> [[nodiscard]] Bool
+    	template <Concepts::Integral T> [[nodiscard]] Bool
 		IsInfinite(T I_Num) { return False; }
     	template <Concepts::FloatingPoint T> [[nodiscard]] Bool
 		IsFinite(T I_Num) { return std::isfinite(I_Num); }
-    	template <Concepts::Integeral T> [[nodiscard]] Bool
+    	template <Concepts::Integral T> [[nodiscard]] Bool
 		IsFinite(T I_Num) { return true; }
     	template<Concepts::FloatingPoint NumT> [[nodiscard]] constexpr Bool
 		IsNearlyEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
@@ -59,7 +59,7 @@ export namespace Visera
 			if (I_Max < *IO_Value) { *IO_Value = I_Max; return; }
 		}
 
-    	template<Concepts::Arithmetical NumT, Concepts::Integeral IntT> [[nodiscard]] Double
+    	template<Concepts::Arithmetical NumT, Concepts::Integral IntT> [[nodiscard]] Double
 		Pow(NumT I_Base, IntT I_Exp)
     	{
 			if (I_Exp < 0)

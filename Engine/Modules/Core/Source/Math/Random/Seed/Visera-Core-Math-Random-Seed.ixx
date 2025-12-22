@@ -9,8 +9,8 @@ namespace Visera
     export class VISERA_CORE_API FSeedPool
     {
     public:
-        template<Concepts::UnsingedIntegeral T = UInt32> [[nodiscard]] inline T
-        Get() { return static_cast<T>(Generator()); }
+        template<Concepts::UnsingedIntegral T = UInt32> [[nodiscard]] inline T
+        Get() noexcept { return static_cast<T>(Generator()); }
 
     private:
         std::random_device Generator{}; // [TODO]: Policy

@@ -162,7 +162,7 @@ namespace Visera::Graphics
                 EndFrame();
             });
             if (!GRHI->DebugUIDrawCalls.TryBind([&I_Window]
-            (TSharedRef<FRHICommandBuffer> I_CommandBuffer, TSharedRef<FRHIImageView> I_SwapChainView)
+            (TSharedRef<FRHICommandBuffer> I_CommandBuffer, TSharedRef<FRHIImageView> I_ColorRT)
             {
                 ImGui::Render();
 
@@ -171,7 +171,7 @@ namespace Visera::Graphics
                 VkRenderingAttachmentInfo ColorAttachment
                 {
                     .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                    .imageView   = *I_SwapChainView->GetHandle(),
+                    .imageView   = *I_ColorRT->GetHandle(),
                     .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                     .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
                     .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,

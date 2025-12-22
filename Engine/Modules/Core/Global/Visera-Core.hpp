@@ -141,13 +141,13 @@ namespace Visera
 	namespace Concepts
 	{
 		template<typename T> concept
-		Integeral = std::integral<T>;
+		Integral = std::integral<T>;
 
 		template<typename T> concept
-		SignedIntegeral = std::signed_integral<T>;
+		SignedIntegral = std::signed_integral<T>;
 
 		template<typename T> concept
-		UnsingedIntegeral = std::unsigned_integral<T>;
+		UnsingedIntegral = std::unsigned_integral<T>;
 
 		template<typename T> concept
 		FloatingPoint = std::floating_point<T>;

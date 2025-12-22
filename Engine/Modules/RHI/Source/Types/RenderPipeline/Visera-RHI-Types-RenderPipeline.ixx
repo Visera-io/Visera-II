@@ -7,6 +7,7 @@ import Visera.RHI.Types.PipelineLayout;
 import Visera.RHI.Types.Shader;
 import Visera.RHI.Common;
 import Visera.Runtime.Log;
+import Visera.Core.Types.Array;
 
 export namespace Visera
 {

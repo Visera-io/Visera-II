@@ -2,6 +2,7 @@ module;
 #include <Visera-Graphics.hpp>
 export module Visera.Graphics.RenderPass.Tonemap;
 #define VISERA_MODULE_NAME "Graphics.RenderPass"
+import Visera.Core.Types.Path;
 import Visera.RHI;
 import Visera.Shader;
 import Visera.Platform;

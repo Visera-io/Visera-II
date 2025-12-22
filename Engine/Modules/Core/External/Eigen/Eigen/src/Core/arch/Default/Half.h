@@ -508,7 +508,7 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC half& operator/=(half& a, const half& b) {
 // fp16 uses 1 sign bit, 5 exponent bits, and 10 mantissa bits. The bit pattern conveys NaN when all the exponent
 // bits (5) are set, and at least one mantissa bit is set. The sign bit is irrelevant for determining NaN. To check for
 // NaN, clear the sign bit and check if the integral representation is greater than 01111100000000. To test
-// for non-NaN, clear the sign bit and check if the integeral representation is less than or equal to 01111100000000.
+// for non-NaN, clear the sign bit and check if the Integral representation is less than or equal to 01111100000000.
 
 // convert sign-magnitude representation to two's complement
 EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC int16_t mapToSigned(uint16_t a) {
