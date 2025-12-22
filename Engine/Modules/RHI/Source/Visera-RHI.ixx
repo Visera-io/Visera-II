@@ -63,10 +63,10 @@ namespace Visera
         CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType);
         [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
         CreateRenderPipeline(const FString&                 I_Name,
-                             const FRHIRenderPipelineState& I_PipelineState);
+                             const FRHIRenderPipelineDesc& I_PipelineDesc);
         // [[nodiscard]] TSharedPtr<FRHIComputePipeline>
         // CreateComputePipeline(const FString&                  I_Name,
-        //                       const  FRHIComputePipelineState& I_PipelineState);
+        //                       const FRHIComputePipelineState& I_PipelineDesc);
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
@@ -181,22 +181,22 @@ namespace Visera
 
     TSharedPtr<FRHIRenderPipeline> FRHI::
     CreateRenderPipeline(const FString&                 I_Name,
-                         const FRHIRenderPipelineState& I_PipelineState)
+                         const FRHIRenderPipelineDesc&  I_PipelineDesc)
     {
         LOG_DEBUG("Creating the render pipeline (name: {}).", I_Name);
-        UInt64 PipelineLayoutHash = I_PipelineState.GetPipelineLayoutHash();
+        UInt64 PipelineLayoutHash = I_PipelineDesc.Layout.GetPipelineLayoutHash();
         auto& PipelineLayout = PipelineLayoutPool[PipelineLayoutHash];
         if (!PipelineLayout)
         {
             LOG_DEBUG("Creating a new pipeline layout for the pipeline \"{}\".", I_Name);
             TArray<vk::DescriptorSetLayout> DescriptorSetLayouts;
-            for (const auto& DescriptorSetLayout : I_PipelineState.GetDescriptorLayouts())
+            for (const auto& DescriptorSetLayout : I_PipelineDesc.Layout.GetDescriptorLayouts())
             {
                 auto& SetLayout = GetDescriptorSetLayoutFromPool(DescriptorSetLayout);
                 DescriptorSetLayouts.emplace_back(SetLayout->GetHandle());
             }
             TArray<vk::PushConstantRange> PushConstantRanges;
-            for (const auto& PushConstantRange : I_PipelineState.GetPushConstantRanges())
+            for (const auto& PushConstantRange : I_PipelineDesc.Layout.GetPushConstantRanges())
             {
                 PushConstantRanges.emplace_back(vk::PushConstantRange{}
                     .setSize(PushConstantRange.Size)
@@ -207,15 +207,15 @@ namespace Visera
                                                           PushConstantRanges);
         }
         auto RenderPipeline = Driver->CreateRenderPipeline(PipelineLayout,
-            I_PipelineState.VertexShader->GetShaderModule(),
-            I_PipelineState.FragmentShader->GetShaderModule());
+            I_PipelineDesc.VertexShader->GetShaderModule(),
+            I_PipelineDesc.FragmentShader->GetShaderModule());
         VISERA_ASSERT(RenderPipeline != nullptr);
 
-        if (I_PipelineState.VertexAssembly.Topology == ERHIPrimitiveTopology::LineStrip)
+        if (I_PipelineDesc.VertexAssembly.Topology == ERHIPrimitiveTopology::LineStrip)
         {
             LOG_WARN("Testing Line Renderer");
             RenderPipeline->Settings.InputAssembly
-            .setTopology(TypeCast(I_PipelineState.VertexAssembly.Topology));
+            .setTopology(TypeCast(I_PipelineDesc.VertexAssembly.Topology));
             RenderPipeline->Settings.VertexAttributes = {
                 vk::VertexInputAttributeDescription{}
                     .setBinding   (0)

@@ -2,9 +2,9 @@ module;
 #include <Visera-RHI.hpp>
 export module Visera.RHI.Common;
 #define VISERA_MODULE_NAME "RHI.Common"
-import Visera.Core.Traits.Flags;
-import Visera.Runtime.Log;
-import vulkan_hpp;
+export import Visera.Core.Traits.Flags;
+       import Visera.Runtime.Log;
+       import vulkan_hpp;
 
 export namespace Visera
 {
@@ -21,6 +21,9 @@ export namespace Visera
 
         B8G8R8A8_sRGB       = static_cast<UInt32>(vk::Format::eB8G8R8A8Srgb),
         B8G8R8A8_UNorm      = static_cast<UInt32>(vk::Format::eB8G8R8A8Unorm),
+
+
+        R16G16B16A16_Float  = static_cast<UInt32>(vk::Format::eR16G16B16A16Sfloat),
 
         Vector2F            = static_cast<UInt32>(vk::Format::eR32G32Sfloat),
         Vector3F            = static_cast<UInt32>(vk::Format::eR32G32B32Sfloat),
@@ -46,6 +49,7 @@ export namespace Visera
     {
         Vertex    = static_cast<UInt32>(vk::ShaderStageFlagBits::eVertex),
         Fragment  = static_cast<UInt32>(vk::ShaderStageFlagBits::eFragment),
+        Compute   = static_cast<UInt32>(vk::ShaderStageFlagBits::eCompute),
         All       = static_cast<UInt32>(vk::ShaderStageFlagBits::eAll),
 
         Undefined,
@@ -54,72 +58,97 @@ export namespace Visera
     [[nodiscard]] constexpr vk::ShaderStageFlags
     TypeCast(ERHIShaderStages I_ShaderStages) { return static_cast<vk::ShaderStageFlagBits>(I_ShaderStages); }
 
-    enum class ERHISamplerType : UInt32
+    enum class ERHISamplerType : UInt8
     {
         Linear,
         Nearest,
     };
 
-    enum class ERHIAttachmentLoadOp : UInt32
+    enum class ERHIAttachmentLoadOp : UInt8
     {
-        Load     = static_cast<UInt32>(vk::AttachmentLoadOp::eLoad),
-        Clear    = static_cast<UInt32>(vk::AttachmentLoadOp::eClear),
-        Whatever = static_cast<UInt32>(vk::AttachmentLoadOp::eDontCare),
+        Load     = static_cast<UInt8>(vk::AttachmentLoadOp::eLoad),
+        Clear    = static_cast<UInt8>(vk::AttachmentLoadOp::eClear),
+        Whatever = static_cast<UInt8>(vk::AttachmentLoadOp::eDontCare),
     };
     [[nodiscard]] constexpr vk::AttachmentLoadOp
     TypeCast(ERHIAttachmentLoadOp I_AttachmentLoadOp) { return static_cast<vk::AttachmentLoadOp>(I_AttachmentLoadOp); }
 
-    enum class ERHIPrimitiveTopology
+    enum class ERHIPrimitiveTopology : UInt8
     {
-        PointList    = static_cast<UInt32>(vk::PrimitiveTopology::ePointList),
-        LineList     = static_cast<UInt32>(vk::PrimitiveTopology::eLineList),
-        LineStrip    = static_cast<UInt32>(vk::PrimitiveTopology::eLineStrip),
-        TriangleList = static_cast<UInt32>(vk::PrimitiveTopology::eTriangleList),
+        PointList    = static_cast<UInt8>(vk::PrimitiveTopology::ePointList),
+        LineList     = static_cast<UInt8>(vk::PrimitiveTopology::eLineList),
+        LineStrip    = static_cast<UInt8>(vk::PrimitiveTopology::eLineStrip),
+        TriangleList = static_cast<UInt8>(vk::PrimitiveTopology::eTriangleList),
 
         Undefined,
     };
     [[nodiscard]] constexpr vk::PrimitiveTopology
     TypeCast(ERHIPrimitiveTopology I_PrimitiveTopology) { return static_cast<vk::PrimitiveTopology>(I_PrimitiveTopology); }
 
-    enum class ERHIPolygonMode
+    enum class ERHIPolygonMode : UInt8
     {
-        Fill         = static_cast<UInt32>(vk::PolygonMode::eFill),
-        Line         = static_cast<UInt32>(vk::PolygonMode::eLine),
-        Point        = static_cast<UInt32>(vk::PolygonMode::ePoint),
+        Fill         = static_cast<UInt8>(vk::PolygonMode::eFill),
+        Line         = static_cast<UInt8>(vk::PolygonMode::eLine),
+        Point        = static_cast<UInt8>(vk::PolygonMode::ePoint),
 
         Undefined,
     };
     [[nodiscard]] constexpr vk::PolygonMode
     TypeCast(ERHIPolygonMode I_PolygonMode) { return static_cast<vk::PolygonMode>(I_PolygonMode); }
 
-    enum class ERHICullMode
+    enum class ERHICullMode : UInt8
     {
-        None        = static_cast<UInt32>(vk::CullModeFlagBits::eNone),
-        Front       = static_cast<UInt32>(vk::CullModeFlagBits::eFront),
-        Back        = static_cast<UInt32>(vk::CullModeFlagBits::eBack),
-        TwoSided    = static_cast<UInt32>(vk::CullModeFlagBits::eFrontAndBack),
+        None        = static_cast<UInt8>(vk::CullModeFlagBits::eNone),
+        Front       = static_cast<UInt8>(vk::CullModeFlagBits::eFront),
+        Back        = static_cast<UInt8>(vk::CullModeFlagBits::eBack),
+        TwoSided    = static_cast<UInt8>(vk::CullModeFlagBits::eFrontAndBack),
     };
     [[nodiscard]] constexpr vk::CullModeFlags
     TypeCast(ERHICullMode I_CullMode) { return static_cast<vk::CullModeFlagBits>(I_CullMode); }
 
-    enum class ERHISamplingRate
+    enum class ERHISamplingRate : UInt8
     {
-        X1 = static_cast<UInt32>(vk::SampleCountFlagBits::e1),
-        X2 = static_cast<UInt32>(vk::SampleCountFlagBits::e2),
-        X4 = static_cast<UInt32>(vk::SampleCountFlagBits::e4),
-        X8 = static_cast<UInt32>(vk::SampleCountFlagBits::e8),
+        X1 = static_cast<UInt8>(vk::SampleCountFlagBits::e1),
+        X2 = static_cast<UInt8>(vk::SampleCountFlagBits::e2),
+        X4 = static_cast<UInt8>(vk::SampleCountFlagBits::e4),
+        X8 = static_cast<UInt8>(vk::SampleCountFlagBits::e8),
     };
     [[nodiscard]] constexpr vk::SampleCountFlags
     TypeCast(ERHISamplingRate I_SamplingRate) { return static_cast<vk::SampleCountFlagBits>(I_SamplingRate); }
 
-    enum class ERHIBlendOp
+    enum class ERHIBlendOp : UInt8
     {
-        Add  = static_cast<UInt32>(vk::BlendOp::eAdd),
+        Add  = static_cast<UInt8>(vk::BlendOp::eAdd),
 
         None,
     };
     [[nodiscard]] constexpr vk::BlendOp
     TypeCast(ERHIBlendOp I_BlendOp) { return static_cast<vk::BlendOp>(I_BlendOp); }
+
+    enum class ERHITextureType : UInt8
+    {
+        Texture1D = static_cast<UInt8>(vk::ImageType::e1D),
+        Texture2D = static_cast<UInt8>(vk::ImageType::e2D),
+        Texture3D = static_cast<UInt8>(vk::ImageType::e3D),
+
+        Undefined
+    };
+    [[nodiscard]] constexpr vk::ImageType
+    TypeCast(ERHITextureType I_TextureType) { return static_cast<vk::ImageType>(I_TextureType); }
+
+    enum class ERHITextureUsage : UInt32
+    {
+        None            = 0,
+        ShaderResource  = static_cast<UInt32>(vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eInputAttachment),
+        RenderTarget    = static_cast<UInt32>(vk::ImageUsageFlagBits::eColorAttachment),
+        DepthStencil    = static_cast<UInt32>(vk::ImageUsageFlagBits::eDepthStencilAttachment),
+        UnorderedAccess = static_cast<UInt32>(vk::ImageUsageFlagBits::eStorage),
+        TransferSrc     = static_cast<UInt32>(vk::ImageUsageFlagBits::eTransferSrc),
+        TransferDst     = static_cast<UInt32>(vk::ImageUsageFlagBits::eTransferDst),
+    };
+    VISERA_MAKE_FLAGS(ERHITextureUsage);
+    [[nodiscard]] constexpr vk::ImageUsageFlags
+    TypeCast(ERHITextureUsage I_TextureUsage) { return static_cast<vk::ImageUsageFlagBits>(I_TextureUsage); }
 }
 
 VISERA_MAKE_FORMATTER(Visera::ERHIShaderStages,

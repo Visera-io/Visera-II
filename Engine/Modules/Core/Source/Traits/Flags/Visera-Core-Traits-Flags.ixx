@@ -17,13 +17,24 @@ export namespace Visera
     template<class E> constexpr auto
     ToUnderlying(E I_Enum) noexcept { return static_cast<std::underlying_type_t<E>>(I_Enum); }
 
-    template<class E> struct
-    TBitTest
+    template<class E>
+    struct TBitTest
     {
         using U = std::underlying_type_t<E>;
         U Value{};
-        constexpr explicit operator Bool() const noexcept { return Value != 0; }
+        constexpr operator bool() const noexcept { return Value != 0; }
+        constexpr operator E() const noexcept { return static_cast<E>(Value); }
+        constexpr bool operator!() const noexcept { return Value == 0; }
+        constexpr bool operator==(E I_Other) const noexcept { return Value == static_cast<U>(I_Other); }
     };
+
+    template<class E> requires EnableBitMaskOperators<E>
+    constexpr TBitTest<E> operator & (E I_EnumA, E I_EnumB) noexcept
+    { return TBitTest<E>{ static_cast<std::underlying_type_t<E>>(ToUnderlying(I_EnumA) & ToUnderlying(I_EnumB)) }; }
+
+    template<class E> requires EnableBitMaskOperators<E>
+    constexpr TBitTest<E> operator & (TBitTest<E> I_Test, E I_EnumB) noexcept
+    { return TBitTest<E>{ I_Test.Value & static_cast<std::underlying_type_t<E>>(I_EnumB) }; }
 
     template<class E> requires EnableBitMaskOperators<E> constexpr
     E operator | (E I_EnumA, E I_EnumB) noexcept
@@ -36,11 +47,6 @@ export namespace Visera
     template<class E> requires EnableBitMaskOperators<E> constexpr
     E operator ~ (E I_EnumA) noexcept
     { return static_cast<E>(~ToUnderlying(I_EnumA)); }
-
-    // return TBitTest to allow: if (U & Flag)
-    template<class E> requires EnableBitMaskOperators<E> constexpr
-    TBitTest<E> operator & (E I_EnumA, E I_EnumB) noexcept
-    { return TBitTest<E>{ ToUnderlying(I_EnumA) & ToUnderlying(I_EnumB) }; }
 
     template<class E> requires EnableBitMaskOperators<E> constexpr
     E& operator |= (E& I_EnumA, E I_EnumB) noexcept { return I_EnumA = I_EnumA | I_EnumB; }
