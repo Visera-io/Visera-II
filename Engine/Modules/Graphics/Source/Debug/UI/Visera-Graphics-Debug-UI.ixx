@@ -23,20 +23,20 @@ namespace Visera::Graphics
         {
             Bool Status = False;
             FDebugWindow() = delete;
-            VISERA_FORCEINLINE
+            VISERA_NOINLINE
             FDebugWindow(FStringView I_Title) { Status = ImGui::Begin(I_Title.data()); }
-            VISERA_FORCEINLINE
+            VISERA_NOINLINE
             ~FDebugWindow() { ImGui::End(); }
             [[nodiscard]] explicit
             operator Bool() const { return Status; }
         };
-        [[nodiscard]] VISERA_FORCEINLINE FDebugWindow
+        [[nodiscard]] VISERA_NOINLINE FDebugWindow
         Window(FStringView I_Title) const { return FDebugWindow{I_Title};  }
-        VISERA_FORCEINLINE void
+        VISERA_NOINLINE void
         Text(FStringView I_Text) const { ImGui::TextUnformatted(I_Text.data()); }
-        VISERA_FORCEINLINE Bool
+        VISERA_NOINLINE Bool
         Button(FStringView I_Label) const { return ImGui::Button(I_Label.data()); }
-        VISERA_FORCEINLINE Bool
+        VISERA_NOINLINE Bool
         Slider(FStringView I_Label, TMutable<Float> I_Value, Float I_Min, Float I_Max) const { return ImGui::SliderFloat(I_Label.data(), I_Value, I_Min, I_Max); }
 
         void inline
@@ -102,7 +102,7 @@ namespace Visera::Graphics
             auto& QueueFamily = *Vulkan->GPU.GraphicsQueueFamilies.begin();
             auto& Queue = Vulkan->Device.GraphicsQueue;
 
-            VkFormat StudioRTFormat = static_cast<VkFormat>(Vulkan->SwapChain.ImageFormat);
+            const VkFormat ColorRTFormat = static_cast<VkFormat>(ERHIFormat::R16G16B16A16_Float);
             ImGui_ImplVulkan_InitInfo CreateInfo
             {
                 .Instance		= *Vulkan->Instance,
@@ -126,7 +126,7 @@ namespace Visera::Graphics
                 {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                     .colorAttachmentCount    = 1,
-                    .pColorAttachmentFormats = &StudioRTFormat,
+                    .pColorAttachmentFormats = &ColorRTFormat,
                 },
                 .Allocator		= nullptr,
                 .CheckVkResultFn = [](VkResult I_Error)

@@ -10,7 +10,6 @@ export import Visera.RHI.Types;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Array;
        import Visera.Core.Delegate;
-       import Visera.Core.Traits.Policy;
        import Visera.Runtime.Global;
        import vulkan_hpp;
 
@@ -23,7 +22,7 @@ namespace Visera
         OnBeginFrame;
         TMulticastDelegate<>
         OnEndFrame;
-        TUnicastDelegate<void(TSharedRef<FRHICommandBuffer>, TSharedRef<FRHIImageView>), Policy::Exclusive>
+        TUnicastDelegate<void(TSharedRef<FRHICommandBuffer>, TSharedRef<FRHIImageView>)>
         DebugUIDrawCalls;
 
         struct alignas(16) VISERA_RHI_API FDefaultPushConstant
@@ -61,12 +60,14 @@ namespace Visera
         CreateMappedVertexBuffer(UInt64 I_Size);
         [[nodiscard]] inline TSharedPtr<FRHIStaticTexture>
         CreateTexture2D(TSharedRef<FImage> I_Image, ERHISamplerType I_SamplerType);
+        [[nodiscard]] TSharedPtr<FRHIImageView>
+        CreateStorageTexture2D(UInt32 I_Width, UInt32 I_Height, ERHIFormat I_Format);
         [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
         CreateRenderPipeline(const FString&                 I_Name,
                              const FRHIRenderPipelineDesc& I_PipelineDesc);
-        // [[nodiscard]] TSharedPtr<FRHIComputePipeline>
-        // CreateComputePipeline(const FString&                  I_Name,
-        //                       const FRHIComputePipelineState& I_PipelineDesc);
+        [[nodiscard]] TSharedPtr<FRHIComputePipeline>
+        CreateComputePipeline(const FString&                I_Name,
+                              const FRHIComputePipelineDesc& I_PipelineDesc);
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
@@ -140,7 +141,6 @@ namespace Visera
             .AddBinding(0, ERHIDescriptorType::CombinedImageSampler, 1, ERHIShaderStages::Fragment)
             .AddBinding(1, ERHIDescriptorType::CombinedImageSampler, 1, ERHIShaderStages::Fragment)
         ;
-
         DefaultDescriptorSet  = CreateDescriptorSet(DescriptorSetLayout);
         DefaultDescriptorSet2 = CreateDescriptorSet(DescriptorSetLayout);
         DefaultPipelineLayout = Driver->CreatePipelineLayout(
@@ -252,6 +252,39 @@ namespace Visera
                 {1920, 1080}
                 });
         return RenderPipeline;
+    }
+
+    TSharedPtr<FRHIComputePipeline> FRHI::
+    CreateComputePipeline(const FString&                I_Name,
+                         const FRHIComputePipelineDesc& I_PipelineDesc)
+    {
+        LOG_DEBUG("Creating the compute pipeline (name: {}).", I_Name);
+        UInt64 PipelineLayoutHash = I_PipelineDesc.Layout.GetPipelineLayoutHash();
+        auto& PipelineLayout = PipelineLayoutPool[PipelineLayoutHash];
+        if (!PipelineLayout)
+        {
+            LOG_DEBUG("Creating a new pipeline layout for the compute pipeline \"{}\".", I_Name);
+            TArray<vk::DescriptorSetLayout> DescriptorSetLayouts;
+            for (const auto& DescriptorSetLayout : I_PipelineDesc.Layout.GetDescriptorLayouts())
+            {
+                auto& SetLayout = GetDescriptorSetLayoutFromPool(DescriptorSetLayout);
+                DescriptorSetLayouts.emplace_back(SetLayout->GetHandle());
+            }
+            TArray<vk::PushConstantRange> PushConstantRanges;
+            for (const auto& PushConstantRange : I_PipelineDesc.Layout.GetPushConstantRanges())
+            {
+                PushConstantRanges.emplace_back(vk::PushConstantRange{}
+                    .setSize        (PushConstantRange.Size)
+                    .setOffset      (PushConstantRange.Offset)
+                    .setStageFlags  (TypeCast(PushConstantRange.Stages)));
+            }
+            PipelineLayout = Driver->CreatePipelineLayout(DescriptorSetLayouts,
+                                                          PushConstantRanges);
+        }
+        auto ComputePipeline = Driver->CreateComputePipeline(PipelineLayout,
+                                                             I_PipelineDesc.ComputeShader->GetShaderModule());
+        VISERA_ASSERT(ComputePipeline != nullptr);
+        return ComputePipeline;
     }
 
     TSharedPtr<FVulkanBuffer> FRHI::
@@ -366,6 +399,40 @@ namespace Visera
         return MakeShared<FRHIStaticTexture>(
             RHIImageView,
             I_SamplerType == ERHISamplerType::Linear? DefaultLinearSampler : DefaultNearestSampler);
+    }
+
+    TSharedPtr<FRHIImageView> FRHI::
+    CreateStorageTexture2D(UInt32 I_Width, UInt32 I_Height, ERHIFormat I_Format)
+    {
+        LOG_DEBUG("Creating a storage image (extent:[{},{}], format:{}).", I_Width, I_Height, I_Format);
+        auto RHIImage = Driver->CreateImage(
+            TypeCast(ERHITextureType::Texture2D),
+            {I_Width, I_Height, 1},
+            TypeCast(I_Format),
+            TypeCast(ERHITextureUsage::UnorderedAccess | ERHITextureUsage::ShaderResource)
+        );
+
+        auto Cmd = Driver->CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
+        auto Fence = Driver->CreateFence(False, "Convert Storage Image Layout");
+        Cmd->Begin();
+        {
+            Cmd->ConvertImageLayout(RHIImage,
+                vk::ImageLayout::eGeneral,
+                vk::PipelineStageFlagBits2::eTopOfPipe,
+                vk::AccessFlagBits2::eNone,
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite);
+        }
+        Cmd->End();
+        Driver->Submit(Cmd, nullptr, nullptr, Fence);
+        if (!Fence->Wait())
+        { LOG_FATAL("Failed to wait on the fence (desc:{})!", Fence->GetDescription()); }
+
+        auto RHIImageView = Driver->CreateImageView(
+            RHIImage,
+            vk::ImageViewType::e2D,
+            vk::ImageAspectFlagBits::eColor);
+        return RHIImageView;
     }
 
     TSharedPtr<FVulkanDescriptorSet> FRHI::

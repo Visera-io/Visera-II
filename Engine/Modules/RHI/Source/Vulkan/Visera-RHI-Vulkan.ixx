@@ -384,11 +384,14 @@ namespace Visera
     void FVulkanDriver::
     CreateDescriptorPools()
     {
-        enum : UInt32 { SampledImage, CombinedImageSampler, UniformBuffer, MAX_DESCRIPTOR_ENUM };
+        enum : UInt32 { SampledImage, StorageImage, CombinedImageSampler, UniformBuffer, MAX_DESCRIPTOR_ENUM };
 
         vk::DescriptorPoolSize PoolSizes[MAX_DESCRIPTOR_ENUM];
         PoolSizes[SampledImage]
         .setType            (vk::DescriptorType::eSampledImage)
+        .setDescriptorCount (100);
+        PoolSizes[StorageImage]
+        .setType            (vk::DescriptorType::eStorageImage)
         .setDescriptorCount (100);
         PoolSizes[CombinedImageSampler]
         .setType            (vk::DescriptorType::eCombinedImageSampler)
@@ -758,8 +761,8 @@ namespace Visera
             }
             if (!bFoundRequiredPresentMode)
             {
-                LOG_ERROR("Failed to find required present mode {} for SwapChain!"
-                          "-- Using FIFO by default.", SwapChain.PresentMode);
+                LOG_WARN("Failed to find required present mode {} for SwapChain!"
+                         "-- Using FIFO by default.", SwapChain.PresentMode);
                 SwapChain.PresentMode = vk::PresentModeKHR::eFifo;
             }
         }
@@ -788,7 +791,7 @@ namespace Visera
         { LOG_FATAL("Failed to get the required surface capabilities!"); }
 
         const auto SurfaceCapabilities = std::move(*Result);
-        // Swap Chain Image Extent
+        // Swapchain Image Extent
         {
             if (SurfaceCapabilities.currentExtent.width != Math::UpperBound<UInt32>())
             {

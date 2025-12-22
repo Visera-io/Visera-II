@@ -3,7 +3,7 @@ module;
 export module Visera.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "RHI.Vulkan"
 import Visera.RHI.Vulkan.Common;
-import Visera.RHI.Vulkan.Pipeline.Render;
+import Visera.RHI.Vulkan.Pipeline;
 import Visera.RHI.Vulkan.Image;
 import Visera.RHI.Vulkan.Buffer;
 import Visera.RHI.Vulkan.DescriptorSet;
@@ -39,7 +39,7 @@ namespace Visera
         void inline
         SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.value());}
         void inline
-        EnterRenderPass(TSharedRef<FVulkanRenderPipeline> I_RenderPass);
+        EnterRenderPipeline(TSharedRef<FVulkanRenderPipeline> I_RenderPipeline);
         void inline
         BindVertexBuffer(UInt32                    I_Binding,
                          TSharedRef<FVulkanBuffer> I_VertexBuffer,
@@ -62,13 +62,19 @@ namespace Visera
                     UInt32 I_FirstIndex, Int32  I_VertexOffset,
                     UInt32 I_FirstInstance) const;
         void inline
-        LeaveRenderPass();
+        LeaveRenderPipeline();
         void inline
         BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
                   TSharedRef<FVulkanImage> I_DstImage);
         void inline
         CopyBufferToImage(TSharedRef<FVulkanBuffer> I_SrcBuffer,
                           TSharedRef<FVulkanImage>  I_DstImage);
+        void inline
+        EnterComputePipeline(TSharedRef<FVulkanComputePipeline> I_ComputePipeline);
+        void inline
+        Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ);
+        void inline
+        LeaveComputePipeline();
         void inline
         End();
 
@@ -80,15 +86,18 @@ namespace Visera
         [[nodiscard]] inline Bool
         IsRecording() const { return Status == EStatus::Recording; }
         [[nodiscard]] inline Bool
-        IsInsideRenderPass() const { return Status == EStatus::InsideRenderPass; }
+        IsInsideRenderPass()  const { return Status == EStatus::InsideRenderPass; }
         [[nodiscard]] inline Bool
         IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
+        [[nodiscard]] inline Bool
+        IsInsideComputePipeline() const { return CurrentComputePipeline != nullptr; }
 
     private:
-        vk::raii::CommandBuffer           Handle {nullptr};
-        TOptional<vk::Viewport>           CurrentViewport;
-        TOptional<vk::Rect2D>             CurrentScissor;
-        TSharedPtr<FVulkanRenderPipeline> CurrentRenderPipeline;
+        vk::raii::CommandBuffer            Handle {nullptr};
+        TOptional<vk::Viewport>            CurrentViewport;
+        TOptional<vk::Rect2D>              CurrentScissor;
+        TSharedPtr<FVulkanRenderPipeline>  CurrentRenderPipeline;
+        TSharedPtr<FVulkanComputePipeline> CurrentComputePipeline;
 
         EStatus Status { EStatus::Idle };
 
@@ -177,10 +186,10 @@ namespace Visera
     }
 
     void FVulkanCommandBuffer::
-    EnterRenderPass(TSharedRef<FVulkanRenderPipeline> I_RenderPass)
+    EnterRenderPipeline(TSharedRef<FVulkanRenderPipeline> I_RenderPipeline)
     {
         VISERA_ASSERT(IsRecording());
-        CurrentRenderPipeline = std::move(I_RenderPass);
+        CurrentRenderPipeline = std::move(I_RenderPipeline);
 
         auto& RenderingInfo = CurrentRenderPipeline->GetRenderingInfo();
         Handle.beginRendering(RenderingInfo);
@@ -214,15 +223,31 @@ namespace Visera
                   UInt32               I_Offset,
                   UInt32               I_Size)
     {
-        VISERA_ASSERT(IsInsideRenderPass());
+        VISERA_ASSERT(IsInsideRenderPass() || IsInsideComputePipeline());
         VISERA_ASSERT((I_Offset % 4) == 0); // VUID Constrain
         VISERA_ASSERT((I_Size   % 4) == 0); // VUID Constrain
 
-        const auto& PipelineLayout = CurrentRenderPipeline->GetLayout();
+        TSharedPtr<FVulkanPipelineLayout> PipelineLayout;
+        vk::ShaderStageFlags StageFlags;
+        if (CurrentRenderPipeline)
+        {
+            PipelineLayout = CurrentRenderPipeline->GetLayout();
+            StageFlags = PipelineLayout->GetPushConstantStages();
+        }
+        else if (CurrentComputePipeline)
+        {
+            PipelineLayout = CurrentComputePipeline->GetLayout();
+            StageFlags = vk::ShaderStageFlagBits::eCompute;
+        }
+        else
+        {
+            VISERA_ASSERT(False && "No pipeline bound!");
+            return;
+        }
 
         const auto Info = vk::PushConstantsInfo{}
             .setLayout      (PipelineLayout->GetHandle())
-            .setStageFlags  (PipelineLayout->GetPushConstantStages())
+            .setStageFlags  (StageFlags)
             .setOffset      (I_Offset)
             .setSize        (I_Size)
             .setPValues     (I_Data)
@@ -247,14 +272,30 @@ namespace Visera
     BindDescriptorSet(UInt32                           I_SetIndex,
                       TSharedRef<FVulkanDescriptorSet> I_DescriptorSet)
     {
-        VISERA_ASSERT(IsInsideRenderPass());
-        const auto& PipelineLayout = CurrentRenderPipeline->GetLayout();
+        VISERA_ASSERT(IsInsideRenderPass() || IsInsideComputePipeline());
+        TSharedPtr<FVulkanPipelineLayout> PipelineLayout;
+        vk::ShaderStageFlags StageFlags;
+        if (CurrentRenderPipeline)
+        {
+            PipelineLayout = CurrentRenderPipeline->GetLayout();
+            StageFlags = PipelineLayout->GetDescriptorSetStages();
+        }
+        else if (CurrentComputePipeline)
+        {
+            PipelineLayout = CurrentComputePipeline->GetLayout();
+            StageFlags = vk::ShaderStageFlagBits::eCompute;
+        }
+        else
+        {
+            VISERA_ASSERT(False && "No pipeline bound!");
+            return;
+        }
 
         const auto DescriptorSet = I_DescriptorSet->GetHandle();
 
         const auto BindInfo = vk::BindDescriptorSetsInfo{}
             .setLayout              (PipelineLayout->GetHandle())
-            .setStageFlags          (PipelineLayout->GetDescriptorSetStages())
+            .setStageFlags          (StageFlags)
             .setFirstSet            (I_SetIndex)
             .setDescriptorSetCount  (1)
             .setPDescriptorSets     (&DescriptorSet)
@@ -287,7 +328,7 @@ namespace Visera
     }
 
     void FVulkanCommandBuffer::
-    LeaveRenderPass()
+    LeaveRenderPipeline()
     {
         VISERA_ASSERT(IsInsideRenderPass());
 
@@ -299,6 +340,35 @@ namespace Visera
         CurrentRenderPipeline.reset();
 
         Status = EStatus::Recording;
+    }
+
+    void FVulkanCommandBuffer::
+    EnterComputePipeline(TSharedRef<FVulkanComputePipeline> I_ComputePipeline)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(CurrentRenderPipeline == nullptr); // Cannot be in render pass
+        CurrentComputePipeline = I_ComputePipeline;
+
+        Handle.bindPipeline(vk::PipelineBindPoint::eCompute,
+                            CurrentComputePipeline->GetHandle());
+    }
+
+    void FVulkanCommandBuffer::
+    LeaveComputePipeline()
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(CurrentComputePipeline != nullptr);
+
+        CurrentComputePipeline.reset();
+    }
+
+    void FVulkanCommandBuffer::
+    Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(CurrentComputePipeline != nullptr);
+
+        Handle.dispatch(I_GroupCountX, I_GroupCountY, I_GroupCountZ);
     }
 
     void FVulkanCommandBuffer::

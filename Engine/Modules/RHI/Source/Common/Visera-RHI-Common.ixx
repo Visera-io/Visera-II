@@ -24,12 +24,15 @@ export namespace Visera
 
 
         R16G16B16A16_Float  = static_cast<UInt32>(vk::Format::eR16G16B16A16Sfloat),
+        R32G32_Float        = static_cast<UInt32>(vk::Format::eR32G32Sfloat),
+        R32G32B32_Float     = static_cast<UInt32>(vk::Format::eR32G32B32Sfloat),
+        R32G32B32A32_Float  = static_cast<UInt32>(vk::Format::eR32G32B32A32Sfloat),
 
-        Vector2F            = static_cast<UInt32>(vk::Format::eR32G32Sfloat),
-        Vector3F            = static_cast<UInt32>(vk::Format::eR32G32B32Sfloat),
-        Vector4F            = static_cast<UInt32>(vk::Format::eR32G32B32A32Sfloat),
+        Vector2F            = R32G32_Float,
+        Vector3F            = R32G32B32_Float,
+        Vector4F            = R32G32B32A32_Float,
 
-        Undefined,
+        Undefined           = static_cast<UInt32>(vk::Format::eUndefined),
     };
     [[nodiscard]] constexpr vk::Format
     TypeCast(ERHIFormat I_Format) { return static_cast<vk::Format>(I_Format); }
@@ -37,6 +40,7 @@ export namespace Visera
     enum class ERHIDescriptorType : UInt32
     {
         CombinedImageSampler    = static_cast<UInt32>(vk::DescriptorType::eCombinedImageSampler),
+        StorageImage            = static_cast<UInt32>(vk::DescriptorType::eStorageImage),
         UniformBuffer           = static_cast<UInt32>(vk::DescriptorType::eUniformBuffer),
         StorageBuffer           = static_cast<UInt32>(vk::DescriptorType::eStorageBuffer),
 
@@ -160,4 +164,31 @@ VISERA_MAKE_FORMATTER(Visera::ERHIShaderStages,
         default: break;
     },
     "{}", StageName
+);
+
+VISERA_MAKE_FORMATTER(Visera::ERHIFormat,
+    const char* FormatName = "Undefined";
+    switch (I_Formatee)
+    {
+        case Visera::ERHIFormat::R8G8B8_sRGB:        FormatName = "R8G8B8_sRGB";        break;
+        case Visera::ERHIFormat::R8G8B8_UNorm:       FormatName = "R8G8B8_UNorm";       break;
+
+        case Visera::ERHIFormat::B8G8R8_sRGB:        FormatName = "B8G8R8_sRGB";        break;
+        case Visera::ERHIFormat::B8G8R8_UNorm:       FormatName = "B8G8R8_UNorm";       break;
+
+        case Visera::ERHIFormat::R8G8B8A8_sRGB:      FormatName = "R8G8B8A8_sRGB";      break;
+        case Visera::ERHIFormat::R8G8B8A8_UNorm:     FormatName = "R8G8B8A8_UNorm";     break;
+
+        case Visera::ERHIFormat::B8G8R8A8_sRGB:      FormatName = "B8G8R8A8_sRGB";      break;
+        case Visera::ERHIFormat::B8G8R8A8_UNorm:     FormatName = "B8G8R8A8_UNorm";     break;
+
+        case Visera::ERHIFormat::R16G16B16A16_Float: FormatName = "R16G16B16A16_Float"; break;
+        case Visera::ERHIFormat::R32G32_Float:       FormatName = "R32G32_Float";       break;
+        case Visera::ERHIFormat::R32G32B32_Float:    FormatName = "R32G32B32_Float";    break;
+        case Visera::ERHIFormat::R32G32B32A32_Float: FormatName = "R32G32B32A32_Float"; break;
+
+        case Visera::ERHIFormat::Undefined:          FormatName = "Undefined";          break;
+        default: break;
+    },
+    "{}", FormatName
 );

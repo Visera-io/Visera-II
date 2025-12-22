@@ -1,11 +1,12 @@
 module;
 #include <Visera-Graphics.hpp>
-export module Visera.Graphics.RenderPass.Interface;
-#define VISERA_MODULE_NAME "Graphics.RenderPass"
+export module Visera.Graphics.RenderGraph.Node;
+#define VISERA_MODULE_NAME "Graphics.RenderGraph"
 import Visera.RHI;
 import Visera.Shader;
 import Visera.Runtime.Name;
 import Visera.Core.Delegate.Unicast;
+import Visera.Graphics.RenderGraph.Common;
 
 export namespace Visera
 {
@@ -26,12 +27,6 @@ export namespace Visera
     //
     //     UInt32 ReferenceCount = 0;
     // };
-
-    enum class ERGAccess
-    {
-        Read,
-        Write,
-    };
 
     struct FRGNode
     {

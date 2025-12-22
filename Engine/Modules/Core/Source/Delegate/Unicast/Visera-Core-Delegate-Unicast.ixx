@@ -6,11 +6,11 @@ import Visera.Core.Traits.Policy;
 
 export namespace Visera
 {
-    // Default policy is Shared
-    template<typename T_Signature, typename T_Policy = Policy::Shared>
+    // Default policy is Exclusive
+    template<typename T_Signature, typename T_Policy = Policy::Exclusive>
     class VISERA_CORE_API TUnicastDelegate;
 
-    // Shared (default): can re-bind and can unbind.
+    // Shared: can re-bind and can unbind.
     template<typename... T_Args>
     class VISERA_CORE_API TUnicastDelegate<void(T_Args...), Policy::Shared>
     {

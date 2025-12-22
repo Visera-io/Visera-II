@@ -9,13 +9,13 @@ export import Visera.Game.Render;
 export import Visera.Game.Event;
 export import Visera.Game.World;
        import Visera.Core.Delegate.Unicast;
-       import Visera.Core.Traits.Policy;
        import Visera.Core.OS.Time;
        import Visera.Runtime.Global;
 export import Visera.Runtime;
        import Visera.Platform;
        import Visera.RHI;
        import Visera.Graphics;
+       import Visera.Shader;
        import Visera.Assets;
 
 namespace Visera
@@ -23,7 +23,7 @@ namespace Visera
     export class VISERA_ENGINE_API FEngine : public IGlobalSingleton<FEngine>
     {
     public:
-        TUnicastDelegate<void(Float), Policy::Exclusive>
+        TUnicastDelegate<void(Float)>
         AppTick;
 
         void Run()
@@ -62,15 +62,21 @@ namespace Visera
 
                 GRHI->BeginFrame();
                 {
-                 GEvent ->OnFrameBegin.Broadcast();
+                    GEvent ->OnFrameBegin.Broadcast();
 
-                 // Logic
-                 AppTick.Invoke(DeltaTime);
-                 GWorld ->Tick(DeltaTime);
-                 // Render
-                 GRender->Tick(DeltaTime);
+                    if (auto Window = Graphics::GDebug->UI->Window("Hello"))
+                    {
+                        static Float k = 0;
+                        Graphics::GDebug->UI->Slider("K", &k, 0, 1);
+                    }
 
-                 GEvent ->OnFrameEnd.Broadcast();
+                    // Logic
+                    AppTick.Invoke(DeltaTime);
+                    GWorld ->Tick(DeltaTime);
+                    // Render
+                    GRender->Tick(DeltaTime);
+
+                    GEvent ->OnFrameEnd.Broadcast();
                 }
                 GRHI->EndFrame();
                 GRHI->Present();
@@ -88,6 +94,7 @@ namespace Visera
             GAssets     ->Bootstrap();
             GRHI        ->Bootstrap();
             Graphics::GDebug->Bootstrap(); //[TODO]: Remove
+            GShader     ->Bootstrap();
 
             GEvent      ->Bootstrap();
             GAssetHub   ->Bootstrap();
@@ -110,6 +117,7 @@ namespace Visera
             GAssetHub   ->Terminate();
             GEvent      ->Terminate();
 
+            GShader     ->Terminate();
             Graphics::GDebug->Terminate(); //[TODO]: Remove
             GRHI        ->Terminate();
             GAssets     ->Terminate();

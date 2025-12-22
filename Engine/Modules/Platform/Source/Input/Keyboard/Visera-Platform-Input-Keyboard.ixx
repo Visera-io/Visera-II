@@ -4,7 +4,6 @@ module;
 export module Visera.Platform.Input.Keyboard;
 #define VISERA_MODULE_NAME "Platform.Input"
 import Visera.Core.Delegate;
-import Visera.Core.Traits.Policy;
 
 namespace Visera
 {
@@ -71,7 +70,7 @@ namespace Visera
         FKeyEvent OnHeld;
         FKeyEvent OnDetached;
 
-        using FCheckKeyStatusEvent = TUnicastDelegate<void(EKey, EAction*), Policy::Exclusive>;
+        using FCheckKeyStatusEvent = TUnicastDelegate<void(EKey, EAction*)>;
         FCheckKeyStatusEvent OnGetKey;
 
     private:

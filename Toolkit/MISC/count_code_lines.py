@@ -4,17 +4,29 @@ from pathlib import Path
 
 # Directories to scan
 SOURCE_DIRS = [
-    "Core/Source",
-    "Runtime/Source",
-    "Engine/Source",
-    "Studio/Source",
+    "Engine/Modules/Assets/Source",
+    "Engine/Modules/Audio/Source",
+    "Engine/Modules/Core/Source",
+    "Engine/Modules/Graphics/Source",
+    "Engine/Modules/Physics2D/Source",
+    "Engine/Modules/Platform/Source",
+    "Engine/Modules/RHI/Source",
+    "Engine/Modules/Runtime/Source",
+    "Engine/Modules/Scripting/Source",
+    "Engine/Modules/Shader/Source",
 ]
 
 SCRIPT_DIRS = [
-    "Core/Scripts",
-    "Runtime/Scripts",
-    "Engine/Scripts",
-    "Studio/Scripts",
+    "Engine/Modules/Assets/Scripts",
+    "Engine/Modules/Audio/Scripts",
+    "Engine/Modules/Core/Scripts",
+    "Engine/Modules/Graphics/Scripts",
+    "Engine/Modules/Physics2D/Scripts",
+    "Engine/Modules/Platform/Scripts",
+    "Engine/Modules/RHI/Scripts",
+    "Engine/Modules/Runtime/Scripts",
+    "Engine/Modules/Scripting/Scripts",
+    "Engine/Modules/Shader/Scripts",
 ]
 
 SHADER_DIRS = [

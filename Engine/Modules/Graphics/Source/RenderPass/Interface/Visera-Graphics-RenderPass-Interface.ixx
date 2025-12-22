@@ -8,8 +8,5 @@ import Visera.Core.Delegate.Unicast;
 
 export namespace Visera
 {
-    struct FRenderPassContext
-    {
 
-    };
 }

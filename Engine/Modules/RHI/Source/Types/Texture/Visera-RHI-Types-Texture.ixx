@@ -4,7 +4,7 @@ export module Visera.RHI.Types.Texture;
 #define VISERA_MODULE_NAME "RHI.Types"
 import Visera.RHI.Types.DescriptorSet;
 import Visera.RHI.Types.Sampler;
-import Visera.RHI.Types.Image;
+import Visera.RHI.Types.ImageView;
 import Visera.RHI.Common;
 import Visera.Runtime.Log;
 import Visera.Runtime.Name;
@@ -21,17 +21,17 @@ namespace Visera
         WriteTo(TSharedRef<FRHIDescriptorSet> I_DescriptorSet, UInt8 I_Binding);
 
     private:
-        TSharedPtr<FRHIImage>   Image;
+        TSharedPtr<FRHIImageView>   Image;
         TSharedPtr<FRHISampler> Sampler;
 
     public:
         FRHIStaticTexture() = delete;
-        FRHIStaticTexture(TSharedRef<FRHIImage>   I_Image,
+        FRHIStaticTexture(TSharedRef<FRHIImageView>   I_Image,
                           TSharedRef<FRHISampler> I_Sampler);
     };
 
     FRHIStaticTexture::
-    FRHIStaticTexture(TSharedRef<FRHIImage>   I_Image,
+    FRHIStaticTexture(TSharedRef<FRHIImageView>   I_Image,
                         TSharedRef<FRHISampler> I_Sampler)
     : Image     {I_Image},
       Sampler   {I_Sampler}
@@ -42,7 +42,7 @@ namespace Visera
     void FRHIStaticTexture::
     WriteTo(TSharedRef<FRHIDescriptorSet> I_DescriptorSet, UInt8 I_Binding)
     {
-        I_DescriptorSet->WriteImage(I_Binding, Image, Sampler);
+        I_DescriptorSet->WriteCombinedImageSampler(I_Binding, Image, Sampler);
     }
 
     export class VISERA_RHI_API FTextureDesc

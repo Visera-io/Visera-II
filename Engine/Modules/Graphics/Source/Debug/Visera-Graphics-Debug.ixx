@@ -22,7 +22,7 @@ namespace Visera::Graphics
         {
             LOG_TRACE("Bootstrapping Debug.");
 
-            //DebugUI  = MakeUnique<FDebugUI>(GWindow);
+            DebugUI  = MakeUnique<FDebugUI>(GWindow);
 
             Status = EStatus::Bootstrapped;
         }
@@ -30,7 +30,7 @@ namespace Visera::Graphics
         {
             LOG_TRACE("Terminating Debug.");
 
-            //DebugUI.reset();
+            DebugUI.reset();
 
             Status = EStatus::Terminated;
         }

@@ -15,15 +15,15 @@ namespace Visera
     export class VISERA_SHADER_API FSlangCompiler
     {
     public:
-    	[[nodiscard]] static inline Bool
+    	[[nodiscard]] inline Bool
     	AddSearchPath(const FPath& I_Path);
         [[nodiscard]] inline TArray<FByte>
     	Compile(const FPath& I_Path, FStringView I_EntryPoint);
 
     private:
-    	static inline Slang::ComPtr<slang::IGlobalSession>
+    	Slang::ComPtr<slang::IGlobalSession>
     	Context {nullptr}; //[Note] Currently, the global session type is not thread-safe. Applications that wish to compile on multiple threads will need to ensure that each concurrent thread compiles with a distinct global session.
-    	static inline TSet<FString>
+    	TSet<FString>
     	SearchPaths{};
 
     	struct FSession

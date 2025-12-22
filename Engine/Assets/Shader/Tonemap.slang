@@ -9,8 +9,10 @@ struct Params
 [[vk::push_constant]]
 Params gParams;
 
-Texture2D<float4>        gHDR   : register(t0);
-RWTexture2D<float4>      gLDR   : register(u0);
+[[vk::binding(0, 0)]]
+Texture2D<float4>        gHDR;
+[[vk::binding(1, 0)]]
+RWTexture2D<float4>      gLDR;
 
 static float3x3 ACESInputMat = float3x3(
     0.59719, 0.35458, 0.04823,

@@ -40,8 +40,6 @@ namespace Visera
         HasDepth() const { return TargetImageView->GetImage()->HasDepth(); }
         [[nodiscard]] inline Bool
         HasStencil() const { return TargetImageView->GetImage()->HasStencil(); }
-        void inline
-        Swap(TSharedRef<FVulkanRenderTarget> I_Other);
 
     private:
         TSharedPtr<FVulkanImageView> TargetImageView;
@@ -94,14 +92,5 @@ namespace Visera
         .setLoadOp      (GetLoadOp())
         .setStoreOp     (GetStoreOp())
         .setClearValue  (GetClearColor());
-    }
-
-    void FVulkanRenderTarget::
-    Swap(TSharedRef<FVulkanRenderTarget> I_Other)
-    {
-        std::swap(TargetImageView, I_Other->TargetImageView);
-        std::swap(LoadOp, I_Other->LoadOp);
-        std::swap(StoreOp, I_Other->StoreOp);
-        std::swap(ClearColor, I_Other->ClearColor);
     }
 }

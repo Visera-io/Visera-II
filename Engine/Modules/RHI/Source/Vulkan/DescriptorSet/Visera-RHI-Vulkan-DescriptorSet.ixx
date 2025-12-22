@@ -15,9 +15,12 @@ namespace Visera
     {
     public:
         VISERA_NOINLINE void
-        WriteImage(UInt32                       I_Binding,
-                   TSharedRef<FVulkanImageView> I_ImageView,
-                   TSharedRef<FVulkanSampler>   I_Sampler);
+        WriteCombinedImageSampler(UInt32                       I_Binding,
+                                  TSharedRef<FVulkanImageView> I_ImageView,
+                                  TSharedRef<FVulkanSampler>   I_Sampler);
+        VISERA_NOINLINE void
+        WriteStorageImage(UInt32                       I_Binding,
+                          TSharedRef<FVulkanImageView> I_ImageView);
         [[nodiscard]] inline vk::DescriptorSet
         GetHandle() const { return Handle; }
         [[nodiscard]] inline const TSharedRef<FVulkanDescriptorSetLayout>
@@ -53,9 +56,9 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteImage(UInt32                       I_Binding,
-               TSharedRef<FVulkanImageView> I_ImageView,
-               TSharedRef<FVulkanSampler>   I_Sampler)
+    WriteCombinedImageSampler(UInt32                       I_Binding,
+                              TSharedRef<FVulkanImageView> I_ImageView,
+                              TSharedRef<FVulkanSampler>   I_Sampler)
     {
         auto Image = I_ImageView->GetImage();
 
@@ -69,6 +72,31 @@ namespace Visera
             .setDstSet          (Handle)
             .setDstBinding      (I_Binding)
             .setDescriptorType  (vk::DescriptorType::eCombinedImageSampler)
+            .setPImageInfo      (&ImageInfo)
+        ;
+        const auto& Device = Layout->GetHandle().getDevice();
+        Device.updateDescriptorSets(
+            1, &WriteInfo,
+            0, nullptr
+        );
+    }
+
+    void FVulkanDescriptorSet::
+    WriteStorageImage(UInt32                       I_Binding,
+                      TSharedRef<FVulkanImageView> I_ImageView)
+    {
+        auto Image = I_ImageView->GetImage();
+
+        auto ImageInfo = vk::DescriptorImageInfo{}
+            .setSampler     (nullptr)
+            .setImageView   (I_ImageView->GetHandle())
+            .setImageLayout (I_ImageView->GetImage()->GetLayout())
+        ;
+        auto WriteInfo = vk::WriteDescriptorSet{}
+            .setDescriptorCount (1)
+            .setDstSet          (Handle)
+            .setDstBinding      (I_Binding)
+            .setDescriptorType  (vk::DescriptorType::eStorageImage)
             .setPImageInfo      (&ImageInfo)
         ;
         const auto& Device = Layout->GetHandle().getDevice();

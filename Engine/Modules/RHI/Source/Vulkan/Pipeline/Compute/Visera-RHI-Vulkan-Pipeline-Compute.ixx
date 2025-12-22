@@ -15,6 +15,8 @@ namespace Visera
     public:
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline const TSharedPtr<FVulkanPipelineLayout>&
+        GetLayout() const { return Layout; }
 
     private:
         vk::raii::Pipeline                Handle{nullptr};

@@ -35,6 +35,10 @@ export namespace Visera
         CombinedImageSampler(UInt32 I_Binding, ERHIShaderStages I_Stages, UInt32 I_Count = 1, UInt64 immutableSamplerID = 0) noexcept
         { return { I_Binding, ERHIDescriptorType::CombinedImageSampler, I_Count, I_Stages, immutableSamplerID }; }
 
+        [[nodiscard]] static constexpr FRHIDescriptorSetBinding
+        StorageImage(UInt32 I_Binding, ERHIShaderStages I_Stages, UInt32 I_Count = 1) noexcept
+        { return { I_Binding, ERHIDescriptorType::StorageImage, I_Count, I_Stages }; }
+
         [[nodiscard]] constexpr Bool
         IsImmutableSampler() const noexcept
         { return (Type == ERHIDescriptorType::CombinedImageSampler) && ImmutableSamplerID != 0; }
