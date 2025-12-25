@@ -6,7 +6,7 @@ import :Common;
 import :NameEntryTable;
 
 #if defined(VISERA_DEBUG_MODE)
-import Visera.Core.Math.Arithmetic;
+import Visera.Core.Math.Arithmetic.Operation;
 #endif
 import Visera.Core.OS.Memory;
 import Visera.Core.OS.Thread.RWLock;

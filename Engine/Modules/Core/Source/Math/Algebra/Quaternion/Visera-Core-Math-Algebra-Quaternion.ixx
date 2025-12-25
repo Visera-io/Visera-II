@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Algebra.Quaternion;
 #define VISERA_MODULE_NAME "Core.Math"
-import Visera.Core.Math.Arithmetic;
+import Visera.Core.Math.Arithmetic.Operation;
 import Visera.Core.Math.Algebra.Vector;
 import Visera.Core.Math.Algebra.Matrix;
 import Visera.Core.Math.Trigonometry;

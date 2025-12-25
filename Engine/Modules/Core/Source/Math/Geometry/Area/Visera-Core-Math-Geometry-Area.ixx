@@ -3,7 +3,7 @@ module;
 export module Visera.Core.Math.Geometry.Area;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Algebra.Vector;
-import Visera.Core.Math.Arithmetic;
+import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
 {

@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Trigonometry.Degree;
 #define VISERA_MODULE_NAME "Core.Math"
-import Visera.Core.Math.Arithmetic;
+import Visera.Core.Math.Arithmetic.Operation;
 
 //#define VISERA_SAFE_MODE;
 #if defined(VISERA_SAFE_MODE)

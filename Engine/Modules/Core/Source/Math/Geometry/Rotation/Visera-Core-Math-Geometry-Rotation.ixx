@@ -3,7 +3,7 @@ module;
 export module Visera.Core.Math.Geometry.Rotation;
 #define VISERA_MODULE_NAME "Core.Math"
 export import Visera.Core.Math.Trigonometry;
-       import Visera.Core.Math.Arithmetic;
+       import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
 {
