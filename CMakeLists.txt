@@ -33,12 +33,6 @@ add_compile_options(
 )
 endif()
 
-if(APPLE)
-  target_link_options(YourTarget PRIVATE
-    "--ld-path=/opt/homebrew/opt/llvm@20/bin/ld64.lld"
-  )
-endif()
-
 if(MSVC)
     add_compile_definitions (NOMINMAX)
     add_compile_options     (/utf-8)
