@@ -7,8 +7,8 @@ module;
 #endif
 export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS"
-import Visera.Core.Math.Bit;
-import Visera.Core.OS.Memory.Arena;
+export import Visera.Core.OS.Memory.Arena;
+       import Visera.Core.Math.Bit;
 
 export namespace Visera
 {
@@ -18,11 +18,20 @@ export namespace Visera
         Alignable = std::integral<T> || std::is_pointer_v<T>;
     }
 
+    [[nodiscard]] constexpr UInt64
+    operator""_KB(unsigned long long I_Value) noexcept
+    { return static_cast<UInt64>(I_Value * 1024); }
+
+    [[nodiscard]] constexpr UInt64
+    operator""_MB(unsigned long long I_Value) noexcept
+    { return static_cast<UInt64>(I_Value * 1024 * 1024); }
+
+    [[nodiscard]] constexpr UInt64
+    operator""_GB(unsigned long long I_Value) noexcept
+    { return static_cast<UInt64>(I_Value * 1024ULL * 1024 * 1024); }
+
     namespace Memory
     {
-        template<UInt64 ByteSize> [[nodiscard]] TUniquePtr<TMemoryArena<ByteSize>>
-        CreateArena() noexcept { return MakeUnique<TMemoryArena<ByteSize>>(); }
-
         VISERA_FORCEINLINE auto
         Memset(void* I_Memory, Int32 I_Value, UInt64 I_Size) -> void;
         VISERA_FORCEINLINE auto

@@ -8,7 +8,7 @@ export namespace Visera
 {
     namespace Math
     {
-        template<Concepts::Integral NumT> Bool
+        template<Concepts::Integral NumT> constexpr Bool
         IsPowerOfTwo(NumT I_Number) { return (I_Number > 0) && ((I_Number & (I_Number - 1)) == 0); }
 
         template<Concepts::UnsingedIntegral NumT> constexpr Int32
