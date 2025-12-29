@@ -11,7 +11,6 @@ import Visera.Runtime.Log;
 
 export namespace Visera
 {
-    //[TODO]: WIP
     class VISERA_GRAPHICS_API FRenderGraph
     {
     public:

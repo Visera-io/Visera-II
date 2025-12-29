@@ -50,37 +50,17 @@ namespace Visera
 
     public:
         FVulkanRenderTarget()                                      = delete;
-        FVulkanRenderTarget(TSharedPtr<FVulkanImage> I_TargetImage);
+        FVulkanRenderTarget(TSharedRef<FVulkanImageView> I_ImageView);
         ~FVulkanRenderTarget()                                     = default;
         FVulkanRenderTarget(const FVulkanRenderTarget&)            = delete;
         FVulkanRenderTarget& operator=(const FVulkanRenderTarget&) = delete;
     };
 
     FVulkanRenderTarget::
-    FVulkanRenderTarget(TSharedPtr<FVulkanImage> I_TargetImage)
+    FVulkanRenderTarget(TSharedRef<FVulkanImageView> I_ImageView)
+    : TargetImageView { I_ImageView }
     {
-        VISERA_ASSERT(I_TargetImage && I_TargetImage->GetHandle());
-        VISERA_ASSERT(I_TargetImage->GetLayout() != vk::ImageLayout::eUndefined &&
-                      "Convert layout before creation for creating view!");
-        vk::ImageViewType RTViewType{};
-        switch (I_TargetImage->GetType())
-        {
-        case vk::ImageType::e2D: RTViewType = vk::ImageViewType::e2D; break;
-        default: LOG_FATAL("Unsupported image type!"); break;
-        }
 
-        vk::ImageAspectFlagBits RTAspect{};
-        if (I_TargetImage->HasDepth())
-        { RTAspect = vk::ImageAspectFlagBits::eDepth; }
-        else if (I_TargetImage->HasStencil())
-        { RTAspect = vk::ImageAspectFlagBits::eStencil; }
-        else
-        { RTAspect = vk::ImageAspectFlagBits::eColor; }
-
-        TargetImageView = MakeShared<FVulkanImageView>(
-            I_TargetImage,
-            RTViewType,
-            RTAspect);
     }
 
     vk::RenderingAttachmentInfo FVulkanRenderTarget::

@@ -17,11 +17,7 @@ namespace Visera
       [[nodiscard]] UInt64
       GetSize() const override { VISERA_UNIMPLEMENTED_API; return 0; };
 
-      [[nodiscard]] TSharedRef<FRHIStaticTexture>
-      GetRHITexture() const { return Data; }
-
    private:
-      TSharedPtr<FRHIStaticTexture> Data;
 
    public:
       FTexture() = delete;
@@ -34,12 +30,12 @@ namespace Visera
    : IAsset(EType::Texture, I_Name, I_Path)
    {
       auto Image = GAssets->CreateImage(I_Path);
-      Data = GRHI->CreateTexture2D(Image, ERHISamplerType::Linear);
+      VISERA_UNIMPLEMENTED_API;
    }
 
    FTexture::
    ~FTexture()
    {
-      Data.reset();
+
    }
 }

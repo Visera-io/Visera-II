@@ -79,10 +79,10 @@ namespace Visera
     public:
         FVulkanImageWrapper() = delete;
         FVulkanImageWrapper(const vk::Image&        I_Handle,
-                            vk::ImageType        I_ImageType,
-                            const vk::Extent3D&	I_Extent,
-                            vk::Format           I_Format,
-                            vk::ImageUsageFlags      I_Usages)
+                            vk::ImageType           I_ImageType,
+                            const vk::Extent3D&	    I_Extent,
+                            vk::Format              I_Format,
+                            vk::ImageUsageFlags     I_Usages)
         {
             Handle = I_Handle;
             Extent = I_Extent;

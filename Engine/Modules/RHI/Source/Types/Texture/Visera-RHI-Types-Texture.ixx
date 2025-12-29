@@ -8,43 +8,10 @@ import Visera.RHI.Types.ImageView;
 import Visera.RHI.Common;
 import Visera.Runtime.Log;
 import Visera.Runtime.Name;
+import Visera.Core.Math.Hash.GoldenRatio;
 
 namespace Visera
 {
-    /*
-     * Only one descriptor set.
-     */
-    export class VISERA_RHI_API FRHIStaticTexture
-    {
-    public:
-        inline void
-        WriteTo(TSharedRef<FRHIDescriptorSet> I_DescriptorSet, UInt8 I_Binding);
-
-    private:
-        TSharedPtr<FRHIImageView>   Image;
-        TSharedPtr<FRHISampler> Sampler;
-
-    public:
-        FRHIStaticTexture() = delete;
-        FRHIStaticTexture(TSharedRef<FRHIImageView>   I_Image,
-                          TSharedRef<FRHISampler> I_Sampler);
-    };
-
-    FRHIStaticTexture::
-    FRHIStaticTexture(TSharedRef<FRHIImageView>   I_Image,
-                        TSharedRef<FRHISampler> I_Sampler)
-    : Image     {I_Image},
-      Sampler   {I_Sampler}
-    {
-
-    }
-
-    void FRHIStaticTexture::
-    WriteTo(TSharedRef<FRHIDescriptorSet> I_DescriptorSet, UInt8 I_Binding)
-    {
-        I_DescriptorSet->WriteCombinedImageSampler(I_Binding, Image, Sampler);
-    }
-
     export class VISERA_RHI_API FTextureDesc
     {
     public:
@@ -53,13 +20,21 @@ namespace Visera
         ERHIFormat       Format      = ERHIFormat::R8G8B8A8_UNorm;
         UInt32           Width       = 1;
         UInt32           Height      = 1;
-        UInt32           Depth       = 1;
-        UInt32           MipLevels   = 1;
-        UInt32           ArrayLayers = 1;
+        UInt8            Depth       = 1;
+        UInt8            MipLevels   = 1;
+        UInt8            ArrayLayers = 1;
         ERHISamplingRate SampleCount = ERHISamplingRate::X1;
-        ERHITextureUsage Usage       = ERHITextureUsage::ShaderResource;
+        ERHIImageUsage   Usage       = ERHIImageUsage::ShaderResource;
 
         [[nodiscard]] inline Bool
-        IsUAV() const { return (Usage & ERHITextureUsage::UnorderedAccess); }
+        IsUAV() const { return (Usage & ERHIImageUsage::UnorderedAccess); }
+
+        [[nodiscard]] inline UInt64
+        Hash() const
+        {
+            return Math::GoldenRatioHashCombine(
+                0,
+                Type, Format, Width, Height, Depth, MipLevels, ArrayLayers, SampleCount, Usage);
+        }
     };
 }

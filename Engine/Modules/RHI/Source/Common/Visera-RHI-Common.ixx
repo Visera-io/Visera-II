@@ -140,7 +140,7 @@ export namespace Visera
     [[nodiscard]] constexpr vk::ImageType
     TypeCast(ERHITextureType I_TextureType) { return static_cast<vk::ImageType>(I_TextureType); }
 
-    enum class ERHITextureUsage : UInt32
+    enum class ERHIImageUsage : UInt32
     {
         None            = 0,
         ShaderResource  = static_cast<UInt32>(vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eInputAttachment),
@@ -150,9 +150,23 @@ export namespace Visera
         TransferSrc     = static_cast<UInt32>(vk::ImageUsageFlagBits::eTransferSrc),
         TransferDst     = static_cast<UInt32>(vk::ImageUsageFlagBits::eTransferDst),
     };
-    VISERA_MAKE_FLAGS(ERHITextureUsage);
+    VISERA_MAKE_FLAGS(ERHIImageUsage);
     [[nodiscard]] constexpr vk::ImageUsageFlags
-    TypeCast(ERHITextureUsage I_TextureUsage) { return static_cast<vk::ImageUsageFlagBits>(I_TextureUsage); }
+    TypeCast(ERHIImageUsage I_TextureUsage) { return static_cast<vk::ImageUsageFlagBits>(I_TextureUsage); }
+
+    enum class ERHIBufferUsage : UInt32
+    {
+        None = 0,
+        VertexBuffer    = static_cast<UInt32>(vk::BufferUsageFlagBits2::eVertexBuffer),
+        IndexBuffer     = static_cast<UInt32>(vk::BufferUsageFlagBits2::eIndexBuffer),
+        UniformBuffer   = static_cast<UInt32>(vk::BufferUsageFlagBits2::eUniformBuffer),
+        StorageBuffer   = static_cast<UInt32>(vk::BufferUsageFlagBits2::eStorageBuffer),
+        TransferSrc     = static_cast<UInt32>(vk::BufferUsageFlagBits2::eTransferSrc),
+        TransferDst     = static_cast<UInt32>(vk::BufferUsageFlagBits2::eTransferDst),
+    };
+    VISERA_MAKE_FLAGS(ERHIBufferUsage);
+    [[nodiscard]] constexpr vk::BufferUsageFlagBits2
+    TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits2>(I_BufferUsage); }
 }
 
 VISERA_MAKE_FORMATTER(Visera::ERHIShaderStages,
