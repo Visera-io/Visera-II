@@ -22,6 +22,9 @@ namespace Visera
         FVulkanDescriptorSetLayout() = delete;
         FVulkanDescriptorSetLayout(const vk::raii::Device&                       I_Device,
                                    const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
+        FVulkanDescriptorSetLayout(const vk::raii::Device&                       I_Device,
+                                   const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings,
+                                   const TArray<vk::DescriptorBindingFlags>&     I_BindingFlags);
     };
 
     FVulkanDescriptorSetLayout::
@@ -29,6 +32,31 @@ namespace Visera
                                const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
     {
         auto CreateInfo = vk::DescriptorSetLayoutCreateInfo{}
+            .setBindingCount    (I_Bindings.size())
+            .setPBindings       (I_Bindings.data())
+        ;
+        auto Result = I_Device.createDescriptorSetLayout(CreateInfo);
+        if (Result.has_value())
+        { Handle = std::move(*Result); }
+        else
+        { LOG_FATAL("Failed to create descriptor set layout!"); }
+    }
+
+    FVulkanDescriptorSetLayout::
+    FVulkanDescriptorSetLayout(const vk::raii::Device&                       I_Device,
+                               const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings,
+                               const TArray<vk::DescriptorBindingFlags>&     I_BindingFlags)
+    {
+        VISERA_ASSERT(I_Bindings.size() == I_BindingFlags.size());
+        
+        auto BindingFlagsInfo = vk::DescriptorSetLayoutBindingFlagsCreateInfo{}
+            .setBindingCount    (I_BindingFlags.size())
+            .setPBindingFlags   (I_BindingFlags.data())
+        ;
+
+        auto CreateInfo = vk::DescriptorSetLayoutCreateInfo{}
+            .setPNext           (&BindingFlagsInfo)
+            .setFlags           (vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool)
             .setBindingCount    (I_Bindings.size())
             .setPBindings       (I_Bindings.data())
         ;

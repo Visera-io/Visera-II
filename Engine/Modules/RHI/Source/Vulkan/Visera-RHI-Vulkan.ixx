@@ -18,6 +18,7 @@ export import Visera.RHI.Vulkan.Pipeline;
 export import Visera.RHI.Vulkan.RenderTarget;
 export import Visera.RHI.Vulkan.DescriptorSet;
 export import Visera.RHI.Vulkan.DescriptorSetLayout;
+export import Visera.RHI.Vulkan.Registry;
        import Visera.RHI.Vulkan.Loader;
        import Visera.RHI.Vulkan.Allocator;
        import Visera.RHI.Vulkan.Sync;
@@ -25,7 +26,7 @@ export import Visera.RHI.Vulkan.DescriptorSetLayout;
        import Visera.RHI.Types.Shader;
        import Visera.Platform;
        import Visera.Runtime.Log;
-       import Visera.Core.Math.Arithmetic.Operation;
+       import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
        import Visera.Runtime.Name;
        import Visera.Core.Types.Map;
@@ -59,6 +60,7 @@ namespace Visera
             TSet<UInt32> TransferQueueFamilies{};
             vk::PhysicalDeviceProperties  Properties;
             vk::PhysicalDeviceProperties2 Properties2;
+            vk::PhysicalDeviceDescriptorIndexingProperties DescriptorIndexingProperties;
             vk::PhysicalDeviceFeatures    Features;
             vk::PhysicalDeviceFeatures2   Features2;
         }GPU;
@@ -138,30 +140,45 @@ namespace Visera
                     FStringView I_Description);
         [[nodiscard]] TSharedPtr<FVulkanSemaphore>
         CreateSemaphore(FStringView I_Name);
-        [[nodiscard]] TSharedPtr<FVulkanImage>
+        // Handle-based resource creation (bindless)
+        [[nodiscard]] FVulkanImageHandle
         CreateImage(vk::ImageType       I_ImageType,
                     const vk::Extent3D& I_Extent,
                     vk::Format          I_Format,
                     vk::ImageUsageFlags     I_Usages);
-        [[nodiscard]] TSharedPtr<FVulkanImageView>
-        CreateImageView(TSharedRef<FVulkanImage>        I_Image,
+        [[nodiscard]] FVulkanImageViewHandle
+        CreateImageView(FVulkanImageHandle              I_ImageHandle,
                         vk::ImageViewType               I_ViewType,
-                        vk::ImageAspectFlagBits         I_Aspect,
-                        const TPair<UInt8, UInt8>&      I_MipmapRange = {0,0},
-                        const TPair<UInt8, UInt8>&      I_ArrayRange  = {0,0},
+                        vk::ImageAspectFlags            I_Aspect,
+                        TClosedInterval<UInt8>          I_MipmapRange = {0,0},
+                        TClosedInterval<UInt8>          I_ArrayRange  = {0,0},
                         TOptional<vk::ComponentMapping> I_Swizzle     = {});
-        [[nodiscard]] TSharedPtr<FVulkanSampler>
+        [[nodiscard]] FVulkanSamplerHandle
         CreateImageSampler(vk::Filter             I_Filter,
                            vk::SamplerAddressMode I_AddressMode,
                            Float                  I_MaxAnisotropy = 1.0);
-        [[nodiscard]] TSharedPtr<FVulkanSampler>
+        [[nodiscard]] FVulkanSamplerHandle
         CreateCompareSampler(vk::Filter      I_Filter,
                              vk::CompareOp   I_CompareOp,
                              vk::BorderColor I_BorderColor);
-        [[nodiscard]] TSharedPtr<FVulkanBuffer>
+        [[nodiscard]] FVulkanBufferHandle
         CreateBuffer(UInt64                  I_Size,
                      vk::BufferUsageFlags    I_Usages,
                      EVulkanMemoryPoolFlags  I_MemoryPoolFlags = EVulkanMemoryPoolFlags::None);
+        
+        // Resource lookup by handle
+        [[nodiscard]] TSharedPtr<FVulkanImage>
+        GetImage(FVulkanImageHandle I_Handle) const;
+        [[nodiscard]] TSharedPtr<FVulkanImageView>
+        GetImageView(FVulkanImageViewHandle I_Handle) const;
+        [[nodiscard]] TSharedPtr<FVulkanSampler>
+        GetSampler(FVulkanSamplerHandle I_Handle) const;
+        [[nodiscard]] TSharedPtr<FVulkanBuffer>
+        GetBuffer(FVulkanBufferHandle I_Handle) const;
+        
+        // Registry access
+        [[nodiscard]] inline const FVulkanResourceRegistry&
+        GetResourceRegistry() const { return ResourceRegistry; }
         [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
         CreateCommandBuffer(vk::QueueFlagBits I_Queue);
         [[nodiscard]] TSharedPtr<FVulkanDescriptorSetLayout>
@@ -191,6 +208,7 @@ namespace Visera
 
         TArray<TSharedPtr<FVulkanRenderPipeline>>   RenderPipelines;
         TUniquePtr<FVulkanPipelineCache>            PipelineCache;
+        FVulkanResourceRegistry                     ResourceRegistry;
 
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
@@ -299,6 +317,9 @@ namespace Visera
     ~FVulkanDriver()
     {
         WaitIdle();
+        // Clear resource registry before destroying allocator
+        // This ensures all VMA allocations are freed before VMA is destroyed
+        ResourceRegistry.Clear();
         DestroyOtherResource();
         DestroyInFlightFrames();
         DestroyPipelineCache();
@@ -384,26 +405,48 @@ namespace Visera
     void FVulkanDriver::
     CreateDescriptorPools()
     {
-        enum : UInt32 { SampledImage, StorageImage, CombinedImageSampler, UniformBuffer, MAX_DESCRIPTOR_ENUM };
+        // Query bindless descriptor limits
+        const auto MaxBindlessDescriptors       = GPU.DescriptorIndexingProperties.maxUpdateAfterBindDescriptorsInAllPools;
+        const auto MaxBindlessSampledImages     = GPU.DescriptorIndexingProperties.maxDescriptorSetUpdateAfterBindSampledImages;
+        const auto MaxBindlessStorageImages     = GPU.DescriptorIndexingProperties.maxDescriptorSetUpdateAfterBindStorageImages;
+        const auto MaxBindlessStorageBuffers    = GPU.DescriptorIndexingProperties.maxDescriptorSetUpdateAfterBindStorageBuffers;
+
+        // Use device limits for bindless, but clamp to reasonable defaults if limits are very high
+        constexpr UInt32 MaxReasonableBindlessCount     = 100000;
+        const auto BindlessSampledImageCount    = Math::Min(MaxBindlessSampledImages, MaxReasonableBindlessCount);
+        const auto BindlessStorageImageCount    = Math::Min(MaxBindlessStorageImages, MaxReasonableBindlessCount);
+        const auto BindlessStorageBufferCount   = Math::Min(MaxBindlessStorageBuffers, MaxReasonableBindlessCount);
+        const auto BindlessCombinedImageSamplerCount = BindlessSampledImageCount; // Combined uses sampled image slot
+
+        enum : UInt32 { SampledImage, StorageImage, CombinedImageSampler, UniformBuffer, StorageBuffer, MAX_DESCRIPTOR_ENUM };
 
         vk::DescriptorPoolSize PoolSizes[MAX_DESCRIPTOR_ENUM];
         PoolSizes[SampledImage]
         .setType            (vk::DescriptorType::eSampledImage)
-        .setDescriptorCount (100);
+        .setDescriptorCount (BindlessSampledImageCount);
         PoolSizes[StorageImage]
         .setType            (vk::DescriptorType::eStorageImage)
-        .setDescriptorCount (100);
+        .setDescriptorCount (BindlessStorageImageCount);
         PoolSizes[CombinedImageSampler]
         .setType            (vk::DescriptorType::eCombinedImageSampler)
-        .setDescriptorCount (100);
+        .setDescriptorCount (BindlessCombinedImageSamplerCount);
         PoolSizes[UniformBuffer]
         .setType            (vk::DescriptorType::eUniformBuffer)
-        .setDescriptorCount (100);
+        .setDescriptorCount (100); // Traditional binding, not bindless
+        PoolSizes[StorageBuffer]
+        .setType            (vk::DescriptorType::eStorageBuffer)
+        .setDescriptorCount (BindlessStorageBufferCount);
+
+        // Clamp max sets to device limit for bindless
+        const auto MaxSets = Math::Min(
+            GPU.Properties.limits.maxBoundDescriptorSets,
+            MaxBindlessDescriptors > 0 ? MaxBindlessDescriptors / 1000 : GPU.Properties.limits.maxBoundDescriptorSets
+        );
 
         auto CreateInfo = vk::DescriptorPoolCreateInfo()
             .setFlags           (vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind |
                                  vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
-            .setMaxSets         (GPU.Properties.limits.maxBoundDescriptorSets)
+            .setMaxSets         (MaxSets)
             .setPoolSizeCount   (MAX_DESCRIPTOR_ENUM)
             .setPPoolSizes      (PoolSizes)
         ;
@@ -413,8 +456,8 @@ namespace Visera
         else
         { DescriptorPool = std::move(*Result); }
 
-        LOG_TRACE("Created a Vulkan Descriptor Pool: (max_sets:{})",
-                  CreateInfo.maxSets);
+        LOG_TRACE("Created a Vulkan Descriptor Pool for bindless: (max_sets:{}, max_bindless_descriptors:{}, sampled_images:{}, storage_images:{}, storage_buffers:{})",
+                  CreateInfo.maxSets, MaxBindlessDescriptors, BindlessSampledImageCount, BindlessStorageImageCount, BindlessStorageBufferCount);
     }
 
     void FVulkanDriver::
@@ -623,7 +666,11 @@ namespace Visera
         { LOG_FATAL("Failed to find a suitable PhysicalDevice!"); }
 
         GPU.Properties  = GPU.Context.getProperties();
-        GPU.Properties2 = GPU.Context.getProperties2();
+        auto Properties2 = GPU.Context.getProperties2<
+                        vk::PhysicalDeviceProperties2,
+                        vk::PhysicalDeviceDescriptorIndexingProperties>();
+        GPU.Properties2 = std::move(Properties2.get<vk::PhysicalDeviceProperties2>());
+        GPU.DescriptorIndexingProperties = std::move(Properties2.get<vk::PhysicalDeviceDescriptorIndexingProperties>());
         GPU.Features    = GPU.Context.getFeatures();
         GPU.Features2   = GPU.Context.getFeatures2();
         LOG_INFO("Selected GPU: {}", GPU.Properties.deviceName.data());
@@ -1126,7 +1173,7 @@ namespace Visera
         return Semaphore;
     }
 
-    TSharedPtr<FVulkanImage> FVulkanDriver::
+    FVulkanImageHandle FVulkanDriver::
     CreateImage(vk::ImageType       I_ImageType,
                 const vk::Extent3D& I_Extent,
                 vk::Format          I_Format,
@@ -1135,35 +1182,68 @@ namespace Visera
         VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
         LOG_TRACE("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
-        return MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
+        auto Image = MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
+        return ResourceRegistry.RegisterImage(Image);
     }
 
-    TSharedPtr<FVulkanImageView> FVulkanDriver::
-    CreateImageView(TSharedRef<FVulkanImage>   I_Image,
-                    vk::ImageViewType       I_ViewType,
-                    vk::ImageAspectFlagBits         I_Aspect,
-                    const TPair<UInt8, UInt8>& I_MipmapRange,
-                    const TPair<UInt8, UInt8>& I_ArrayRange,
-                    TOptional<vk::ComponentMapping>  I_Swizzle)
+    FVulkanImageViewHandle FVulkanDriver::
+    CreateImageView(FVulkanImageHandle              I_ImageHandle,
+                    vk::ImageViewType               I_ViewType,
+                    vk::ImageAspectFlags            I_Aspect,
+                    TClosedInterval<UInt8>          I_MipmapRange,
+                    TClosedInterval<UInt8>          I_ArrayRange,
+                    TOptional<vk::ComponentMapping> I_Swizzle)
     {
         LOG_TRACE("Creating a Vulkan Image View.");
-        return MakeShared<FVulkanImageView>(
-            I_Image,
+        auto Image = ResourceRegistry.GetImage(I_ImageHandle);
+        if (!Image)
+        {
+            LOG_ERROR("Invalid image handle for image view creation: {}", I_ImageHandle);
+            return InvalidVulkanResourceHandle;
+        }
+        auto ImageView = MakeShared<FVulkanImageView>(
+            Image,
             I_ViewType,
             I_Aspect,
             I_MipmapRange,
             I_ArrayRange,
             I_Swizzle);
+        return ResourceRegistry.RegisterImageView(ImageView);
     }
 
-    TSharedPtr<FVulkanBuffer> FVulkanDriver::
+    FVulkanBufferHandle FVulkanDriver::
     CreateBuffer(UInt64                  I_Size,
                  vk::BufferUsageFlags    I_Usages,
                  EVulkanMemoryPoolFlags  I_MemoryPoolFlags /* = EVulkanMemoryPoolFlags::None */)
     {
         VISERA_ASSERT(I_Size != 0);
         LOG_TRACE("Creating a Vulkan Buffer ({} bytes).", I_Size);
-        return MakeShared<FVulkanBuffer>(I_Size, I_Usages, I_MemoryPoolFlags);
+        auto Buffer = MakeShared<FVulkanBuffer>(I_Size, I_Usages, I_MemoryPoolFlags);
+        return ResourceRegistry.RegisterBuffer(Buffer);
+    }
+    
+    TSharedPtr<FVulkanImage> FVulkanDriver::
+    GetImage(FVulkanImageHandle I_Handle) const
+    {
+        return ResourceRegistry.GetImage(I_Handle);
+    }
+    
+    TSharedPtr<FVulkanImageView> FVulkanDriver::
+    GetImageView(FVulkanImageViewHandle I_Handle) const
+    {
+        return ResourceRegistry.GetImageView(I_Handle);
+    }
+    
+    TSharedPtr<FVulkanSampler> FVulkanDriver::
+    GetSampler(FVulkanSamplerHandle I_Handle) const
+    {
+        return ResourceRegistry.GetSampler(I_Handle);
+    }
+    
+    TSharedPtr<FVulkanBuffer> FVulkanDriver::
+    GetBuffer(FVulkanBufferHandle I_Handle) const
+    {
+        return ResourceRegistry.GetBuffer(I_Handle);
     }
 
     void FVulkanDriver::
@@ -1215,12 +1295,15 @@ namespace Visera
             UInt8 Index{0};
             for (auto& InFlightFrame : InFlightFrames)
             {
-                auto TargetImage = CreateImage(
+                auto TargetImageHandle = CreateImage(
                     vk::ImageType::e2D,
                     {ColorRTRes.width, ColorRTRes.height, 1},
                     vk::Format::eR16G16B16A16Sfloat,
                     vk::ImageUsageFlagBits::eColorAttachment |
                     vk::ImageUsageFlagBits::eTransferSrc);
+                auto TargetImagePtr = GetImage(TargetImageHandle);
+                VISERA_ASSERT(TargetImagePtr != nullptr);
+                TSharedRef<FVulkanImage> TargetImage = TargetImagePtr;
 
                 Cmd->ConvertImageLayout(TargetImage,
                     vk::ImageLayout::eColorAttachmentOptimal,
@@ -1229,9 +1312,12 @@ namespace Visera
                     vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                     vk::AccessFlagBits2::eColorAttachmentWrite
                 );
-                auto TargetView = CreateImageView(TargetImage,
+                auto TargetViewHandle = CreateImageView(TargetImageHandle,
                     vk::ImageViewType::e2D,
                     vk::ImageAspectFlagBits::eColor);
+                auto TargetViewPtr = GetImageView(TargetViewHandle);
+                VISERA_ASSERT(TargetViewPtr != nullptr);
+                TSharedRef<FVulkanImageView> TargetView = TargetViewPtr;
                 InFlightFrame.ColorRT = MakeShared<FVulkanRenderTarget>(TargetView);
                 InFlightFrame.ColorRT->SetLoadOp(vk::AttachmentLoadOp::eLoad)
                                      ->SetStoreOp(vk::AttachmentStoreOp::eStore);
@@ -1289,7 +1375,7 @@ namespace Visera
                I_DescriptorSetLayout);
     }
 
-    TSharedPtr<FVulkanSampler> FVulkanDriver::
+    FVulkanSamplerHandle FVulkanDriver::
     CreateImageSampler(vk::Filter             I_Filter,
                        vk::SamplerAddressMode I_AddressMode,
                        Float                  I_MaxAnisotropy /*= 1.0*/)
@@ -1329,10 +1415,11 @@ namespace Visera
             //.setCompareOp       ({})
             //.setUnnormalizedCoordinates()
         ;
-        return MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
+        auto Sampler = MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
+        return ResourceRegistry.RegisterSampler(Sampler);
     }
 
-    TSharedPtr<FVulkanSampler> FVulkanDriver::
+    FVulkanSamplerHandle FVulkanDriver::
     CreateCompareSampler(vk::Filter      I_Filter,
                          vk::CompareOp   I_CompareOp,
                          vk::BorderColor I_BorderColor)
@@ -1353,6 +1440,7 @@ namespace Visera
             .setCompareEnable   (True)
             .setCompareOp       (I_CompareOp)
         ;
-        return MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
+        auto Sampler = MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
+        return ResourceRegistry.RegisterSampler(Sampler);
     }
 }

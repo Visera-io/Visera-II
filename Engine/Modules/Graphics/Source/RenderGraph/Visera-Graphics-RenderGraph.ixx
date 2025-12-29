@@ -4,7 +4,9 @@ export module Visera.Graphics.RenderGraph;
 #define VISERA_MODULE_NAME "Graphics.RenderGraph"
 import Visera.Graphics.RenderGraph.Node;
 import Visera.RHI;
+import Visera.Core.OS.Memory;
 import Visera.Core.Types.Array;
+import Visera.Core.Types.JSON;
 import Visera.Core.Delegate.Unicast;
 import Visera.Runtime.Name;
 import Visera.Runtime.Log;
@@ -20,9 +22,14 @@ export namespace Visera
         Execute(TSharedRef<FRHICommandBuffer> I_CommandBuffer);
         void inline
         Clear();
+        [[nodiscard]] Bool inline
+        Compile();
+        [[nodiscard]] Bool  inline
+        CreateFromJSON(const FJSON& I_JSON);
 
     private:
-        TArray<FRGNode> Nodes;
+        TPMRArray<FRGNode>     Nodes;
+        TMonotonicArena<1_MB>  LocalArena;
     };
 
     void FRenderGraph::
@@ -48,5 +55,20 @@ export namespace Visera
     Clear()
     {
         Nodes.clear();
+    }
+
+    Bool FRenderGraph::
+    CreateFromJSON(const FJSON& I_JSON)
+    {
+        VISERA_UNIMPLEMENTED_API;
+        return True;
+    }
+
+    Bool FRenderGraph::
+    Compile()
+    {
+        
+        VISERA_UNIMPLEMENTED_API;
+        return True;
     }
 }

@@ -9,4 +9,6 @@ export namespace Visera
 {
     template<typename T>
     using TArray    = std::vector<T>;
+    template<typename T>
+    using TPMRArray = std::pmr::vector<T>;
 }

@@ -32,26 +32,37 @@ namespace Visera
         inline void
         Present() { if (!Driver->Present()) { LOG_ERROR("Failed to present!"); } }
 
-        //[TODO]: Remove these test APIs
-        [[nodiscard]] inline TSharedRef<FVulkanCommandBuffer>
-        GetDrawCommands() { return Driver->GetCurrentFrame().DrawCalls; }
+        [[nodiscard]] inline TSharedRef<FRHICommandBuffer>
+        GetCommandBuffer() { return Driver->GetCurrentFrame().DrawCalls; }
 
-        [[nodiscard]] inline TSharedPtr<FRHIShader>
-        CreateShader(ERHIShaderStages I_ShaderStage, const TArray<FByte>& I_SPIRVShaderCode);
-        [[nodiscard]] inline TSharedPtr<FVulkanDescriptorSet>
-        CreateDescriptorSet(const FRHIDescriptorSetLayout& I_SetLayout);
-        [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
-        CreateStagingBuffer(UInt64 I_Size);
-        [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
-        CreateVertexBuffer(UInt64 I_Size);
-        [[nodiscard]] inline TSharedPtr<FVulkanBuffer>
-        CreateMappedVertexBuffer(UInt64 I_Size);
-        [[nodiscard]] TSharedPtr<FRHIRenderPipeline>
-        CreateRenderPipeline(const FString&                 I_Name,
-                             const FRHIRenderPipelineDesc& I_PipelineDesc);
-        [[nodiscard]] TSharedPtr<FRHIComputePipeline>
-        CreateComputePipeline(const FString&                I_Name,
-                              const FRHIComputePipelineDesc& I_PipelineDesc);
+        [[nodiscard]] FRHIImageHandle
+        CreateImage(ERHIImageType   I_ImageType,
+                    UInt32          I_Width,
+                    UInt32          I_Height,
+                    UInt32          I_Depth,
+                    ERHIFormat      I_Format,
+                    ERHIImageUsage  I_Usages);
+        [[nodiscard]] FRHIImageViewHandle
+        CreateImageView(FRHIImageHandle I_ImageHandle);
+        [[nodiscard]] FRHIBufferHandle
+        CreateBuffer(UInt64          I_Size,
+                     ERHIBufferUsage I_Usages);
+        [[nodiscard]] FRHISamplerHandle
+        CreateSampler(ERHISamplerType I_SamplerType);
+        
+        // Resource lookup by handle
+        [[nodiscard]] TSharedPtr<FRHIImage>
+        GetImage(FRHIImageHandle I_Handle) const;
+        [[nodiscard]] TSharedPtr<FRHIImageView>
+        GetImageView(FRHIImageViewHandle I_Handle) const;
+        [[nodiscard]] TSharedPtr<FRHIVertexBuffer>
+        GetBuffer(FRHIBufferHandle I_Handle) const;
+        [[nodiscard]] TSharedPtr<FRHISampler>
+        GetSampler(FRHISamplerHandle I_Handle) const;
+        
+        // Resource registry access (for bindless descriptor writes)
+        [[nodiscard]] inline const FVulkanResourceRegistry&
+        GetResourceRegistry() const { return Driver->GetResourceRegistry(); }
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
@@ -67,13 +78,11 @@ namespace Visera
     private:
         TUniquePtr<FVulkanDriver> Driver;
 
-        TMap<UInt64, TSharedPtr<FVulkanDescriptorSetLayout>>
-        DescriptorSetLayoutPool;
-        TMap<UInt64, TSharedPtr<FVulkanPipelineLayout>>
-        PipelineLayoutPool;
-
-        TSharedPtr<FVulkanSampler> DefaultLinearSampler;
-        TSharedPtr<FVulkanSampler> DefaultNearestSampler;
+        FVulkanSamplerHandle DefaultLinearSampler;
+        FVulkanSamplerHandle DefaultNearestSampler;
+        
+        // Handle mapping: RHI handles map directly to Vulkan handles (same UInt32 space)
+        // For future multi-backend support, we may need a mapping table
 
     public:
         FRHI() : IGlobalSingleton("RHI.Vulkan") {}
@@ -81,31 +90,6 @@ namespace Visera
         Bootstrap() override;
         void inline
         Terminate() override;
-
-    private:
-        [[nodiscard]] TSharedRef<FVulkanDescriptorSetLayout> inline
-        GetDescriptorSetLayoutFromPool(const FRHIDescriptorSetLayout& I_DescriptorSetLayout)
-        {
-            auto Hash = I_DescriptorSetLayout.Hash();
-            auto& Layout = DescriptorSetLayoutPool[Hash];
-            if (!Layout)
-            {
-                LOG_DEBUG("Creating a new descriptor set layout (hash:{}).", Hash);
-                auto VulkanSetBindings = TArray<vk::DescriptorSetLayoutBinding>();
-                for (const auto& Binding : I_DescriptorSetLayout.GetBindings())
-                {
-                    VulkanSetBindings.push_back(vk::DescriptorSetLayoutBinding{}
-                        .setBinding         (Binding.Binding)
-                        .setDescriptorType  (TypeCast(Binding.Type))
-                        .setDescriptorCount (Binding.Count)
-                        .setStageFlags      (TypeCast(Binding.ShaderStages))
-                        //.setPImmutableSamplers()
-                    );
-                }
-                Layout = Driver->CreateDescriptorSetLayout(VulkanSetBindings);
-            }
-            return Layout;
-        }
     };
 
     export inline VISERA_RHI_API TUniquePtr<FRHI>
@@ -118,11 +102,11 @@ namespace Visera
         Driver = MakeUnique<FVulkanDriver>();
 
         DefaultLinearSampler = Driver->CreateImageSampler(
-            vk::Filter::eLinear,
-            vk::SamplerAddressMode::eRepeat);
+            TypeCast(ERHIFilter::Linear),
+            TypeCast(ERHISamplerAddressMode::Repeat));
         DefaultNearestSampler = Driver->CreateImageSampler(
-            vk::Filter::eNearest,
-            vk::SamplerAddressMode::eRepeat);
+            TypeCast(ERHIFilter::Nearest),
+            TypeCast(ERHISamplerAddressMode::Repeat));
 
         Status = EStatus::Bootstrapped;
     }
@@ -131,180 +115,117 @@ namespace Visera
     Terminate()
     {
         LOG_TRACE("Terminating RHI.");
-        DefaultNearestSampler.reset();
-        DefaultLinearSampler.reset();
 
-        DescriptorSetLayoutPool.clear();
-        PipelineLayoutPool.clear();
         Driver.reset();
 
         Status = EStatus::Terminated;
     }
 
-    TSharedPtr<FRHIRenderPipeline> FRHI::
-    CreateRenderPipeline(const FString&                 I_Name,
-                         const FRHIRenderPipelineDesc&  I_PipelineDesc)
+    FRHIImageHandle FRHI::
+    CreateImage(ERHIImageType   I_ImageType,
+                UInt32          I_Width,
+                UInt32          I_Height,
+                UInt32          I_Depth,
+                ERHIFormat      I_Format,
+                ERHIImageUsage  I_Usages)
     {
-        LOG_DEBUG("Creating the render pipeline (name: {}).", I_Name);
-        UInt64 PipelineLayoutHash = I_PipelineDesc.Layout.GetPipelineLayoutHash();
-        auto& PipelineLayout = PipelineLayoutPool[PipelineLayoutHash];
-        if (!PipelineLayout)
+        LOG_DEBUG("Creating RHI Image (type:{}, extent:[{},{},{}], format:{})",
+                  I_ImageType, I_Width, I_Height, I_Depth, I_Format);
+        
+        auto VulkanImageType = TypeCast(I_ImageType);
+        auto VulkanFormat    = TypeCast(I_Format);
+        auto VulkanUsages    = TypeCast(I_Usages);
+        FRHIExtent3D RHIExtent{I_Width, I_Height, I_Depth};
+        auto VulkanExtent    = TypeCast(RHIExtent);
+        
+        // RHI handles map directly to Vulkan handles (same UInt32 space)
+        auto VulkanHandle = Driver->CreateImage(VulkanImageType, VulkanExtent, VulkanFormat, VulkanUsages);
+        return static_cast<FRHIImageHandle>(VulkanHandle);
+    }
+
+    FRHIImageViewHandle FRHI::
+    CreateImageView(FRHIImageHandle I_ImageHandle)
+    {
+        LOG_DEBUG("Creating RHI Image View (image handle:{})", I_ImageHandle);
+        
+        // Convert RHI handle to Vulkan handle
+        auto VulkanImageHandle = static_cast<FVulkanImageHandle>(I_ImageHandle);
+        
+        // Create image view with default parameters (can be extended later)
+        auto VulkanHandle = Driver->CreateImageView(
+            VulkanImageHandle,
+            TypeCast(ERHIImageViewType::Image2D),
+            TypeCast(ERHIImageAspect::Color)
+        );
+        return static_cast<FRHIImageViewHandle>(VulkanHandle);
+    }
+
+    FRHIBufferHandle FRHI::
+    CreateBuffer(UInt64          I_Size,
+                 ERHIBufferUsage I_Usages)
+    {
+        LOG_DEBUG("Creating RHI Buffer (size:{}, usages:{})", I_Size, I_Usages);
+        
+        // Convert RHI buffer usage flags to Vulkan buffer usage flags
+        // ERHIBufferUsage uses BufferUsageFlagBits2 values, but driver expects BufferUsageFlags (based on BufferUsageFlagBits)
+        // Since the underlying bit values are compatible for common flags, we can cast through the underlying integer type
+        vk::BufferUsageFlags VulkanUsages = static_cast<vk::BufferUsageFlags>(static_cast<UInt32>(I_Usages));
+        
+        auto VulkanHandle = Driver->CreateBuffer(I_Size, VulkanUsages);
+        return static_cast<FRHIBufferHandle>(VulkanHandle);
+    }
+
+    FRHISamplerHandle FRHI::
+    CreateSampler(ERHISamplerType I_SamplerType)
+    {
+        LOG_DEBUG("Creating RHI Sampler (type:{})", I_SamplerType);
+        
+        ERHIFilter Filter;
+        switch (I_SamplerType)
         {
-            LOG_DEBUG("Creating a new pipeline layout for the pipeline \"{}\".", I_Name);
-            TArray<vk::DescriptorSetLayout> DescriptorSetLayouts;
-            for (const auto& DescriptorSetLayout : I_PipelineDesc.Layout.GetDescriptorLayouts())
-            {
-                auto& SetLayout = GetDescriptorSetLayoutFromPool(DescriptorSetLayout);
-                DescriptorSetLayouts.emplace_back(SetLayout->GetHandle());
-            }
-            TArray<vk::PushConstantRange> PushConstantRanges;
-            for (const auto& PushConstantRange : I_PipelineDesc.Layout.GetPushConstantRanges())
-            {
-                PushConstantRanges.emplace_back(vk::PushConstantRange{}
-                    .setSize(PushConstantRange.Size)
-                    .setOffset(PushConstantRange.Offset)
-                    .setStageFlags(TypeCast(PushConstantRange.Stages)));
-            }
-            PipelineLayout = Driver->CreatePipelineLayout(DescriptorSetLayouts,
-                                                          PushConstantRanges);
+        case ERHISamplerType::Linear:
+            Filter = ERHIFilter::Linear;
+            break;
+        case ERHISamplerType::Nearest:
+            Filter = ERHIFilter::Nearest;
+            break;
+        default:
+            Filter = ERHIFilter::Linear;
+            break;
         }
-        auto RenderPipeline = Driver->CreateRenderPipeline(PipelineLayout,
-            I_PipelineDesc.VertexShader->GetShaderModule(),
-            I_PipelineDesc.FragmentShader->GetShaderModule());
-        VISERA_ASSERT(RenderPipeline != nullptr);
-
-        if (I_PipelineDesc.VertexAssembly.Topology == ERHIPrimitiveTopology::LineStrip)
-        {
-            LOG_WARN("Testing Line Renderer");
-            RenderPipeline->Settings.InputAssembly
-            .setTopology(TypeCast(I_PipelineDesc.VertexAssembly.Topology));
-            RenderPipeline->Settings.VertexAttributes = {
-                vk::VertexInputAttributeDescription{}
-                    .setBinding   (0)
-                    .setLocation  (0)
-                    .setFormat    (TypeCast(ERHIFormat::Vector2F))
-                    .setOffset    (0)
-            };
-            RenderPipeline->Settings.Rasterizer.polygonMode = vk::PolygonMode::eLine;
-            RenderPipeline->Settings.VertexBindings = {
-                vk::VertexInputBindingDescription{}
-                    .setBinding     (0)
-                    .setStride      (sizeof(float) * 2)
-                    .setInputRate   (vk::VertexInputRate::eVertex)
-            };
-        }
-        else
-        {
-            RenderPipeline->Settings.VertexAttributes.emplace_back()
-                .setLocation (0)
-                .setBinding  (0)
-                .setFormat   (vk::Format::eR32G32B32A32Sfloat)
-                .setOffset   (0)
-            ;
-            RenderPipeline->Settings.VertexBindings.emplace_back()
-                .setBinding     (0)
-                .setStride      (sizeof(float) * 4)
-                .setInputRate   (vk::VertexInputRate::eVertex)
-            ;
-        }
-        RenderPipeline->Create(Driver->GetNativeDevice(), Driver->GetPipelineCache());
-
-        RenderPipeline->SetRenderArea({
-                {0,0},
-                {1920, 1080}
-                });
-        return RenderPipeline;
+        
+        auto VulkanHandle = Driver->CreateImageSampler(
+            TypeCast(Filter),
+            TypeCast(ERHISamplerAddressMode::Repeat));
+        return static_cast<FRHISamplerHandle>(VulkanHandle);
     }
 
-    TSharedPtr<FRHIComputePipeline> FRHI::
-    CreateComputePipeline(const FString&                I_Name,
-                         const FRHIComputePipelineDesc& I_PipelineDesc)
+    TSharedPtr<FRHIImage> FRHI::
+    GetImage(FRHIImageHandle I_Handle) const
     {
-        LOG_DEBUG("Creating the compute pipeline (name: {}).", I_Name);
-        UInt64 PipelineLayoutHash = I_PipelineDesc.Layout.GetPipelineLayoutHash();
-        auto& PipelineLayout = PipelineLayoutPool[PipelineLayoutHash];
-        if (!PipelineLayout)
-        {
-            LOG_DEBUG("Creating a new pipeline layout for the compute pipeline \"{}\".", I_Name);
-            TArray<vk::DescriptorSetLayout> DescriptorSetLayouts;
-            for (const auto& DescriptorSetLayout : I_PipelineDesc.Layout.GetDescriptorLayouts())
-            {
-                auto& SetLayout = GetDescriptorSetLayoutFromPool(DescriptorSetLayout);
-                DescriptorSetLayouts.emplace_back(SetLayout->GetHandle());
-            }
-            TArray<vk::PushConstantRange> PushConstantRanges;
-            for (const auto& PushConstantRange : I_PipelineDesc.Layout.GetPushConstantRanges())
-            {
-                PushConstantRanges.emplace_back(vk::PushConstantRange{}
-                    .setSize        (PushConstantRange.Size)
-                    .setOffset      (PushConstantRange.Offset)
-                    .setStageFlags  (TypeCast(PushConstantRange.Stages)));
-            }
-            PipelineLayout = Driver->CreatePipelineLayout(DescriptorSetLayouts,
-                                                          PushConstantRanges);
-        }
-        auto ComputePipeline = Driver->CreateComputePipeline(PipelineLayout,
-                                                             I_PipelineDesc.ComputeShader->GetShaderModule());
-        VISERA_ASSERT(ComputePipeline != nullptr);
-        return ComputePipeline;
+        auto VulkanHandle = static_cast<FVulkanImageHandle>(I_Handle);
+        return Driver->GetImage(VulkanHandle);
     }
 
-    TSharedPtr<FVulkanBuffer> FRHI::
-    CreateStagingBuffer(UInt64 I_Size)
+    TSharedPtr<FRHIImageView> FRHI::
+    GetImageView(FRHIImageViewHandle I_Handle) const
     {
-        LOG_DEBUG("Creating a staging buffer ({} bytes).", I_Size);
-        return Driver->CreateBuffer(
-            I_Size,
-            vk::BufferUsageFlagBits::eTransferSrc,
-            static_cast<EVulkanMemoryPoolFlags>(
-            EVulkanMemoryPoolFlags::HostAccessAllowTransferInstead |
-            EVulkanMemoryPoolFlags::HostAccessSequentialWrite));
+        auto VulkanHandle = static_cast<FVulkanImageViewHandle>(I_Handle);
+        return Driver->GetImageView(VulkanHandle);
     }
 
-    TSharedPtr<FVulkanBuffer> FRHI::
-    CreateVertexBuffer(UInt64 I_Size)
+    TSharedPtr<FRHIVertexBuffer> FRHI::
+    GetBuffer(FRHIBufferHandle I_Handle) const
     {
-        return Driver->CreateBuffer(
-            I_Size,
-            vk::BufferUsageFlagBits::eVertexBuffer,
-            static_cast<EVulkanMemoryPoolFlags>(
-            EVulkanMemoryPoolFlags::HostAccessAllowTransferInstead |
-            EVulkanMemoryPoolFlags::HostAccessSequentialWrite));
+        auto VulkanHandle = static_cast<FVulkanBufferHandle>(I_Handle);
+        return Driver->GetBuffer(VulkanHandle);
     }
 
-    TSharedPtr<FVulkanBuffer> FRHI::
-    CreateMappedVertexBuffer(UInt64 I_Size)
+    TSharedPtr<FRHISampler> FRHI::
+    GetSampler(FRHISamplerHandle I_Handle) const
     {
-        return Driver->CreateBuffer(
-            I_Size,
-            vk::BufferUsageFlagBits::eVertexBuffer,
-            static_cast<EVulkanMemoryPoolFlags>(
-            EVulkanMemoryPoolFlags::HostAccessAllowTransferInstead |
-            EVulkanMemoryPoolFlags::HostAccessSequentialWrite |
-            EVulkanMemoryPoolFlags::Mapped));
-    }
-
-    TSharedPtr<FVulkanDescriptorSet> FRHI::
-    CreateDescriptorSet(const FRHIDescriptorSetLayout& I_SetLayout)
-    {
-        auto& Layout = GetDescriptorSetLayoutFromPool(I_SetLayout);
-        return Driver->CreateDescriptorSet(Layout);
-    }
-
-    TSharedPtr<FRHIShader> FRHI::
-    CreateShader(ERHIShaderStages I_ShaderStage, const TArray<FByte>& I_SPIRVShaderCode)
-    {
-        LOG_DEBUG("Creating a new shader (stage:{}, size:{}).",
-                  I_ShaderStage, I_SPIRVShaderCode.size());
-
-        auto ShaderModule = Driver->CreateShaderModule(I_SPIRVShaderCode);
-        if (!ShaderModule)
-        {
-            LOG_ERROR("Failed to create the shader (stage:{}, size:{})!",
-                      I_ShaderStage, I_SPIRVShaderCode.size());
-            return {};
-        }
-        return MakeShared<FRHIShader>(I_ShaderStage, ShaderModule);
+        auto VulkanHandle = static_cast<FVulkanSamplerHandle>(I_Handle);
+        return Driver->GetSampler(VulkanHandle);
     }
 
     void FRHI::

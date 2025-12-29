@@ -28,7 +28,7 @@ namespace Visera
             //         Width,
             //         Height);
             // });
-            RenderGraph->Execute(GRHI->GetDrawCommands());
+            RenderGraph->Execute(GRHI->GetCommandBuffer());
         }
 
     private:

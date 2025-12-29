@@ -12,11 +12,11 @@ import Visera.Core.Math.Hash.GoldenRatio;
 
 namespace Visera
 {
-    export class VISERA_RHI_API FTextureDesc
+    export class VISERA_RHI_API FRHITextureDesc
     {
     public:
         FName            Name;
-        ERHITextureType  Type        = ERHITextureType::Texture2D;
+        ERHIImageType    Type        = ERHIImageType::Image2D;
         ERHIFormat       Format      = ERHIFormat::R8G8B8A8_UNorm;
         UInt32           Width       = 1;
         UInt32           Height      = 1;

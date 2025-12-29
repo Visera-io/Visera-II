@@ -5,12 +5,14 @@ export module Visera.Graphics.RenderGraph.Common;
 
 export namespace Visera
 {
-    using FBufferHandle  = UInt32;
-    using FTextureHandle = UInt32;
-    using FRGNodeHandle = UInt32;
-    using FRGResourceHandle = UInt32;
-    using FRenderPipelineHandle = UInt32;
-    using FRGFramebufferHandle = UInt32;
+    using FRenderGraphHandle = UInt32;
+
+    using FBufferHandle         = FRenderGraphHandle;
+    using FTextureHandle        = FRenderGraphHandle;
+    using FRGNodeHandle         = FRenderGraphHandle;
+    using FRGResourceHandle     = FRenderGraphHandle;
+    using FRenderPassHandle     = FRenderGraphHandle;
+    using FRGFramebufferHandle  = FRenderGraphHandle;
 
     enum class ERGAccess
     {

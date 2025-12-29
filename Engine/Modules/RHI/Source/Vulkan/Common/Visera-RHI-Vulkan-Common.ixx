@@ -12,6 +12,20 @@ export namespace Visera
         .setB(vk::ComponentSwizzle::eIdentity)
         .setA(vk::ComponentSwizzle::eIdentity)
     ;
+
+    // Handle Types for Bindless Resources
+    // Handle value 0 is reserved as invalid/null handle
+    using FVulkanResourceHandle     = UInt32;
+    using FVulkanImageHandle        = FVulkanResourceHandle;
+    using FVulkanBufferHandle       = FVulkanResourceHandle;
+    using FVulkanImageViewHandle    = FVulkanResourceHandle;
+    using FVulkanSamplerHandle      = FVulkanResourceHandle;
+
+    constexpr FVulkanResourceHandle InvalidVulkanResourceHandle = 0;
+
+    [[nodiscard]] inline constexpr Bool
+    IsValidHandle(FVulkanResourceHandle I_Handle) noexcept
+    { return I_Handle != InvalidVulkanResourceHandle; }
 }
 
 template <>

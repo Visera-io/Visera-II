@@ -39,19 +39,22 @@ export namespace Visera
 
     struct FRGResource
     {
-        ERGResourceType     Type {ERGResourceType::Unknown};
-        FRGResourceInfo     ResourceInfo;
-        FRGNodeHandle       Producer;
-        FRGResourceHandle   OutputHandle;
-        UInt32              ReferenceCount = 0;
-        FName               Name {EName::None};
+        ERGResourceType     Type {ERGResourceType::Unknown};    // Resource Type (Texture, Buffer, ...)
+        FRGResourceInfo     ResourceInfo;                       // Details based on the Type
+        FRGNodeHandle       Producer;                           // Be used to determine the edge of the graph
+        FRGResourceHandle   OutputHandle;                       // Store the parent resource
+        UInt32              ReferenceCount = 0;                 // For resource aliasing
+        FName               Name {EName::None};                 // Debug/Retrieve by name
     };
 
     struct FRGNode
     {
         FName                       Name {EName::None};
-        FRenderPipelineHandle       RenderPipeline;
-        FRGFramebufferHandle        Framebuffer;
+
+        FRenderPassHandle       RenderPassHandle;
+        FRGFramebufferHandle        FramebufferHandle;
+        //FRGRenderPass*       RenderPass
+
         TArray<FRGResourceHandle>   Inputs;
         TArray<FRGResourceHandle>   Outputs;
         TArray<FRGNodeHandle>       Edges;

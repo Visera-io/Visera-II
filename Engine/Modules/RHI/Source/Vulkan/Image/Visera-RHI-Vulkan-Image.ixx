@@ -5,6 +5,7 @@ export module Visera.RHI.Vulkan.Image;
 import Visera.RHI.Vulkan.Common;
 import Visera.RHI.Vulkan.Allocator;
 import Visera.Runtime.Log;
+import Visera.Core.Math.Arithmetic.Interval;
 import vulkan_hpp;
 
 namespace Visera
@@ -67,9 +68,9 @@ namespace Visera
         FVulkanImageView() = delete;
         FVulkanImageView(TSharedRef<FVulkanImage>         I_Image,
                          vk::ImageViewType                I_Type,
-                         vk::ImageAspectFlagBits          I_Aspect,
-                         const TPair<UInt8, UInt8>&       I_MipmapRange = {0,0},
-                         const TPair<UInt8, UInt8>&       I_ArrayRange  = {0,0},
+                         vk::ImageAspectFlags             I_Aspect,
+                         TClosedInterval<UInt8>           I_MipmapRange = {0,0},
+                         TClosedInterval<UInt8>           I_ArrayRange  = {0,0},
                          TOptional<vk::ComponentMapping>  I_Swizzle     = {});
     };
 
@@ -96,9 +97,9 @@ namespace Visera
     FVulkanImageView::
     FVulkanImageView(TSharedRef<FVulkanImage>         I_Image,
                      vk::ImageViewType                I_Type,
-                     vk::ImageAspectFlagBits          I_Aspect,
-                     const TPair<UInt8, UInt8>&       I_MipmapRange,
-                     const TPair<UInt8, UInt8>&       I_ArrayRange,
+                     vk::ImageAspectFlags             I_Aspect,
+                     TClosedInterval<UInt8>           I_MipmapRange,
+                     TClosedInterval<UInt8>           I_ArrayRange,
                      TOptional<vk::ComponentMapping>  I_Swizzle)
     : Image {I_Image}
     {
@@ -106,10 +107,10 @@ namespace Visera
 
         auto ImageSubresourceRage = vk::ImageSubresourceRange{}
             .setAspectMask      (I_Aspect)
-            .setBaseMipLevel    (I_MipmapRange.first)
-            .setLevelCount      (I_MipmapRange.second - I_MipmapRange.first + 1)
-            .setBaseArrayLayer  (I_ArrayRange.first)
-            .setLayerCount      (I_ArrayRange.second - I_ArrayRange.first + 1)
+            .setBaseMipLevel    (I_MipmapRange.Left)
+            .setLevelCount      (I_MipmapRange.Length() + 1)
+            .setBaseArrayLayer  (I_ArrayRange.Left)
+            .setLayerCount      (I_ArrayRange.Length() + 1)
         ;
         const auto& Swizzle = I_Swizzle.has_value()?
                             I_Swizzle.value(): IdentitySwizzle;
@@ -129,10 +130,10 @@ namespace Visera
     }
 
     FVulkanImage::
-    FVulkanImage(vk::ImageType       I_ImageType,
+    FVulkanImage(vk::ImageType          I_ImageType,
                  const vk::Extent3D&	I_Extent,
-                 vk::Format          I_Format,
-                 vk::ImageUsageFlags     I_Usages)
+                 vk::Format             I_Format,
+                 vk::ImageUsageFlags    I_Usages)
     : IVulkanResource{EType::Image},
       Type   {I_ImageType},
       Format {I_Format},

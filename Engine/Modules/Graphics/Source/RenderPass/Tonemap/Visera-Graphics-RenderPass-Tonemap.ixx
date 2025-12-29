@@ -53,41 +53,41 @@ export namespace Visera
     FTonemapRenderPass()
     {
         auto ShaderCode = GShader->Compile(FPath{"Tonemap.slang"}, "main");
-        auto ComputeShader = GRHI->CreateShader(ERHIShaderStages::Compute, ShaderCode);
-        if (!ComputeShader)
-        { LOG_FATAL("Failed to create tonemap compute shader!"); }
-
-        FRHIDescriptorSetLayout DescriptorSetLayout;
-
-        DescriptorSetLayout
-            // gLDR (Set:0 Binding 0)
-            .AddBinding(FRHIDescriptorSetBinding::
-                CombinedImageSampler(0, ERHIShaderStages::Compute))
-            // gHDR (Set:0 Binding 1)
-            .AddBinding(FRHIDescriptorSetBinding::
-                StorageImage(1, ERHIShaderStages::Compute))
-        ;
-        DescriptorSet = GRHI->CreateDescriptorSet(DescriptorSetLayout);
-
-        PushConstantRange = FRHIPushConstantRange
-        {
-            .Size   = sizeof(FPushConstantRange),
-            .Offset = 0,
-            .Stages = ERHIShaderStages::Compute
-        };
-
-        FRHIPipelineLayout PipelineLayout;
-        PipelineLayout
-            .AddPushConstant(PushConstantRange)
-            .AddDescriptorSet(0, DescriptorSetLayout)
-        ;
-        // Create compute pipeline
-        FRHIComputePipelineDesc ComputePSO;
-        ComputePSO.Layout = PipelineLayout;
-        ComputePSO.ComputeShader = ComputeShader;
-        Pipeline = GRHI->CreateComputePipeline("Tonemap", ComputePSO);
-        if (!Pipeline)
-        { LOG_FATAL("Failed to create tonemap compute pipeline!"); }
+        // auto ComputeShader = GRHI->CreateShader(ERHIShaderStages::Compute, ShaderCode);
+        // if (!ComputeShader)
+        // { LOG_FATAL("Failed to create tonemap compute shader!"); }
+        //
+        // FRHIDescriptorSetLayout DescriptorSetLayout;
+        //
+        // DescriptorSetLayout
+        //     // gLDR (Set:0 Binding 0)
+        //     .AddBinding(FRHIDescriptorSetBinding::
+        //         CombinedImageSampler(0, ERHIShaderStages::Compute))
+        //     // gHDR (Set:0 Binding 1)
+        //     .AddBinding(FRHIDescriptorSetBinding::
+        //         StorageImage(1, ERHIShaderStages::Compute))
+        // ;
+        // DescriptorSet = GRHI->CreateDescriptorSet(DescriptorSetLayout);
+        //
+        // PushConstantRange = FRHIPushConstantRange
+        // {
+        //     .Size   = sizeof(FPushConstantRange),
+        //     .Offset = 0,
+        //     .Stages = ERHIShaderStages::Compute
+        // };
+        //
+        // FRHIPipelineLayout PipelineLayout;
+        // PipelineLayout
+        //     .AddPushConstant(PushConstantRange)
+        //     .AddDescriptorSet(0, DescriptorSetLayout)
+        // ;
+        // // Create compute pipeline
+        // FRHIComputePipelineDesc ComputePSO;
+        // ComputePSO.Layout = PipelineLayout;
+        // ComputePSO.ComputeShader = ComputeShader;
+        // Pipeline = GRHI->CreateComputePipeline("Tonemap", ComputePSO);
+        // if (!Pipeline)
+        // { LOG_FATAL("Failed to create tonemap compute pipeline!"); }
     }
 
     FTonemapRenderPass::
@@ -107,8 +107,9 @@ export namespace Visera
             Float                         I_Exposure,
             Bool                          I_bGammaCorrection)
     {
-        DescriptorSet->WriteStorageImage(0, I_LDROutput);  // Binding 0: gLDR (RWTexture2D)
-        DescriptorSet->WriteCombinedImageSampler(1, I_HDRInput, I_Sampler);  // Binding 1: gHDR (Texture2D)
+        VISERA_UNIMPLEMENTED_API;
+        // DescriptorSet->WriteStorageImage(0, I_LDROutput);  // Binding 0: gLDR (RWTexture2D)
+        // DescriptorSet->WriteCombinedImageSampler(1, I_HDRInput, I_Sampler);  // Binding 1: gHDR (Texture2D)
 
         I_CommandBuffer->EnterComputePipeline(Pipeline);
         {
