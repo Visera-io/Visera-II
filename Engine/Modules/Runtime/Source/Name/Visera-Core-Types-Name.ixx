@@ -6,34 +6,37 @@ import Visera.Runtime.Name.NamePool;
 
 export namespace Visera
 {
-    using EName = EPreservedName;
-
-    /* Case-Ignored FString */
     class VISERA_RUNTIME_API FName
     {
     public:
-        static inline auto
+        [[nodiscard]] static inline auto
         FetchNameString(const FName& I_Name) -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name.Handle); }
 
-        auto GetName()	 const -> FStringView { return FNamePool::GetInstance().FetchNameString(Handle); }
-        auto GetHandle() const -> UInt32 { return Handle; }
-        auto GetNumber() const -> UInt32 { return Number; }
-        auto GetIdentifier() const -> UInt64 { return (UInt64(Handle) << 32) | Number; }
-        auto IsNone()	 const -> Bool	 { return !Handle && !Number; } //[FIXME]: Pre-Register EName::None in the Engine
-        auto HasNumber() const -> Bool	 { return !!Number; }
+        [[nodiscard]] FStringView
+        GetName()       const { return FNamePool::GetInstance().FetchNameString(Handle); }
+        [[nodiscard]] UInt32
+        GetHandle()     const { return Handle; }
+        [[nodiscard]] UInt32
+        GetNumber()     const { return Number; }
+        [[nodiscard]] UInt64 inline
+        GetIdentifier() const { return (UInt64(Handle) << 32) | Number; }
+        [[nodiscard]] Bool inline
+        IsNone()        const { return !Handle && !Number; }
+        [[nodiscard]] Bool inline
+        HasNumber()     const { return !!Number; }
 
         FName() = default;
         FName(FStringView I_Name)					{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(FString(I_Name)); Handle = Handle_; Number = Number_;   }
-        FName(EName I_PreservedName)				{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(I_PreservedName); Handle = Handle_; Number = Number_; }
         FName(const FName& I_Another)			    = default;
         FName(FName&& I_Another)					= default;
         FName& operator=(FStringView I_Name)		{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(FString(I_Name)); Handle = Handle_; Number = Number_;  return *this; }
         FName& operator=(const FName& I_Another)    = default;
         FName& operator=(FName&& I_Another)		    = default;
         Bool operator==(const FName& I_Another) const { return GetIdentifier() == I_Another.GetIdentifier(); }
+
     private:
-        UInt32		Handle;		//FNameEntryHandle
-        UInt32		Number{ 0 };
+        UInt32		Handle{0}; //FNameEntryHandle
+        UInt32		Number{0};
     };
 
 }

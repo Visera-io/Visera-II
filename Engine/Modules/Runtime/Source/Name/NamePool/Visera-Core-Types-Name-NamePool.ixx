@@ -8,32 +8,29 @@ import :NameEntryTable;
 
 import Visera.Core.Math.Hash.CityHash;
 import Visera.Core.Types.Map;
+import Visera.Runtime.Log;
 
 export namespace Visera
 {
-    enum class EPreservedName : UInt32
-    {
-        None = 0, //MUST be registered at first for assuring FNameEntryID == 0 && Number == 0
-
-        Main,     // For Shaders' entry point
-        Object,   // Game Object
-    };
-
     class VISERA_RUNTIME_API FNamePool
     {
         enum
         {
-            MaxNameDigitCount   = 10,  //Sub-Effects:...
+            MaxNameDigitCount   = 10,  //!!! Has Sub-Effects !!!
             MaxNameNumber       = INT32_MAX,
         };
     public:
         static inline auto
         GetInstance() -> FNamePool& { static FNamePool Instance{}; return Instance; }
 
-        auto Register(FString&    I_Name)  -> TPair<UInt32, UInt32>; //[Handle_, Number_]
-        auto Register(FStringView I_Name)  -> TPair<UInt32, UInt32>; //[Handle_, Number_]
-        auto Register(EPreservedName I_PreservedName) -> TPair<UInt32, UInt32> { return { PreservedNameTable[I_PreservedName].first, ++PreservedNameTable[I_PreservedName].second }; }
-        auto FetchNameString(UInt32 I_NameHandle /*NameEntryHandle*/) const->FStringView;
+        [[nodiscard]] TPair<UInt32, UInt32> inline //[Handle, Number]
+        Register(FString&    I_Name);
+        [[nodiscard]] TPair<UInt32, UInt32> inline //[Handle, Number]
+        Register(FStringView I_Name);
+        [[nodiscard]] TPair<UInt32, UInt32> inline //[Handle, Number]
+        NativeRegister(const char* I_PureLowerCaseName, UInt32 I_Number = 0);
+        [[nodiscard]] FStringView inline
+        FetchNameString(UInt32 I_NameHandle /*NameEntryHandle*/) const;
 
     private:
         FNamePool();
@@ -42,19 +39,27 @@ export namespace Visera
     private:
         FNameEntryTable NameEntryTable;
         FNameTokenTable NameTokenTable{ &NameEntryTable };
-        TMap<EPreservedName, TPair<UInt32, UInt32>> PreservedNameTable;
 
         //[Number(<0 means invalid), NameLength]
-        auto ParseName(const char* _Name, UInt32 _Length) const -> TTuple<Int32, UInt32>;
+        auto ParseName(const char* I_Name, UInt32 I_Length) const -> TTuple<Int32, UInt32>;
     };
 
     FNamePool::
     FNamePool()
     {
+        LOG_DEBUG("Creating a new NamePool on current thread.");
         // Pre-Register EPreservedNames (Do NOT use FString Literal here -- Read-Only Segment Fault!)
-        { PreservedNameTable[EPreservedName::None]   = Register("none");   VISERA_ASSERT(PreservedNameTable[EPreservedName::None].first   == 0); }
-        { PreservedNameTable[EPreservedName::Main]   = Register("main");   }
-        { PreservedNameTable[EPreservedName::Object] = Register("object"); }
+        { auto [Handle,_] = NativeRegister("none"); VISERA_ASSERT(Handle == 0); }
+    }
+
+
+    TPair<UInt32, UInt32> FNamePool::
+    NativeRegister(const char* I_PureLowerCaseName, UInt32 I_Number)
+    {
+        VISERA_ASSERT(I_PureLowerCaseName);
+        FNameHash        NameHash{ I_PureLowerCaseName };
+        FNameEntryHandle NameEntryHandle = NameTokenTable.Insert(I_PureLowerCaseName, NameHash);
+        return { NameEntryHandle.Value, I_Number };
     }
 
     TPair<UInt32, UInt32> FNamePool::
@@ -62,13 +67,8 @@ export namespace Visera
     {
         auto [Number, NameLength] = ParseName(I_Name.data(), I_Name.size());
         VISERA_ASSERT(Number >= 0);
-
         FStringView PureName{ I_Name.data(), NameLength};
-        FNameHash  NameHash{ PureName };
-
-        FNameEntryHandle NameEntryHandle = NameTokenTable.Insert(PureName, NameHash);
-
-        return { NameEntryHandle.Value, Number };
+        return NativeRegister(PureName.data(), Number);
     }
 
     TPair<UInt32, UInt32> FNamePool::
@@ -91,36 +91,36 @@ export namespace Visera
     }
 
     TTuple<Int32, UInt32> FNamePool::
-    ParseName(const char* _Name, UInt32 _Length) const
+    ParseName(const char* I_Name, UInt32 I_Length) const
     {
         constexpr auto IsDigit = [](char _Char)->bool { return '0' <= _Char && _Char <= '9'; };
 
         UInt32 Digits = 0;
-        char* It = const_cast<char*>(_Name) + _Length - 1;
+        char* It = const_cast<char*>(I_Name) + I_Length - 1;
         //Count Digits
-        while(It >= _Name && IsDigit(*It)) { ++Digits; --It; }
+        while(It >= I_Name && IsDigit(*It)) { ++Digits; --It; }
         //Convert Case
-        while (It >= _Name) { *It = std::tolower(static_cast<unsigned char>(*It)); --It; }
+        while (It >= I_Name) { *It = std::tolower(static_cast<unsigned char>(*It)); --It; }
 
         if (Digits)
         {
-            UInt32 FirstDigitCursor = _Length - Digits;
+            UInt32 FirstDigitCursor = I_Length - Digits;
 
-            if (/*Valid Digit Length*/      (Digits < _Length) &&
-                /*Valid Naming Convention*/ (_Name[FirstDigitCursor - 1] == '_') &&
+            if (/*Valid Digit Length*/      (Digits < I_Length) &&
+                /*Valid Naming Convention*/ (I_Name[FirstDigitCursor - 1] == '_') &&
                 /*Valid Digit Count*/       (Digits <= MaxNameDigitCount))
             {
                 if (/*Name_0 is Valid*/         Digits == 1 ||
-                    /*Zero Prefix is InValid*/  _Name[FirstDigitCursor] != '0')
+                    /*Zero Prefix is InValid*/  I_Name[FirstDigitCursor] != '0')
                 {
-                    Int32 Number = atoi(_Name + FirstDigitCursor);
+                    Int32 Number = atoi(I_Name + FirstDigitCursor);
                     if (Number < MaxNameNumber)
-                    { return { Number + 1, _Length - Digits - 1 }; }
+                    { return { Number + 1, I_Length - Digits - 1 }; }
                 }
             }
-            return { -1, _Length }; //Invalid Name
+            return { -1, I_Length }; //Invalid Name
         }
-        else return { 0, _Length }; //No Numbers
+        else return { 0, I_Length }; //No Numbers
     }
 
 } 
