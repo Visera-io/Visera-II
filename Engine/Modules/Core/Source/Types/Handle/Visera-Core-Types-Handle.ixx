@@ -19,7 +19,7 @@ export namespace Visera
     class VISERA_CORE_API FHandle
     {
     public:
-        static FHandle Null;
+        static const FHandle Null;
 
         [[nodiscard]] constexpr Bool
         IsNull() const { return *this == Null; }
@@ -44,7 +44,7 @@ export namespace Visera
         friend constexpr bool operator==(FHandle I_A, FHandle I_B) { return I_A.Value == I_B.Value; }
         friend constexpr bool operator!=(FHandle I_A, FHandle I_B) { return I_A.Value != I_B.Value; }
     };
-    FHandle FHandle::Null {0, 0};
+    inline const FHandle FHandle::Null{FHandle::Null};
 }
 VISERA_MAKE_HASH(Visera::FHandle, return I_Object.GetValue(););
 VISERA_MAKE_FORMATTER(Visera::FHandle, {}, "<Gen:{},Idx:{}>", I_Formatee.GetGeneration(), I_Formatee.GetIndex());

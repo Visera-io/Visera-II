@@ -43,9 +43,9 @@ export namespace Visera
         IsEmpty() const { return Size == 0; }
 
     private:
-        TArray<FSlot>       Slots;
-        TArray<ValueType>   Data;
-        TArray<UInt32>      DataToSlot; // Reverse mapping: dense index -> slot index
+        TArray<FSlot>                  Slots;
+        TArray<TUniquePtr<ValueType>> Data; // Store as TUniquePtr for pointer stability
+        TArray<UInt32>                 DataToSlot; // Reverse mapping: dense index -> slot index
         UInt32 FreeHead = FSlot::InvalidIndex;
         UInt32 Size     = 0;
 
@@ -83,8 +83,9 @@ export namespace Visera
         FSlot& Slot      = Slots[SlotIndex];
 
         // Always append (reused slots have InvalidIndex, so always append)
+        // Wrap in TUniquePtr to ensure pointer stability even when Data reallocates
         Slot.Index = static_cast<UInt32>(Data.size());
-        Data.push_back(I_Value);
+        Data.push_back(MakeUnique<ValueType>(I_Value));
         DataToSlot.push_back(SlotIndex);
         Size += 1;
         return HandleType(Slot.Generation, SlotIndex);
@@ -98,8 +99,9 @@ export namespace Visera
         FSlot& Slot      = Slots[SlotIndex];
 
         // Always append (reused slots have InvalidIndex, so always append)
+        // Wrap in TUniquePtr to ensure pointer stability even when Data reallocates
         Slot.Index = static_cast<UInt32>(Data.size());
-        Data.push_back(std::move(I_Value));
+        Data.push_back(MakeUnique<ValueType>(std::move(I_Value)));
         DataToSlot.push_back(SlotIndex);
         Size += 1;
         return HandleType(Slot.Generation, SlotIndex);
@@ -142,7 +144,8 @@ export namespace Visera
 
         UInt32 SlotIndex = I_Handle.GetIndex();
         const FSlot& Slot = Slots[SlotIndex];
-        return &Data[Slot.Index];
+        // Return raw pointer from TUniquePtr - address is stable even if Data reallocates
+        return Data[Slot.Index].get();
     }
 
     template<typename ValueType, Concepts::Handle HandleType>
@@ -153,7 +156,8 @@ export namespace Visera
 
         UInt32 SlotIndex = I_Handle.GetIndex();
         const FSlot& Slot = Slots[SlotIndex];
-        return &Data[Slot.Index];
+        // Return raw pointer from TUniquePtr - address is stable even if Data reallocates
+        return Data[Slot.Index].get();
     }
 
     template<typename ValueType, Concepts::Handle HandleType>
