@@ -43,9 +43,9 @@ export namespace Visera
         IsEmpty() const { return Size == 0; }
 
     private:
-        TArray<FSlot>                  Slots;
+        TArray<FSlot>                 Slots;
         TArray<TUniquePtr<ValueType>> Data; // Store as TUniquePtr for pointer stability
-        TArray<UInt32>                 DataToSlot; // Reverse mapping: dense index -> slot index
+        TArray<UInt32>                DataToSlot; // Reverse mapping: dense index -> slot index
         UInt32 FreeHead = FSlot::InvalidIndex;
         UInt32 Size     = 0;
 

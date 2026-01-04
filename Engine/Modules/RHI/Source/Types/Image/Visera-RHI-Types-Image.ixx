@@ -6,5 +6,5 @@ import Visera.RHI.Vulkan.Image;
 
 export namespace Visera
 {
-    using FRHIImage         = FVulkanImage;
+    
 }

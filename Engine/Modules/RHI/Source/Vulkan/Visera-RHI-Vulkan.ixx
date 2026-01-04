@@ -18,7 +18,6 @@ export import Visera.RHI.Vulkan.Pipeline;
 export import Visera.RHI.Vulkan.RenderTarget;
 export import Visera.RHI.Vulkan.DescriptorSet;
 export import Visera.RHI.Vulkan.DescriptorSetLayout;
-export import Visera.RHI.Vulkan.Registry;
        import Visera.RHI.Vulkan.Loader;
        import Visera.RHI.Vulkan.Allocator;
        import Visera.RHI.Vulkan.Sync;
@@ -80,10 +79,10 @@ namespace Visera
             vk::raii::SwapchainKHR  Context     {nullptr};
             vk::raii::SwapchainKHR  OldContext  {nullptr};
             vk::Extent2D            Extent      {0U, 0U};
-            TArray<TSharedPtr<FVulkanImageWrapper>> Images     {}; // SwapChain manages Images so do NOT use RAII here.
-            TArray<TSharedPtr<FVulkanImageView>>    ImageViews {};
-            TArray<TSharedPtr<FVulkanSemaphore>>    ReadyToPresentSemaphores;
-            UInt32                                  Cursor     {0};
+            TArray<FVulkanImageWrapper> Images     {}; // SwapChain manages Images so do NOT use RAII here.
+            TArray<FVulkanImageView>    ImageViews {};
+            TArray<FVulkanSemaphore>    ReadyToPresentSemaphores;
+            UInt32                      Cursor     {0};
             vk::ImageUsageFlags     ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                  vk::ImageUsageFlagBits::eTransferDst};
             vk::Format              ImageFormat {vk::Format::eB8G8R8A8Srgb};
@@ -94,97 +93,90 @@ namespace Visera
             vk::CompositeAlphaFlagBitsKHR CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                          bClipped       {True};
 
-            [[nodiscard]] inline const TSharedRef<FVulkanImageView>
-            GetCurrentImageView() { return ImageViews[Cursor]; }
+            [[nodiscard]] inline FVulkanImageView*
+            GetCurrentImageView() { return &ImageViews[Cursor]; }
         }SwapChain;
 #endif
 
         struct FInFlightFrame
         {
-            TSharedPtr<FVulkanFence>         Fence;
-            TSharedPtr<FVulkanRenderTarget>  ColorRT;
-            TSharedPtr<FVulkanCommandBuffer> DrawCalls;
+            // Store as value types for async GPU execution safety
+            // These resources must remain valid until GPU completes execution
+            FVulkanFence         Fence;
+            FVulkanImage         ColorRTImage;      // Internal resource, not registered
+            FVulkanImageView     ColorRTImageView; // Internal resource, not registered
+            FVulkanRenderTarget  ColorRT;
+            FVulkanCommandBuffer DrawCalls;
 #if !defined(VISERA_OFFSCREEN_MODE)
-            TSharedPtr<FVulkanSemaphore>     SwapChainImageAvailable;
+            FVulkanSemaphore     SwapChainImageAvailable;
 #endif
         };
 
     public:
         [[nodiscard]] inline Bool
         BeginFrame();
-        [[nodiscard]] inline const FInFlightFrame&
-        GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex]; }
+        [[nodiscard]] inline FInFlightFrame&
+        GetCurrentFrame() { return InFlightFrames[InFlightFrameIndex % InFlightFrames.size()]; }
+        [[nodiscard]] inline UInt64
+        GetFrameIndex() { return InFlightFrameIndex; }
         inline void
         EndFrame();
         [[nodiscard]] inline Bool
         Present();
         inline void
-        Submit(TSharedRef<FVulkanCommandBuffer> I_CommandBuffer,
-               TSharedRef<FVulkanSemaphore>     I_WaitSemaphore,
-               TSharedRef<FVulkanSemaphore>     I_SignalSemaphore,
-               TSharedRef<FVulkanFence>         I_Fence = {});
-        [[nodiscard]] TSharedPtr<FVulkanShaderModule>
+        Submit(FVulkanCommandBuffer* I_CommandBuffer,
+               FVulkanSemaphore*     I_WaitSemaphore,
+               FVulkanSemaphore*     I_SignalSemaphore,
+               FVulkanFence*         I_Fence = nullptr);
+        [[nodiscard]] FVulkanShaderModule*
         CreateShaderModule(const TArray<FByte>& I_SPIRVShader);
-        [[nodiscard]] TSharedPtr<FVulkanPipelineLayout>
+        [[nodiscard]] FVulkanPipelineLayout*
         CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
                              const TArray<vk::PushConstantRange>&   I_PushConstants);
-        [[nodiscard]] TSharedPtr<FVulkanRenderPipeline>
-        CreateRenderPipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                             TSharedRef<FVulkanShaderModule>   I_VertexShader,
-                             TSharedRef<FVulkanShaderModule>   I_FragmentShader);
-        [[nodiscard]] TSharedPtr<FVulkanComputePipeline>
-        CreateComputePipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                              TSharedRef<FVulkanShaderModule>   I_ComputeShader);
-        [[nodiscard]] TSharedPtr<FVulkanFence>
+        [[nodiscard]] FVulkanRenderPipeline*
+        CreateRenderPipeline(FVulkanPipelineLayout* I_PipelineLayout,
+                             FVulkanShaderModule*   I_VertexShader,
+                             FVulkanShaderModule*   I_FragmentShader);
+        [[nodiscard]] FVulkanComputePipeline*
+        CreateComputePipeline(FVulkanPipelineLayout* I_PipelineLayout,
+                              FVulkanShaderModule*   I_ComputeShader);
+        [[nodiscard]] FVulkanFence
         CreateFence(Bool        I_bSignaled,
                     FStringView I_Description);
-        [[nodiscard]] TSharedPtr<FVulkanSemaphore>
+        [[nodiscard]] FVulkanSemaphore
         CreateSemaphore(FStringView I_Name);
-        // Handle-based resource creation (bindless)
-        [[nodiscard]] FVulkanImageHandle
+        // Resource creation (returns resources by value for registration)
+        [[nodiscard]] FVulkanImage
         CreateImage(vk::ImageType       I_ImageType,
                     const vk::Extent3D& I_Extent,
                     vk::Format          I_Format,
                     vk::ImageUsageFlags     I_Usages);
-        [[nodiscard]] FVulkanImageViewHandle
-        CreateImageView(FVulkanImageHandle              I_ImageHandle,
-                        vk::ImageViewType               I_ViewType,
-                        vk::ImageAspectFlags            I_Aspect,
-                        TClosedInterval<UInt8>          I_MipmapRange = {0,0},
-                        TClosedInterval<UInt8>          I_ArrayRange  = {0,0},
-                        TOptional<vk::ComponentMapping> I_Swizzle     = {});
-        [[nodiscard]] FVulkanSamplerHandle
+        [[nodiscard]] FVulkanImageView
+        CreateImageView(FVulkanImage*                  I_Image,
+                         vk::ImageViewType               I_ViewType,
+                         vk::ImageAspectFlags            I_Aspect,
+                         TClosedInterval<UInt8>          I_MipmapRange = {0,0},
+                         TClosedInterval<UInt8>          I_ArrayRange  = {0,0},
+                         TOptional<vk::ComponentMapping> I_Swizzle     = {});
+        [[nodiscard]] FVulkanSampler
         CreateImageSampler(vk::Filter             I_Filter,
                            vk::SamplerAddressMode I_AddressMode,
                            Float                  I_MaxAnisotropy = 1.0);
-        [[nodiscard]] FVulkanSamplerHandle
+        [[nodiscard]] FVulkanSampler
         CreateCompareSampler(vk::Filter      I_Filter,
                              vk::CompareOp   I_CompareOp,
                              vk::BorderColor I_BorderColor);
-        [[nodiscard]] FVulkanBufferHandle
+        [[nodiscard]] FVulkanBuffer
         CreateBuffer(UInt64                  I_Size,
                      vk::BufferUsageFlags    I_Usages,
                      EVulkanMemoryPoolFlags  I_MemoryPoolFlags = EVulkanMemoryPoolFlags::None);
         
-        // Resource lookup by handle
-        [[nodiscard]] TSharedPtr<FVulkanImage>
-        GetImage(FVulkanImageHandle I_Handle) const;
-        [[nodiscard]] TSharedPtr<FVulkanImageView>
-        GetImageView(FVulkanImageViewHandle I_Handle) const;
-        [[nodiscard]] TSharedPtr<FVulkanSampler>
-        GetSampler(FVulkanSamplerHandle I_Handle) const;
-        [[nodiscard]] TSharedPtr<FVulkanBuffer>
-        GetBuffer(FVulkanBufferHandle I_Handle) const;
-        
-        // Registry access
-        [[nodiscard]] inline const FVulkanResourceRegistry&
-        GetResourceRegistry() const { return ResourceRegistry; }
-        [[nodiscard]] TSharedPtr<FVulkanCommandBuffer>
+        [[nodiscard]] FVulkanCommandBuffer
         CreateCommandBuffer(vk::QueueFlagBits I_Queue);
-        [[nodiscard]] TSharedPtr<FVulkanDescriptorSetLayout>
+        [[nodiscard]] FVulkanDescriptorSetLayout*
         CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
-        [[nodiscard]] TSharedPtr<FVulkanDescriptorSet>
-        CreateDescriptorSet(TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout);
+        [[nodiscard]] FVulkanDescriptorSet*
+        CreateDescriptorSet(FVulkanDescriptorSetLayout* I_DescriptorSetLayout);
         [[nodiscard]] const vk::raii::DescriptorPool&
         GetDescriptorPool() const { return DescriptorPool; }
         [[nodiscard]] const TUniqueRef<FVulkanPipelineCache>
@@ -192,23 +184,25 @@ namespace Visera
         [[nodiscard]] UInt32
         GetFrameCount() const { return InFlightFrames.size(); }
         [[nodiscard]] inline const vk::raii::Instance&
-        GetNativeInstance() const { return Instance;       };
+        GetNativeInstance() const { return Instance; };
         [[nodiscard]] inline const vk::raii::Device&
         GetNativeDevice() const { return Device.Context; };
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
     private:
-        const vk::Extent2D                          ColorRTRes { 1920, 1080 };
-        TArray<FInFlightFrame>                      InFlightFrames;
-        UInt8                                       InFlightFrameIndex {0};
+        const vk::Extent2D                  ColorRTRes { 1920, 1080 };
+        TArray<FInFlightFrame>              InFlightFrames;
+        UInt64                              InFlightFrameIndex {0};
 
-        TMap<FString, TSharedPtr<FVulkanSemaphore>> SemaphorePool;
-        vk::raii::DescriptorPool                    DescriptorPool      {nullptr};
-        vk::raii::CommandPool                       GraphicsCommandPool {nullptr};
+        vk::raii::DescriptorPool            DescriptorPool      {nullptr};
+        vk::raii::CommandPool               GraphicsCommandPool {nullptr};
 
-        TArray<TSharedPtr<FVulkanRenderPipeline>>   RenderPipelines;
-        TUniquePtr<FVulkanPipelineCache>            PipelineCache;
-        FVulkanResourceRegistry                     ResourceRegistry;
+        TArray<FVulkanShaderModule>         ShaderModules;
+        TArray<FVulkanPipelineLayout>       PipelineLayouts;
+        TArray<FVulkanDescriptorSetLayout>  DescriptorSetLayouts;
+        TArray<FVulkanRenderPipeline>       RenderPipelines;
+        TArray<FVulkanComputePipeline>      ComputePipelines;
+        TUniquePtr<FVulkanPipelineCache>    PipelineCache;
 
         TArray<const char*> InstanceLayers;
         TArray<const char*> InstanceExtensions;
@@ -317,9 +311,7 @@ namespace Visera
     ~FVulkanDriver()
     {
         WaitIdle();
-        // Clear resource registry before destroying allocator
-        // This ensures all VMA allocations are freed before VMA is destroyed
-        ResourceRegistry.Clear();
+        // Resources are owned by registry at RHI level, not by driver
         DestroyOtherResource();
         DestroyInFlightFrames();
         DestroyPipelineCache();
@@ -386,8 +378,10 @@ namespace Visera
     void FVulkanDriver::
     DestroyOtherResource()
     {
-        SemaphorePool.clear();
+        ShaderModules.clear();
+        PipelineLayouts.clear();
         RenderPipelines.clear();
+        ComputePipelines.clear();
     }
 
     void FVulkanDriver::
@@ -626,8 +620,8 @@ namespace Visera
 
 #if !defined(VISERA_OFFSCREEN_MODE)
                 auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
-                if (Result.has_value())
-                { GPU.PresentQueueFamilies.insert(std::move(*Result)); }
+                if (Result.has_value() && *Result)
+                { GPU.PresentQueueFamilies.insert(Idx); }
 #endif
             }
             bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
@@ -895,21 +889,22 @@ namespace Visera
             TArray<vk::Image> SwapChainImages = std::move(*Result);
             for (UInt32 Idx = 0; Idx < SwapChainImages.size(); Idx++)
             {
-                SwapChain.Images.emplace_back(MakeShared<FVulkanImageWrapper>(
+                SwapChain.Images.emplace_back(
                     SwapChainImages[Idx],
                     vk::ImageType::e2D,
                     vk::Extent3D{SwapChain.Extent.width, SwapChain.Extent.height, 1},
                     SwapChain.ImageFormat,
-                    SwapChain.ImageUsage));
+                    SwapChain.ImageUsage);
             }
         }
         // Create Image Views
-        for (const auto& Image : SwapChain.Images)
+        // SwapChain Images are not in registry, so use InvalidVulkanResourceHandle
+        for (auto& Image : SwapChain.Images)
         {
-            SwapChain.ImageViews.emplace_back(MakeShared<FVulkanImageView>(
-                Image,
+            SwapChain.ImageViews.emplace_back(
+                &Image,  // Direct pointer to swapchain image
                 vk::ImageViewType::e2D,
-                vk::ImageAspectFlagBits::eColor));
+                vk::ImageAspectFlagBits::eColor);
         }
         // Create Semaphores
         SwapChain.ReadyToPresentSemaphores.resize(SwapChain.Images.size());
@@ -941,20 +936,20 @@ namespace Visera
     Bool FVulkanDriver::
     BeginFrame()
     {
-        auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
-        if (!CurrentFrame.Fence->Wait())
+        auto& CurrentFrame = GetCurrentFrame();
+        if (!CurrentFrame.Fence.Wait())
         {
             LOG_FATAL("Failed to wait the fence (desc:{})!",
-                      CurrentFrame.Fence->GetDescription());
+                      CurrentFrame.Fence.GetDescription());
         }
-        CurrentFrame.DrawCalls->Reset();
-        CurrentFrame.DrawCalls->Begin();
+        CurrentFrame.DrawCalls.Reset();
+        CurrentFrame.DrawCalls.Begin();
 
 #if !defined(VISERA_OFFSCREEN_MODE)
         auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
             .setSwapchain   (SwapChain.Context)
             .setTimeout     (Math::UpperBound<UInt64>())
-            .setSemaphore   (CurrentFrame.SwapChainImageAvailable->GetHandle())
+            .setSemaphore   (CurrentFrame.SwapChainImageAvailable.GetHandle())
             .setFence       (nullptr)
             .setDeviceMask  (1)
         ;
@@ -968,33 +963,46 @@ namespace Visera
         auto& CurrentColorRT = CurrentFrame.ColorRT;
         for (auto& RenderPipeline : RenderPipelines)
         {
-            RenderPipeline->SetColorRT(CurrentColorRT);
+            RenderPipeline.SetColorRT(&CurrentColorRT);
         }
 
-        return CurrentFrame.Fence->Reset();
+        return CurrentFrame.Fence.Reset();
     }
 
     void FVulkanDriver::
     EndFrame()
     {
-        auto& CurrentFrame = InFlightFrames[InFlightFrameIndex];
+        auto& CurrentFrame = GetCurrentFrame();
 
 #if !defined(VISERA_OFFSCREEN_MODE)
-        auto& CurrentSwapChainImage = SwapChain.GetCurrentImageView()->GetImage();
-        auto& CurrentColorRT = CurrentFrame.ColorRT->GetImage();
+        auto* CurrentSwapChainImageView = SwapChain.GetCurrentImageView();
+        VISERA_ASSERT(CurrentSwapChainImageView != nullptr);
+        // SwapChain images are not in registry, so GetImage() will return nullptr
+        // We need to get the Image directly from ImageView's stored handle/pointer
+        // For now, since swapchain ImageView has InvalidVulkanResourceHandle,
+        // we need a different way to get the Image
+        // Actually, let's check if ImageView can return the Image pointer for swapchain
+        // For swapchain, ImageView stores InvalidVulkanResourceHandle, so GetImage() returns nullptr
+        // We need to handle this specially - maybe ImageView should store pointer for non-registry images
+        // For now, let's get Image from the SwapChain.Images array directly
+        auto* CurrentSwapChainImage = &SwapChain.Images[SwapChain.Cursor];
+        VISERA_ASSERT(CurrentSwapChainImage != nullptr);
+        
+        auto* CurrentColorRTImage = CurrentFrame.ColorRT.GetImage();
+        VISERA_ASSERT(CurrentColorRTImage != nullptr);
 
-        auto  OldColorRTLayout   = CurrentColorRT->GetLayout();
+        auto  OldColorRTLayout   = CurrentColorRTImage->GetLayout();
         VISERA_ASSERT(OldColorRTLayout == vk::ImageLayout::eColorAttachmentOptimal);
 
-        CurrentFrame.DrawCalls->ConvertImageLayout(
-                CurrentColorRT,
+        CurrentFrame.DrawCalls.ConvertImageLayout(
+                CurrentColorRTImage,
                 vk::ImageLayout::eTransferSrcOptimal,
                 vk::PipelineStageFlagBits2::eTopOfPipe,
                 vk::AccessFlagBits2::eNone,
                 vk::PipelineStageFlagBits2::eTransfer,
                 vk::AccessFlagBits2::eTransferWrite
             );
-        CurrentFrame.DrawCalls->ConvertImageLayout(
+        CurrentFrame.DrawCalls.ConvertImageLayout(
             CurrentSwapChainImage,
             vk::ImageLayout::eTransferDstOptimal,
             vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -1002,19 +1010,19 @@ namespace Visera
             vk::PipelineStageFlagBits2::eTransfer,
             vk::AccessFlagBits2::eTransferWrite
         );
-        CurrentFrame.DrawCalls->BlitImage(
-            CurrentColorRT,
+        CurrentFrame.DrawCalls.BlitImage(
+            CurrentColorRTImage,
             CurrentSwapChainImage);
 
-        CurrentFrame.DrawCalls->ConvertImageLayout(
-            CurrentColorRT,
+        CurrentFrame.DrawCalls.ConvertImageLayout(
+            CurrentColorRTImage,
             OldColorRTLayout,
             vk::PipelineStageFlagBits2::eTopOfPipe,
             vk::AccessFlagBits2::eNone,
             vk::PipelineStageFlagBits2::eBottomOfPipe,
             vk::AccessFlagBits2::eNone
         );
-        CurrentFrame.DrawCalls->ConvertImageLayout(
+        CurrentFrame.DrawCalls.ConvertImageLayout(
             CurrentSwapChainImage,
             vk::ImageLayout::ePresentSrcKHR,
             vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -1023,26 +1031,27 @@ namespace Visera
             vk::AccessFlagBits2::eNone
         );
 
-        CurrentFrame.DrawCalls->End();
+        CurrentFrame.DrawCalls.End();
 
-        Submit(CurrentFrame.DrawCalls,
-               CurrentFrame.SwapChainImageAvailable,
-               SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
-               CurrentFrame.Fence);
+        Submit(&CurrentFrame.DrawCalls,
+               &CurrentFrame.SwapChainImageAvailable,
+               &SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor],
+               &CurrentFrame.Fence);
 #else
-        CurrentFrame.DrawCalls->End();
+        CurrentFrame.DrawCalls.End();
 
-        Submit(CurrentFrame.DrawCalls,
-               {},
-               {},
-               CurrentFrame.Fence);
+        Submit(&CurrentFrame.DrawCalls,
+               nullptr,
+               nullptr,
+               &CurrentFrame.Fence);
 
-        if (!CurrentFrame.Fence->Wait())
+        if (!CurrentFrame.Fence.Wait())
         {
             LOG_FATAL("Failed to wait for fence (desc:{})!",
-                      CurrentFrame.Fence->GetDescription());
+                      CurrentFrame.Fence.GetDescription());
         }
 #endif
+        InFlightFrameIndex += 1;
     }
 
     Bool FVulkanDriver::
@@ -1051,7 +1060,7 @@ namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
         const auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
-            .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor]->GetHandle()))
+            .setPWaitSemaphores     (&(*SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor].GetHandle()))
             .setSwapchainCount      (1)
             .setPSwapchains         (&(*SwapChain.Context))
             .setPImageIndices       (&SwapChain.Cursor)
@@ -1067,19 +1076,19 @@ namespace Visera
 #else
 
 #endif
-        InFlightFrameIndex = (InFlightFrameIndex + 1) % (InFlightFrames.size());
         return True;
     }
 
     void FVulkanDriver::
-    Submit(TSharedRef<FVulkanCommandBuffer> I_CommandBuffer,
-           TSharedRef<FVulkanSemaphore>     I_WaitSemaphore,
-           TSharedRef<FVulkanSemaphore>     I_SignalSemaphore,
-           TSharedRef<FVulkanFence>         I_Fence /* = {} */)
+    Submit(FVulkanCommandBuffer* I_CommandBuffer,
+           FVulkanSemaphore*     I_WaitSemaphore,
+           FVulkanSemaphore*     I_SignalSemaphore,
+           FVulkanFence*         I_Fence /* = nullptr */)
     {
+        VISERA_ASSERT(I_CommandBuffer != nullptr);
         VISERA_ASSERT(I_CommandBuffer->IsReadyToSubmit());
 
-        auto CommandBuffer = I_CommandBuffer? *I_CommandBuffer->GetHandle() : nullptr;
+        auto CommandBuffer = *I_CommandBuffer->GetHandle();
         auto WaitSemaphore = I_WaitSemaphore? *I_WaitSemaphore->GetHandle() : nullptr;
         auto SignalSemaphore = I_SignalSemaphore? *I_SignalSemaphore->GetHandle() : nullptr;
         auto Fence = I_Fence? *I_Fence->GetHandle() : nullptr;
@@ -1106,88 +1115,94 @@ namespace Visera
         Device.GraphicsQueue.submit2(SubmitInfo, Fence);
     }
 
-    TSharedPtr<FVulkanShaderModule> FVulkanDriver::
+    FVulkanShaderModule* FVulkanDriver::
     CreateShaderModule(const TArray<FByte>& I_SPIRVShader)
     {
         VISERA_ASSERT(!I_SPIRVShader.empty());
         LOG_TRACE("Creating a Vulkan Shader Module");
-        return MakeShared<FVulkanShaderModule>(Device.Context, I_SPIRVShader);
+        auto& NewShaderModule = ShaderModules.emplace_back(Device.Context, I_SPIRVShader);
+        return &NewShaderModule;
     }
 
 
-    TSharedPtr<FVulkanPipelineLayout> FVulkanDriver::
+    FVulkanPipelineLayout* FVulkanDriver::
     CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
                          const TArray<vk::PushConstantRange>&   I_PushConstants)
     {
         LOG_TRACE("Creating a Vulkan Pipeline Layout.");
-        return MakeShared<FVulkanPipelineLayout>(
+        auto& NewPipelineLayout = PipelineLayouts.emplace_back(
             Device.Context,
             I_DescriptorSetLayouts,
             I_PushConstants);
+        return &NewPipelineLayout;
     }
 
-    TSharedPtr<FVulkanRenderPipeline> FVulkanDriver::
-    CreateRenderPipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                         TSharedRef<FVulkanShaderModule>   I_VertexShader,
-                         TSharedRef<FVulkanShaderModule>   I_FragmentShader)
+    FVulkanRenderPipeline* FVulkanDriver::
+    CreateRenderPipeline(FVulkanPipelineLayout* I_PipelineLayout,
+                         FVulkanShaderModule*   I_VertexShader,
+                         FVulkanShaderModule*   I_FragmentShader)
     {
         LOG_TRACE("Creating a Vulkan Render Pipeline.");
-        auto& NewRenderPipeline = RenderPipelines.emplace_back(MakeShared<FVulkanRenderPipeline>(
-               I_PipelineLayout,
-               I_VertexShader,
-               I_FragmentShader));
-        return NewRenderPipeline; // Not be created!
+        VISERA_ASSERT(I_PipelineLayout != nullptr);
+        VISERA_ASSERT(I_VertexShader != nullptr);
+        VISERA_ASSERT(I_FragmentShader != nullptr);
+        // Move the resources from storage arrays into the pipeline
+        // Note: This invalidates the pointers, but that's OK since Pipeline owns them now
+        auto& NewRenderPipeline = RenderPipelines.emplace_back(
+               std::move(*I_PipelineLayout),
+               std::move(*I_VertexShader),
+               std::move(*I_FragmentShader));
+        // Call Create() to actually create the Vulkan pipeline
+        NewRenderPipeline.Create(Device.Context, PipelineCache);
+        return &NewRenderPipeline;
     }
 
-    TSharedPtr<FVulkanComputePipeline> FVulkanDriver::
-    CreateComputePipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                          TSharedRef<FVulkanShaderModule>   I_ComputeShader)
+    FVulkanComputePipeline* FVulkanDriver::
+    CreateComputePipeline(FVulkanPipelineLayout* I_PipelineLayout,
+                          FVulkanShaderModule*   I_ComputeShader)
     {
         LOG_TRACE("Creating a Vulkan Compute Pipeline.");
-        return MakeShared<FVulkanComputePipeline>(
+        VISERA_ASSERT(I_PipelineLayout != nullptr);
+        VISERA_ASSERT(I_ComputeShader != nullptr);
+        // Move the resources from storage arrays into the pipeline
+        // ComputePipeline constructor creates the pipeline immediately
+        auto& NewComputePipeline = ComputePipelines.emplace_back(
             Device.Context,
-            I_PipelineLayout,
-            I_ComputeShader,
+            std::move(*I_PipelineLayout),
+            std::move(*I_ComputeShader),
             PipelineCache);
+        return &NewComputePipeline;
     }
 
-    TSharedPtr<FVulkanFence> FVulkanDriver::
+    FVulkanFence FVulkanDriver::
     CreateFence(Bool        I_bSignaled,
                 FStringView I_Description)
     {
         LOG_TRACE("Creating a Vulkan Fence (description:{}, signaled:{}).", I_Description, I_bSignaled);
-        return MakeShared<FVulkanFence>(Device.Context, I_bSignaled, I_Description);
+        return FVulkanFence(Device.Context, I_bSignaled, I_Description);
     }
 
-    TSharedPtr<FVulkanSemaphore> FVulkanDriver::
+    FVulkanSemaphore FVulkanDriver::
     CreateSemaphore(FStringView I_Name)
     {
         LOG_TRACE("Creating a Vulkan Semaphore (name: {}).", I_Name);
-
-        auto& Semaphore = SemaphorePool[I_Name.data()];
-        if (Semaphore == nullptr)
-        { Semaphore = MakeShared<FVulkanSemaphore>(Device.Context); }
-        else
-        { LOG_FATAL("Semaphore \"{}\" already exists!", I_Name); }
-
-        return Semaphore;
+        return FVulkanSemaphore(Device.Context);
     }
 
-    FVulkanImageHandle FVulkanDriver::
-    CreateImage(vk::ImageType       I_ImageType,
-                const vk::Extent3D& I_Extent,
-                vk::Format          I_Format,
+    FVulkanImage FVulkanDriver::
+    CreateImage(vk::ImageType           I_ImageType,
+                const vk::Extent3D&     I_Extent,
+                vk::Format              I_Format,
                 vk::ImageUsageFlags     I_Usages)
     {
         VISERA_ASSERT(I_Extent.width && I_Extent.height && I_Extent.depth);
         LOG_TRACE("Creating a Vulkan Image (extent:[{},{},{}]).",
                   I_Extent.width, I_Extent.height, I_Extent.depth);
-        auto Image = MakeShared<FVulkanImage>(I_ImageType, I_Extent, I_Format, I_Usages);
-        return ResourceRegistry.RegisterImage(Image);
+        return FVulkanImage(I_ImageType, I_Extent, I_Format, I_Usages);
     }
 
-    FVulkanImageViewHandle FVulkanDriver::
-    CreateImageView(FVulkanImageHandle              I_ImageHandle,
+    FVulkanImageView FVulkanDriver::
+    CreateImageView(FVulkanImage*                  I_Image,
                     vk::ImageViewType               I_ViewType,
                     vk::ImageAspectFlags            I_Aspect,
                     TClosedInterval<UInt8>          I_MipmapRange,
@@ -1195,55 +1210,24 @@ namespace Visera
                     TOptional<vk::ComponentMapping> I_Swizzle)
     {
         LOG_TRACE("Creating a Vulkan Image View.");
-        auto Image = ResourceRegistry.GetImage(I_ImageHandle);
-        if (!Image)
-        {
-            LOG_ERROR("Invalid image handle for image view creation: {}", I_ImageHandle);
-            return InvalidVulkanResourceHandle;
-        }
-        auto ImageView = MakeShared<FVulkanImageView>(
-            Image,
+        VISERA_ASSERT(I_Image != nullptr);
+        return FVulkanImageView(
+            I_Image,
             I_ViewType,
             I_Aspect,
             I_MipmapRange,
             I_ArrayRange,
             I_Swizzle);
-        return ResourceRegistry.RegisterImageView(ImageView);
     }
 
-    FVulkanBufferHandle FVulkanDriver::
+    FVulkanBuffer FVulkanDriver::
     CreateBuffer(UInt64                  I_Size,
                  vk::BufferUsageFlags    I_Usages,
                  EVulkanMemoryPoolFlags  I_MemoryPoolFlags /* = EVulkanMemoryPoolFlags::None */)
     {
         VISERA_ASSERT(I_Size != 0);
         LOG_TRACE("Creating a Vulkan Buffer ({} bytes).", I_Size);
-        auto Buffer = MakeShared<FVulkanBuffer>(I_Size, I_Usages, I_MemoryPoolFlags);
-        return ResourceRegistry.RegisterBuffer(Buffer);
-    }
-    
-    TSharedPtr<FVulkanImage> FVulkanDriver::
-    GetImage(FVulkanImageHandle I_Handle) const
-    {
-        return ResourceRegistry.GetImage(I_Handle);
-    }
-    
-    TSharedPtr<FVulkanImageView> FVulkanDriver::
-    GetImageView(FVulkanImageViewHandle I_Handle) const
-    {
-        return ResourceRegistry.GetImageView(I_Handle);
-    }
-    
-    TSharedPtr<FVulkanSampler> FVulkanDriver::
-    GetSampler(FVulkanSamplerHandle I_Handle) const
-    {
-        return ResourceRegistry.GetSampler(I_Handle);
-    }
-    
-    TSharedPtr<FVulkanBuffer> FVulkanDriver::
-    GetBuffer(FVulkanBufferHandle I_Handle) const
-    {
-        return ResourceRegistry.GetBuffer(I_Handle);
+        return FVulkanBuffer(I_Size, I_Usages, I_MemoryPoolFlags);
     }
 
     void FVulkanDriver::
@@ -1279,103 +1263,108 @@ namespace Visera
     void FVulkanDriver::
     CreateInFlightFrames()
     {
+        const UInt8 FrameCount = 
 #if !defined(VISERA_OFFSCREEN_MODE)
-        InFlightFrames.resize(SwapChain.Images.size());
+            SwapChain.Images.size();
 #else
-        InFlightFrames.resize(1);
+            1;
 #endif
 
+        InFlightFrames.clear();
+        InFlightFrames.resize(FrameCount);
+
         LOG_TRACE("Creating {} in-flght frames (extent: [{},{}]).",
-                  InFlightFrames.size(), ColorRTRes.width, ColorRTRes.height);
+                  FrameCount, ColorRTRes.width, ColorRTRes.height);
 
         auto Cmd = CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
         auto Fence = CreateFence(False, "convert render targets layout");
-        Cmd->Begin();
+        Cmd.Begin();
         {
-            UInt8 Index{0};
-            for (auto& InFlightFrame : InFlightFrames)
+            for (UInt8 Index = 0; Index < FrameCount; ++Index)
             {
-                auto TargetImageHandle = CreateImage(
+                auto& Frame = InFlightFrames[Index];
+                Frame.ColorRTImage = CreateImage(
                     vk::ImageType::e2D,
                     {ColorRTRes.width, ColorRTRes.height, 1},
                     vk::Format::eR16G16B16A16Sfloat,
                     vk::ImageUsageFlagBits::eColorAttachment |
                     vk::ImageUsageFlagBits::eTransferSrc);
-                auto TargetImagePtr = GetImage(TargetImageHandle);
-                VISERA_ASSERT(TargetImagePtr != nullptr);
-                TSharedRef<FVulkanImage> TargetImage = TargetImagePtr;
 
-                Cmd->ConvertImageLayout(TargetImage,
+                Cmd.ConvertImageLayout(&Frame.ColorRTImage,
                     vk::ImageLayout::eColorAttachmentOptimal,
                     vk::PipelineStageFlagBits2::eTopOfPipe,
                     vk::AccessFlagBits2::eNone,
                     vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                     vk::AccessFlagBits2::eColorAttachmentWrite
                 );
-                auto TargetViewHandle = CreateImageView(TargetImageHandle,
+                Frame.ColorRTImageView = CreateImageView(
+                    &Frame.ColorRTImage,
                     vk::ImageViewType::e2D,
                     vk::ImageAspectFlagBits::eColor);
-                auto TargetViewPtr = GetImageView(TargetViewHandle);
-                VISERA_ASSERT(TargetViewPtr != nullptr);
-                TSharedRef<FVulkanImageView> TargetView = TargetViewPtr;
-                InFlightFrame.ColorRT = MakeShared<FVulkanRenderTarget>(TargetView);
-                InFlightFrame.ColorRT->SetLoadOp(vk::AttachmentLoadOp::eLoad)
-                                     ->SetStoreOp(vk::AttachmentStoreOp::eStore);
-
-                // Command Buffers
-                InFlightFrame.DrawCalls = CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
-                // Fences
-                InFlightFrame.Fence
-                = CreateFence(True, Format("In-Flight Fence ({})", InFlightFrameIndex));
-                // Semaphores
+                
+                // Create all resources for this frame
+                Frame.ColorRT = FVulkanRenderTarget(&Frame.ColorRTImageView);
+                Frame.ColorRT
+                .SetLoadOp(vk::AttachmentLoadOp::eLoad)
+                .SetStoreOp(vk::AttachmentStoreOp::eStore);
+                
+                Frame.DrawCalls = CreateCommandBuffer(vk::QueueFlagBits::eGraphics);
+                Frame.Fence     = CreateFence(True, Format("In-Flight Fence ({})", Index));
 #if !defined(VISERA_OFFSCREEN_MODE)
-                InFlightFrame.SwapChainImageAvailable
-                = CreateSemaphore(Format("SwapChain Image Available ({})", InFlightFrameIndex));
+                Frame.SwapChainImageAvailable = CreateSemaphore(Format("SwapChain Image Available ({})", Index));
+#else
+
 #endif
-                InFlightFrameIndex = (InFlightFrameIndex + 1) % InFlightFrames.size();
             }
         }
-        Cmd->End();
-        Submit(Cmd, {}, {}, Fence);
+        Cmd.End();
+        Submit(&Cmd, nullptr, nullptr, &Fence);
 
-        if (!Fence->Wait())
+        if (!Fence.Wait())
         { LOG_FATAL("Failed to convert the layout of color render targets!"); }
     }
 
-    TSharedPtr<FVulkanCommandBuffer> FVulkanDriver::
+    FVulkanCommandBuffer FVulkanDriver::
     CreateCommandBuffer(vk::QueueFlagBits I_Queue)
     {
         switch (I_Queue)
         {
         case vk::QueueFlagBits::eGraphics:
             LOG_TRACE("Creating a new Vulkan Graphics Command Buffer.");
-            return MakeShared<FVulkanCommandBuffer>(
+            return FVulkanCommandBuffer(
                 Device.Context,
                 GraphicsCommandPool);
         default:
             LOG_FATAL("Invalid Command Buffer Type!");
-            return {};
+            // Return default-constructed (will be invalid, but allows compilation)
+            return FVulkanCommandBuffer(Device.Context, GraphicsCommandPool);
         }
     }
 
-    TSharedPtr<FVulkanDescriptorSetLayout> FVulkanDriver::
+    FVulkanDescriptorSetLayout* FVulkanDriver::
     CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
     {
         LOG_TRACE("Creating a new Vulkan Descriptor Set Layout.");
-        return MakeShared<FVulkanDescriptorSetLayout>(
-            Device.Context, I_Bindings);
+        auto& NewLayout = DescriptorSetLayouts.emplace_back(Device.Context, I_Bindings);
+        return &NewLayout;
     }
 
-    TSharedPtr<FVulkanDescriptorSet> FVulkanDriver::
-    CreateDescriptorSet(TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout)
+    FVulkanDescriptorSet* FVulkanDriver::
+    CreateDescriptorSet(FVulkanDescriptorSetLayout* I_DescriptorSetLayout)
     {
         LOG_TRACE("Creating a new Vulkan Descriptor Set.");
-        return MakeShared<FVulkanDescriptorSet>(
+        VISERA_ASSERT(I_DescriptorSetLayout != nullptr);
+        // DescriptorSet is typically created per frame
+        // For now, create it and return pointer (caller must ensure lifetime)
+        // In the future, we might want per-frame DescriptorSet storage
+        static thread_local TArray<FVulkanDescriptorSet> TempDescriptorSets;
+        auto& NewDescriptorSet = TempDescriptorSets.emplace_back(
                GetDescriptorPool(),
                I_DescriptorSetLayout);
+        return &NewDescriptorSet;
     }
 
-    FVulkanSamplerHandle FVulkanDriver::
+    FVulkanSampler FVulkanDriver::
     CreateImageSampler(vk::Filter             I_Filter,
                        vk::SamplerAddressMode I_AddressMode,
                        Float                  I_MaxAnisotropy /*= 1.0*/)
@@ -1398,7 +1387,7 @@ namespace Visera
             }
             break;
         }
-        auto CreateInfo = vk::SamplerCreateInfo{}
+        const auto CreateInfo = vk::SamplerCreateInfo{}
             .setMagFilter       (I_Filter)
             .setMinFilter       (I_Filter)
             .setAddressModeU    (I_AddressMode)
@@ -1415,16 +1404,15 @@ namespace Visera
             //.setCompareOp       ({})
             //.setUnnormalizedCoordinates()
         ;
-        auto Sampler = MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
-        return ResourceRegistry.RegisterSampler(Sampler);
+        return FVulkanSampler(Device.Context, CreateInfo);
     }
 
-    FVulkanSamplerHandle FVulkanDriver::
+    FVulkanSampler FVulkanDriver::
     CreateCompareSampler(vk::Filter      I_Filter,
                          vk::CompareOp   I_CompareOp,
                          vk::BorderColor I_BorderColor)
     {
-        auto CreateInfo = vk::SamplerCreateInfo{}
+        const auto CreateInfo = vk::SamplerCreateInfo{}
             .setMagFilter       (I_Filter)
             .setMinFilter       (I_Filter)
             .setAddressModeU    (vk::SamplerAddressMode::eClampToBorder)
@@ -1440,7 +1428,6 @@ namespace Visera
             .setCompareEnable   (True)
             .setCompareOp       (I_CompareOp)
         ;
-        auto Sampler = MakeShared<FVulkanSampler>(Device.Context, CreateInfo);
-        return ResourceRegistry.RegisterSampler(Sampler);
+        return FVulkanSampler(Device.Context, CreateInfo);
     }
 }

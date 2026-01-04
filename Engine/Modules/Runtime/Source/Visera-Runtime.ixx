@@ -21,13 +21,13 @@ namespace Visera
     public:
         void Bootstrap() override
         {
-            LOG_INFO("Initializing Runtime.");
+            LOG_TRACE("Initializing Runtime.");
 
             Status = EStatus::Bootstrapped;
         }
         void Terminate() override
         {
-            LOG_INFO("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
+            LOG_TRACE("Finalizing Runtime (running time: {}s).", Timer.Elapsed().Seconds());
 
             Status = EStatus::Terminated;
         }

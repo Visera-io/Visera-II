@@ -35,21 +35,54 @@ namespace Visera
 
     protected:
         vk::Image           Handle {nullptr};
-        vk::ImageType    Type   {};
-        vk::Format       Format {};
-        vk::ImageLayout  Layout { vk::ImageLayout::eUndefined };
-        vk::Extent3D     Extent {0,0,0};
-        vk::ImageUsageFlags  Usages {};
+        vk::ImageType       Type   {};
+        vk::Format          Format {};
+        vk::ImageLayout     Layout { vk::ImageLayout::eUndefined };
+        vk::Extent3D        Extent {0,0,0};
+        vk::ImageUsageFlags Usages {};
 
     public:
         FVulkanImage() : IVulkanResource{EType::Image} {}
-        FVulkanImage(vk::ImageType       I_ImageType,
+        FVulkanImage(vk::ImageType          I_ImageType,
                      const vk::Extent3D&	I_Extent,
-                     vk::Format          I_Format,
-                     vk::ImageUsageFlags     I_Usages);
+                     vk::Format             I_Format,
+                     vk::ImageUsageFlags    I_Usages);
         ~FVulkanImage() override;
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
+        FVulkanImage(FVulkanImage&& I_Other) noexcept : IVulkanResource{EType::Image}
+        {
+            Handle = I_Other.Handle;
+            Extent = std::move(I_Other.Extent);
+            Format = I_Other.Format;
+            Layout = I_Other.Layout;
+            Usages = I_Other.Usages;
+            // Move the VMA allocation from the moved-from object
+            GetAllocation() = I_Other.GetAllocation();
+            I_Other.GetAllocation() = nullptr;
+            I_Other.Handle = nullptr;
+        }
+        FVulkanImage& operator=(FVulkanImage&& I_Other) noexcept
+        {
+            if (this != &I_Other)
+            {
+                // Release current allocation if any
+                if (Handle != nullptr)
+                {
+                    Release(&Handle);
+                }
+                Handle = I_Other.Handle;
+                Extent = std::move(I_Other.Extent);
+                Format = I_Other.Format;
+                Layout = I_Other.Layout;
+                Usages = I_Other.Usages;
+                // Move the VMA allocation from the moved-from object
+                GetAllocation() = I_Other.GetAllocation();
+                I_Other.GetAllocation() = nullptr;
+                I_Other.Handle = nullptr;
+            }
+            return *this;
+        }
     };
 
     export class VISERA_RHI_API FVulkanImageView
@@ -57,16 +90,16 @@ namespace Visera
     public:
         [[nodiscard]] inline const vk::raii::ImageView&
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline TSharedRef<FVulkanImage>
-        GetImage() const  { return Image; }
+        [[nodiscard]] inline FVulkanImage*
+        GetImage() const { return Image; }
 
     private:
         vk::raii::ImageView      Handle {nullptr};
-        TSharedPtr<FVulkanImage> Image;
+        FVulkanImage*            Image  {nullptr};
 
     public:
-        FVulkanImageView() = delete;
-        FVulkanImageView(TSharedRef<FVulkanImage>         I_Image,
+        FVulkanImageView() = default;
+        FVulkanImageView(FVulkanImage*                    I_Image,  // Needed for construction only
                          vk::ImageViewType                I_Type,
                          vk::ImageAspectFlags             I_Aspect,
                          TClosedInterval<UInt8>           I_MipmapRange = {0,0},
@@ -85,24 +118,28 @@ namespace Visera
                             vk::Format              I_Format,
                             vk::ImageUsageFlags     I_Usages)
         {
+            VISERA_ASSERT(I_Handle != nullptr);
             Handle = I_Handle;
             Extent = I_Extent;
             Type   = I_ImageType;
             Format = I_Format;
             Usages = I_Usages;
         }
+        FVulkanImageWrapper(FVulkanImageWrapper&&) = default;
+        FVulkanImageWrapper& operator=(FVulkanImageWrapper&&) = default;
         ~FVulkanImageWrapper() override { Handle = nullptr; } // Disable release
     };
 
     FVulkanImageView::
-    FVulkanImageView(TSharedRef<FVulkanImage>         I_Image,
+    FVulkanImageView(FVulkanImage*                    I_Image,
                      vk::ImageViewType                I_Type,
                      vk::ImageAspectFlags             I_Aspect,
                      TClosedInterval<UInt8>           I_MipmapRange,
                      TClosedInterval<UInt8>           I_ArrayRange,
                      TOptional<vk::ComponentMapping>  I_Swizzle)
-    : Image {I_Image}
+    : Image { I_Image }
     {
+        VISERA_ASSERT(I_Image != nullptr);
         auto& Device = GVulkanAllocator->GetDevice();
 
         auto ImageSubresourceRage = vk::ImageSubresourceRange{}
@@ -115,7 +152,7 @@ namespace Visera
         const auto& Swizzle = I_Swizzle.has_value()?
                             I_Swizzle.value(): IdentitySwizzle;
 
-        auto CreateInfo = vk::ImageViewCreateInfo{}
+        const auto CreateInfo = vk::ImageViewCreateInfo{}
             .setImage            (I_Image->GetHandle())
             .setViewType         (I_Type)
             .setFormat           (I_Image->GetFormat())

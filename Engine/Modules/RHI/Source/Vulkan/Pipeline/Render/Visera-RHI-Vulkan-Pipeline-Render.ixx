@@ -18,22 +18,24 @@ namespace Visera
     public:
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline TSharedRef<FVulkanPipelineLayout>
-        GetLayout() const { return Layout; }
+        [[nodiscard]] inline FVulkanPipelineLayout*
+        GetLayout() { return &Layout; }
+        [[nodiscard]] inline const FVulkanPipelineLayout*
+        GetLayout() const { return &Layout; }
         [[nodiscard]] inline const vk::Rect2D&
         GetRenderArea() const { return CurrentRenderingInfo.renderArea; }
-        [[nodiscard]] inline TSharedRef<FVulkanRenderTarget>
+        [[nodiscard]] inline FVulkanRenderTarget*
         GetColorRT() const { return CurrentColorRT; }
         inline FVulkanRenderPipeline*
-        SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT);
-        [[nodiscard]] inline TSharedRef<FVulkanRenderTarget>
+        SetColorRT(FVulkanRenderTarget* I_ColorRT);
+        [[nodiscard]] inline FVulkanRenderTarget*
         GetDepthRT() const { return CurrentDepthRT; }
         inline FVulkanRenderPipeline*
-        SetDepthRT(TSharedRef<FVulkanRenderTarget> I_DepthRT);
-        [[nodiscard]] inline TSharedRef<FVulkanRenderTarget>
+        SetDepthRT(FVulkanRenderTarget* I_DepthRT);
+        [[nodiscard]] inline FVulkanRenderTarget*
         GetStencilRT() const { return CurrentStencilRT; }
         inline FVulkanRenderPipeline*
-        SetStencilRT(TSharedRef<FVulkanRenderTarget> I_StencilRT);
+        SetStencilRT(FVulkanRenderTarget* I_StencilRT);
         inline FVulkanRenderPipeline*
         SetRenderArea(const vk::Rect2D& I_RenderArea) { CurrentRenderingInfo.setRenderArea(I_RenderArea); return this; }
         [[nodiscard]] inline const vk::RenderingInfo&
@@ -65,15 +67,15 @@ namespace Visera
 
     private:
         vk::raii::Pipeline                Handle {nullptr};
-        TSharedPtr<FVulkanPipelineLayout> Layout;
+        FVulkanPipelineLayout             Layout;
 
-        TSharedPtr<FVulkanShaderModule> VertexShader;
-        TSharedPtr<FVulkanShaderModule> FragmentShader;
+        FVulkanShaderModule               VertexShader;
+        FVulkanShaderModule               FragmentShader;
 
         vk::RenderingInfo               CurrentRenderingInfo;
-        TSharedPtr<FVulkanRenderTarget> CurrentColorRT;
-        TSharedPtr<FVulkanRenderTarget> CurrentDepthRT;
-        TSharedPtr<FVulkanRenderTarget> CurrentStencilRT;
+        FVulkanRenderTarget* CurrentColorRT {nullptr};
+        FVulkanRenderTarget* CurrentDepthRT {nullptr};
+        FVulkanRenderTarget* CurrentStencilRT {nullptr};
 
         enum : UInt8 { MAX_DYNAMIC_STATE = 2 };
         static inline vk::DynamicState  DynamicStates[MAX_DYNAMIC_STATE]
@@ -86,12 +88,12 @@ namespace Visera
 
     public:
         FVulkanRenderPipeline() = delete;
-        FVulkanRenderPipeline(TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                              TSharedRef<FVulkanShaderModule>   I_VertexShader,
-                              TSharedRef<FVulkanShaderModule>   I_FragmentShader)
-        :Layout         (I_PipelineLayout),
-         VertexShader   (I_VertexShader),
-         FragmentShader (I_FragmentShader)
+        FVulkanRenderPipeline(FVulkanPipelineLayout&& I_PipelineLayout,
+                              FVulkanShaderModule&&   I_VertexShader,
+                              FVulkanShaderModule&&   I_FragmentShader)
+        : Layout         (std::move(I_PipelineLayout)),
+          VertexShader   (std::move(I_VertexShader)),
+          FragmentShader (std::move(I_FragmentShader))
         {
             /* Use Create(...) */
             Settings.InputAssembly
@@ -141,13 +143,13 @@ namespace Visera
             vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
             ShaderStageCreateInfos[0]
                 .setStage  (vk::ShaderStageFlagBits::eVertex)
-                .setPName  (VertexShader->GetEntryPoint())
-                .setModule (VertexShader->GetHandle())
+                .setPName  (VertexShader.GetEntryPoint())
+                .setModule (VertexShader.GetHandle())
             ;
             ShaderStageCreateInfos[1]
                 .setStage  (vk::ShaderStageFlagBits::eFragment)
-                .setPName  (FragmentShader->GetEntryPoint())
-                .setModule (FragmentShader->GetHandle())
+                .setPName  (FragmentShader.GetEntryPoint())
+                .setModule (FragmentShader.GetHandle())
             ;
             DynamicStateCreateInfo
                 .setDynamicStateCount (MAX_DYNAMIC_STATE)
@@ -182,7 +184,7 @@ namespace Visera
                 .setPMultisampleState   (&Settings.Multisampling)
                 .setPColorBlendState    (&ColorBlending)
                 .setPDynamicState       (&DynamicStateCreateInfo)
-                .setLayout              (Layout->GetHandle())
+                .setLayout              (Layout.GetHandle())
                 .setBasePipelineHandle  (nullptr)
                 .setBasePipelineIndex   (-1)
                 .setRenderPass          (nullptr) // Using Dynamic Rendering.
@@ -193,16 +195,14 @@ namespace Visera
             else
             { Handle = std::move(*Result); }
 
-            // Clear Shader Modules
-            VertexShader.reset();
-            FragmentShader.reset();
+            // Shader modules are stored as value types, no need to reset
         }
     };
     
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetColorRT(TSharedRef<FVulkanRenderTarget> I_ColorRT)
+    SetColorRT(FVulkanRenderTarget* I_ColorRT)
     {
-        VISERA_ASSERT(I_ColorRT && I_ColorRT->GetImage());
+        VISERA_ASSERT(I_ColorRT != nullptr);
         static vk::RenderingAttachmentInfo ColorInfo{};
 
         CurrentColorRT = I_ColorRT;
@@ -214,9 +214,9 @@ namespace Visera
     }
 
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetDepthRT(TSharedRef<FVulkanRenderTarget> I_DepthRT)
+    SetDepthRT(FVulkanRenderTarget* I_DepthRT)
     {
-        VISERA_ASSERT(I_DepthRT && I_DepthRT->GetImage());
+        VISERA_ASSERT(I_DepthRT != nullptr);
         static vk::RenderingAttachmentInfo DepthInfo{};
 
         CurrentDepthRT = I_DepthRT;
@@ -227,9 +227,9 @@ namespace Visera
     }
 
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetStencilRT(TSharedRef<FVulkanRenderTarget> I_StencilRT)
+    SetStencilRT(FVulkanRenderTarget* I_StencilRT)
     {
-        VISERA_ASSERT(I_StencilRT && I_StencilRT->GetImage());
+        VISERA_ASSERT(I_StencilRT != nullptr);
         static vk::RenderingAttachmentInfo StencilInfo{};
 
         CurrentStencilRT = I_StencilRT;

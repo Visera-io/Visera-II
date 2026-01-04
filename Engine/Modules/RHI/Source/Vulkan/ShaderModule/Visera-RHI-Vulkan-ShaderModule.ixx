@@ -23,7 +23,9 @@ namespace Visera
         FVulkanShaderModule() = delete;
         FVulkanShaderModule(const vk::raii::Device& I_Device,
                             const TArray<FByte>&    I_SPIRVShader);
-        ~FVulkanShaderModule() {};
+        FVulkanShaderModule(FVulkanShaderModule&&) = default;
+        FVulkanShaderModule& operator=(FVulkanShaderModule&&) = default;
+        ~FVulkanShaderModule() {}
     };
 
     FVulkanShaderModule::

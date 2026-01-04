@@ -15,38 +15,40 @@ namespace Visera
     public:
         [[nodiscard]] inline const vk::raii::Pipeline&
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline const TSharedPtr<FVulkanPipelineLayout>&
-        GetLayout() const { return Layout; }
+        [[nodiscard]] inline FVulkanPipelineLayout*
+        GetLayout() { return &Layout; }
+        [[nodiscard]] inline const FVulkanPipelineLayout*
+        GetLayout() const { return &Layout; }
 
     private:
         vk::raii::Pipeline                Handle{nullptr};
-        TSharedPtr<FVulkanPipelineLayout> Layout{nullptr};
-        TSharedRef<FVulkanShaderModule>   ComputeShader{nullptr};
+        FVulkanPipelineLayout             Layout;
+        FVulkanShaderModule                ComputeShader;
 
     public:
         FVulkanComputePipeline() = delete;
         FVulkanComputePipeline(const vk::raii::Device&           I_Device,
-                               TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                               TSharedRef<FVulkanShaderModule>   I_ComputeShader,
+                               FVulkanPipelineLayout&&          I_PipelineLayout,
+                               FVulkanShaderModule&&            I_ComputeShader,
                                TUniqueRef<FVulkanPipelineCache>  I_PipelineCache);
     };
 
     FVulkanComputePipeline::
     FVulkanComputePipeline(const vk::raii::Device&           I_Device,
-                           TSharedRef<FVulkanPipelineLayout> I_PipelineLayout,
-                           TSharedRef<FVulkanShaderModule>   I_ComputeShader,
+                           FVulkanPipelineLayout&&          I_PipelineLayout,
+                           FVulkanShaderModule&&            I_ComputeShader,
                            TUniqueRef<FVulkanPipelineCache>  I_PipelineCache)
-    : ComputeShader {I_ComputeShader},
-      Layout        {I_PipelineLayout}
+    : Layout        {std::move(I_PipelineLayout)},
+      ComputeShader {std::move(I_ComputeShader)}
     {
         const auto ShaderStageCreateInfo = vk::PipelineShaderStageCreateInfo{}
             .setStage  (vk::ShaderStageFlagBits::eCompute)
-            .setPName  (ComputeShader->GetEntryPoint())
-            .setModule (ComputeShader->GetHandle())
+            .setPName  (ComputeShader.GetEntryPoint())
+            .setModule (ComputeShader.GetHandle())
         ;
         const auto CreateInfo = vk::ComputePipelineCreateInfo{}
             .setStage               (ShaderStageCreateInfo)
-            .setLayout              (Layout->GetHandle())
+            .setLayout              (Layout.GetHandle())
             .setBasePipelineHandle  (nullptr)
             .setBasePipelineIndex   (-1)
             .setPNext               (nullptr)

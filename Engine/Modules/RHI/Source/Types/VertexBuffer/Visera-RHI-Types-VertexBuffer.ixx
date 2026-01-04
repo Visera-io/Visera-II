@@ -7,4 +7,5 @@ import Visera.RHI.Vulkan.Buffer;
 export namespace Visera
 {
     using FRHIVertexBuffer = FVulkanBuffer;
+    using FRHIBuffer       = FVulkanBuffer;
 }

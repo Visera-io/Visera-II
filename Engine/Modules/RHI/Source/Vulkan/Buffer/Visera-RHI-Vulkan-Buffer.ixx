@@ -34,6 +34,25 @@ namespace Visera
         ~FVulkanBuffer() override;
         FVulkanBuffer(const FVulkanBuffer&)            = delete;
         FVulkanBuffer& operator=(const FVulkanBuffer&) = delete;
+        FVulkanBuffer(FVulkanBuffer&& I_Other) noexcept : IVulkanResource{EType::Buffer}
+        {
+            I_Other.Handle = Handle;
+            Handle = nullptr;
+            // Move the VMA allocation from the moved-from object
+            GetAllocation() = I_Other.GetAllocation();
+            I_Other.GetAllocation() = nullptr;
+            I_Other.Handle = nullptr;
+        }
+        FVulkanBuffer& operator=(FVulkanBuffer&& I_Other) noexcept
+        {
+            I_Other.Handle = Handle;
+            Handle = nullptr;
+            // Move the VMA allocation from the moved-from object
+            GetAllocation() = I_Other.GetAllocation();
+            I_Other.GetAllocation() = nullptr;
+            I_Other.Handle = nullptr;
+            return *this;
+        }
     };
     
     FVulkanBuffer::

@@ -6,5 +6,16 @@ import Visera.RHI.Vulkan.CommandBuffer;
 
 export namespace Visera
 {
-    using FRHICommandBuffer = FVulkanCommandBuffer;
+    class VISERA_RHI_API FRHICommandBuffer final
+    {
+    public:
+        using EStatus = FVulkanCommandBuffer::EStatus;
+        [[nodiscard]] inline EStatus
+        GetStatus() const { return Self.GetStatus(); }
+
+    private:
+        FVulkanCommandBuffer Self;
+
+    public:
+    };
 }

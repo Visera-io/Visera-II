@@ -28,7 +28,7 @@ namespace Visera
         void inline
         Begin();
         void inline
-        ConvertImageLayout(TSharedRef<FVulkanImage>   I_Image,
+        ConvertImageLayout(FVulkanImage*              I_Image,
                            vk::ImageLayout            I_NewLayout,
                            vk::PipelineStageFlagBits2 I_SrcStage,
                            vk::AccessFlagBits2        I_SrcAccess,
@@ -39,10 +39,10 @@ namespace Visera
         void inline
         SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.value());}
         void inline
-        EnterRenderPipeline(TSharedRef<FVulkanRenderPipeline> I_RenderPipeline);
+        EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline);
         void inline
         BindVertexBuffer(UInt32                    I_Binding,
-                         TSharedRef<FVulkanBuffer> I_VertexBuffer,
+                         FVulkanBuffer*            I_VertexBuffer,
                          UInt64                    I_BufferOffset);
         void inline
         PushConstants(const void*          I_Data,
@@ -53,7 +53,7 @@ namespace Visera
                       UInt32               I_Offset = 0) { PushConstants(&I_Data, I_Offset, sizeof(I_Data)); }
         void inline
         BindDescriptorSet(UInt32                           I_SetIndex,
-                          TSharedRef<FVulkanDescriptorSet> I_DescriptorSet);
+                          FVulkanDescriptorSet*            I_DescriptorSet);
         void inline
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
              UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
@@ -64,13 +64,13 @@ namespace Visera
         void inline
         LeaveRenderPipeline();
         void inline
-        BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
-                  TSharedRef<FVulkanImage> I_DstImage);
+        BlitImage(FVulkanImage* I_SrcImage,
+                  FVulkanImage* I_DstImage);
         void inline
-        CopyBufferToImage(TSharedRef<FVulkanBuffer> I_SrcBuffer,
-                          TSharedRef<FVulkanImage>  I_DstImage);
+        CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
+                          FVulkanImage*  I_DstImage);
         void inline
-        EnterComputePipeline(TSharedRef<FVulkanComputePipeline> I_ComputePipeline);
+        EnterComputePipeline(FVulkanComputePipeline* I_ComputePipeline);
         void inline
         Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ);
         void inline
@@ -80,6 +80,8 @@ namespace Visera
 
         [[nodiscard]] inline const vk::raii::CommandBuffer&
         GetHandle() const { return Handle; }
+        [[nodiscard]] inline EStatus
+        GetStatus() const { return Status; }
 
         [[nodiscard]] inline Bool
         IsIdle() const { return Status == EStatus::Idle; }
@@ -96,14 +98,17 @@ namespace Visera
         vk::raii::CommandBuffer            Handle {nullptr};
         TOptional<vk::Viewport>            CurrentViewport;
         TOptional<vk::Rect2D>              CurrentScissor;
-        TSharedPtr<FVulkanRenderPipeline>  CurrentRenderPipeline;
-        TSharedPtr<FVulkanComputePipeline> CurrentComputePipeline;
+        FVulkanRenderPipeline*             CurrentRenderPipeline {nullptr};
+        FVulkanComputePipeline*            CurrentComputePipeline {nullptr};
 
         EStatus Status { EStatus::Idle };
 
     public:
+        FVulkanCommandBuffer() = default;
         FVulkanCommandBuffer(const vk::raii::Device&      I_Device,
                              const vk::raii::CommandPool& I_Pool);
+        FVulkanCommandBuffer(FVulkanCommandBuffer&&) = default;
+        FVulkanCommandBuffer& operator=(FVulkanCommandBuffer&&) = default;
         ~FVulkanCommandBuffer() {}
     };
 
@@ -144,7 +149,7 @@ namespace Visera
     }
 
     void FVulkanCommandBuffer::
-    ConvertImageLayout(TSharedRef<FVulkanImage>   I_Image,
+    ConvertImageLayout(FVulkanImage*              I_Image,
                        vk::ImageLayout            I_NewLayout,
                        vk::PipelineStageFlagBits2 I_SrcStage,
                        vk::AccessFlagBits2        I_SrcAccess,
@@ -152,6 +157,9 @@ namespace Visera
                        vk::AccessFlagBits2        I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_Image != nullptr);
+        
+        const auto ImageHandle = I_Image->GetHandle();
 
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
@@ -179,17 +187,18 @@ namespace Visera
             .setNewLayout           (NewLayout)
             .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
             .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setImage               (I_Image->GetHandle())
+            .setImage               (ImageHandle)
             .setSubresourceRange    (ImageSubresourceRange)
         ;
         I_Image->ConvertLayout(Handle, Barrier);
     }
 
     void FVulkanCommandBuffer::
-    EnterRenderPipeline(TSharedRef<FVulkanRenderPipeline> I_RenderPipeline)
+    EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline)
     {
         VISERA_ASSERT(IsRecording());
-        CurrentRenderPipeline = std::move(I_RenderPipeline);
+        VISERA_ASSERT(I_RenderPipeline != nullptr);
+        CurrentRenderPipeline = I_RenderPipeline;
 
         auto& RenderingInfo = CurrentRenderPipeline->GetRenderingInfo();
         Handle.beginRendering(RenderingInfo);
@@ -227,7 +236,7 @@ namespace Visera
         VISERA_ASSERT((I_Offset % 4) == 0); // VUID Constrain
         VISERA_ASSERT((I_Size   % 4) == 0); // VUID Constrain
 
-        TSharedPtr<FVulkanPipelineLayout> PipelineLayout;
+        FVulkanPipelineLayout* PipelineLayout = nullptr;
         vk::ShaderStageFlags StageFlags;
         if (CurrentRenderPipeline)
         {
@@ -257,10 +266,11 @@ namespace Visera
 
     void FVulkanCommandBuffer::
     BindVertexBuffer(UInt32                    I_Binding,
-                     TSharedRef<FVulkanBuffer> I_VertexBuffer,
+                     FVulkanBuffer*            I_VertexBuffer,
                      UInt64                    I_BufferOffset)
     {
         VISERA_ASSERT(IsInsideRenderPass());
+        VISERA_ASSERT(I_VertexBuffer != nullptr);
         Handle.bindVertexBuffers2(
             I_Binding,
             {I_VertexBuffer->GetHandle()},
@@ -270,10 +280,11 @@ namespace Visera
 
     void FVulkanCommandBuffer::
     BindDescriptorSet(UInt32                           I_SetIndex,
-                      TSharedRef<FVulkanDescriptorSet> I_DescriptorSet)
+                      FVulkanDescriptorSet*            I_DescriptorSet)
     {
         VISERA_ASSERT(IsInsideRenderPass() || IsInsideComputePipeline());
-        TSharedPtr<FVulkanPipelineLayout> PipelineLayout;
+        VISERA_ASSERT(I_DescriptorSet != nullptr);
+        FVulkanPipelineLayout* PipelineLayout = nullptr;
         vk::ShaderStageFlags StageFlags;
         if (CurrentRenderPipeline)
         {
@@ -337,15 +348,16 @@ namespace Visera
         CurrentViewport.reset();
         CurrentScissor.reset();
 
-        CurrentRenderPipeline.reset();
+        CurrentRenderPipeline = nullptr;
 
         Status = EStatus::Recording;
     }
 
     void FVulkanCommandBuffer::
-    EnterComputePipeline(TSharedRef<FVulkanComputePipeline> I_ComputePipeline)
+    EnterComputePipeline(FVulkanComputePipeline* I_ComputePipeline)
     {
         VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_ComputePipeline != nullptr);
         VISERA_ASSERT(CurrentRenderPipeline == nullptr); // Cannot be in render pass
         CurrentComputePipeline = I_ComputePipeline;
 
@@ -359,7 +371,7 @@ namespace Visera
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(CurrentComputePipeline != nullptr);
 
-        CurrentComputePipeline.reset();
+        CurrentComputePipeline = nullptr;
     }
 
     void FVulkanCommandBuffer::
@@ -372,10 +384,12 @@ namespace Visera
     }
 
     void FVulkanCommandBuffer::
-    BlitImage(TSharedRef<FVulkanImage> I_SrcImage,
-              TSharedRef<FVulkanImage> I_DstImage)
+    BlitImage(FVulkanImage* I_SrcImage,
+              FVulkanImage* I_DstImage)
     {
         VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SrcImage != nullptr);
+        VISERA_ASSERT(I_DstImage != nullptr);
         VISERA_ASSERT(I_SrcImage->GetLayout() == vk::ImageLayout::eTransferSrcOptimal);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         //VISERA_ASSERT(!_SrcImage->EnabledMSAA() && !_DstImage->EnabledMSAA()); //vkCmdBlitImage must not be used for multisampled source or destination images. Use vkCmdResolveImage for this purpose.
@@ -412,10 +426,12 @@ namespace Visera
     }
 
     void FVulkanCommandBuffer::
-    CopyBufferToImage(TSharedRef<FVulkanBuffer> I_SrcBuffer,
-                      TSharedRef<FVulkanImage>  I_DstImage)
+    CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
+                      FVulkanImage*  I_DstImage)
     {
         VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SrcBuffer != nullptr);
+        VISERA_ASSERT(I_DstImage != nullptr);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
         constexpr auto ImageSubresourceRange = vk::ImageSubresourceLayers{}

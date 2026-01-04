@@ -3,6 +3,7 @@ module;
 export module Visera.RHI.Common;
 #define VISERA_MODULE_NAME "RHI.Common"
 export import Visera.Core.Traits.Flags;
+       import Visera.Core.Types.Handle;
        import Visera.Runtime.Log;
        import vulkan_hpp;
 
@@ -217,20 +218,62 @@ export namespace Visera
     [[nodiscard]] constexpr vk::BufferUsageFlagBits2
     TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits2>(I_BufferUsage); }
 
-    // RHI-level resource handles (platform-agnostic)
-    // Handle value 0 is reserved as invalid/null handle
-    using FRHIResourceHandle    = UInt32;
-    using FRHIImageHandle       = FRHIResourceHandle;
-    using FRHIBufferHandle      = FRHIResourceHandle;
-    using FRHIImageViewHandle   = FRHIResourceHandle;
-    using FRHISamplerHandle     = FRHIResourceHandle;
+    using FRHIResourceHandle = FHandle;
 
-    constexpr FRHIResourceHandle InvalidRHIResourceHandle = 0;
+    class VISERA_RHI_API FRHIImageHandle : public FRHIResourceHandle
+    {
+    public:
+        static const FRHIImageHandle Null;
 
-    [[nodiscard]] inline constexpr Bool
-    IsValidHandle(FRHIResourceHandle I_Handle) noexcept
-    { return I_Handle != InvalidRHIResourceHandle; }
+        constexpr FRHIImageHandle() = default;
+        constexpr FRHIImageHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
+        constexpr FRHIImageHandle(UInt32 I_Generation, UInt32 I_Index) : FRHIResourceHandle(I_Generation, I_Index) {}
+    };
+    inline const FRHIImageHandle FRHIImageHandle::Null{FRHIResourceHandle::Null};
+
+    class VISERA_RHI_API FRHIBufferHandle : public FRHIResourceHandle
+    {
+    public:
+        static const FRHIBufferHandle Null;
+
+        constexpr FRHIBufferHandle() = default;
+        constexpr FRHIBufferHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
+        constexpr FRHIBufferHandle(UInt32 I_Generation, UInt32 I_Index) : FRHIResourceHandle(I_Generation, I_Index) {}
+    };
+    inline const FRHIBufferHandle FRHIBufferHandle::Null{FRHIResourceHandle::Null};
+
+    class VISERA_RHI_API FRHIImageViewHandle : public FRHIResourceHandle
+    {
+    public:
+        static const FRHIImageViewHandle Null;
+
+        constexpr FRHIImageViewHandle() = default;
+        constexpr FRHIImageViewHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
+        constexpr FRHIImageViewHandle(UInt32 I_Generation, UInt32 I_Index) : FRHIResourceHandle(I_Generation, I_Index) {}
+    };
+    inline const FRHIImageViewHandle FRHIImageViewHandle::Null{FRHIResourceHandle::Null};
+
+    class VISERA_RHI_API FRHISamplerHandle : public FRHIResourceHandle
+    {
+    public:
+        static const FRHISamplerHandle Null;
+
+        constexpr FRHISamplerHandle() = default;
+        constexpr FRHISamplerHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
+        constexpr FRHISamplerHandle(UInt32 I_Generation, UInt32 I_Index) : FRHIResourceHandle(I_Generation, I_Index) {}
+    };
+    inline const FRHISamplerHandle FRHISamplerHandle::Null{FRHIResourceHandle::Null};
 }
+
+VISERA_MAKE_HASH(Visera::FRHIImageHandle,     return I_Object.GetValue(););
+VISERA_MAKE_HASH(Visera::FRHIBufferHandle,    return I_Object.GetValue(););
+VISERA_MAKE_HASH(Visera::FRHIImageViewHandle, return I_Object.GetValue(););
+VISERA_MAKE_HASH(Visera::FRHISamplerHandle,   return I_Object.GetValue(););
+
+VISERA_MAKE_FORMATTER(Visera::FRHIImageHandle,       {}, "<Gen:{},Idx:{}>", I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHIBufferHandle,      {}, "<Gen:{},Idx:{}>", I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHIImageViewHandle,   {}, "<Gen:{},Idx:{}>", I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHISamplerHandle,     {}, "<Gen:{},Idx:{}>", I_Formatee.GetGeneration(), I_Formatee.GetIndex());
 
 VISERA_MAKE_FORMATTER(Visera::ERHIFormat,
     const char* FormatName = "Undefined";

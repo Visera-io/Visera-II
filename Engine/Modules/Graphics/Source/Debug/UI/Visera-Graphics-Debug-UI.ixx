@@ -162,7 +162,7 @@ namespace Visera::Graphics
                 EndFrame();
             });
             if (!GRHI->DebugUIDrawCalls.TryBind([&I_Window]
-            (TSharedRef<FRHICommandBuffer> I_CommandBuffer, TSharedRef<FRHIImageView> I_ColorRT)
+            (FVulkanCommandBuffer* I_CommandBuffer, FRHIImageView* I_ColorRT)
             {
                 ImGui::Render();
 

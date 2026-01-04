@@ -103,6 +103,8 @@ export namespace Visera
         Release(void* I_Handle);
         [[nodiscard]] inline const VmaAllocation&
         GetAllocation() const { return Allocation; }
+        [[nodiscard]] inline VmaAllocation&
+        GetAllocation() { return Allocation; }
         [[nodiscard]] VmaAllocationInfo
         GetAllocationInfo() const;
         void
@@ -180,11 +182,22 @@ export namespace Visera
     void IVulkanResource::
     Release(void* I_Handle)
     {
+        // Skip if handle is null or allocation is already released
+        if (Allocation == nullptr)
+        {
+            return;
+        }
+        
         switch (Type)
         {
         case EType::Image:
         {
             auto ImageHandle = *static_cast<vk::Image*>(I_Handle);
+            if (ImageHandle == VK_NULL_HANDLE)
+            {
+                Allocation = nullptr;
+                return;
+            }
 
             vmaDestroyImage(
                 GVulkanAllocator->GetHandle(),
@@ -195,6 +208,11 @@ export namespace Visera
         case EType::Buffer:
         {
             auto BufferHandle = *static_cast<vk::Buffer*>(I_Handle);
+            if (BufferHandle == VK_NULL_HANDLE)
+            {
+                Allocation = nullptr;
+                return;
+            }
 
             vmaDestroyBuffer(
                 GVulkanAllocator->GetHandle(),

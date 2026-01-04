@@ -29,9 +29,6 @@ export int main(int argc, char *argv[])
         auto& Transform = Entity.Add<CTransform2D>();
         auto& Velocity  = Entity.Add<CVelocity2D>();
 
-        FUUID UUID = GPlatform->GenerateUUID();
-        LOG_INFO("{}", UUID);
-
         GEngine->Run();
     }
     GEngine->Terminate();

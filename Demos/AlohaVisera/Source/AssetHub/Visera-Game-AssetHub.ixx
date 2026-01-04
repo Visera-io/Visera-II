@@ -22,8 +22,6 @@ namespace Visera
     export class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton<FAssetHub>
     {
     public:
-        [[nodiscard]] inline TSharedPtr<FTexture>
-        LoadTexture(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
         [[nodiscard]] inline TSharedPtr<FSound>
         LoadSound(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
 
@@ -61,49 +59,6 @@ namespace Visera
         LOG_TRACE("Terminating AssetHub.");
 
         Status = EStatus::Terminated;
-    }
-
-    TSharedPtr<FTexture> FAssetHub::
-    LoadTexture(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
-    {
-        VISERA_ASSERT(IsBootstrapped());
-
-        TSharedPtr<FTexture> Texture{};
-
-        if (I_Source != EAssetSource::Any)
-        {
-            const auto& Root = Roots[I_Source];
-            FPath Path = Root.GetRoot() / FPath("Texture") / I_File;
-
-            if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-            {
-                Texture = MakeShared<FTexture>(FName{Path.GetUTF8Path()}, Path);
-            }
-        }
-        else
-        {
-            for (const auto& [_, Root] : Roots)
-            {
-                FPath Path = Root.GetRoot() / FPath("Texture") / I_File;
-
-                if (FFileSystem::Exists(Path) && !FFileSystem::IsDirectory(Path))
-                {
-                    Texture = MakeShared<FTexture>(FName{Path.GetUTF8Path()}, Path);
-                    break;
-                }
-            }
-        }
-
-        if (!Texture)
-        {
-            LOG_ERROR("Failed to load the texture \"{}\"!", I_File);
-            return {};
-        }
-
-        LOG_DEBUG("Loaded the texture \"{}\".",
-                  Texture->GetPath());
-
-        return Texture;
     }
 
     TSharedPtr<FSound> FAssetHub::

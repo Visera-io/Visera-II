@@ -9,6 +9,6 @@ namespace Visera
     export class VISERA_ENGINE_API CName
     {
     public:
-        FName Value { EName::None };
+        FName Value;
     };
 }

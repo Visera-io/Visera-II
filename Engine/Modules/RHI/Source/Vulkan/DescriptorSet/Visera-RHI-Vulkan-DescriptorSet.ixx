@@ -4,9 +4,9 @@ export module Visera.RHI.Vulkan.DescriptorSet;
 #define VISERA_MODULE_NAME "RHI.Vulkan"
 import Visera.RHI.Vulkan.Common;
 import Visera.RHI.Vulkan.Image;
+import Visera.RHI.Vulkan.Buffer;
 import Visera.RHI.Vulkan.Sampler;
 import Visera.RHI.Vulkan.DescriptorSetLayout;
-import Visera.RHI.Vulkan.Registry;
 import Visera.Runtime.Log;
 import Visera.Core.Types.Array;
 import vulkan_hpp;
@@ -16,61 +16,56 @@ namespace Visera
     export class VISERA_RHI_API FVulkanDescriptorSet
     {
     public:
-        // Write methods (accept handles and lookup from registry)
+        // Write methods (accept raw pointers)
         VISERA_NOINLINE void
-        WriteCombinedImageSampler(const FVulkanResourceRegistry& I_Registry,
-                                  UInt32                         I_Binding,
-                                  FVulkanImageViewHandle         I_ImageViewHandle,
-                                  FVulkanSamplerHandle           I_SamplerHandle,
-                                  UInt32                         I_ArrayElement = 0);
+        WriteCombinedImageSampler(UInt32                 I_Binding,
+                                  FVulkanImageView*      I_ImageView,
+                                  FVulkanSampler*        I_Sampler,
+                                  UInt32                 I_ArrayElement = 0);
         VISERA_NOINLINE void
-        WriteStorageImage(const FVulkanResourceRegistry& I_Registry,
-                         UInt32                         I_Binding,
-                         FVulkanImageViewHandle         I_ImageViewHandle,
-                         UInt32                         I_ArrayElement = 0);
+        WriteStorageImage(UInt32                 I_Binding,
+                          FVulkanImageView*      I_ImageView,
+                          UInt32                 I_ArrayElement = 0);
         VISERA_NOINLINE void
-        WriteStorageBuffer(const FVulkanResourceRegistry& I_Registry,
-                           UInt32                         I_Binding,
-                           FVulkanBufferHandle            I_BufferHandle,
-                           UInt32                         I_ArrayElement = 0);
+        WriteStorageBuffer(UInt32                 I_Binding,
+                           FVulkanBuffer*         I_Buffer,
+                           UInt32                 I_ArrayElement = 0);
         VISERA_NOINLINE void
-        WriteCombinedImageSamplerArray(const FVulkanResourceRegistry& I_Registry,
-                                       UInt32                         I_Binding,
-                                       const TArray<FVulkanImageViewHandle>& I_ImageViewHandles,
-                                       const TArray<FVulkanSamplerHandle>&   I_SamplerHandles,
+        WriteCombinedImageSamplerArray(UInt32                         I_Binding,
+                                       const TArray<FVulkanImageView*>& I_ImageViews,
+                                       const TArray<FVulkanSampler*>&   I_Samplers,
                                        UInt32                          I_FirstArrayElement = 0);
         VISERA_NOINLINE void
-        WriteStorageImageArray(const FVulkanResourceRegistry& I_Registry,
-                               UInt32                         I_Binding,
-                               const TArray<FVulkanImageViewHandle>& I_ImageViewHandles,
+        WriteStorageImageArray(UInt32                         I_Binding,
+                               const TArray<FVulkanImageView*>& I_ImageViews,
                                UInt32                         I_FirstArrayElement = 0);
         VISERA_NOINLINE void
-        WriteStorageBufferArray(const FVulkanResourceRegistry& I_Registry,
-                                UInt32                         I_Binding,
-                                const TArray<FVulkanBufferHandle>&    I_BufferHandles,
+        WriteStorageBufferArray(UInt32                         I_Binding,
+                                const TArray<FVulkanBuffer*>&    I_Buffers,
                                 UInt32                          I_FirstArrayElement = 0);
         
         [[nodiscard]] inline vk::DescriptorSet
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline const TSharedRef<FVulkanDescriptorSetLayout>
+        [[nodiscard]] inline FVulkanDescriptorSetLayout*
         GetLayout() const { return Layout; }
 
     private:
         vk::DescriptorSet                      Handle {nullptr}; // The life cycle is managed by the Pool
-        TSharedPtr<FVulkanDescriptorSetLayout> Layout {nullptr};
+        FVulkanDescriptorSetLayout*            Layout {nullptr};
 
     public:
         FVulkanDescriptorSet() = delete;
         FVulkanDescriptorSet(const vk::raii::DescriptorPool&        I_DescriptorPool,
-                             TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout);
+                             FVulkanDescriptorSetLayout*            I_DescriptorSetLayout);
         ~FVulkanDescriptorSet() = default;
     };
 
     FVulkanDescriptorSet::
     FVulkanDescriptorSet(const vk::raii::DescriptorPool&        I_DescriptorPool,
-                         TSharedRef<FVulkanDescriptorSetLayout> I_DescriptorSetLayout)
+                         FVulkanDescriptorSetLayout*            I_DescriptorSetLayout)
     : Layout { I_DescriptorSetLayout }
     {
+        VISERA_ASSERT(I_DescriptorSetLayout != nullptr);
         auto LayoutHandle = *Layout->GetHandle();
         auto AllocateInfo = vk::DescriptorSetAllocateInfo{}
             .setDescriptorPool      (I_DescriptorPool)
@@ -85,26 +80,23 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteCombinedImageSampler(const FVulkanResourceRegistry& I_Registry,
-                              UInt32                         I_Binding,
-                              FVulkanImageViewHandle         I_ImageViewHandle,
-                              FVulkanSamplerHandle           I_SamplerHandle,
-                              UInt32                         I_ArrayElement /* = 0 */)
+    WriteCombinedImageSampler(UInt32                 I_Binding,
+                              FVulkanImageView*      I_ImageView,
+                              FVulkanSampler*        I_Sampler,
+                              UInt32                 I_ArrayElement /* = 0 */)
     {
-        auto ImageView = I_Registry.GetImageView(I_ImageViewHandle);
-        auto Sampler = I_Registry.GetSampler(I_SamplerHandle);
-        
-        if (!ImageView || !Sampler)
+        if (!I_ImageView || !I_Sampler)
         {
-            LOG_ERROR("Invalid handles for combined image sampler write (imageView:{}, sampler:{})",
-                      I_ImageViewHandle, I_SamplerHandle);
+            LOG_ERROR("Invalid pointers for combined image sampler write");
             return;
         }
 
-        auto Image = ImageView->GetImage();
+        auto* Image = I_ImageView->GetImage();
+        VISERA_ASSERT(Image != nullptr);
+
         auto ImageInfo = vk::DescriptorImageInfo{}
-            .setSampler     (Sampler->GetHandle())
-            .setImageView   (ImageView->GetHandle())
+            .setSampler     (I_Sampler->GetHandle())
+            .setImageView   (I_ImageView->GetHandle())
             .setImageLayout (Image->GetLayout())
         ;
         auto WriteInfo = vk::WriteDescriptorSet{}
@@ -123,23 +115,23 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteStorageImage(const FVulkanResourceRegistry& I_Registry,
-                      UInt32                         I_Binding,
-                      FVulkanImageViewHandle         I_ImageViewHandle,
-                      UInt32                         I_ArrayElement /* = 0 */)
+    WriteStorageImage(UInt32                 I_Binding,
+                      FVulkanImageView*      I_ImageView,
+                      UInt32                 I_ArrayElement /* = 0 */)
     {
-        auto ImageView = I_Registry.GetImageView(I_ImageViewHandle);
-        
-        if (!ImageView)
+        if (!I_ImageView)
         {
-            LOG_ERROR("Invalid image view handle for storage image write: {}", I_ImageViewHandle);
+            LOG_ERROR("Invalid pointer for storage image write");
             return;
         }
 
+        auto* Image = I_ImageView->GetImage();
+        VISERA_ASSERT(Image != nullptr);
+
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (nullptr)
-            .setImageView   (ImageView->GetHandle())
-            .setImageLayout (ImageView->GetImage()->GetLayout())
+            .setImageView   (I_ImageView->GetHandle())
+            .setImageLayout (Image->GetLayout())
         ;
         auto WriteInfo = vk::WriteDescriptorSet{}
             .setDescriptorCount (1)
@@ -157,21 +149,18 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteStorageBuffer(const FVulkanResourceRegistry& I_Registry,
-                       UInt32                         I_Binding,
-                       FVulkanBufferHandle            I_BufferHandle,
-                       UInt32                         I_ArrayElement /* = 0 */)
+    WriteStorageBuffer(UInt32                 I_Binding,
+                       FVulkanBuffer*         I_Buffer,
+                       UInt32                 I_ArrayElement /* = 0 */)
     {
-        auto Buffer = I_Registry.GetBuffer(I_BufferHandle);
-        
-        if (!Buffer)
+        if (!I_Buffer)
         {
-            LOG_ERROR("Invalid buffer handle for storage buffer write: {}", I_BufferHandle);
+            LOG_ERROR("Invalid buffer pointer for storage buffer write");
             return;
         }
 
         auto BufferInfo = vk::DescriptorBufferInfo{}
-            .setBuffer (Buffer->GetHandle())
+            .setBuffer (I_Buffer->GetHandle())
             .setOffset (0)
             .setRange  (vk::WholeSize)
         ;
@@ -191,15 +180,14 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteCombinedImageSamplerArray(const FVulkanResourceRegistry& I_Registry,
-                                   UInt32                         I_Binding,
-                                   const TArray<FVulkanImageViewHandle>& I_ImageViewHandles,
-                                   const TArray<FVulkanSamplerHandle>&   I_SamplerHandles,
+    WriteCombinedImageSamplerArray(UInt32                         I_Binding,
+                                   const TArray<FVulkanImageView*>& I_ImageViews,
+                                   const TArray<FVulkanSampler*>&   I_Samplers,
                                    UInt32                          I_FirstArrayElement /* = 0 */)
     {
-        VISERA_ASSERT(I_ImageViewHandles.size() == I_SamplerHandles.size());
+        VISERA_ASSERT(I_ImageViews.size() == I_Samplers.size());
         
-        const auto Count = I_ImageViewHandles.size();
+        const auto Count = I_ImageViews.size();
         if (Count == 0) { return; }
 
         TArray<vk::DescriptorImageInfo> ImageInfos;
@@ -207,20 +195,18 @@ namespace Visera
 
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
-            auto ImageView = I_Registry.GetImageView(I_ImageViewHandles[Idx]);
-            auto Sampler = I_Registry.GetSampler(I_SamplerHandles[Idx]);
-            
-            if (!ImageView || !Sampler)
+            if (!I_ImageViews[Idx] || !I_Samplers[Idx])
             {
-                LOG_ERROR("Invalid handles at index {} for combined image sampler array write (imageView:{}, sampler:{})",
-                          Idx, I_ImageViewHandles[Idx], I_SamplerHandles[Idx]);
+                LOG_ERROR("Invalid pointers at index {} for combined image sampler array write", Idx);
                 continue;
             }
 
-            auto Image = ImageView->GetImage();
+            auto* Image = I_ImageViews[Idx]->GetImage();
+            VISERA_ASSERT(Image != nullptr);
+
             ImageInfos.emplace_back(vk::DescriptorImageInfo{}
-                .setSampler     (Sampler->GetHandle())
-                .setImageView   (ImageView->GetHandle())
+                .setSampler     (I_Samplers[Idx]->GetHandle())
+                .setImageView   (I_ImageViews[Idx]->GetHandle())
                 .setImageLayout (Image->GetLayout())
             );
         }
@@ -243,12 +229,11 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteStorageImageArray(const FVulkanResourceRegistry& I_Registry,
-                           UInt32                         I_Binding,
-                           const TArray<FVulkanImageViewHandle>& I_ImageViewHandles,
+    WriteStorageImageArray(UInt32                         I_Binding,
+                           const TArray<FVulkanImageView*>& I_ImageViews,
                            UInt32                         I_FirstArrayElement /* = 0 */)
     {
-        const auto Count = I_ImageViewHandles.size();
+        const auto Count = I_ImageViews.size();
         if (Count == 0) { return; }
 
         TArray<vk::DescriptorImageInfo> ImageInfos;
@@ -256,19 +241,19 @@ namespace Visera
 
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
-            auto ImageView = I_Registry.GetImageView(I_ImageViewHandles[Idx]);
-            
-            if (!ImageView)
+            if (!I_ImageViews[Idx])
             {
-                LOG_ERROR("Invalid image view handle at index {} for storage image array write: {}",
-                          Idx, I_ImageViewHandles[Idx]);
+                LOG_ERROR("Invalid pointer at index {} for storage image array write", Idx);
                 continue;
             }
 
+            auto* Image = I_ImageViews[Idx]->GetImage();
+            VISERA_ASSERT(Image != nullptr);
+
             ImageInfos.emplace_back(vk::DescriptorImageInfo{}
                 .setSampler     (nullptr)
-                .setImageView   (ImageView->GetHandle())
-                .setImageLayout (ImageView->GetImage()->GetLayout())
+                .setImageView   (I_ImageViews[Idx]->GetHandle())
+                .setImageLayout (Image->GetLayout())
             );
         }
 
@@ -290,12 +275,11 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteStorageBufferArray(const FVulkanResourceRegistry& I_Registry,
-                            UInt32                         I_Binding,
-                            const TArray<FVulkanBufferHandle>&    I_BufferHandles,
+    WriteStorageBufferArray(UInt32                         I_Binding,
+                            const TArray<FVulkanBuffer*>&    I_Buffers,
                             UInt32                          I_FirstArrayElement /* = 0 */)
     {
-        const auto Count = I_BufferHandles.size();
+        const auto Count = I_Buffers.size();
         if (Count == 0) { return; }
 
         TArray<vk::DescriptorBufferInfo> BufferInfos;
@@ -303,17 +287,14 @@ namespace Visera
 
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
-            auto Buffer = I_Registry.GetBuffer(I_BufferHandles[Idx]);
-            
-            if (!Buffer)
+            if (!I_Buffers[Idx])
             {
-                LOG_ERROR("Invalid buffer handle at index {} for storage buffer array write: {}",
-                          Idx, I_BufferHandles[Idx]);
+                LOG_ERROR("Invalid buffer pointer at index {} for storage buffer array write", Idx);
                 continue;
             }
 
             BufferInfos.emplace_back(vk::DescriptorBufferInfo{}
-                .setBuffer (Buffer->GetHandle())
+                .setBuffer (I_Buffers[Idx]->GetHandle())
                 .setOffset (0)
                 .setRange  (vk::WholeSize)
             );

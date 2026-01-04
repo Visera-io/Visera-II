@@ -28,6 +28,8 @@ namespace Visera
         FVulkanPipelineLayout(const vk::raii::Device&                I_Device,
                               const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
                               const TArray<vk::PushConstantRange>&   I_PushConstants);
+        FVulkanPipelineLayout(FVulkanPipelineLayout&&) = default;
+        FVulkanPipelineLayout& operator=(FVulkanPipelineLayout&&) = default;
     };
 
     FVulkanPipelineLayout::

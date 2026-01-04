@@ -29,5 +29,9 @@ namespace Visera
             { LOG_FATAL("Failed to create the Vulkan Sampler!"); }
         }
         ~FVulkanSampler() {}
+        FVulkanSampler(const FVulkanSampler&)            = delete;
+        FVulkanSampler(FVulkanSampler&&)                 = default;
+        FVulkanSampler& operator=(const FVulkanSampler&) = delete;
+        FVulkanSampler& operator=(FVulkanSampler&&)      = default;
     };
 }

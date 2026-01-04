@@ -47,6 +47,8 @@ namespace Visera
             else
             { Handle = std::move(*Result); }
         }
+        FVulkanFence(FVulkanFence&&) = default;
+        FVulkanFence& operator=(FVulkanFence&&) = default;
         ~FVulkanFence() {}
     };
 

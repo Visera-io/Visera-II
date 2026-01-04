@@ -10,7 +10,7 @@ export import Visera.Physics2D.Common;
 
 namespace Visera
 {
-    export class VISERA_PHYSICS2D_API FPhysics : public IGlobalSingleton<FPhysics>
+    export class VISERA_PHYSICS2D_API FPhysics2D : public IGlobalSingleton<FPhysics2D>
     {
     public:
         [[nodiscard]] FRigidBody2D
@@ -20,7 +20,7 @@ namespace Visera
         b2WorldId World;
 
     public:
-        FPhysics() : IGlobalSingleton("Physics") {}
+        FPhysics2D() : IGlobalSingleton("Physics") {}
 
         void
         Bootstrap() override;
@@ -28,10 +28,10 @@ namespace Visera
         Terminate() override;
     };
 
-    export inline VISERA_PHYSICS2D_API TUniquePtr<FPhysics>
-    GPhysics = MakeUnique<FPhysics>();
+    export inline VISERA_PHYSICS2D_API TUniquePtr<FPhysics2D>
+    GPhysics2D = MakeUnique<FPhysics2D>();
 
-    FRigidBody2D FPhysics::
+    FRigidBody2D FPhysics2D::
     CreateRigidBody2D(const FRigidBody2DCreateInfo& I_CreateInfo)
     {
         VISERA_ASSERT(I_CreateInfo.IsValid());
@@ -44,10 +44,10 @@ namespace Visera
         return RigidBody2D;
     }
 
-    void FPhysics::
+    void FPhysics2D::
     Bootstrap()
     {
-        LOG_TRACE("Bootstrapping Physics.");
+        LOG_TRACE("Bootstrapping Physics2D.");
 
         b2WorldDef CreateInfo = b2DefaultWorldDef();
         // CreateInfo.gravity = {};
@@ -76,7 +76,7 @@ namespace Visera
         Status = EStatus::Bootstrapped;
     }
 
-    void FPhysics::
+    void FPhysics2D::
     Terminate()
     {
         LOG_TRACE("Terminating Physics.");

@@ -29,6 +29,8 @@ namespace Visera
             else
             { Handle = std::move(*Result); }
         }
+        FVulkanSemaphore(FVulkanSemaphore&&) = default;
+        FVulkanSemaphore& operator=(FVulkanSemaphore&&) = default;
         ~FVulkanSemaphore() {}
     };
 }
