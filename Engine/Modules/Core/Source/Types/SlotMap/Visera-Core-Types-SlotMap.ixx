@@ -4,23 +4,24 @@ export module Visera.Core.Types.SlotMap;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
 import Visera.Core.Types.Handle;
+import Visera.Core.Math.Arithmetic.Interval;
 
 export namespace Visera
 {
-    template<typename ValueType, Concepts::Handle HandleType = FHandle>
+    template<typename                   ValueType,
+             Concepts::Handle           HandleType = FHandle,
+             TClosedInterval<UInt32>    GenerationRange = {1U, ~0U}>
     class VISERA_CORE_API TSlotMap
     {
+        static_assert(!GenerationRange.IsDegenerate());
+        static_assert(!GenerationRange.Contains(HandleType{}.GetGeneration()));
     public:
+        static constexpr UInt32 InvalidIndex = ~0U;
         struct FSlot
         {
-            enum : UInt32
-            {
-                InvalidGeneration =  0U,
-                InvalidIndex      = ~0U,
-            };
-            UInt32 Generation = 1; // Starts at 1, increments on free (never 0)
-            UInt32 Index      = FSlot::InvalidIndex; // InvalidHandle marks free slot
-            UInt32 NextFree   = FSlot::InvalidIndex; // Free list link
+            UInt32 Generation = GenerationRange.Left;
+            UInt32 Index      = InvalidIndex; // InvalidHandle marks free slot
+            UInt32 NextFree   = InvalidIndex; // Free list link
         };
 
         [[nodiscard]] HandleType
@@ -46,7 +47,7 @@ export namespace Visera
         TArray<FSlot>                 Slots;
         TArray<TUniquePtr<ValueType>> Data; // Store as TUniquePtr for pointer stability
         TArray<UInt32>                DataToSlot; // Reverse mapping: dense index -> slot index
-        UInt32 FreeHead = FSlot::InvalidIndex;
+        UInt32 FreeHead = InvalidIndex;
         UInt32 Size     = 0;
 
     private:
@@ -66,17 +67,17 @@ export namespace Visera
         TSlotMap& operator=(TSlotMap&&) noexcept = default;
     };
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    TSlotMap<ValueType, HandleType, GenerationRange>::
     TSlotMap()
-        : FreeHead(FSlot::InvalidIndex)
+        : FreeHead(InvalidIndex)
         , Size(0)
     {
 
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    HandleType TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    HandleType TSlotMap<ValueType, HandleType, GenerationRange>::
     Insert(const ValueType& I_Value)
     {
         UInt32 SlotIndex = Allocate();
@@ -91,8 +92,8 @@ export namespace Visera
         return HandleType(Slot.Generation, SlotIndex);
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    HandleType TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    HandleType TSlotMap<ValueType, HandleType, GenerationRange>::
     Insert(ValueType&& I_Value)
     {
         UInt32 SlotIndex = Allocate();
@@ -107,8 +108,8 @@ export namespace Visera
         return HandleType(Slot.Generation, SlotIndex);
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    Bool TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    Bool TSlotMap<ValueType, HandleType, GenerationRange>::
     Erase(HandleType I_Handle)
     {
         if (!HasHandle(I_Handle)) { return False; }
@@ -136,8 +137,8 @@ export namespace Visera
         return True;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    ValueType* TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    ValueType* TSlotMap<ValueType, HandleType, GenerationRange>::
     Get(HandleType I_Handle)
     {
         if (!HasHandle(I_Handle)) { return nullptr; }
@@ -148,8 +149,8 @@ export namespace Visera
         return Data[Slot.Index].get();
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    const ValueType* TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    const ValueType* TSlotMap<ValueType, HandleType, GenerationRange>::
     Get(HandleType I_Handle) const
     {
         if (!HasHandle(I_Handle)) { return nullptr; }
@@ -160,29 +161,29 @@ export namespace Visera
         return Data[Slot.Index].get();
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    void TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    void TSlotMap<ValueType, HandleType, GenerationRange>::
     Clear()
     {
         Slots.clear();
         Data.clear();
         DataToSlot.clear();
-        FreeHead = FSlot::InvalidIndex;
+        FreeHead = InvalidIndex;
         Size = 0;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    [[nodiscard]] UInt32 TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    [[nodiscard]] UInt32 TSlotMap<ValueType, HandleType, GenerationRange>::
     Allocate()
     {
-        UInt32 SlotIndex {FSlot::InvalidIndex};
-        if (FreeHead != FSlot::InvalidIndex)
+        UInt32 SlotIndex {InvalidIndex};
+        if (FreeHead != InvalidIndex)
         {
             // Reuse a free slot
             SlotIndex       = FreeHead;
             FSlot& Slot     = Slots[SlotIndex];
             FreeHead        = Slot.NextFree;
-            Slot.NextFree   = FSlot::InvalidIndex;
+            Slot.NextFree   = InvalidIndex;
             // Generation is already incremented in Free(), don't increment again
             // Index is already set to InvalidHandle in Free(), will be set in Insert()
         }
@@ -192,37 +193,38 @@ export namespace Visera
             SlotIndex = static_cast<UInt32>(Slots.size());
             FSlot NewSlot
             {
-                .Generation = 1,
-                .Index      = FSlot::InvalidIndex,
-                .NextFree   = FSlot::InvalidIndex,
+                .Generation = GenerationRange.Left,
+                .Index      = InvalidIndex,
+                .NextFree   = InvalidIndex,
             };
             Slots.push_back(std::move(NewSlot));
         }
         return SlotIndex;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    void TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    void TSlotMap<ValueType, HandleType, GenerationRange>::
     Free(UInt32 I_SlotIndex)
     {
         VISERA_ASSERT(I_SlotIndex < Slots.size());
         FSlot& Slot = Slots[I_SlotIndex];
-        
+        VISERA_ASSERT(Slot.Index != InvalidIndex && "Double free detected");
+
         // Mark slot as free by setting Index to InvalidIndex
-        Slot.Index = FSlot::InvalidIndex;
-        
-        // Increment generation to invalidate old handles (with wrap-around protection)
-        Slot.Generation += 1;
-        if (Slot.Generation == 0)
-        { Slot.Generation = 1; } // Avoid generation 0 (never valid)
+        Slot.Index = InvalidIndex;
+
+        if (Slot.Generation == GenerationRange.Right)
+        { Slot.Generation = GenerationRange.Left; }
+        else
+        { Slot.Generation += 1; }
         
         // Add to free list
         Slot.NextFree = FreeHead;
         FreeHead = I_SlotIndex;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType>
-    [[nodiscard]] Bool TSlotMap<ValueType, HandleType>::
+    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
+    [[nodiscard]] Bool TSlotMap<ValueType, HandleType, GenerationRange>::
     HasHandle(HandleType I_Handle) const
     {
         if (I_Handle.IsNull()) { return False; }
@@ -234,7 +236,7 @@ export namespace Visera
         const FSlot& Slot = Slots[SlotIndex];
         
         // Check if slot is free (Index == InvalidIndex marks free slots)
-        if (Slot.Index == FSlot::InvalidIndex)
+        if (Slot.Index == InvalidIndex)
         { return False; } // Slot is free
 
         // Check generation match

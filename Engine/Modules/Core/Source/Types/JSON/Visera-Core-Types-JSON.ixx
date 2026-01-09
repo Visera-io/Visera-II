@@ -82,7 +82,7 @@ export namespace Visera
             try { *O_Value = static_cast<Bool>(It->get<bool>()); return True; } catch (...) { return False; }
         }
 
-                [[nodiscard]] Bool
+        [[nodiscard]] Bool
         ContainsPath(FStringView I_Path) const noexcept
         {
             const Json* Node = nullptr;
