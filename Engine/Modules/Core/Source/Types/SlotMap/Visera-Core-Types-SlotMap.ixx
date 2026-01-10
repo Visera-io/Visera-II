@@ -9,10 +9,12 @@ import Visera.Core.Math.Arithmetic.Interval;
 export namespace Visera
 {
     template<typename                   ValueType,
-             Concepts::Handle           HandleType = FHandle,
-             TClosedInterval<UInt32>    GenerationRange = {1U, ~0U}>
+             Concepts::Handle           HandleType = FHandle>
     class VISERA_CORE_API TSlotMap
     {
+        static constexpr TClosedInterval<UInt32>
+        GenerationRange = HandleType::GetGenerationRange();
+
         static_assert(!GenerationRange.IsDegenerate());
         static_assert(!GenerationRange.Contains(HandleType{}.GetGeneration()));
     public:
@@ -67,8 +69,8 @@ export namespace Visera
         TSlotMap& operator=(TSlotMap&&) noexcept = default;
     };
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    TSlotMap<ValueType, HandleType>::
     TSlotMap()
         : FreeHead(InvalidIndex)
         , Size(0)
@@ -76,8 +78,8 @@ export namespace Visera
 
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    HandleType TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    HandleType TSlotMap<ValueType, HandleType>::
     Insert(const ValueType& I_Value)
     {
         UInt32 SlotIndex = Allocate();
@@ -92,8 +94,8 @@ export namespace Visera
         return HandleType(Slot.Generation, SlotIndex);
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    HandleType TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    HandleType TSlotMap<ValueType, HandleType>::
     Insert(ValueType&& I_Value)
     {
         UInt32 SlotIndex = Allocate();
@@ -108,8 +110,8 @@ export namespace Visera
         return HandleType(Slot.Generation, SlotIndex);
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    Bool TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    Bool TSlotMap<ValueType, HandleType>::
     Erase(HandleType I_Handle)
     {
         if (!HasHandle(I_Handle)) { return False; }
@@ -137,8 +139,8 @@ export namespace Visera
         return True;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    ValueType* TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    ValueType* TSlotMap<ValueType, HandleType>::
     Get(HandleType I_Handle)
     {
         if (!HasHandle(I_Handle)) { return nullptr; }
@@ -149,8 +151,8 @@ export namespace Visera
         return Data[Slot.Index].get();
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    const ValueType* TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    const ValueType* TSlotMap<ValueType, HandleType>::
     Get(HandleType I_Handle) const
     {
         if (!HasHandle(I_Handle)) { return nullptr; }
@@ -161,8 +163,8 @@ export namespace Visera
         return Data[Slot.Index].get();
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    void TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    void TSlotMap<ValueType, HandleType>::
     Clear()
     {
         Slots.clear();
@@ -172,8 +174,8 @@ export namespace Visera
         Size = 0;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    [[nodiscard]] UInt32 TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    [[nodiscard]] UInt32 TSlotMap<ValueType, HandleType>::
     Allocate()
     {
         UInt32 SlotIndex {InvalidIndex};
@@ -202,8 +204,8 @@ export namespace Visera
         return SlotIndex;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    void TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    void TSlotMap<ValueType, HandleType>::
     Free(UInt32 I_SlotIndex)
     {
         VISERA_ASSERT(I_SlotIndex < Slots.size());
@@ -223,8 +225,8 @@ export namespace Visera
         FreeHead = I_SlotIndex;
     }
 
-    template<typename ValueType, Concepts::Handle HandleType, TClosedInterval<UInt32> GenerationRange>
-    [[nodiscard]] Bool TSlotMap<ValueType, HandleType, GenerationRange>::
+    template<typename ValueType, Concepts::Handle HandleType>
+    [[nodiscard]] Bool TSlotMap<ValueType, HandleType>::
     HasHandle(HandleType I_Handle) const
     {
         if (I_Handle.IsNull()) { return False; }

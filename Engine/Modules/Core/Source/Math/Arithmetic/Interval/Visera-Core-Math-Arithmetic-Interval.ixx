@@ -17,7 +17,7 @@ export namespace Visera
 		constexpr TClosedInterval(T I_Left, T I_Right) noexcept
         : Left  (I_Left),
           Right (I_Right)
-		{ VISERA_ASSERT(Left <= Right); }
+		{ if !consteval { VISERA_ASSERT(I_Left <= I_Right); } }
 
 		[[nodiscard]] constexpr Bool
 		IsDegenerate() const noexcept { return Left == Right; }
@@ -30,12 +30,12 @@ export namespace Visera
 		[[nodiscard]] constexpr Bool
 		Overlaps(const TClosedInterval& I_Other) const noexcept { return !(I_Other.Right < Left || Right < I_Other.Left); }
 		
-        [[nodiscard]] constexpr std::optional<TClosedInterval>
+        [[nodiscard]] constexpr TOptional<TClosedInterval>
 		Intersect(const TClosedInterval& I_Other) const noexcept
 		{
 			T Lo = Math::Max(Left, I_Other.Left);
 			T Hi = Math::Min(Right, I_Other.Right);
-			if (Hi < Lo) return std::nullopt;
+			if (Hi < Lo) { return std::nullopt; }
 			return TClosedInterval(Lo, Hi);
 		}
 		[[nodiscard]] constexpr TClosedInterval
