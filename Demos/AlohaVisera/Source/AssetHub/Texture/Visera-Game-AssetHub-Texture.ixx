@@ -4,7 +4,7 @@ export module Visera.Game.AssetHub.Texture;
 #define VISERA_MODULE_NAME "Game.AssetHub"
 import Visera.Game.AssetHub.Asset;
 import Visera.Assets;
-import Visera.Runtime.Log;
+import Visera.Global.Log;
 //import Visera.RHI;
 
 namespace Visera

@@ -9,17 +9,15 @@ import Visera.Game.Audio.Interface;
 import Visera.Game.Audio.Null;
 import Visera.Game.Audio.Wwise;
 import Visera.Game.AssetHub.Sound;
-import Visera.Runtime.Global;
-import Visera.Runtime.Name;
 import Visera.Core.Types.Map;
 import Visera.Core.OS.Time;
-import Visera.Runtime.Log;
+import Visera.Global;
 
 namespace Visera
 {
     export using EAudioEngine = IAudioEngine::EType;
 
-    export class VISERA_ENGINE_API FAudio : public IGlobalSingleton<FAudio>
+    export class VISERA_ENGINE_API FAudio : public IGlobalService<FAudio>
     {
     public:
         using FToken   = AkGameObjectID;
@@ -47,17 +45,16 @@ namespace Visera
         TMap<FName, FToken>      Playlist;
 
     public:
-        FAudio() : IGlobalSingleton("Audio") { Engine = MakeUnique<FNullAudioEngine>(); }
-        void
-        Bootstrap() override;
-        void
-        Terminate() override;
+        FAudio() : IGlobalService(FName{"Audio"})
+        {
+            Engine = MakeUnique<FNullAudioEngine>();
+        }
     };
 
     export inline VISERA_ENGINE_API TUniquePtr<FAudio>
     GAudio = MakeUnique<FAudio>();
 
-    void FAudio::
+    /*void FAudio::
     Bootstrap()
     {
         LOG_TRACE("Bootstrapping Audio.");
@@ -94,7 +91,7 @@ namespace Visera
         Engine.reset();
 
         Status = EStatus::Terminated;
-    }
+    }*/
 
     FAudio::FToken FAudio::
     Register(TSharedRef<FSound> I_Sound)

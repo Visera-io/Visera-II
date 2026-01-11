@@ -8,10 +8,9 @@ export import Visera.Game.Audio;
 export import Visera.Game.Render;
 export import Visera.Game.Event;
 export import Visera.Game.World;
+export import Visera.Global;
        import Visera.Core.Delegate.Unicast;
        import Visera.Core.OS.Time;
-       import Visera.Runtime.Global;
-export import Visera.Runtime;
        import Visera.Platform;
        import Visera.RHI;
        import Visera.Graphics;
@@ -20,7 +19,7 @@ export import Visera.Runtime;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FEngine : public IGlobalSingleton<FEngine>
+    export class VISERA_ENGINE_API FEngine : public IGlobalService<FEngine>
     {
     public:
         TUnicastDelegate<void(Float)>
@@ -43,13 +42,13 @@ namespace Visera
             if (!GWindow->IsBootstrapped())
             {
                 LOG_INFO("Visera Off-Screen Mode.");
-                GRHI->BeginFrame();
+                if (GRHI->BeginFrame())
                 {
-                    GEvent->OnFrameBegin.Broadcast();
+                    //GEvent->OnFrameBegin.Broadcast();
                     AppTick.Invoke(0);
-                    GEvent->OnFrameEnd.Broadcast();
+                    //GEvent->OnFrameEnd.Broadcast();
+                    GRHI->EndFrame();
                 }
-                GRHI->EndFrame();
                 return;
             }
 
@@ -60,9 +59,9 @@ namespace Visera
 
                 Float DeltaTime = Timer.Tick().Microseconds() / 1000000.0; Timer.Reset();
 
-                GRHI->BeginFrame();
+                if (GRHI->BeginFrame())
                 {
-                    GEvent ->OnFrameBegin.Broadcast();
+                    //GEvent ->OnFrameBegin.Broadcast();
 
                     if (auto Window = Graphics::GDebug->UI->Window("Hello"))
                     {
@@ -76,17 +75,19 @@ namespace Visera
                     // Render
                     GRender->Tick(DeltaTime);
 
-                    GEvent ->OnFrameEnd.Broadcast();
+                    //GEvent ->OnFrameEnd.Broadcast();
+
+                    GRHI->EndFrame();
+                    GRHI->Present();
                 }
-                GRHI->EndFrame();
-                GRHI->Present();
             }
         }
     private:
         FHiResClock Timer;
 
     public:
-        void Bootstrap() override
+        FEngine() : IGlobalService(FName{"Engine"}) {};
+        /*void Bootstrap() override
         {
             LOG_TRACE("Bootstrapping Engine.");
             GRuntime    ->Bootstrap();
@@ -104,10 +105,10 @@ namespace Visera
             GEvent->OnEngineBootstrap.Broadcast();
 
             Status = EStatus::Bootstrapped;
-        }
+        }*/
 
 
-        void Terminate() override
+        /*void Terminate() override
         {
             LOG_TRACE("Terminating Engine.");
             GEvent->OnEngineTerminate.Broadcast();
@@ -125,9 +126,7 @@ namespace Visera
             GRuntime    ->Terminate();
 
             Status = EStatus::Terminated;
-        }
-
-        FEngine() : IGlobalSingleton("Engine") {};
+        }*/
     };
 
     export inline VISERA_ENGINE_API TUniquePtr<FEngine>

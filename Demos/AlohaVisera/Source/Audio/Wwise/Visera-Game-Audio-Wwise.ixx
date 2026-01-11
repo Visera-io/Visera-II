@@ -13,7 +13,7 @@ export module Visera.Game.Audio.Wwise;
 import Visera.Game.Audio.Interface;
 import Visera.Game.Audio.Wwise.IO;
 import Visera.Core.Types.Text;
-import Visera.Runtime.Log;
+import Visera.Global.Log;
 
 namespace Visera
 {

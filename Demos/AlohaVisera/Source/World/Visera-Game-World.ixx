@@ -3,9 +3,9 @@ module;
 #include <entt/entt.hpp>
 export module Visera.Game.World;
 #define VISERA_MODULE_NAME "Game.World"
-       import Visera.Runtime.Log;
-export import Visera.Runtime.Name;
-       import Visera.Runtime.Global;
+       import Visera.Global.Log;
+export import Visera.Global.Name;
+       import Visera.Global.Service;
        import Visera.Core.Types.Map;
        import Visera.Core.Math.Random.Seed;
        import Visera.Game.World.Entity;
@@ -14,13 +14,12 @@ export import Visera.Game.World.System;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FWorld : public IGlobalSingleton<FWorld>
+    export class VISERA_ENGINE_API FWorld : public IGlobalService<FWorld>
     {
     public:
         void inline
         Tick(Float I_DeltaTime);
 
-        // Managed by Registry rather than SharedPtr
         VISERA_NOINLINE FEntity
         CreateEntity(FName I_Name);
 
@@ -33,9 +32,7 @@ namespace Visera
         SPhysics2D              Physics2DSystem;
 
     public:
-        FWorld() : IGlobalSingleton("World") {}
-        void Bootstrap() override;
-        void Terminate() override;
+        FWorld() : IGlobalService(FName{"World"}) {}
     };
 
     export inline VISERA_ENGINE_API TUniquePtr<FWorld>
@@ -59,7 +56,7 @@ namespace Visera
         return Entity;
     }
 
-    void FWorld::
+    /*void FWorld::
     Bootstrap()
     {
         LOG_DEBUG("Bootstrapping World");
@@ -76,5 +73,5 @@ namespace Visera
         LOG_DEBUG("Terminating World");
 
         Status = EStatus::Terminated;
-    }
+    }*/
 }

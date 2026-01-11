@@ -9,8 +9,7 @@ export import Visera.Core.Types.Path;
        import Visera.Platform;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Types.Map;
-       import Visera.Runtime.Global;
-       import Visera.Runtime.Log;
+       import Visera.Global;
 
 namespace Visera
 {
@@ -19,7 +18,7 @@ namespace Visera
     export enum class EAssetSource : UInt8
     { App, Studio, Engine, Any, };
 
-    export class VISERA_ENGINE_API FAssetHub : public IGlobalSingleton<FAssetHub>
+    export class VISERA_ENGINE_API FAssetHub : public IGlobalService<FAssetHub>
     {
     public:
         [[nodiscard]] inline TSharedPtr<FSound>
@@ -29,10 +28,7 @@ namespace Visera
         GetAssetDirectory(EAssetSource I_Source) const { VISERA_ASSERT(I_Source != EAssetSource::Any); return Roots.at(I_Source).GetRoot(); }
 
     public:
-        void Bootstrap() override;
-        void Terminate() override;
-        FAssetHub() : IGlobalSingleton("AssetHub") {};
-        ~FAssetHub() override= default;
+        FAssetHub() : IGlobalService(FName{"AssetHub"}) {};
 
     private:
         TMap<EAssetSource, FFileSystem> Roots;
@@ -41,7 +37,7 @@ namespace Visera
     export inline VISERA_ENGINE_API TUniquePtr<FAssetHub>
     GAssetHub = MakeUnique<FAssetHub>();
 
-    void FAssetHub::
+    /*void FAssetHub::
     Bootstrap()
     {
         LOG_TRACE("Bootstrapping AssetHub.");
@@ -59,7 +55,7 @@ namespace Visera
         LOG_TRACE("Terminating AssetHub.");
 
         Status = EStatus::Terminated;
-    }
+    }*/
 
     TSharedPtr<FSound> FAssetHub::
     LoadSound(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)

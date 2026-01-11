@@ -3,7 +3,7 @@ module;
 export module Visera.Game.Audio.Null;
 #define VISERA_MODULE_NAME "Game.Audio"
 import Visera.Game.Audio.Interface;
-import Visera.Runtime.Log;
+import Visera.Global.Log;
 
 namespace Visera
 {
