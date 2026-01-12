@@ -54,26 +54,30 @@ namespace Visera
         IsMaximized() const { return Window->IsMaximized(); }
         
     public:
-        FWindow() : IGlobalService(FName{"Window"}) {}
-        /*void Bootstrap() override
+        FWindow() : IGlobalService(EName::Window)
         {
-            LOG_TRACE("Bootstrapping Window.");
+            Dependencies =
+            {
+                EName::Input,
+            };
+            if (!OnBootstrap.TryBind([this]
+            {
 #if !defined(VISERA_OFFSCREEN_MODE)
-            Window = MakeUnique<FGLFWWindow>();
+                Window = MakeUnique<FGLFWWindow>();
 #else
-            Window = MakeUnique<FNullWindow>();
+                Window = MakeUnique<FNullWindow>();
 #endif
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
 
-            Status = EStatus::Bootstrapped;
+            if (!OnTerminate.TryBind([this]
+            {
+                Window.reset();
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
         }
-        void Terminate() override
-        {
-            LOG_TRACE("Terminating Window.");
-            Window.reset();
-
-            Status = EStatus::Terminated;
-        }*/
-
     private:
         TUniquePtr<IWindow> Window;
     };

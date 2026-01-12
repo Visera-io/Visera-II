@@ -36,7 +36,4 @@ namespace Visera::Graphics
             Status = EStatus::Terminated;
         }*/
     };
-
-    export inline VISERA_GRAPHICS_API TUniquePtr<FDebug>
-    GDebug = MakeUnique<FDebug>();
 }

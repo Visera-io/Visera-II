@@ -13,7 +13,9 @@ export int main(int argc, char *argv[])
 {
     //GEngine->Bootstrap();
     auto RHI = IGlobalService::Get<FRHI>(EName::RHI);
+    IGlobalService::Bootstrap();
     LOG_INFO("{}", RHI->IsPending());
+    IGlobalService::Terminate();
     return 0;
     {
         if (GWindow->IsBootstrapped())

@@ -34,9 +34,6 @@ namespace Visera
         TMap<EAssetSource, FFileSystem> Roots;
     };
 
-    export inline VISERA_ENGINE_API TUniquePtr<FAssetHub>
-    GAssetHub = MakeUnique<FAssetHub>();
-
     /*void FAssetHub::
     Bootstrap()
     {

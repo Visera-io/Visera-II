@@ -45,53 +45,51 @@ namespace Visera
         TMap<FName, FToken>      Playlist;
 
     public:
-        FAudio() : IGlobalService(FName{"Audio"})
+        FAudio() : IGlobalService(EName::Audio)
         {
-            Engine = MakeUnique<FNullAudioEngine>();
+            Dependencies =
+            {
+                EName::Platform
+            };
+
+            if (!OnBootstrap.TryBind([this]
+            {
+                Engine = MakeUnique<FWwiseAudioEngine>();
+
+                switch (Engine->GetType())
+                {
+                    case IAudioEngine::EType::Null : LOG_INFO("Audio Engine: Null.");  break;
+                    case IAudioEngine::EType::Wwise: LOG_INFO("Audio Engine: Wwise."); break;
+                    default: LOG_FATAL("Unknown Audio Engine!");  break;
+                }
+                // Set Default Listeners
+                UInt64 MainID{0};
+                if (AK_Success != AK::SoundEngine::RegisterGameObj(MainID, "Player"))
+                {
+                    LOG_FATAL("Failed to register Main Listener");
+                }
+                AK::SoundEngine::SetDefaultListeners(&MainID, 1);
+
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
+
+            if (!OnTerminate.TryBind([this]
+            {
+                for (auto& [Name, PID] : Playlist)
+                {
+                    if (AK::SoundEngine::UnregisterGameObj(PID) != AK_Success)
+                    { LOG_ERROR("Failed to unregister {} (id:{})!", Name, PID); }
+                }
+                Engine.reset();
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
         }
     };
 
     export inline VISERA_ENGINE_API TUniquePtr<FAudio>
     GAudio = MakeUnique<FAudio>();
-
-    /*void FAudio::
-    Bootstrap()
-    {
-        LOG_TRACE("Bootstrapping Audio.");
-
-        Engine = MakeUnique<FWwiseAudioEngine>();
-
-        switch (Engine->GetType())
-        {
-            case IAudioEngine::EType::Null : LOG_INFO("Audio Engine: Null.");  break;
-            case IAudioEngine::EType::Wwise: LOG_INFO("Audio Engine: Wwise."); break;
-            default: LOG_FATAL("Unknown Audio Engine!");  break;
-        }
-        // Set Default Listeners
-        UInt64 MainID{0};
-        if (AK_Success != AK::SoundEngine::RegisterGameObj(MainID, "Player"))
-        {
-            LOG_FATAL("Failed to register Main Listener");
-        }
-        AK::SoundEngine::SetDefaultListeners(&MainID, 1);
-
-        Status = EStatus::Bootstrapped;
-    }
-
-    void FAudio::
-    Terminate()
-    {
-        LOG_TRACE("Terminating Audio.");
-
-        for (auto& [Name, PID] : Playlist)
-        {
-            if (AK::SoundEngine::UnregisterGameObj(PID) != AK_Success)
-            { LOG_ERROR("Failed to unregister {} (id:{})!", Name, PID); }
-        }
-        Engine.reset();
-
-        Status = EStatus::Terminated;
-    }*/
 
     FAudio::FToken FAudio::
     Register(TSharedRef<FSound> I_Sound)

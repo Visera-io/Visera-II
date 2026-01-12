@@ -18,7 +18,25 @@ namespace Visera
     private:
 
     public:
-        FAssets() : IGlobalService(FName{"Assets"}) {}
+        FAssets() : IGlobalService(FName{"Assets"})
+        {
+            Dependencies =
+            {
+
+            };
+
+            if (!OnBootstrap.TryBind([this]
+            {
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
+
+            if (!OnTerminate.TryBind([this]
+            {
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
+        }
     };
 
     export inline VISERA_ASSETS_API TUniquePtr<FAssets>

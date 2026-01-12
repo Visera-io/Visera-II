@@ -22,9 +22,9 @@ namespace Visera
       [[nodiscard]] inline const FPath&
       GetPath() const { return Path; }
       [[nodiscard]] inline const FByte*
-      GetData() const { return Data.data(); }
+      GetData() const { return Data.Data(); }
       [[nodiscard]] inline UInt64
-      GetSize() const { return Data.size(); }
+      GetSize() const { return Data.GetSize(); }
       [[nodiscard]] inline UInt32
       GetWidth() const { return Wrapper->GetWidth(); }
       [[nodiscard]] inline UInt32
@@ -49,7 +49,7 @@ namespace Visera
       HasAlpha() const { return Wrapper->HasAlpha(); }
 
       [[nodiscard]] FByte*
-      Access() { return Data.data(); }
+      Access() { return Data.Data(); }
 
    private:
       FPath         Path;
@@ -92,15 +92,15 @@ namespace Visera
       if (IsSRGB())
       {
          bSuccessed = stbir_resize_uint8_srgb(
-             Data.data(), GetWidth(), GetHeight(), 0,
-             Buffer.data(), I_Width, I_Height, 0,
+             Data.Data(), GetWidth(), GetHeight(), 0,
+             Buffer.Data(), I_Width, I_Height, 0,
              static_cast<stbir_pixel_layout>(Format));
       }
       else
       {
          bSuccessed = stbir_resize_uint8_linear(
-             Data.data(), GetWidth(), GetHeight(), 0,
-             Buffer.data(), I_Width, I_Height, 0,
+             Data.Data(), GetWidth(), GetHeight(), 0,
+             Buffer.Data(), I_Width, I_Height, 0,
              static_cast<stbir_pixel_layout>(Format));
       }
 

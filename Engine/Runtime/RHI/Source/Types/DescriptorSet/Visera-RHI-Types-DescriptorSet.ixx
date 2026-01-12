@@ -89,20 +89,20 @@ export namespace Visera
                    UInt32               I_Count,
                    ERHIShaderStages     I_Stages,
                    UInt64               ImmutableSamplerID = 0) && noexcept
-        { CachedHash.reset(); Bindings.emplace_back(I_Binding, I_Type, I_Count, I_Stages, ImmutableSamplerID); return std::move(*this); }
+        { CachedHash.reset(); Bindings.EmplaceBack(I_Binding, I_Type, I_Count, I_Stages, ImmutableSamplerID); return std::move(*this); }
         inline FRHIDescriptorSetLayout&
         AddBinding(UInt32               I_Binding,
                    ERHIDescriptorType   I_Type,
                    UInt32               I_Count,
                    ERHIShaderStages     I_Stages,
                    UInt64               ImmutableSamplerID = 0) & noexcept
-        { CachedHash.reset(); Bindings.emplace_back(I_Binding, I_Type, I_Count, I_Stages, ImmutableSamplerID); return *this; }
+        { CachedHash.reset(); Bindings.EmplaceBack(I_Binding, I_Type, I_Count, I_Stages, ImmutableSamplerID); return *this; }
         inline FRHIDescriptorSetLayout&&
         AddBinding(const FRHIDescriptorSetBinding& I_Prefab) && noexcept
-        { CachedHash.reset(); Bindings.emplace_back(I_Prefab); return std::move(*this); }
+        { CachedHash.reset(); Bindings.EmplaceBack(I_Prefab); return std::move(*this); }
         inline FRHIDescriptorSetLayout&
         AddBinding(const FRHIDescriptorSetBinding& I_Prefab) & noexcept
-        { CachedHash.reset(); Bindings.emplace_back(I_Prefab); return *this; }
+        { CachedHash.reset(); Bindings.EmplaceBack(I_Prefab); return *this; }
 
         [[nodiscard]] UInt64
         Hash() const noexcept

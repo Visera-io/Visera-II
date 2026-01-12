@@ -33,7 +33,4 @@ namespace Visera
     public:
         FRender() : IGlobalService(FName{"Render"}) {}
     };
-
-    export inline VISERA_ENGINE_API TUniquePtr<FRender>
-    GRender = MakeUnique<FRender>();
 }

@@ -32,8 +32,8 @@ namespace Visera
                                const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
     {
         auto CreateInfo = vk::DescriptorSetLayoutCreateInfo{}
-            .setBindingCount    (I_Bindings.size())
-            .setPBindings       (I_Bindings.data())
+            .setBindingCount    (I_Bindings.GetSize())
+            .setPBindings       (I_Bindings.Data())
         ;
         auto Result = I_Device.createDescriptorSetLayout(CreateInfo);
         if (Result.has_value())
@@ -47,18 +47,18 @@ namespace Visera
                                const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings,
                                const TArray<vk::DescriptorBindingFlags>&     I_BindingFlags)
     {
-        VISERA_ASSERT(I_Bindings.size() == I_BindingFlags.size());
+        VISERA_ASSERT(I_Bindings.GetSize() == I_BindingFlags.GetSize());
         
         auto BindingFlagsInfo = vk::DescriptorSetLayoutBindingFlagsCreateInfo{}
-            .setBindingCount    (I_BindingFlags.size())
-            .setPBindingFlags   (I_BindingFlags.data())
+            .setBindingCount    (I_BindingFlags.GetSize())
+            .setPBindingFlags   (I_BindingFlags.Data())
         ;
 
         auto CreateInfo = vk::DescriptorSetLayoutCreateInfo{}
             .setPNext           (&BindingFlagsInfo)
             .setFlags           (vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool)
-            .setBindingCount    (I_Bindings.size())
-            .setPBindings       (I_Bindings.data())
+            .setBindingCount    (I_Bindings.GetSize())
+            .setPBindings       (I_Bindings.Data())
         ;
         auto Result = I_Device.createDescriptorSetLayout(CreateInfo);
         if (Result.has_value())

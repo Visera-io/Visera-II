@@ -36,11 +36,11 @@ export namespace Visera
     {
     public:
         inline FRHIPipelineLayout&&
-        AddPushConstant(const FRHIPushConstantRange& I_PushConstantRange) && { CachedPipelineLayoutHash.reset(); PushConstantRanges.emplace_back(I_PushConstantRange); return std::move(*this); }
+        AddPushConstant(const FRHIPushConstantRange& I_PushConstantRange) && { CachedPipelineLayoutHash.reset(); PushConstantRanges.EmplaceBack(I_PushConstantRange); return std::move(*this); }
         inline FRHIPipelineLayout&&
         AddDescriptorSet(UInt8 I_Index, const FRHIDescriptorSetLayout& I_DescriptorSetLayout) &&;
         inline FRHIPipelineLayout&
-        AddPushConstant(const FRHIPushConstantRange& I_PushConstantRange) & { CachedPipelineLayoutHash.reset(); PushConstantRanges.emplace_back(I_PushConstantRange); return *this; }
+        AddPushConstant(const FRHIPushConstantRange& I_PushConstantRange) & { CachedPipelineLayoutHash.reset(); PushConstantRanges.EmplaceBack(I_PushConstantRange); return *this; }
         inline FRHIPipelineLayout&
         AddDescriptorSet(UInt8 I_Index, const FRHIDescriptorSetLayout& I_DescriptorSetLayout) &;
         [[nodiscard]] inline const TArray<FRHIPushConstantRange>&
@@ -78,10 +78,10 @@ export namespace Visera
     AddDescriptorSet(UInt8 I_Index, const FRHIDescriptorSetLayout& I_DescriptorSetLayout) &&
     {
         CachedPipelineLayoutHash.reset();
-        if (I_Index < DescriptorSetLayouts.size())
+        if (I_Index < DescriptorSetLayouts.GetSize())
         { LOG_FATAL("Failed to add the descriptor set ({}) -- already bind!", I_Index); }
 
-        DescriptorSetLayouts.resize(I_Index + 1); // Must bind by order!
+        DescriptorSetLayouts.Resize(I_Index + 1); // Must bind by order!
         DescriptorSetLayouts[I_Index] = I_DescriptorSetLayout;
         return std::move(*this);
     }
@@ -90,10 +90,10 @@ export namespace Visera
     AddDescriptorSet(UInt8 I_Index, const FRHIDescriptorSetLayout& I_DescriptorSetLayout) &
     {
         CachedPipelineLayoutHash.reset();
-        if (I_Index < DescriptorSetLayouts.size())
+        if (I_Index < DescriptorSetLayouts.GetSize())
         { LOG_FATAL("Failed to add the descriptor set ({}) -- already bind!", I_Index); }
 
-        DescriptorSetLayouts.resize(I_Index + 1); // Must bind by order!
+        DescriptorSetLayouts.Resize(I_Index + 1); // Must bind by order!
         DescriptorSetLayouts[I_Index] = I_DescriptorSetLayout;
         return *this;
     }

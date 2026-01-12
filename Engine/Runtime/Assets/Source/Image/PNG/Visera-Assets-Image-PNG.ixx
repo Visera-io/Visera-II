@@ -66,7 +66,7 @@ namespace Visera
             DetectColorSpace();
 
             const UInt64 RowBytes = png_get_rowbytes(Handle, Info);
-            ImageData.resize(RowBytes * Height);
+            ImageData.Resize(static_cast<typename TArray<FByte>::SizeType>(RowBytes * Height));
 
             for (UInt32 Row = 0; Row < Height; ++Row)
             {

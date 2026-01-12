@@ -38,10 +38,10 @@ namespace Visera
                           const TArray<vk::PushConstantRange>&   I_PushConstants)
     {
         const auto PipelineLayoutInfo = vk::PipelineLayoutCreateInfo{}
-            .setSetLayoutCount          (I_DescriptorSetLayouts.size())
-            .setPSetLayouts             (I_DescriptorSetLayouts.data())
-            .setPushConstantRangeCount  (I_PushConstants.size())
-            .setPPushConstantRanges     (I_PushConstants.data())
+            .setSetLayoutCount          (I_DescriptorSetLayouts.GetSize())
+            .setPSetLayouts             (I_DescriptorSetLayouts.Data())
+            .setPushConstantRangeCount  (I_PushConstants.GetSize())
+            .setPPushConstantRanges     (I_PushConstants.Data())
         ;
         auto Result = I_Device.createPipelineLayout(PipelineLayoutInfo);
         if (!Result.has_value())

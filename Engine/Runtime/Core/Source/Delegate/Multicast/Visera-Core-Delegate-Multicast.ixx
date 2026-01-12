@@ -37,9 +37,9 @@ export namespace Visera
             };
 
             if (LockCount > 0)
-            { PendingAdd.push_back(std::move(NewSlot)); }
+            { PendingAdd.PushBack(std::move(NewSlot)); }
             else
-            { Slots.push_back(std::move(NewSlot)); }
+            { Slots.PushBack(std::move(NewSlot)); }
 
             return NewHandle;
         }
@@ -55,7 +55,7 @@ export namespace Visera
                 {
                     if (It->Handle == I_Handle)
                     {
-                        PendingAdd.erase(It);
+                        PendingAdd.Erase(It);
                         return;
                     }
                 }
@@ -98,13 +98,13 @@ export namespace Visera
             {
                 Compact();
 
-                if (!PendingAdd.empty())
+                if (!PendingAdd.IsEmpty())
                 {
                     for (auto& NewSlot : PendingAdd)
                     {
-                        Slots.push_back(std::move(NewSlot));
+                        Slots.PushBack(std::move(NewSlot));
                     }
-                    PendingAdd.clear();
+                    PendingAdd.Clear();
                 }
             }
         }
@@ -119,12 +119,12 @@ export namespace Visera
                     Slot.bPendingRemove = True;
                     Slot.Callback       = nullptr;
                 }
-                PendingAdd.clear();
+                PendingAdd.Clear();
             }
             else
             {
-                Slots.clear();
-                PendingAdd.clear();
+                Slots.Clear();
+                PendingAdd.Clear();
             }
         }
 
@@ -161,7 +161,7 @@ export namespace Visera
 
             if (ItWrite != Slots.end())
             {
-                Slots.erase(ItWrite, Slots.end());
+                Slots.Erase(ItWrite, Slots.end());
             }
         }
 

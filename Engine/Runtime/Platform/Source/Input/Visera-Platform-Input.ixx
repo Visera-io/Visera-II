@@ -21,7 +21,25 @@ namespace Visera
         FMouse    Mouse;
 
     public:
-        FInput() : IGlobalService(EName::Input) {}
+        FInput() : IGlobalService(EName::Input)
+        {
+            Dependencies =
+            {
+                EName::Platform,
+            };
+
+            if (!OnBootstrap.TryBind([this]
+            {
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
+
+            if (!OnTerminate.TryBind([this]
+            {
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
+        }
     };
 
     export inline VISERA_PLATFORM_API TUniquePtr<FInput>

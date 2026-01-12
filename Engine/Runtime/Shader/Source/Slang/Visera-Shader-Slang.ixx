@@ -113,15 +113,15 @@ namespace Visera
 		};
 
     	TArray<const char*> SlangSearchPaths;
-		SlangSearchPaths.reserve(SearchPaths.size());
+		SlangSearchPaths.Reserve(static_cast<typename TArray<const char*>::SizeType>(SearchPaths.size()));
 		for (const auto& Path : SearchPaths)
-    	{ SlangSearchPaths.emplace_back(Path.data()); }
+    	{ SlangSearchPaths.EmplaceBack(Path.data()); }
 
     	slang::SessionDesc SessionCreateInfo
 		{
 			.targets		 = &Session->Description,
 			.targetCount	 = 1,
-			.searchPaths	 = SlangSearchPaths.data(),
+			.searchPaths	 = SlangSearchPaths.Data(),
 			.searchPathCount = static_cast<UInt32>(SearchPaths.size()),
 		};
 

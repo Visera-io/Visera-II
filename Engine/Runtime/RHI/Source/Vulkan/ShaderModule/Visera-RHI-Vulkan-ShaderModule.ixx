@@ -32,11 +32,11 @@ namespace Visera
     FVulkanShaderModule(const vk::raii::Device& I_Device,
                         const TArray<FByte>&    I_SPIRVShader)
     {
-        VISERA_ASSERT((I_SPIRVShader.size() % 4) == 0);
+        VISERA_ASSERT((I_SPIRVShader.GetSize() % 4) == 0);
 
         const auto CreateInfo = vk::ShaderModuleCreateInfo{}
-            .setPCode    (reinterpret_cast<const UInt32*>(I_SPIRVShader.data()))
-            .setCodeSize (I_SPIRVShader.size() * sizeof(FByte))
+            .setPCode    (reinterpret_cast<const UInt32*>(I_SPIRVShader.Data()))
+            .setCodeSize (I_SPIRVShader.GetSize() * sizeof(FByte))
         ;
         auto Result = I_Device.createShaderModule(CreateInfo);
         if (!Result.has_value())

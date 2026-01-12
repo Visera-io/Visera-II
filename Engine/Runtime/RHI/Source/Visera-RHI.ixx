@@ -70,64 +70,65 @@ export namespace Visera
             Dependencies =
             {
                 EName::Platform,
+#if !defined(VISERA_OFFSCREEN_MODE)
+                EName::Window,
+#endif
             };
+
+            if (!OnBootstrap.TryBind([this]
+            {
+                Driver   = MakeUnique<FVulkanDriver>();
+                Registry = MakeUnique<FRHIRegistry>(Driver);
+
+                GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>
+                (
+                    False
+                );
+
+                auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
+                Cmd.Begin();
+                {
+                    for (auto& Image : Driver->GetSwapChain().Images)
+                    Cmd.ConvertImageLayout(&Image,
+                        vk::ImageLayout::ePresentSrcKHR,
+                        EVulkanGraphicsStage::TopOfPipe,
+                        vk::AccessFlagBits2::eNone,
+                        EVulkanGraphicsStage::BottomOfPipe,
+                        vk::AccessFlagBits2::eNone);
+                }
+                Cmd.End();
+                auto Fence = Driver->CreateFence(False);
+
+                Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
+                if (!Fence.Wait())
+                {
+                    LOG_FATAL("Failed to init RHI SwapChain!");
+                }
+
+                Frames.Resize(Driver->GetSwapChain().Images.GetSize());
+                for (auto& Frame : Frames)
+                {
+                    Frame.Fence = Driver->CreateFence(True);
+                }
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
+
+            if (!OnTerminate.TryBind([this]
+            {
+                Driver->WaitIdle();
+                Frames.Clear();
+                GraphicsCommandPool = {};
+                Registry.reset();
+                Driver.reset();
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
         }
     };
 
     export inline VISERA_RHI_API TUniquePtr<FRHI>
     GRHI = MakeUnique<FRHI>();
-
-    /*void FRHI::
-    Bootstrap()
-    {
-        LOG_TRACE("Bootstrapping RHI.");
-        Driver   = MakeUnique<FVulkanDriver>();
-        Registry = MakeUnique<FRHIRegistry>(Driver);
-
-        GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>
-        (
-            False
-        );
-
-        auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
-        Cmd.Begin();
-        {
-            for (auto& Image : Driver->GetSwapChain().Images)
-            Cmd.ConvertImageLayout(&Image,
-                vk::ImageLayout::ePresentSrcKHR,
-                EVulkanGraphicsStage::TopOfPipe,
-                vk::AccessFlagBits2::eNone,
-                EVulkanGraphicsStage::BottomOfPipe,
-                vk::AccessFlagBits2::eNone);
-        }
-        Cmd.End();
-        auto Fence = Driver->CreateFence(False);
-
-        Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-        if (!Fence.Wait())
-        {
-            LOG_FATAL("Failed to init RHI SwapChain!");
-        }
-
-        Frames.resize(Driver->GetSwapChain().Images.size());
-        for (auto& Frame : Frames)
-        {
-            Frame.Fence = Driver->CreateFence(True);
-        }
-
-        Status = EStatus::Bootstrapped;
-    }
-
-    void FRHI::
-    Terminate()
-    {
-        LOG_TRACE("Terminating RHI.");
-
-        Registry.reset();
-        Driver.reset();
-
-        Status = EStatus::Terminated;
-    }*/
 
     Bool FRHI::
     BeginFrame()
@@ -152,7 +153,7 @@ export namespace Visera
     EndFrame()
     {
         OnEndFrame.Broadcast();
-        FrameIndex = (FrameIndex + 1) % Frames.size();
+        FrameIndex = static_cast<UInt8>((FrameIndex + 1) % Frames.GetSize());
     }
 
     FRHIImageHandle FRHI::

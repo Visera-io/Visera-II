@@ -185,13 +185,13 @@ namespace Visera
                                    const TArray<FVulkanSampler*>&   I_Samplers,
                                    UInt32                          I_FirstArrayElement /* = 0 */)
     {
-        VISERA_ASSERT(I_ImageViews.size() == I_Samplers.size());
+        VISERA_ASSERT(I_ImageViews.GetSize() == I_Samplers.GetSize());
         
-        const auto Count = I_ImageViews.size();
+        const auto Count = I_ImageViews.GetSize();
         if (Count == 0) { return; }
 
         TArray<vk::DescriptorImageInfo> ImageInfos;
-        ImageInfos.reserve(Count);
+        ImageInfos.Reserve(Count);
 
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
@@ -204,22 +204,22 @@ namespace Visera
             auto* Image = I_ImageViews[Idx]->GetImage();
             VISERA_ASSERT(Image != nullptr);
 
-            ImageInfos.emplace_back(vk::DescriptorImageInfo{}
+            ImageInfos.EmplaceBack(vk::DescriptorImageInfo{}
                 .setSampler     (I_Samplers[Idx]->GetHandle())
                 .setImageView   (I_ImageViews[Idx]->GetHandle())
                 .setImageLayout (Image->GetLayout())
             );
         }
 
-        if (ImageInfos.empty()) { return; }
+        if (ImageInfos.IsEmpty()) { return; }
 
         auto WriteInfo = vk::WriteDescriptorSet{}
-            .setDescriptorCount (static_cast<UInt32>(ImageInfos.size()))
+            .setDescriptorCount (static_cast<UInt32>(ImageInfos.GetSize()))
             .setDstSet          (Handle)
             .setDstBinding      (I_Binding)
             .setDstArrayElement  (I_FirstArrayElement)
             .setDescriptorType  (vk::DescriptorType::eCombinedImageSampler)
-            .setPImageInfo      (ImageInfos.data())
+            .setPImageInfo      (ImageInfos.Data())
         ;
         const auto& Device = Layout->GetHandle().getDevice();
         Device.updateDescriptorSets(
@@ -233,11 +233,11 @@ namespace Visera
                            const TArray<FVulkanImageView*>& I_ImageViews,
                            UInt32                         I_FirstArrayElement /* = 0 */)
     {
-        const auto Count = I_ImageViews.size();
+        const auto Count = I_ImageViews.GetSize();
         if (Count == 0) { return; }
 
         TArray<vk::DescriptorImageInfo> ImageInfos;
-        ImageInfos.reserve(Count);
+        ImageInfos.Reserve(Count);
 
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
@@ -250,22 +250,22 @@ namespace Visera
             auto* Image = I_ImageViews[Idx]->GetImage();
             VISERA_ASSERT(Image != nullptr);
 
-            ImageInfos.emplace_back(vk::DescriptorImageInfo{}
+            ImageInfos.EmplaceBack(vk::DescriptorImageInfo{}
                 .setSampler     (nullptr)
                 .setImageView   (I_ImageViews[Idx]->GetHandle())
                 .setImageLayout (Image->GetLayout())
             );
         }
 
-        if (ImageInfos.empty()) { return; }
+        if (ImageInfos.IsEmpty()) { return; }
 
         auto WriteInfo = vk::WriteDescriptorSet{}
-            .setDescriptorCount (static_cast<UInt32>(ImageInfos.size()))
+            .setDescriptorCount (static_cast<UInt32>(ImageInfos.GetSize()))
             .setDstSet          (Handle)
             .setDstBinding      (I_Binding)
             .setDstArrayElement  (I_FirstArrayElement)
             .setDescriptorType  (vk::DescriptorType::eStorageImage)
-            .setPImageInfo      (ImageInfos.data())
+            .setPImageInfo      (ImageInfos.Data())
         ;
         const auto& Device = Layout->GetHandle().getDevice();
         Device.updateDescriptorSets(
@@ -279,11 +279,11 @@ namespace Visera
                             const TArray<FVulkanBuffer*>&    I_Buffers,
                             UInt32                          I_FirstArrayElement /* = 0 */)
     {
-        const auto Count = I_Buffers.size();
+        const auto Count = I_Buffers.GetSize();
         if (Count == 0) { return; }
 
         TArray<vk::DescriptorBufferInfo> BufferInfos;
-        BufferInfos.reserve(Count);
+        BufferInfos.Reserve(Count);
 
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
@@ -293,22 +293,22 @@ namespace Visera
                 continue;
             }
 
-            BufferInfos.emplace_back(vk::DescriptorBufferInfo{}
+            BufferInfos.EmplaceBack(vk::DescriptorBufferInfo{}
                 .setBuffer (I_Buffers[Idx]->GetHandle())
                 .setOffset (0)
                 .setRange  (vk::WholeSize)
             );
         }
 
-        if (BufferInfos.empty()) { return; }
+        if (BufferInfos.IsEmpty()) { return; }
 
         auto WriteInfo = vk::WriteDescriptorSet{}
-            .setDescriptorCount (static_cast<UInt32>(BufferInfos.size()))
+            .setDescriptorCount (static_cast<UInt32>(BufferInfos.GetSize()))
             .setDstSet          (Handle)
             .setDstBinding      (I_Binding)
             .setDstArrayElement  (I_FirstArrayElement)
             .setDescriptorType  (vk::DescriptorType::eStorageBuffer)
-            .setPBufferInfo     (BufferInfos.data())
+            .setPBufferInfo     (BufferInfos.Data())
         ;
         const auto& Device = Layout->GetHandle().getDevice();
         Device.updateDescriptorSets(

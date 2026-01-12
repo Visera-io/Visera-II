@@ -88,8 +88,8 @@ export namespace Visera
         // Always append (reused slots have InvalidIndex, so always append)
         // Wrap in TUniquePtr to ensure pointer stability even when Data reallocates
         Slot.Index = static_cast<UInt32>(Data.size());
-        Data.push_back(MakeUnique<ValueType>(I_Value));
-        DataToSlot.push_back(SlotIndex);
+        Data.PushBack(MakeUnique<ValueType>(I_Value));
+        DataToSlot.PushBack(SlotIndex);
         Size += 1;
         return HandleType(Slot.Generation, SlotIndex);
     }
@@ -104,8 +104,8 @@ export namespace Visera
         // Always append (reused slots have InvalidIndex, so always append)
         // Wrap in TUniquePtr to ensure pointer stability even when Data reallocates
         Slot.Index = static_cast<UInt32>(Data.size());
-        Data.push_back(MakeUnique<ValueType>(std::move(I_Value)));
-        DataToSlot.push_back(SlotIndex);
+        Data.PushBack(MakeUnique<ValueType>(std::move(I_Value)));
+        DataToSlot.PushBack(SlotIndex);
         Size += 1;
         return HandleType(Slot.Generation, SlotIndex);
     }
@@ -199,7 +199,7 @@ export namespace Visera
                 .Index      = InvalidIndex,
                 .NextFree   = InvalidIndex,
             };
-            Slots.push_back(std::move(NewSlot));
+            Slots.PushBack(std::move(NewSlot));
         }
         return SlotIndex;
     }

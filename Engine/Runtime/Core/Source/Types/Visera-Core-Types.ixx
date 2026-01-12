@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Types;
 #define VISERA_MODULE_NAME "Core.Types"
 export import Visera.Core.Types.Array;
+export import Visera.Core.Types.Queue;
 export import Visera.Core.Types.JSON;
 export import Visera.Core.Types.Path;
 export import Visera.Core.Types.Text;

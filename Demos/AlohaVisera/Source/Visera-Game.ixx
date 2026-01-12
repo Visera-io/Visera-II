@@ -63,18 +63,8 @@ namespace Visera
                 {
                     //GEvent ->OnFrameBegin.Broadcast();
 
-                    if (auto Window = Graphics::GDebug->UI->Window("Hello"))
-                    {
-                        static Float k = 0;
-                        Graphics::GDebug->UI->Slider("K", &k, 0, 1);
-                    }
-
                     // Logic
                     AppTick.Invoke(DeltaTime);
-                    GWorld ->Tick(DeltaTime);
-                    // Render
-                    GRender->Tick(DeltaTime);
-
                     //GEvent ->OnFrameEnd.Broadcast();
 
                     GRHI->EndFrame();
@@ -86,47 +76,25 @@ namespace Visera
         FHiResClock Timer;
 
     public:
-        FEngine() : IGlobalService(FName{"Engine"}) {};
-        /*void Bootstrap() override
+        FEngine() : IGlobalService(FName{"Engine"})
         {
-            LOG_TRACE("Bootstrapping Engine.");
-            GRuntime    ->Bootstrap();
-            GPlatform   ->Bootstrap();
-            GAssets     ->Bootstrap();
-            GRHI        ->Bootstrap();
-            Graphics::GDebug->Bootstrap(); //[TODO]: Remove
-            GShader     ->Bootstrap();
+            Dependencies =
+            {
 
-            GEvent      ->Bootstrap();
-            GAssetHub   ->Bootstrap();
-            GRender     ->Bootstrap();
-            GAudio      ->Bootstrap();
+            };
 
-            GEvent->OnEngineBootstrap.Broadcast();
+            if (!OnBootstrap.TryBind([this]
+            {
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
 
-            Status = EStatus::Bootstrapped;
-        }*/
-
-
-        /*void Terminate() override
-        {
-            LOG_TRACE("Terminating Engine.");
-            GEvent->OnEngineTerminate.Broadcast();
-
-            GAudio      ->Terminate();
-            GRender     ->Terminate();
-            GAssetHub   ->Terminate();
-            GEvent      ->Terminate();
-
-            GShader     ->Terminate();
-            Graphics::GDebug->Terminate(); //[TODO]: Remove
-            GRHI        ->Terminate();
-            GAssets     ->Terminate();
-            GPlatform   ->Terminate();
-            GRuntime    ->Terminate();
-
-            Status = EStatus::Terminated;
-        }*/
+            if (!OnTerminate.TryBind([this]
+            {
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
+        };
     };
 
     export inline VISERA_ENGINE_API TUniquePtr<FEngine>

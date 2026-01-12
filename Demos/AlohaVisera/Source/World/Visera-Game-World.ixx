@@ -35,9 +35,6 @@ namespace Visera
         FWorld() : IGlobalService(FName{"World"}) {}
     };
 
-    export inline VISERA_ENGINE_API TUniquePtr<FWorld>
-    GWorld = MakeUnique<FWorld>();
-
     void FWorld::
     Tick(Float I_DeltaTime)
     {

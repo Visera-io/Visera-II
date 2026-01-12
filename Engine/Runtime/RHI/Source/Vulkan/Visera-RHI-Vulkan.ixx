@@ -184,13 +184,13 @@ export namespace Visera
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
 
         inline FVulkanDriver*
-        AddInstanceLayer(const char* I_Layer)           { InstanceLayers.emplace_back(I_Layer);         return this; }
+        AddInstanceLayer(const char* I_Layer)           { InstanceLayers.EmplaceBack(I_Layer);         return this; }
         inline FVulkanDriver*
-        AddInstanceExtension(const char* I_Extension)   { InstanceExtensions.push_back(I_Extension);    return this; }
+        AddInstanceExtension(const char* I_Extension)   { InstanceExtensions.PushBack(I_Extension);    return this; }
         inline FVulkanDriver*
-        AddDeviceLayer(const char* I_Layer)             { Device.Layers.push_back(I_Layer);              return this; }
+        AddDeviceLayer(const char* I_Layer)             { Device.Layers.PushBack(I_Layer);              return this; }
         inline FVulkanDriver*
-        AddDeviceExtension(const char* I_Extension)     { Device.Extensions.push_back(I_Extension);      return this; }
+        AddDeviceExtension(const char* I_Extension)     { Device.Extensions.PushBack(I_Extension);      return this; }
 
         void inline
         CollectInstanceLayersAndExtensions();
@@ -318,9 +318,9 @@ export namespace Visera
     DestroySwapChain()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        SwapChain.ReadyToPresentSemaphores.clear();
-        SwapChain.ImageViews.clear();
-        SwapChain.Images.clear();
+        SwapChain.ReadyToPresentSemaphores.Clear();
+        SwapChain.ImageViews.Clear();
+        SwapChain.Images.Clear();
         SwapChain.Context.clear();
 #endif
     }
@@ -379,10 +379,10 @@ export namespace Visera
 
         const auto CreateInfo = vk::InstanceCreateInfo{}
             .setPApplicationInfo        (&AppInfo)
-            .setEnabledLayerCount       (InstanceLayers.size())
-            .setPpEnabledLayerNames     (InstanceLayers.data())
-            .setEnabledExtensionCount   (InstanceExtensions.size())
-            .setPpEnabledExtensionNames (InstanceExtensions.data())
+            .setEnabledLayerCount       (InstanceLayers.GetSize())
+            .setPpEnabledLayerNames     (InstanceLayers.Data())
+            .setEnabledExtensionCount   (InstanceExtensions.GetSize())
+            .setPpEnabledExtensionNames (InstanceExtensions.Data())
             .setFlags                   (Flags)
         ;
 
@@ -567,7 +567,7 @@ export namespace Visera
             {
                 TransferFamilyIndex = *TransferFamilyIter;
 
-                DeviceQueueCreateInfos.emplace_back(vk::DeviceQueueCreateInfo{}
+                DeviceQueueCreateInfos.EmplaceBack(vk::DeviceQueueCreateInfo{}
                     .setQueueFamilyIndex(TransferFamilyIndex)
                     .setQueueCount      (1)
                     .setQueuePriorities ({Priority}));
@@ -603,10 +603,10 @@ export namespace Visera
         };
         const auto CreateInfo = vk::DeviceCreateInfo{}
             .setPNext                   (&FeatureChain.get<vk::PhysicalDeviceFeatures2>())
-            .setQueueCreateInfoCount    (DeviceQueueCreateInfos.size())
-            .setPQueueCreateInfos       (DeviceQueueCreateInfos.data())
-            .setEnabledExtensionCount   (Device.Extensions.size())
-            .setPpEnabledExtensionNames (Device.Extensions.data())
+            .setQueueCreateInfoCount    (DeviceQueueCreateInfos.GetSize())
+            .setPQueueCreateInfos       (DeviceQueueCreateInfos.Data())
+            .setEnabledExtensionCount   (Device.Extensions.GetSize())
+            .setPpEnabledExtensionNames (Device.Extensions.Data())
         ;
         //Create Device
         auto Result = GPU.Context.createDevice(CreateInfo);
@@ -762,8 +762,8 @@ export namespace Visera
             if (!Result.has_value())
             { LOG_FATAL("Failed to retrieve Vulkan Swapchain Images!"); }
 
-            TArray<vk::Image> SwapChainImages = std::move(*Result);
-            SwapChain.Images.resize(SwapChainImages.size());
+            auto SwapChainImages = std::move(*Result);
+            SwapChain.Images.Resize(SwapChainImages.size());
             for (UInt8 Idx = 0; Idx < SwapChainImages.size(); ++Idx)
             {
                 SwapChain.Images[Idx] = FVulkanSwapChainImage(
@@ -778,14 +778,14 @@ export namespace Visera
         // Create Image Views
         for (auto& Image : SwapChain.Images)
         {
-            SwapChain.ImageViews.emplace_back(
+            SwapChain.ImageViews.EmplaceBack(
                 &Image,  // Direct pointer to swapchain image
                 vk::ImageViewType::e2D,
                 vk::ImageAspectFlagBits::eColor);
         }
         // Create Semaphores and Fences
-        SwapChain.ReadyToPresentSemaphores.resize(SwapChain.Images.size());
-        for (UInt8 Idx = 0; Idx < SwapChain.Images.size(); ++Idx)
+        SwapChain.ReadyToPresentSemaphores.Resize(SwapChain.Images.GetSize());
+        for (UInt8 Idx = 0; Idx < SwapChain.Images.GetSize(); ++Idx)
         {
             SwapChain.ReadyToPresentSemaphores[Idx]
             = CreateSemaphore();
@@ -942,7 +942,7 @@ export namespace Visera
     FVulkanShaderModule FVulkanDriver::
     CreateShaderModule(const TArray<FByte>& I_SPIRVShader)
     {
-        VISERA_ASSERT(!I_SPIRVShader.empty());
+        VISERA_ASSERT(!I_SPIRVShader.IsEmpty());
         LOG_TRACE("Creating a Vulkan Shader Module");
         return FVulkanShaderModule(Device.Context, I_SPIRVShader);
     }

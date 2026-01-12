@@ -114,7 +114,7 @@ namespace Visera::Graphics
                 .DescriptorPoolSize = 100,
 
                 .MinImageCount	= Vulkan->GetSwapChain().MinimalImageCount,
-                .ImageCount		= static_cast<UInt32>(Vulkan->GetSwapChain().Images.size()),
+                .ImageCount		= static_cast<UInt32>(Vulkan->GetSwapChain().Images.GetSize()),
                 .PipelineCache	= *Vulkan->GetPipelineCache()->GetHandle(),
 
                 .RenderPass		= nullptr, // Ignored if using dynamic rendering

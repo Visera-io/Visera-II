@@ -39,11 +39,15 @@ export namespace Visera
         FRHIRegistry(TUniqueRef<FVulkanDriver> I_Driver)
         : Driver(I_Driver)
         {
-            TransferCommandBuffers.resize(Driver->GetSwapChain().Images.size());
+            TransferCommandBuffers.Resize(Driver->GetSwapChain().Images.GetSize());
             for (auto& TransferCommandBuffer : TransferCommandBuffers)
             {
                 //TransferCommandBuffer = Driver->CreateCommandBuffer(EVulkanQueue::Transfer);
             }
+        }
+        ~FRHIRegistry()
+        {
+            TransferCommandBuffers.Clear();
         }
     };
 

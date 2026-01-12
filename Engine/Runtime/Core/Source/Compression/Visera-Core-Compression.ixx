@@ -31,21 +31,21 @@ export namespace Visera
         //   |                         |
         // sizeof(UInt32) header       Actual zlib compressed data
         uLongf CompressedSize = compressBound(SourceSize);
-        O_Buffer->resize(CompressedSize + sizeof(UInt32));
+        O_Buffer->Resize(CompressedSize + sizeof(UInt32));
 
         // Store original size at the beginning for decompression
-        Memory::Memcpy(O_Buffer->data(), &SourceSize, sizeof(UInt32));
+        Memory::Memcpy(O_Buffer->Data(), &SourceSize, sizeof(UInt32));
 
         // Compress the data
         auto Result = compress(
-            O_Buffer->data() + sizeof(Int32),  // Destination (after size header)
-            &CompressedSize,                           // Compressed size (in/out)
-            SourceData,                                // Source data
-            SourceSize                                 // Source size
+            O_Buffer->Data() + sizeof(Int32),  // Destination (after size header)
+            &CompressedSize,                   // Compressed size (in/out)
+            SourceData,                        // Source data
+            SourceSize                         // Source size
         );
 
         if (Result == Z_OK)
-        { O_Buffer->resize(CompressedSize + sizeof(UInt32)); }
+        { O_Buffer->Resize(CompressedSize + sizeof(UInt32)); }
         return static_cast<ECompressionStatue>(Result);
     }
 }

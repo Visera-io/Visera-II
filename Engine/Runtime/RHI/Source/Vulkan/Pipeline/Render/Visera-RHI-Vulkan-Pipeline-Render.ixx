@@ -156,10 +156,10 @@ namespace Visera
                 .setPDynamicStates    (DynamicStates)
             ;
             const auto VertexInputInfo = vk::PipelineVertexInputStateCreateInfo{}
-                .setVertexAttributeDescriptionCount (Settings.VertexAttributes.size())
-                .setPVertexAttributeDescriptions    (Settings.VertexAttributes.data())
-                .setVertexBindingDescriptionCount   (Settings.VertexBindings.size())
-                .setPVertexBindingDescriptions      (Settings.VertexBindings.data())
+                .setVertexAttributeDescriptionCount (Settings.VertexAttributes.GetSize())
+                .setPVertexAttributeDescriptions    (Settings.VertexAttributes.Data())
+                .setVertexBindingDescriptionCount   (Settings.VertexBindings.GetSize())
+                .setPVertexBindingDescriptions      (Settings.VertexBindings.Data())
             ;
             const auto ColorBlending = vk::PipelineColorBlendStateCreateInfo{}
                 .setLogicOpEnable   (vk::False)
