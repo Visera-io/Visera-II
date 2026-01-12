@@ -12,6 +12,8 @@ using namespace Visera;
 export int main(int argc, char *argv[])
 {
     //GEngine->Bootstrap();
+    auto RHI = IGlobalService::Get<FRHI>(EName::RHI);
+    LOG_INFO("{}", RHI->IsPending());
     return 0;
     {
         if (GWindow->IsBootstrapped())

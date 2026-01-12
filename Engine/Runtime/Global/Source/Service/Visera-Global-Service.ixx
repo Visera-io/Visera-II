@@ -30,16 +30,20 @@ export namespace Visera
 
     class VISERA_GLOBAL_API IGlobalService
     {
-        static inline TUniquePtr<TMap<FName, IGlobalService*>> Services;
+        static auto* GetRegistry()
+        {
+            static auto* Registry = new TMap<FName, IGlobalService*>();
+            return Registry;
+        }
     public:
         enum class EStatus { Pending, Bootstrapped, Terminated };
 
         template<typename T> [[nodiscard]] static T*
         Get(FName I_ServiceName)
         {
-            //auto   ServiceIter = Services.find(I_ServiceName);
-            //return ServiceIter == Services.end() ?
-            //       nullptr : ServiceIter->second.get();
+            auto   ServiceIter =  GetRegistry()->find(I_ServiceName);
+            return ServiceIter == GetRegistry()->end() ?
+                   nullptr : dynamic_cast<T*>(ServiceIter->second);
         }
 
         [[nodiscard]] Bool
@@ -75,10 +79,9 @@ export namespace Visera
         IGlobalService() = delete;
         explicit IGlobalService(FName I_Name) : Name(I_Name)
         {
-            if (!Services) { Services = MakeUnique<TMap<FName, IGlobalService*>>(); }
-            VISERA_ASSERT(!Services->contains(Name));
-            LOG_DEBUG("Service ({}) : \"{}\".", Services->size() + 1, Name.GetName());
-            Services->emplace(Name, this);
+            VISERA_ASSERT(!GetRegistry()->contains(Name));
+            LOG_DEBUG("Service ({}) : \"{}\".", GetRegistry()->size() + 1, Name.GetName());
+            GetRegistry()->emplace(Name, this);
         }
 
         IGlobalService(const IGlobalService&)			   = delete;
