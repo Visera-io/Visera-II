@@ -19,7 +19,7 @@ export import Visera.Global;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FEngine : public IGlobalService<FEngine>
+    export class VISERA_ENGINE_API FEngine : public IGlobalService
     {
     public:
         TUnicastDelegate<void(Float)>

@@ -12,6 +12,7 @@ using namespace Visera;
 export int main(int argc, char *argv[])
 {
     //GEngine->Bootstrap();
+    return 0;
     {
         if (GWindow->IsBootstrapped())
         {

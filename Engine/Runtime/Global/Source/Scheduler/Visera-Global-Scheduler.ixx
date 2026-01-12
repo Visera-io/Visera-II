@@ -7,7 +7,7 @@ import Visera.Global.Log;
 
 namespace Visera
 {
-    export class VISERA_GLOBAL_API FScheduler : public IGlobalService<FScheduler>
+    export class VISERA_GLOBAL_API FScheduler : public IGlobalService
     {
     public:
 

@@ -11,7 +11,7 @@ import Visera.Scripting.Platform;
 
 namespace Visera
 {
-    export class VISERA_SCRIPTING_API FScripting : public IGlobalService<FScripting>
+    export class VISERA_SCRIPTING_API FScripting : public IGlobalService
     {
     public:
         using FFunction = FDotNETComponent::FFunction;

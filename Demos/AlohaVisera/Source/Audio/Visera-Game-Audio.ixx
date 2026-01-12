@@ -17,7 +17,7 @@ namespace Visera
 {
     export using EAudioEngine = IAudioEngine::EType;
 
-    export class VISERA_ENGINE_API FAudio : public IGlobalService<FAudio>
+    export class VISERA_ENGINE_API FAudio : public IGlobalService
     {
     public:
         using FToken   = AkGameObjectID;

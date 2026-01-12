@@ -5,7 +5,6 @@ export module Visera;
 import Visera.Global.Log;
 import Visera.Platform;
 import Visera.Core.Logger;
-import Visera.Global.Log;
 
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 #define VISERA_API __declspec(dllexport) auto __cdecl
@@ -22,12 +21,12 @@ export namespace Visera::API
     {
         switch (I_Level)
         {
-        case ELogLevel::Trace: GLog->Trace ("[M:App.{}] {}", I_Module, I_Message); break;
-        case ELogLevel::Debug: GLog->Debug ("[M:App.{}] {}", I_Module, I_Message); break;
-        case ELogLevel::Info:  GLog->Info  ("[M:App.{}] {}", I_Module, I_Message); break;
-        case ELogLevel::Warn:  GLog->Warn  ("[M:App.{}] {}", I_Module, I_Message); break;
-        case ELogLevel::Error: GLog->Error ("[M:App.{}] {}", I_Module, I_Message); break;
-        case ELogLevel::Fatal: GLog->Fatal ("[M:App.{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Trace: FLog::Get().Trace ("[M:App.{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Debug: FLog::Get().Debug ("[M:App.{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Info:  FLog::Get().Info  ("[M:App.{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Warn:  FLog::Get().Warn  ("[M:App.{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Error: FLog::Get().Error ("[M:App.{}] {}", I_Module, I_Message); break;
+        case ELogLevel::Fatal: FLog::Get().Fatal ("[M:App.{}] {}", I_Module, I_Message); break;
         }
     }
 

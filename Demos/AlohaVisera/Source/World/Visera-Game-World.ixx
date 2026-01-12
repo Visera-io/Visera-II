@@ -14,7 +14,7 @@ export import Visera.Game.World.System;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FWorld : public IGlobalService<FWorld>
+    export class VISERA_ENGINE_API FWorld : public IGlobalService
     {
     public:
         void inline

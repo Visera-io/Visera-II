@@ -19,7 +19,7 @@ export namespace Visera
     using FRHIImageHandle = FRHIResourceHandle;
     using FRHIDrawCalls   = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
 
-    class VISERA_RHI_API FRHI : public IGlobalService<FRHI>
+    class VISERA_RHI_API FRHI : public IGlobalService
     {
     public:
         TMulticastDelegate<>
@@ -65,7 +65,13 @@ export namespace Visera
         UInt8 FrameIndex = 0;
 
     public:
-        FRHI() : IGlobalService(FName{"RHI"}) {}
+        FRHI() : IGlobalService(EName::RHI)
+        {
+            Dependencies =
+            {
+                EName::Platform,
+            };
+        }
     };
 
     export inline VISERA_RHI_API TUniquePtr<FRHI>

@@ -4,12 +4,11 @@ export module Visera.Platform.Input;
 #define VISERA_MODULE_NAME "Platform.Input"
 export import Visera.Platform.Input.Keyboard;
 export import Visera.Platform.Input.Mouse;
-       import Visera.Global.Service;
-       import Visera.Global.Log;
+       import Visera.Global;
 
 namespace Visera
 {
-    export class VISERA_PLATFORM_API FInput : public IGlobalService<FInput>
+    export class VISERA_PLATFORM_API FInput : public IGlobalService
     {
     public:
         [[nodiscard]] inline FKeyboard*
@@ -22,7 +21,7 @@ namespace Visera
         FMouse    Mouse;
 
     public:
-        FInput() : IGlobalService(FName{"Input"}) {}
+        FInput() : IGlobalService(EName::Input) {}
     };
 
     export inline VISERA_PLATFORM_API TUniquePtr<FInput>

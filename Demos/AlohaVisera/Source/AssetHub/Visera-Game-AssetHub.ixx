@@ -18,7 +18,7 @@ namespace Visera
     export enum class EAssetSource : UInt8
     { App, Studio, Engine, Any, };
 
-    export class VISERA_ENGINE_API FAssetHub : public IGlobalService<FAssetHub>
+    export class VISERA_ENGINE_API FAssetHub : public IGlobalService
     {
     public:
         [[nodiscard]] inline TSharedPtr<FSound>

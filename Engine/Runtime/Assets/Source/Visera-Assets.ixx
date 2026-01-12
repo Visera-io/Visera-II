@@ -9,7 +9,7 @@ import Visera.Assets.Image;
 
 namespace Visera
 {
-    export class VISERA_ASSETS_API FAssets : public IGlobalService<FAssets>
+    export class VISERA_ASSETS_API FAssets : public IGlobalService
     {
     public:
         [[nodiscard]] inline TSharedPtr<FImage>

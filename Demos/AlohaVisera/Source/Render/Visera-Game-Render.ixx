@@ -7,7 +7,7 @@ import Visera.Graphics.RenderGraph;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FRender : public IGlobalService<FRender>
+    export class VISERA_ENGINE_API FRender : public IGlobalService
     {
     public:
         void inline

@@ -4,13 +4,12 @@ export module Visera.Shader;
 #define VISERA_MODULE_NAME "Shader"
 import Visera.Core.Types.Array;
 import Visera.Core.Types.Path;
-import Visera.Global.Service;
-import Visera.Global.Log;
 import Visera.Shader.Slang;
+import Visera.Global;
 
 export namespace Visera
 {
-    class VISERA_SHADER_API FShader : public IGlobalService<FShader>
+    class VISERA_SHADER_API FShader : public IGlobalService
     {
     public:
         enum class ELanguage
@@ -30,7 +29,13 @@ export namespace Visera
         TUniquePtr<FSlangCompiler> Compiler;
 
     public:
-        FShader() : IGlobalService(FName{"Shader"}) {}
+        FShader() : IGlobalService(EName::Shader)
+        {
+            Dependencies =
+            {
+                EName::Platform,
+            };
+        }
         /*void
         Bootstrap() override
         {

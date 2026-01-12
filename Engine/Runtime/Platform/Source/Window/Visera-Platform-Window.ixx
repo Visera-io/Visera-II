@@ -13,7 +13,7 @@ namespace Visera
 {
     export using EWindowType = IWindow::EType;
 
-    export class VISERA_PLATFORM_API FWindow : public IGlobalService<FWindow>
+    export class VISERA_PLATFORM_API FWindow : public IGlobalService
     {
     public:
         [[nodiscard]] inline void*

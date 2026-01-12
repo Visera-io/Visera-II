@@ -10,7 +10,7 @@ export import Visera.Physics2D.Common;
 
 namespace Visera
 {
-    export class VISERA_PHYSICS2D_API FPhysics2D : public IGlobalService<FPhysics2D>
+    export class VISERA_PHYSICS2D_API FPhysics2D : public IGlobalService
     {
     public:
         [[nodiscard]] FRigidBody2D

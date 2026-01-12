@@ -6,13 +6,12 @@ export module Visera.Platform;
        import Visera.Platform.OS.Interface; //[TODO]: Redesign
 export import Visera.Platform.Window;
 export import Visera.Platform.Input;
-       import Visera.Global.Service;
        import Visera.Core.OS.FileSystem;
-       import Visera.Global.Log;
+       import Visera.Global;
 
 namespace Visera
 {
-    export class VISERA_PLATFORM_API FPlatform : public IGlobalService<FPlatform>
+    export class VISERA_PLATFORM_API FPlatform : public IGlobalService
     {
     public:
         [[nodiscard]] inline TSharedPtr<ILibrary>
@@ -35,7 +34,13 @@ namespace Visera
         TUniquePtr<IOS> Platform;
 
     public:
-        FPlatform() : IGlobalService(FName{"Platform"}) {}
+        FPlatform() : IGlobalService(EName::Platform)
+        {
+            Dependencies =
+            {
+
+            };
+        }
         /*void Bootstrap() override
         {
             LOG_TRACE("Bootstrapping Platform.");

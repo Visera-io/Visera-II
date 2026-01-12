@@ -8,11 +8,10 @@ namespace Visera
 {
     export class VISERA_GLOBAL_API FLog
     {
-
+    public:
+        static inline auto&
+        Get() { static FLogger Logger{}; return Logger; }
     };
-
-    export inline VISERA_GLOBAL_API TUniquePtr<FLogger>
-    GLog = MakeUnique<FLogger>(static_cast<ELogLevel>(VISERA_LOG_SYSTEM_VERBOSITY)); //[TODO]: class FLog
 
     static_assert(ELogLevel::Trace == static_cast<ELogLevel>(VISERA_LOG_LEVEL_TRACE));
     static_assert(ELogLevel::Debug == static_cast<ELogLevel>(VISERA_LOG_LEVEL_DEBUG));

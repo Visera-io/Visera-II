@@ -9,7 +9,7 @@ import Visera.Global.Service;
 
 namespace Visera::Graphics
 {
-    export class VISERA_GRAPHICS_API FDebug : public IGlobalService<FDebug>
+    export class VISERA_GRAPHICS_API FDebug : public IGlobalService
     {
     public:
         TUniqueRef<FDebugUI> UI  = DebugUI;
