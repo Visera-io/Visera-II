@@ -39,9 +39,6 @@ namespace Visera
         }
     };
 
-    export inline VISERA_ASSETS_API TUniquePtr<FAssets>
-    GAssets = MakeUnique<FAssets>();
-
     TSharedPtr<FImage> FAssets::
     CreateImage(const FPath& I_Path) const
     {

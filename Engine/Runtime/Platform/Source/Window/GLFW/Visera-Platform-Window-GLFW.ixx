@@ -7,7 +7,7 @@ export module Visera.Platform.Window.GLFW;
 #define VISERA_MODULE_NAME "Platform.Window"
 import Visera.Platform.Window.Interface;
 import Visera.Platform.Input;
-import Visera.Global.Log;
+import Visera.Global;
 
 namespace Visera
 {
@@ -94,6 +94,7 @@ namespace Visera
         glfwSetScrollCallback             (Handle, FGLFWWindow::ScrollCallback);
         glfwSetKeyCallback                (Handle, FGLFWWindow::KeyCallback);
 
+        auto GInput = IGlobalService::Get<FInput>(EName::Input);
         if (!GInput->GetKeyboard()->OnGetKey.TryBind(
         [this](FKeyboard::EKey I_Key, FKeyboard::EAction* O_Status)
         {
@@ -161,7 +162,8 @@ namespace Visera
     void FGLFWWindow::
     KeyCallback(GLFWwindow* I_Handle, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
     {
-        const auto Key = static_cast<FKeyboard::EKey>(I_Key);
+        static auto GInput = IGlobalService::Get<FInput>(EName::Input);
+        const  auto Key = static_cast<FKeyboard::EKey>(I_Key);
         switch (I_Action)
         {
         case GLFW_RELEASE: return GInput->GetKeyboard()->OnReleased.Broadcast(Key);
@@ -174,7 +176,8 @@ namespace Visera
     void FGLFWWindow::
     MouseButtonCallback(GLFWwindow* I_Handle, Int32 I_Button, Int32 I_Action, Int32 I_Mods)
     {
-        const auto Button = static_cast<FMouse::EButton>(I_Button);
+        static auto GInput = IGlobalService::Get<FInput>(EName::Input);
+        const  auto Button = static_cast<FMouse::EButton>(I_Button);
         switch (I_Action)
         {
         case GLFW_RELEASE: return GInput->GetMouse()->OnReleased.Broadcast(Button);
@@ -187,6 +190,7 @@ namespace Visera
     void FGLFWWindow::
     CursorMoveCallback(GLFWwindow* I_Handle, Double I_PosX, Double I_PosY)
     {
+        static auto GInput = IGlobalService::Get<FInput>(EName::Input);
         if (auto* Self = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Handle)))
         {
             GInput->GetMouse()->OnCursorMoved.Broadcast(I_PosX * Self->ScaleX, I_PosY * Self->ScaleY);
@@ -196,6 +200,7 @@ namespace Visera
     void FGLFWWindow::
     ScrollCallback(GLFWwindow* I_Handle, Double I_OffsetX,  Double I_OffsetY)
     {
+        static auto GInput = IGlobalService::Get<FInput>(EName::Input);
         GInput->GetMouse()->OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
     }
 #endif

@@ -30,7 +30,7 @@ export import Visera.RHI.Vulkan.Sync;
        import Visera.Core.Types.Set;
        import Visera.Core.Types.Array;
        import Visera.Core.Traits.Flags;
-       import Visera.Global.Log;
+       import Visera.Global;
        import Visera.Platform;
        import vulkan_hpp;
 
@@ -224,6 +224,7 @@ export namespace Visera
     FVulkanDriver::
     FVulkanDriver()
     {
+        auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
 #if defined(VISERA_ON_APPLE_SYSTEM)
         auto VulkanICDPath = FPath{ GPlatform->GetResourceDirectory() / FPath{"Vulkan/MoltenVK_icd.json"}}.GetUTF8Path();
         if (!GPlatform->SetEnvironmentVariable(
@@ -420,8 +421,10 @@ export namespace Visera
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
         VkSurfaceKHR SurfaceHandle {nullptr};
-        auto& W = GWindow;
+        auto GWindow = IGlobalService::Get<FWindow>(EName::Window);
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
+
+        SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
 
         if(glfwCreateWindowSurface(
             *Instance,
@@ -716,8 +719,6 @@ export namespace Visera
             }
             else
             {
-                SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
-
                 Math::Clamp(&SwapChain.Extent.width,
                             SurfaceCapabilities.minImageExtent.width,
                             SurfaceCapabilities.maxImageExtent.width);
@@ -1042,6 +1043,7 @@ export namespace Visera
     void FVulkanDriver::
     CreatePipelineCache()
     {
+        auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
         PipelineCache = MakeUnique<FVulkanPipelineCache>(
             GPU.Context,
             Device.Context,

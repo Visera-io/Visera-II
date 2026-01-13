@@ -29,17 +29,5 @@ export namespace Visera::API
         case ELogLevel::Fatal: FLog::Get().Fatal ("[M:App.{}] {}", I_Module, I_Message); break;
         }
     }
-
-    VISERA_API
-    SetWindowTitle(const char* I_Title) -> void
-    {
-        GWindow->SetTitle(I_Title);
-    }
-
-    VISERA_API
-    ResizeWindow(Int32 I_Width, Int32 I_Height) -> void
-    {
-        GWindow->SetSize(I_Width, I_Height);
-    }
 }
 } // extern "C"

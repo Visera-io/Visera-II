@@ -81,7 +81,4 @@ namespace Visera
     private:
         TUniquePtr<IWindow> Window;
     };
-
-    export inline VISERA_PLATFORM_API TUniquePtr<FWindow>
-    GWindow = MakeUnique<FWindow>();
 }

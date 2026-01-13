@@ -88,9 +88,6 @@ namespace Visera
         }
     };
 
-    export inline VISERA_ENGINE_API TUniquePtr<FAudio>
-    GAudio = MakeUnique<FAudio>();
-
     FAudio::FToken FAudio::
     Register(TSharedRef<FSound> I_Sound)
     {

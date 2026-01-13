@@ -97,6 +97,7 @@ namespace Visera::Graphics
 
             ImGui::StyleColorsDark();
 
+            auto GRHI = IGlobalService::Get<FRHI>(EName::RHI);
             auto& Vulkan = GRHI->GetDriver();
 
             auto& QueueFamily = *Vulkan->GetGPU().GraphicsQueueFamilies.begin();
@@ -197,6 +198,7 @@ namespace Visera::Graphics
         ~FDebugUI()
         {
     #if !defined(VISERA_OFFSCREEN_MODE)
+            auto GRHI = IGlobalService::Get<FRHI>(EName::RHI);
             GRHI->GetDriver()->WaitIdle();
             LOG_TRACE("Terminating Dear ImGUI Vulkan backend.");
             ImGui_ImplVulkan_Shutdown();

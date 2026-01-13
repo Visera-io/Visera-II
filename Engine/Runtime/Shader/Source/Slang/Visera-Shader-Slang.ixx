@@ -7,7 +7,7 @@ export module Visera.Shader.Slang;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
-import Visera.Global.Log;
+import Visera.Global;
 import Visera.Platform;
 
 namespace Visera
@@ -86,6 +86,8 @@ namespace Visera
 
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
+
+    		auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
 
     		if (!AddSearchPath(GPlatform->GetResourceDirectory() / FPath{"Assets/App/Shader"}))
     		{ VISERA_ASSERT(False && "Failed to add app shader search path!"); }

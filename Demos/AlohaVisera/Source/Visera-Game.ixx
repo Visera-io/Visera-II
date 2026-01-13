@@ -27,7 +27,11 @@ namespace Visera
 
         void Run()
         {
-            VISERA_ASSERT(IsBootstrapped());
+            IGlobalService::Bootstrap();
+
+            auto GRHI       = IGlobalService::Get<FRHI>(EName::RHI);
+            auto GWindow    = IGlobalService::Get<FWindow>(EName::Window);
+            auto GAudio     = IGlobalService::Get<FAudio>(EName::Audio);
 
             // if (auto Tick = GScripting->GetFunction(PLATFORM_STRING("Tick")))
             // {
@@ -96,7 +100,4 @@ namespace Visera
             { LOG_FATAL("Failed to bind terminate function!"); }
         };
     };
-
-    export inline VISERA_ENGINE_API TUniquePtr<FEngine>
-    GEngine = MakeUnique<FEngine>();
 }

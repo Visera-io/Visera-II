@@ -5,6 +5,7 @@ export module AlohaVisera;
 import Visera.Core;
 import Visera.Game;
 import Visera.RHI;
+import Visera.Global;
 import Visera.Platform;
 import Visera.Assets.Image;
 using namespace Visera;
@@ -12,14 +13,20 @@ using namespace Visera;
 export int main(int argc, char *argv[])
 {
     //GEngine->Bootstrap();
-    auto RHI = IGlobalService::Get<FRHI>(EName::RHI);
+    auto GPlatform = IGlobalService::Register<FPlatform>(EName::Platform);
+    auto GInput = IGlobalService::Register<FInput>(EName::Input);
+    auto GWindow = IGlobalService::Register<FWindow>(EName::Window);
+    auto GRHI = IGlobalService::Register<FRHI>(EName::RHI);
+    auto GEngine = IGlobalService::Register<FEngine>(FName{"engine", 0});
     IGlobalService::Bootstrap();
-    LOG_INFO("{}", RHI->IsPending());
+    LOG_INFO("{}", GRHI->IsPending());
     IGlobalService::Terminate();
+
     return 0;
     {
         if (GWindow->IsBootstrapped())
         {
+            auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
             FImage AppIcon { GPlatform->GetResourceDirectory() / FPath{"Assets/Engine/Image/Visera.png"} };
             GWindow->SetIcon(AppIcon.Access(), AppIcon.GetWidth(), AppIcon.GetHeight());
         }

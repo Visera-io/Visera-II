@@ -127,9 +127,6 @@ export namespace Visera
         }
     };
 
-    export inline VISERA_RHI_API TUniquePtr<FRHI>
-    GRHI = MakeUnique<FRHI>();
-
     Bool FRHI::
     BeginFrame()
     {

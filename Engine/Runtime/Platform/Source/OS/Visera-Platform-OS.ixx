@@ -68,7 +68,4 @@ namespace Visera
             { LOG_FATAL("Failed to bind terminate function!"); }
         }
     };
-
-    export inline VISERA_PLATFORM_API TUniquePtr<FPlatform>
-    GPlatform = MakeUnique<FPlatform>();
 }

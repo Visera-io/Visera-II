@@ -34,6 +34,14 @@ export namespace Visera
         Physics2D = FName{"physics2d",   0};
     }
 
+    class IGlobalService;
+    namespace Concepts
+    {
+        template<typename T> concept
+        Service = std::is_class_v<T> &&
+                  std::derived_from<T, IGlobalService>;
+    }
+
     class VISERA_GLOBAL_API IGlobalService
     {
         static auto* GetRegistry()
@@ -70,10 +78,7 @@ export namespace Visera
             TArray<IGlobalService*> SortedServices = TopologicalSort();
             
             if (SortedServices.IsEmpty())
-            {
-                LOG_FATAL("Cannot terminate services due to dependency issues!");
-                return;
-            }
+            { LOG_FATAL("Cannot terminate services due to dependency issues!"); }
 
             // Terminate in reverse order (services that depend on others should terminate first)
             for (auto It = SortedServices.rbegin(); It != SortedServices.rend(); ++It)
@@ -84,6 +89,18 @@ export namespace Visera
                 { LOG_FATAL("Failed to terminate \"{}\"!", Service->GetDebugName()); }
                 Service->Status = EStatus::Terminated;
             }
+        }
+
+        template<typename T> [[nodiscard]] static T*
+        Register(FName I_ServiceName)
+        {
+            auto Registry = GetRegistry();
+            if (Registry->contains(I_ServiceName))
+            {
+                LOG_ERROR("Global service {} already exists!", I_ServiceName.GetName());
+                return nullptr;
+            }
+            return static_cast<T*>(Registry->emplace(I_ServiceName, new T()).first->second);
         }
 
         template<typename T> [[nodiscard]] static T*
@@ -127,8 +144,10 @@ export namespace Visera
         IGlobalService() = delete;
         explicit IGlobalService(FName I_Name) : Name(I_Name)
         {
-            VISERA_ASSERT(!GetRegistry()->contains(Name));
-            LOG_TRACE("Service ({}) : \"{}\".", GetRegistry()->size() + 1, Name.GetName());
+            if(GetRegistry()->contains(Name))
+            { LOG_FATAL("Global service {} already exists!", Name); }
+
+            LOG_TRACE("Registering service ({}) : \"{}\".", GetRegistry()->size() + 1, Name.GetName());
             GetRegistry()->emplace(Name, this);
         }
 
@@ -161,7 +180,7 @@ export namespace Visera
                     }
                     else
                     {
-                        LOG_ERROR("Service \"{}\" depends on unknown service \"{}\"!",
+                        LOG_ERROR("Service \"{}\" depends on unregistered service \"{}\"!",
                                   Name.GetName(), DepName.GetName());
                     }
                 }
