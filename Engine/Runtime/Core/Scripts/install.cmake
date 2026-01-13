@@ -20,6 +20,9 @@ macro(install_visera_core in_target)
     include(install_zlib)
     link_zlib(${in_target})
 
+    include(install_simdutf)
+    link_simdutf(${in_target})
+
     include(install_ankerl)
     link_ankerl(${in_target})
 

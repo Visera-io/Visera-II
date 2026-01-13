@@ -1,0 +1,15 @@
+if(NOT VISERA_CORE_EXTERNAL_DIR)
+    message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
+endif()
+
+macro(link_simdutf in_target)
+    message(STATUS "\nLinking SIMD UTF (SimdUTF)")
+
+    if(NOT TARGET simdutf)
+        file(GLOB_RECURSE SIMDUTF_MODULES ${VISERA_CORE_EXTERNAL_DIR}/SIMDUTF)
+        add_library(SimdUTF INTERFACE)
+        target_include_directories(SimdUTF INTERFACE ${VISERA_CORE_EXTERNAL_DIR}/SIMDUTF)
+        set_target_properties(SimdUTF PROPERTIES FOLDER "Visera/Core/External/SIMDUTF")
+    endif()
+    target_link_libraries(${in_target} PUBLIC SimdUTF)
+endmacro()

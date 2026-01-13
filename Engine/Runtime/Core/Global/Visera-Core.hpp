@@ -81,7 +81,7 @@
 #define RELEASE_ONLY_FIELD(I_Content) I_Content
 #endif
 
-#define VISERA_UNIMPLEMENTED_API VISERA_ASSERT(False)
+#define VISERA_UNIMPLEMENTED_API LOG_FATAL("Unimplemented function \"" __FUNCTION__ "\"!")
 
 // << PCHs >>
 #include <cassert>
