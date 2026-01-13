@@ -3,12 +3,21 @@ module;
 export module Visera.Platform.Window.Interface;
 #define VISERA_MODULE_NAME "Platform.Window"
 
-namespace Visera
+export namespace Visera
 {
-    export class VISERA_PLATFORM_API IWindow
+    class VISERA_PLATFORM_API IWindow
     {
-    protected:
-        Bool bInitialized = False;
+    public:
+        struct FIconSet
+        {
+            const FByte* Icon16x16    = nullptr;
+            const FByte* Icon32x32    = nullptr;
+            const FByte* Icon48x48    = nullptr;
+            const FByte* Icon64x64    = nullptr;
+            const FByte* Icon128x128  = nullptr;
+            const FByte* Icon256x256  = nullptr;
+        };
+
     public:
         enum class EType
         {
@@ -33,7 +42,7 @@ namespace Visera
         virtual void
         SetTitle(FStringView I_Title) = 0;
         virtual void
-        SetIcon(TMutable<FByte> I_Data, Int32 I_Width, Int32 I_Height) = 0;
+        SetIcon(const FIconSet& I_IconSet) = 0;
 
         [[nodiscard]] inline UInt32
         GetWidth() const  { return Width; }
@@ -55,7 +64,7 @@ namespace Visera
     protected:
         EType       Type { EType::Unknown };
         Int32       Width {1920},  Height{1080};
-        Float       ScaleX{1.0f}, ScaleY{1.0f};
+        Float       ScaleX{1.0f},  ScaleY{1.0f};
         Bool        bMaximized{False};
     };
 }

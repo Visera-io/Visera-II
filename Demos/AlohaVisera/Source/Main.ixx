@@ -3,56 +3,53 @@ module;
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
-import Visera.Game;
+//import Visera.Game;
 import Visera.RHI;
 import Visera.Global;
 import Visera.Platform;
 import Visera.Assets.Image;
 using namespace Visera;
 
-export int main(int argc, char *argv[])
+struct FEngine
 {
-    //GEngine->Bootstrap();
-    auto GPlatform = IGlobalService::Register<FPlatform>(EName::Platform);
-    auto GInput = IGlobalService::Register<FInput>(EName::Input);
-    auto GWindow = IGlobalService::Register<FWindow>(EName::Window);
-    auto GRHI = IGlobalService::Register<FRHI>(EName::RHI);
-    auto GEngine = IGlobalService::Register<FEngine>(FName{"engine", 0});
-    IGlobalService::Bootstrap();
-    LOG_INFO("{}", GRHI->IsPending());
-    IGlobalService::Terminate();
+    FPlatform* Platform;
+    FInput*    Input;
+    FWindow*   Window;
+    FRHI*      RHI;
 
-    return 0;
+    Bool Run()
     {
-        if (GWindow->IsBootstrapped())
-        {
-            auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
-            FImage AppIcon { GPlatform->GetResourceDirectory() / FPath{"Assets/Engine/Image/Visera.png"} };
-            GWindow->SetIcon(AppIcon.Access(), AppIcon.GetWidth(), AppIcon.GetHeight());
-        }
-        //
         // auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
         // auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
         //
         // GAudio->Register(BankInit);
         // auto ID = GAudio->Register(MainBGM);
         // GAudio->PostEvent("Play_Advanture", ID);
-        //
-        // auto Entity = GWorld->CreateEntity(FName{"player_0"});
-        // auto& Transform = Entity.Add<CTransform2D>();
-        // auto& Velocity  = Entity.Add<CVelocity2D>();
 
-        // (void)GRHI->CreateTexture({
-        //     .Width  = 100,
-        //     .Height = 100,
-        //     .Depth  = 1,
-        //     .Format = ERHIFormat::R16G16B16A16_Float,
-        //     .Type   = ERHIImageType::Image2D,
-        //     .Usages = ERHIImageUsage::TransferSrc | ERHIImageUsage::TransferDst
-        // });
+        while (!Window->ShouldClose())
+        {
+            Window->PollEvents();
+        }
 
-        GEngine->Run();
+        return EXIT_SUCCESS;
     }
-    //GEngine->Terminate();
-    return EXIT_SUCCESS;
+
+    FEngine()
+    {
+        Platform    = IGlobalService::Register<FPlatform>(EName::Platform);
+        Input       = IGlobalService::Register<FInput>(EName::Input);
+        Window      = IGlobalService::Register<FWindow>(EName::Window);
+        RHI         = IGlobalService::Register<FRHI>(EName::RHI);
+
+        IGlobalService::Bootstrap();
+    }
+    ~FEngine()
+    {
+        IGlobalService::Terminate();
+    }
+};
+
+export int main(int argc, char *argv[])
+{
+    return FEngine{}.Run();
 }

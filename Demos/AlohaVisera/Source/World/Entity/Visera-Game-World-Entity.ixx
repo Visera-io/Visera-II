@@ -14,19 +14,19 @@ namespace Visera
         [[nodiscard]] entt::entity
         GetID() const noexcept { return Handle.entity(); }
         template<class T> [[nodiscard]] Bool
-        Has() const { VISERA_ASSERT(IsValid()); return Handle.all_of<T>(); }
+        Has() const {return Handle.all_of<T>(); }
         template<class T, class... Args> T&
-        Add(Args&&... args) { VISERA_ASSERT(IsValid()); return Handle.emplace<T>(std::forward<Args>(args)...); }
+        Add(Args&&... args) {return Handle.emplace<T>(std::forward<Args>(args)...); }
         template<class T> [[nodiscard]] T&
-        Get() { VISERA_ASSERT(IsValid()); return Handle.get<T>(); }
+        Get() {return Handle.get<T>(); }
         template<class T> [[nodiscard]] const T&
-        Get() const { VISERA_ASSERT(IsValid()); return Handle.get<T>(); }
+        Get() const {return Handle.get<T>(); }
         template<class T> [[nodiscard]] T*
-        TryGet() { VISERA_ASSERT(IsValid()); return Handle.try_get<T>(); }
+        TryGet() {return Handle.try_get<T>(); }
         template<class T> [[nodiscard]] const T*
-        TryGet() const { VISERA_ASSERT(IsValid()); return Handle.try_get<T>(); }
+        TryGet() const {return Handle.try_get<T>(); }
         template<class T> void
-        Remove() { VISERA_ASSERT(IsValid()); Handle.remove<T>(); }
+        Remove() {Handle.remove<T>(); }
 
     private:
         entt::handle Handle{};

@@ -32,6 +32,10 @@ namespace Visera
                          TClosedInterval<UInt8>           I_MipmapRange = {0,0},
                          TClosedInterval<UInt8>           I_ArrayRange  = {0,0},
                          const vk::ComponentMapping&      I_Swizzle     = {});
+        FVulkanImageView(const FVulkanImageView&) = delete;
+        FVulkanImageView& operator=(const FVulkanImageView&) = delete;
+        FVulkanImageView(FVulkanImageView&&) = default;
+        FVulkanImageView& operator=(FVulkanImageView&&) = default;
     };
 
 
@@ -117,6 +121,8 @@ namespace Visera
             Info.mipLevels   = 1;
             Info.arrayLayers = 1;
         }
+        FVulkanSwapChainImage(const FVulkanSwapChainImage&)             = delete;
+        FVulkanSwapChainImage& operator=(const FVulkanSwapChainImage&)  = delete;
         FVulkanSwapChainImage(FVulkanSwapChainImage&& I_Other) noexcept = default;
         FVulkanSwapChainImage& operator=(FVulkanSwapChainImage&& I_Other) noexcept = default;
         ~FVulkanSwapChainImage() override { Handle = nullptr; } // Disable release

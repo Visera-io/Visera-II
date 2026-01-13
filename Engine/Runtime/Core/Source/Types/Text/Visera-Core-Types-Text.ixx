@@ -1,7 +1,6 @@
 module;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 #include <windows.h>
-#undef TEXT
 #endif
 #include <Visera-Core.hpp>
 export module Visera.Core.Types.Text;
@@ -9,7 +8,7 @@ export module Visera.Core.Types.Text;
 
 export namespace Visera
 {
-    /* UTF8 Encoded String (Compiler & Project Level Setted) */
+    /* UTF8 Encoded String */
     class VISERA_CORE_API FText
     {
     public:
@@ -17,18 +16,20 @@ export namespace Visera
         ToUTF8(const T* I_Text) { return FText{I_Text}; }
 
         [[nodiscard]] const FString&
-        GetData() const { return Data; }
+        GetString() const { return String; }
+        [[nodiscard]] const char*
+        GetData()   const { return String.data(); }
 
-        //auto ToString() const -> StringView { return Data; }
-        explicit operator FString()		const	{ return Data; }
-        explicit operator const char*()	const	{ return Data.data(); }
-        explicit FText(FStringView    I_Data) : Data{I_Data} {}
-        explicit FText(const char8_t* I_Text) : Data{ reinterpret_cast<const char *>(I_Text) } {}
+        //auto ToString() const -> StringView { return String; }
+        explicit operator FString()		const	{ return String; }
+        explicit operator const char*()	const	{ return String.data(); }
+        explicit FText(FStringView    I_String) : String{I_String} {}
+        explicit FText(const char8_t* I_Text) : String{ reinterpret_cast<const char *>(I_Text) } {}
         explicit FText(FWideStringView I_Text);
-        explicit FText(FUTF8StringView I_Text) : Data{ reinterpret_cast<const char *>(I_Text.data()) } {}
+        explicit FText(FUTF8StringView I_Text) : String{ reinterpret_cast<const char *>(I_Text.data()) } {}
 
     private:
-        FString Data;
+        FString String;
     };
 
     FText::
@@ -46,13 +47,13 @@ export namespace Visera
             nullptr);
         if (sizeNeeded <= 0) { return; }
 
-        Data.resize(sizeNeeded - 1, 0); // -1 to exclude null terminator
+        String.resize(sizeNeeded - 1, 0); // -1 to exclude null terminator
         WideCharToMultiByte(
             CP_UTF8,
             0,
             I_Text.data(),
             -1,
-            Data.data(),
+            String.data(),
             sizeNeeded,
             nullptr,
             nullptr);
@@ -60,32 +61,11 @@ export namespace Visera
         UInt64 Size = wcstombs(nullptr, I_Text.data(), 0);
         if (Size == static_cast<UInt64>(-1)) { return; }
 
-        Data.resize(Size);
-        wcstombs(Data.data(), I_Text.data(), Size);
+        String.resize(Size);
+        wcstombs(String.data(), I_Text.data(), Size);
 #else
         VISERA_UNIMPLEMENTED_API;
 #endif
     }
 }
-
-template <>
-struct fmt::formatter<Visera::FText>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::FText& I_Text, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        return fmt::format_to(
-            I_Context.out(),
-            "{}",
-            static_cast<const char*>(I_Text)
-        );
-    }
-};
+VISERA_MAKE_FORMATTER(Visera::FText, {}, "{}", static_cast<const char*>(I_Formatee.GetData()))

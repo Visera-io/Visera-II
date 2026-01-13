@@ -24,9 +24,6 @@ namespace Visera
         [[nodiscard]] inline TSharedPtr<FSound>
         LoadSound(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
 
-        [[nodiscard]] inline const FPath&
-        GetAssetDirectory(EAssetSource I_Source) const { VISERA_ASSERT(I_Source != EAssetSource::Any); return Roots.At(I_Source).GetRoot(); }
-
     public:
         FAssetHub() : IGlobalService(FName{"AssetHub"}) {};
 
@@ -57,8 +54,6 @@ namespace Visera
     TSharedPtr<FSound> FAssetHub::
     LoadSound(const FPath& I_File, EAssetSource I_Source /* = EAssetSource::Any */)
     {
-        VISERA_ASSERT(IsBootstrapped());
-
         TSharedPtr<FSound> Sound{};
 
         if (I_Source != EAssetSource::Any)

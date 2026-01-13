@@ -1,5 +1,8 @@
 module;
 #include <Visera-Platform.hpp>
+#if defined (VISERA_ON_WINDOWS_SYSTEM)
+#include <VISERA_ICONS.inl>
+#endif
 export module Visera.Platform.Window;
 #define VISERA_MODULE_NAME "Platform.Window"
 import Visera.Platform.Window.Interface;
@@ -16,6 +19,7 @@ namespace Visera
     export class VISERA_PLATFORM_API FWindow : public IGlobalService
     {
     public:
+        using FIconSet = IWindow::FIconSet;
         [[nodiscard]] inline void*
         GetHandle() const { return Window->GetHandle(); }
         [[nodiscard]] inline Bool
@@ -33,10 +37,16 @@ namespace Visera
         inline void
         SetTitle(FStringView I_Title) { Window->SetTitle(I_Title); }
         inline void
-        SetIcon(TMutable<FByte> I_Data, Int32 I_Width, Int32 I_Height)
+        SetIcon(const FIconSet& I_IconSet)
         {
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-            Window->SetIcon(I_Data, I_Width, I_Height);
+            VISERA_ASSERT(I_IconSet.Icon16x16);
+            VISERA_ASSERT(I_IconSet.Icon32x32);
+            VISERA_ASSERT(I_IconSet.Icon48x48);
+            VISERA_ASSERT(I_IconSet.Icon64x64);
+            VISERA_ASSERT(I_IconSet.Icon128x128);
+            VISERA_ASSERT(I_IconSet.Icon256x256);
+            Window->SetIcon(I_IconSet);
 #endif
         }
 
@@ -66,6 +76,16 @@ namespace Visera
                 Window = MakeUnique<FGLFWWindow>();
 #else
                 Window = MakeUnique<FNullWindow>();
+#endif
+#if defined (VISERA_ON_WINDOWS_SYSTEM)
+                SetIcon(FIconSet{
+                    .Icon16x16   = ::ViseraIcons[EViseraIcon::X16],
+                    .Icon32x32   = ::ViseraIcons[EViseraIcon::X32],
+                    .Icon48x48   = ::ViseraIcons[EViseraIcon::X48],
+                    .Icon64x64   = ::ViseraIcons[EViseraIcon::X64],
+                    .Icon128x128 = ::ViseraIcons[EViseraIcon::X128],
+                    .Icon256x256 = ::ViseraIcons[EViseraIcon::X256],
+                });
 #endif
                 return True;
             }))

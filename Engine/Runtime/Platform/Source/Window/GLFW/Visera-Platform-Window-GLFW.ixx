@@ -18,24 +18,24 @@ namespace Visera
         [[nodiscard]] static GLFWmonitor*
         GetPrimaryMonitor();
 
-        [[nodiscard]] VISERA_FORCEINLINE void*
+        [[nodiscard]] void*
         GetHandle() const override { return Handle; }
-        [[nodiscard]] VISERA_FORCEINLINE Bool
+        [[nodiscard]] Bool
         ShouldClose() const override { return glfwWindowShouldClose(Handle); }
-        VISERA_FORCEINLINE void
+        void
         WaitEvents() const override { glfwWaitEvents(); }
-        VISERA_FORCEINLINE void
+        void
         PollEvents() const override { glfwPollEvents(); }
-        VISERA_FORCEINLINE void
+        void
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
-        VISERA_FORCEINLINE void
+        void
         SetPosition(Int32 I_X, Int32 I_Y) const override { glfwSetWindowPos(Handle, I_X, I_Y); }
-        [[nodiscard]] VISERA_FORCEINLINE FStringView
+        [[nodiscard]] FStringView
         GetTitle() const override { return glfwGetWindowTitle(Handle); }
-        VISERA_FORCEINLINE void
+        void
         SetTitle(FStringView I_Title) override { glfwSetWindowTitle(Handle, I_Title.data()); }
-        VISERA_FORCEINLINE void
-        SetIcon(TMutable<FByte> I_Data, Int32 I_Width, Int32 I_Height) override { GLFWimage Icon; Icon.width = I_Width; Icon.height = I_Height; Icon.pixels = I_Data; glfwSetWindowIcon(Handle, 1, &Icon); }
+        void
+        SetIcon(const FIconSet& I_IconSet) override;
 
         FGLFWWindow();
         ~FGLFWWindow() override;
@@ -202,6 +202,21 @@ namespace Visera
     {
         static auto GInput = IGlobalService::Get<FInput>(EName::Input);
         GInput->GetMouse()->OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
+    }
+
+    void FGLFWWindow::
+    SetIcon(const FIconSet& I_IconSet)
+    {
+        GLFWimage Icons[6]
+        {
+            { .width = 16, .height = 16, .pixels = const_cast<unsigned char*>(I_IconSet.Icon16x16) },
+            { .width = 32, .height = 32, .pixels = const_cast<unsigned char*>(I_IconSet.Icon32x32) },
+            { .width = 48, .height = 48, .pixels = const_cast<unsigned char*>(I_IconSet.Icon48x48) },
+            { .width = 64, .height = 64, .pixels = const_cast<unsigned char*>(I_IconSet.Icon64x64) },
+            { .width = 128, .height = 128, .pixels = const_cast<unsigned char*>(I_IconSet.Icon128x128) },
+            { .width = 256, .height = 256, .pixels = const_cast<unsigned char*>(I_IconSet.Icon256x256) },
+        };
+        glfwSetWindowIcon(Handle, 6, Icons);
     }
 #endif
 }

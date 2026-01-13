@@ -14,10 +14,10 @@ export namespace Visera
         using KeyType       = Key;
         using ValueType     = Value;
         using MapType       = ankerl::unordered_dense::map<Key, Value>;
-        using Iterator      = typename MapType::iterator;
-        using ConstIterator = typename MapType::const_iterator;
+        using Iterator      = MapType::iterator;
+        using ConstIterator = MapType::const_iterator;
         using Pair          = TPair<Key, Value>;
-        using I_sertResult  = TPair<Iterator, Bool>;
+        using InsertResult  = TPair<Iterator, Bool>;
 
     private:
         MapType Map;
@@ -100,18 +100,18 @@ export namespace Visera
             Map.clear();
         }
 
-        I_sertResult I_sert(const Pair& I_Pair)
+        InsertResult Insert(const Pair& I_Pair)
         {
             return Map.insert(I_Pair);
         }
 
-        I_sertResult I_sert(Pair&& I_Pair)
+        InsertResult Insert(Pair&& I_Pair)
         {
             return Map.insert(std::move(I_Pair));
         }
 
         template<typename... Args>
-        I_sertResult Emplace(Args&&... I_Args)
+        InsertResult Emplace(Args&&... I_Args)
         {
             return Map.emplace(std::forward<Args>(I_Args)...);
         }
@@ -176,7 +176,7 @@ export namespace Visera
             using Iterator      = typename MapType::iterator;
             using ConstIterator = typename MapType::const_iterator;
             using Pair          = TPair<Key, Value>;
-            using I_sertResult  = TPair<Iterator, Bool>;
+            using InsertResult  = TPair<Iterator, Bool>;
 
         private:
             mutable FRWLock Lock; // RWLock works well for read-heavy tasks
@@ -350,7 +350,7 @@ export namespace Visera
                 Lock.StopWriting();
             }
 
-            I_sertResult I_sert(const Pair& I_Pair)
+            InsertResult Insert(const Pair& I_Pair)
             {
                 Lock.StartWriting();
                 auto Result = Map.insert(I_Pair);
@@ -358,7 +358,7 @@ export namespace Visera
                 return Result;
             }
 
-            I_sertResult I_sert(Pair&& I_Pair)
+            InsertResult Insert(Pair&& I_Pair)
             {
                 Lock.StartWriting();
                 auto Result = Map.insert(std::move(I_Pair));
@@ -367,7 +367,7 @@ export namespace Visera
             }
 
             template<typename... Args>
-            I_sertResult Emplace(Args&&... I_Args)
+            InsertResult Emplace(Args&&... I_Args)
             {
                 Lock.StartWriting();
                 auto Result = Map.emplace(std::forward<Args>(I_Args)...);

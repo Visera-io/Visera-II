@@ -11,15 +11,15 @@ export namespace Visera
     class VISERA_CORE_API TArray
     {
     public:
-        using ValueType = T;
-        using ArrayType = std::vector<T>;
-        using Iterator = typename ArrayType::iterator;
-        using ConstIterator = typename ArrayType::const_iterator;
-        using ReverseIterator = typename ArrayType::reverse_iterator;
-        using ConstReverseIterator = typename ArrayType::const_reverse_iterator;
-        using Reference = typename ArrayType::reference;
-        using ConstReference = typename ArrayType::const_reference;
-        using SizeType = typename ArrayType::size_type;
+        using ValueType             = T;
+        using ArrayType             = std::vector<T>;
+        using Iterator              = ArrayType::iterator;
+        using ConstIterator         = ArrayType::const_iterator;
+        using ReverseIterator       = ArrayType::reverse_iterator;
+        using ConstReverseIterator  = ArrayType::const_reverse_iterator;
+        using Reference             = ArrayType::reference;
+        using ConstReference        = ArrayType::const_reference;
+        using SizeType              = ArrayType::size_type;
 
     private:
         ArrayType Array;
@@ -35,6 +35,7 @@ export namespace Visera
         }
 
         TArray(SizeType I_Count, const T& I_Value)
+            requires std::copy_constructible<T>
             : Array(I_Count, I_Value)
         {
         }
@@ -45,24 +46,43 @@ export namespace Visera
         {
         }
 
-        TArray(std::initializer_list<T> I_Init)
+        TArray(std::initializer_list<T> I_Init) requires std::copy_constructible<T>
             : Array(I_Init)
         {
         }
 
-        // Copy constructor
-        TArray(const TArray& I_Other) = default;
+        // Copy constructor: only if T is copy constructible
+        TArray(const TArray& I_Other) 
+            requires std::copy_constructible<T>
+            : Array(I_Other.Array)
+        {
+        }
+        TArray(const TArray&) 
+            requires (!std::copy_constructible<T>)
+            = delete;
         
-        // Move constructor
+        // Copy assignment: only if T is copyable (both copy constructible and copy assignable)
+        TArray& operator=(const TArray& I_Other) 
+            requires (std::copy_constructible<T> && std::is_copy_assignable_v<T>)
+        {
+            if (this != &I_Other)
+            {
+                Array = I_Other.Array;
+            }
+            return *this;
+        }
+        TArray& operator=(const TArray&) 
+            requires (!(std::copy_constructible<T> && std::is_copy_assignable_v<T>))
+            = delete;
+        
+        // Move constructor: always available
         TArray(TArray&& I_Other) noexcept = default;
-
-        // Copy assignment
-        TArray& operator=(const TArray& I_Other) = default;
-
-        // Move assignment
+        
+        // Move assignment: always available  
         TArray& operator=(TArray&& I_Other) noexcept = default;
 
         TArray& operator=(std::initializer_list<T> I_Init)
+            requires std::is_copy_constructible_v<T>
         {
             Array = I_Init;
             return *this;
@@ -100,6 +120,7 @@ export namespace Visera
         }
 
         void Resize(SizeType I_NewSize, const T& I_Value)
+            requires std::copy_constructible<T>
         {
             Array.resize(I_NewSize, I_Value);
         }
@@ -228,6 +249,7 @@ export namespace Visera
         }
 
         void PushBack(const T& I_Value)
+            requires std::copy_constructible<T>
         {
             Array.push_back(I_Value);
         }
@@ -249,6 +271,7 @@ export namespace Visera
         }
 
         Iterator Insert(ConstIterator I_Pos, const T& I_Value)
+            requires std::copy_constructible<T>
         {
             return Array.insert(I_Pos, I_Value);
         }
@@ -259,6 +282,7 @@ export namespace Visera
         }
 
         Iterator Insert(ConstIterator I_Pos, SizeType I_Count, const T& I_Value)
+            requires std::copy_constructible<T>
         {
             return Array.insert(I_Pos, I_Count, I_Value);
         }
@@ -270,6 +294,7 @@ export namespace Visera
         }
 
         Iterator Insert(ConstIterator I_Pos, std::initializer_list<T> I_Init)
+            requires std::copy_constructible<T>
         {
             return Array.insert(I_Pos, I_Init);
         }
@@ -292,7 +317,7 @@ export namespace Visera
         template<typename... Args>
         T& Emplace(ConstIterator I_Pos, Args&&... I_Args)
         {
-            return *Array.emplace(I_Pos, std::forward<Args>(I_Args)...);
+            return Array.emplace(I_Pos, std::forward<Args>(I_Args)...);
         }
     };
 

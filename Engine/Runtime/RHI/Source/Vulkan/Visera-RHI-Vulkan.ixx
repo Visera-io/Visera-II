@@ -1,8 +1,5 @@
 module;
 #include <Visera-RHI.hpp>
-#if defined(CreateSemaphore)
-#undef CreateSemaphore
-#endif
 #if !defined(VISERA_OFFSCREEN_MODE)
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -154,7 +151,7 @@ export namespace Visera
             vk::raii::SwapchainKHR          OldContext  {nullptr};
             vk::Extent2D                    Extent      {0U, 0U};
             TArray<FVulkanSwapChainImage>   Images      {}; // SwapChain manages Images so do NOT use RAII here.
-            TArray<FVulkanImageView>        ImageViews  {};
+            TArray<FVulkanImageView>        ImageViews;
             TArray<FVulkanSemaphore>        ReadyToPresentSemaphores;
             UInt32                          Cursor      {0};
             vk::ImageUsageFlags             ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
@@ -218,6 +215,12 @@ export namespace Visera
     public:
         FVulkanDriver();
         ~FVulkanDriver();
+
+        // Driver should not be copied or moved
+        FVulkanDriver(const FVulkanDriver&) = delete;
+        FVulkanDriver& operator=(const FVulkanDriver&) = delete;
+        FVulkanDriver(FVulkanDriver&&) = delete;
+        FVulkanDriver& operator=(FVulkanDriver&&) = delete;
     };
 
     FVulkanDriver::
@@ -763,10 +766,11 @@ export namespace Visera
             { LOG_FATAL("Failed to retrieve Vulkan Swapchain Images!"); }
 
             auto SwapChainImages = std::move(*Result);
-            SwapChain.Images.Resize(SwapChainImages.size());
+            SwapChain.Images.Clear();
+            SwapChain.Images.Reserve(SwapChainImages.size());
             for (UInt8 Idx = 0; Idx < SwapChainImages.size(); ++Idx)
             {
-                SwapChain.Images[Idx] = FVulkanSwapChainImage(
+                SwapChain.Images.EmplaceBack(
                     Allocator,
                     SwapChainImages[Idx],
                     vk::ImageType::e2D,
@@ -784,11 +788,10 @@ export namespace Visera
                 vk::ImageAspectFlagBits::eColor);
         }
         // Create Semaphores and Fences
-        SwapChain.ReadyToPresentSemaphores.Resize(SwapChain.Images.GetSize());
+        SwapChain.ReadyToPresentSemaphores.Reserve(SwapChain.Images.GetSize());
         for (UInt8 Idx = 0; Idx < SwapChain.Images.GetSize(); ++Idx)
         {
-            SwapChain.ReadyToPresentSemaphores[Idx]
-            = CreateSemaphore();
+            //SwapChain.ReadyToPresentSemaphores.EmplaceBack(std::move(CreateSemaphore()));
         }
 #endif
     }

@@ -38,7 +38,7 @@ namespace Visera
 
       if (Extension == FPath(".bnk"))
       {
-         VISERA_ASSERT(AK::SoundEngine::IsInitialized());
+         //VISERA_ASSERT(AK::SoundEngine::IsInitialized());
          //auto WidePath = I_Path.GetNativePath().wstring();
          auto Result = AK::SoundEngine::LoadBank(I_Path.GetNativePath().c_str(), ID);
          switch (Result)

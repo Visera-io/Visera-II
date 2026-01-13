@@ -4,29 +4,29 @@ from pathlib import Path
 
 # Directories to scan
 SOURCE_DIRS = [
-    "Engine/Modules/Assets/Source",
-    "Engine/Modules/Audio/Source",
-    "Engine/Modules/Core/Source",
-    "Engine/Modules/Graphics/Source",
-    "Engine/Modules/Physics2D/Source",
-    "Engine/Modules/Platform/Source",
-    "Engine/Modules/RHI/Source",
-    "Engine/Modules/Runtime/Source",
-    "Engine/Modules/Scripting/Source",
-    "Engine/Modules/Shader/Source",
+    "Engine/Runtime/Assets/Source",
+    "Engine/Runtime/Audio/Source",
+    "Engine/Runtime/Core/Source",
+    "Engine/Runtime/Graphics/Source",
+    "Engine/Runtime/Physics2D/Source",
+    "Engine/Runtime/Platform/Source",
+    "Engine/Runtime/RHI/Source",
+    "Engine/Runtime/Global/Source",
+    "Engine/Runtime/Scripting/Source",
+    "Engine/Runtime/Shader/Source",
 ]
 
 SCRIPT_DIRS = [
-    "Engine/Modules/Assets/Scripts",
-    "Engine/Modules/Audio/Scripts",
-    "Engine/Modules/Core/Scripts",
-    "Engine/Modules/Graphics/Scripts",
-    "Engine/Modules/Physics2D/Scripts",
-    "Engine/Modules/Platform/Scripts",
-    "Engine/Modules/RHI/Scripts",
-    "Engine/Modules/Runtime/Scripts",
-    "Engine/Modules/Scripting/Scripts",
-    "Engine/Modules/Shader/Scripts",
+    "Engine/Runtime/Assets/Scripts",
+    "Engine/Runtime/Audio/Scripts",
+    "Engine/Runtime/Core/Scripts",
+    "Engine/Runtime/Graphics/Scripts",
+    "Engine/Runtime/Physics2D/Scripts",
+    "Engine/Runtime/Platform/Scripts",
+    "Engine/Runtime/RHI/Scripts",
+    "Engine/Runtime/Global/Scripts",
+    "Engine/Runtime/Scripting/Scripts",
+    "Engine/Runtime/Shader/Scripts",
 ]
 
 SHADER_DIRS = [

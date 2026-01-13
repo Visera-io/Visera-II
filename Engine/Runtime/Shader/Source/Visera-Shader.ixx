@@ -35,37 +35,20 @@ export namespace Visera
             {
                 EName::Platform,
             };
+
+            if (!OnBootstrap.TryBind([this]
+            {
+                Compiler = MakeUnique<FSlangCompiler>();
+                return Compiler != nullptr;
+            }))
+            { LOG_FATAL("Failed to bind bootstrap function!"); }
+
+            if (!OnTerminate.TryBind([this]
+            {
+                Compiler.reset();
+                return True;
+            }))
+            { LOG_FATAL("Failed to bind terminate function!"); }
         }
-        /*void
-        Bootstrap() override
-        {
-            LOG_TRACE("Bootstrapping Shader");
-
-            Compiler = MakeUnique<FSlangCompiler>();
-
-            Status = EStatus::Bootstrapped;
-        }
-        void
-        Terminate() override
-        {
-            LOG_TRACE("Terminating Shader");
-
-            Compiler.reset();
-
-            Status = EStatus::Terminated;
-        }*/
     };
-
-    export inline VISERA_SHADER_API TUniquePtr<FShader>
-    GShader = MakeUnique<FShader>();
 }
-
-VISERA_MAKE_FORMATTER(Visera::FShader::ELanguage,
-    const char* LanguageName = "Unknown";
-    switch (I_Formatee)
-    {
-        case Visera::FShader::ELanguage::Slang:   LanguageName = "Slang";   break;
-        default: break;
-    },
-    "{}", LanguageName
-);

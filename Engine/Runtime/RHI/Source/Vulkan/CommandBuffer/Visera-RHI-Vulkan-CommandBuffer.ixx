@@ -361,7 +361,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        Handle.reset();
+        auto Result = Handle.reset();
 
         Status = EStatus::Idle;
     }
@@ -511,7 +511,7 @@ export namespace Visera
     End()
     {
         VISERA_ASSERT(IsRecording());
-        Handle.end();
+        auto Result = Handle.end();
 
         Status = EStatus::ReadyToSubmit;
     }
@@ -521,7 +521,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        Handle.reset();
+        auto Result = Handle.reset();
 
         Status = EStatus::Idle;
     }
@@ -793,7 +793,7 @@ export namespace Visera
     End()
     {
         VISERA_ASSERT(IsRecording());
-        Handle.end();
+        auto Result = Handle.end();
 
         Status = EStatus::ReadyToSubmit;
     }
@@ -814,7 +814,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        Handle.reset();
+        auto Result = Handle.reset();
 
         Status = EStatus::Idle;
     }
@@ -988,7 +988,7 @@ export namespace Visera
     End()
     {
         VISERA_ASSERT(IsRecording());
-        Handle.end();
+        auto Result = Handle.end();
 
         Status = EStatus::ReadyToSubmit;
     }

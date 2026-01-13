@@ -173,7 +173,7 @@ export namespace Visera
         {
             if(!IsViewDirty()) { return; }
 
-            VISERA_UNIMPLEMENTED_API;
+            VISERA_ASSERT(False);
 
             UnmarkViewDirty();
         }
@@ -183,7 +183,7 @@ export namespace Visera
         {
             if(!IsProjectionDirty()) { return; }
 
-            VISERA_UNIMPLEMENTED_API;
+            VISERA_ASSERT(False);
 
             UnmarkProjectionDirty();
         }

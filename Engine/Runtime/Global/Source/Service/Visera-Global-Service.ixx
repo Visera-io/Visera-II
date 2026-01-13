@@ -91,7 +91,7 @@ export namespace Visera
             }
         }
 
-        template<typename T> [[nodiscard]] static T*
+        template<Concepts::Service T> [[nodiscard]] static T*
         Register(FName I_ServiceName)
         {
             auto Registry = GetRegistry();
@@ -103,7 +103,7 @@ export namespace Visera
             return static_cast<T*>(Registry->Emplace(I_ServiceName, new T()).first->second);
         }
 
-        template<typename T> [[nodiscard]] static T*
+        template<Concepts::Service T> [[nodiscard]] static T*
         Get(FName I_ServiceName)
         {
             auto   ServiceIter =  GetRegistry()->Find(I_ServiceName);
