@@ -49,7 +49,7 @@ namespace Visera
         LOG_DEBUG("Entity created (name:{}, id:{}).",
                   I_Name, static_cast<ENTT_ID_TYPE>(Entity.GetID()));
 
-        Entities.emplace(I_Name, Entity);
+        Entities.Emplace(I_Name, Entity);
         return Entity;
     }
 

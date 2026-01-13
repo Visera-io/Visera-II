@@ -7,7 +7,6 @@ export import Visera.RHI.Types;
 export import Visera.RHI.Resource;
        import Visera.RHI.Vulkan;
        import Visera.RHI.Registry;
-       import Visera.Core.Types.Map;
        import Visera.Core.Types.Array;
        import Visera.Core.Delegate;
        import Visera.Global.Service;

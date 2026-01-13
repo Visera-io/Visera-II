@@ -95,18 +95,18 @@ export namespace Visera
         Register(FName I_ServiceName)
         {
             auto Registry = GetRegistry();
-            if (Registry->contains(I_ServiceName))
+            if (Registry->Contains(I_ServiceName))
             {
                 LOG_ERROR("Global service {} already exists!", I_ServiceName.GetName());
                 return nullptr;
             }
-            return static_cast<T*>(Registry->emplace(I_ServiceName, new T()).first->second);
+            return static_cast<T*>(Registry->Emplace(I_ServiceName, new T()).first->second);
         }
 
         template<typename T> [[nodiscard]] static T*
         Get(FName I_ServiceName)
         {
-            auto   ServiceIter =  GetRegistry()->find(I_ServiceName);
+            auto   ServiceIter =  GetRegistry()->Find(I_ServiceName);
             return ServiceIter == GetRegistry()->end() ?
                    nullptr : dynamic_cast<T*>(ServiceIter->second);
         }
@@ -144,11 +144,11 @@ export namespace Visera
         IGlobalService() = delete;
         explicit IGlobalService(FName I_Name) : Name(I_Name)
         {
-            if(GetRegistry()->contains(Name))
+            if(GetRegistry()->Contains(Name))
             { LOG_FATAL("Global service {} already exists!", Name); }
 
-            LOG_TRACE("Registering service ({}) : \"{}\".", GetRegistry()->size() + 1, Name.GetName());
-            GetRegistry()->emplace(Name, this);
+            LOG_TRACE("Registering service ({}) : \"{}\".", GetRegistry()->GetSize() + 1, Name.GetName());
+            GetRegistry()->Emplace(Name, this);
         }
 
         IGlobalService(const IGlobalService&)			 = delete;
@@ -162,19 +162,19 @@ export namespace Visera
         {
             auto* Registry = GetRegistry();
             TArray<IGlobalService*> Result;
-            Result.Reserve(static_cast<typename TArray<IGlobalService*>::SizeType>(Registry->size()));
+            Result.Reserve(Registry->GetSize());
 
             TMap<FName, TArray<IGlobalService*>> Dependents; // service -> list of services that depend on it
             TMap<FName, UInt32> InDegrees; // service -> how many dependencies it has
 
             for (auto& [Name, Service] : *Registry)
             {
-                InDegrees[Name] = static_cast<UInt32>(Service->Dependencies.size());
+                InDegrees[Name] = static_cast<UInt32>(Service->Dependencies.GetSize());
 
                 // For each dependency of this service, add this service as a dependent
                 for (const FName& DepName : Service->Dependencies)
                 {
-                    if (Registry->contains(DepName))
+                    if (Registry->Contains(DepName))
                     {
                         Dependents[DepName].PushBack(Service);
                     }
@@ -205,13 +205,13 @@ export namespace Visera
 
                 // Decrease in-degree of all services that depend on Current
                 FName CurrentName = Current->Name;
-                auto DependentsIter = Dependents.find(CurrentName);
+                auto DependentsIter = Dependents.Find(CurrentName);
                 if (DependentsIter != Dependents.end())
                 {
                     for (IGlobalService* Dependent : DependentsIter->second)
                     {
                         FName DepName = Dependent->Name;
-                        auto InDegreesIter = InDegrees.find(DepName);
+                        auto InDegreesIter = InDegrees.Find(DepName);
                         if (InDegreesIter != InDegrees.end())
                         {
                             InDegreesIter->second--;
@@ -225,10 +225,10 @@ export namespace Visera
             }
 
             // Check for circular dependencies
-            if (Result.GetSize() < Registry->size())
+            if (Result.GetSize() < Registry->GetSize())
             {
                 LOG_FATAL("Circular dependency detected in service dependencies! Only {}/{} services could be sorted.",
-                          Result.GetSize(), Registry->size());
+                          Result.GetSize(), Registry->GetSize());
                 
                 // Report which services are in the cycle
                 TArray<FName> CycleServices;

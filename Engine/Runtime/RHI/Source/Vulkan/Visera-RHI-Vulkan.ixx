@@ -26,7 +26,6 @@ export import Visera.RHI.Vulkan.Sync;
        import Visera.RHI.Types.Shader;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
-       import Visera.Core.Types.Map;
        import Visera.Core.Types.Set;
        import Visera.Core.Types.Array;
        import Visera.Core.Traits.Flags;
@@ -479,32 +478,32 @@ export namespace Visera
             LOG_TRACE("Checking Queue Families...");
             auto QueueFamilies = PhysicalDeviceCandidate.getQueueFamilyProperties();
 
-            GPU.GraphicsQueueFamilies.clear();
-            GPU.ComputeQueueFamilies.clear();
-            GPU.TransferQueueFamilies.clear();
-            GPU.PresentQueueFamilies.clear();
+            GPU.GraphicsQueueFamilies.Clear();
+            GPU.ComputeQueueFamilies.Clear();
+            GPU.TransferQueueFamilies.Clear();
+            GPU.PresentQueueFamilies.Clear();
 
             for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
             {
                 auto& QueueFamily = QueueFamilies[Idx];
                 if (vk::QueueFlagBits::eGraphics & QueueFamily.queueFlags)
-                { GPU.GraphicsQueueFamilies.insert(Idx); }
+                { GPU.GraphicsQueueFamilies.Insert(Idx); }
                 if (vk::QueueFlagBits::eCompute & QueueFamily.queueFlags)
-                { GPU.ComputeQueueFamilies.insert(Idx); }
+                { GPU.ComputeQueueFamilies.Insert(Idx); }
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
-                { GPU.TransferQueueFamilies.insert(Idx); }
+                { GPU.TransferQueueFamilies.Insert(Idx); }
 
 #if !defined(VISERA_OFFSCREEN_MODE)
                 auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
                 if (Result.has_value() && *Result)
-                { GPU.PresentQueueFamilies.insert(Idx); }
+                { GPU.PresentQueueFamilies.Insert(Idx); }
 #endif
             }
-            bSuitable = !GPU.GraphicsQueueFamilies.empty() &&
-                        !GPU.ComputeQueueFamilies.empty()  &&
-                        !GPU.TransferQueueFamilies.empty();
+            bSuitable = !GPU.GraphicsQueueFamilies.IsEmpty() &&
+                        !GPU.ComputeQueueFamilies.IsEmpty()  &&
+                        !GPU.TransferQueueFamilies.IsEmpty();
 #if !defined(VISERA_OFFSCREEN_MODE)
-            bSuitable &= !GPU.PresentQueueFamilies.empty();
+            bSuitable &= !GPU.PresentQueueFamilies.IsEmpty();
 #endif
             if (!bSuitable) { return False; }
 

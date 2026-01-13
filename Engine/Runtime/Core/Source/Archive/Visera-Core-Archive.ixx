@@ -3,7 +3,9 @@ module;
 export module Visera.Core.Archive;
 #define VISERA_MODULE_NAME "Core.Archive"
 
-export namespace Visera
+export import Visera.Core.Archive.JSON;
+
+namespace Visera
 {
 
 }

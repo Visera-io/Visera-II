@@ -51,9 +51,9 @@ namespace Visera
 	AddSearchPath(const FPath& I_Path)
 	{
 		auto Path = I_Path.GetUTF8Path();
-		if (!SearchPaths.contains(Path))
+		if (!SearchPaths.Contains(Path))
 		{
-			SearchPaths.emplace(std::move(Path));
+			SearchPaths.Emplace(std::move(Path));
 			LOG_DEBUG("Added a new shader path: {}", I_Path);
 			return True;
 		}
@@ -115,7 +115,7 @@ namespace Visera
 		};
 
     	TArray<const char*> SlangSearchPaths;
-		SlangSearchPaths.Reserve(static_cast<typename TArray<const char*>::SizeType>(SearchPaths.size()));
+		SlangSearchPaths.Reserve(SearchPaths.GetSize());
 		for (const auto& Path : SearchPaths)
     	{ SlangSearchPaths.EmplaceBack(Path.data()); }
 
@@ -124,7 +124,7 @@ namespace Visera
 			.targets		 = &Session->Description,
 			.targetCount	 = 1,
 			.searchPaths	 = SlangSearchPaths.Data(),
-			.searchPathCount = static_cast<UInt32>(SearchPaths.size()),
+			.searchPathCount = static_cast<UInt32>(SearchPaths.GetSize()),
 		};
 
     	if (Context->createSession(SessionCreateInfo, Session->Handle.writeRef()) != SLANG_OK)

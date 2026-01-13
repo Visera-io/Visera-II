@@ -25,7 +25,7 @@ namespace Visera
         LoadSound(const FPath& I_File, EAssetSource I_Source = EAssetSource::Any);
 
         [[nodiscard]] inline const FPath&
-        GetAssetDirectory(EAssetSource I_Source) const { VISERA_ASSERT(I_Source != EAssetSource::Any); return Roots.at(I_Source).GetRoot(); }
+        GetAssetDirectory(EAssetSource I_Source) const { VISERA_ASSERT(I_Source != EAssetSource::Any); return Roots.At(I_Source).GetRoot(); }
 
     public:
         FAssetHub() : IGlobalService(FName{"AssetHub"}) {};
