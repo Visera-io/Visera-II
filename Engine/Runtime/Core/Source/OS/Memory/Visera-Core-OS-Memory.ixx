@@ -47,8 +47,8 @@ export namespace Visera
         VISERA_FORCEINLINE auto
         Free(void* I_Memory, UInt32 I_Alignment) -> void;
 
-        VISERA_FORCEINLINE auto
-        Prefetch(const void* I_Memory, UInt32 I_Offset = 0) -> void;
+        //VISERA_FORCEINLINE auto
+        //Prefetch(const void* I_Memory, UInt32 I_Offset = 0) -> void;
 
         [[nodiscard]] VISERA_FORCEINLINE Bool
         IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment);
@@ -136,23 +136,23 @@ export namespace Visera
             else std::free(I_Memory);
         }
 
-        void
-        Prefetch(const void* I_Memory, UInt32 I_Offset/* = 0*/)
-        {
-            //Copied from Unreal Engine!
-    #if defined(VISERA_ON_X86_CPU)
-            _mm_prefetch(static_cast<const char*>(I_Memory) + I_Offset, _MM_HINT_T0);
-    #elif defined(VISERA_ON_ARM_CPU)
-    #	if defined(_MSC_VER)
-            _prefetch(static_cast<const char*>(I_Memory) + I_Offset);
-    #	else
-            VISERA_UNIMPLEMENTED_API;
-            //__asm__ I__volatile__("prfm pldl1keep, [%[ptr]]\n" ::[ptr] "r"(Ptr) : );
-    #	endif
-    #else
-        VISERA_WIP
-    #endif
-        }
+    //     void
+    //     Prefetch(const void* I_Memory, UInt32 I_Offset/* = 0*/)
+    //     {
+    //         //Copied from Unreal Engine!
+    // #if defined(VISERA_ON_X86_CPU)
+    //         _mm_prefetch(static_cast<const char*>(I_Memory) + I_Offset, _MM_HINT_T0);
+    // #elif defined(VISERA_ON_ARM_CPU)
+    // #	if defined(_MSC_VER)
+    //         _prefetch(static_cast<const char*>(I_Memory) + I_Offset);
+    // #	else
+    //         VISERA_UNIMPLEMENTED_API;
+    //         //__asm__ I__volatile__("prfm pldl1keep, [%[ptr]]\n" ::[ptr] "r"(Ptr) : );
+    // #	endif
+    // #else
+    //     VISERA_WIP
+    // #endif
+    //     }
 
         Bool
         IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment)

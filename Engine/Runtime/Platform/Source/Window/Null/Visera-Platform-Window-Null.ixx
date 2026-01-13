@@ -15,7 +15,7 @@ namespace Visera
         [[nodiscard]] inline Bool
         ShouldClose() const override { return True; }
         inline void
-        WaitEvents() const override {VISERA_UNIMPLEMENTED_API; }
+        WaitEvents() const override { VISERA_UNIMPLEMENTED_API; }
         inline void
         PollEvents() const override { VISERA_UNIMPLEMENTED_API; }
         void inline
