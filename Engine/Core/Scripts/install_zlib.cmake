@@ -17,9 +17,9 @@ macro(link_zlib in_target)
         if(VISERA_MONOLITHIC_MODE)
             set(ZLIB_LIBRARY zlib)
         else()
-            set(ZLIB_LIBRARY zlib PARENT_SCOPE)
+            set(ZLIB_LIBRARY zlib CACHE STRING " " FORCE)
         endif()
-        set(ZLIB_INCLUDE_DIR "${VISERA_CORE_EXTERNAL_DIR}/ZLib" CACHE BOOL " " FORCE)
+        set(ZLIB_INCLUDE_DIR "${VISERA_CORE_EXTERNAL_DIR}/ZLib" CACHE STRING " " FORCE)
 
         # libpng expects zlib to be a modern CMake package, let's make an alias for it
         add_library(ZLIB::ZLIB ALIAS zlibstatic)

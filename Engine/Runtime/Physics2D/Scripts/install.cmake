@@ -1,6 +1,6 @@
 set(VISERA_PHYSICS2D_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"     CACHE PATH "")
 set(VISERA_PHYSICS2D_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External"   CACHE PATH "")
-set(VISERA_PHYSICS2D_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global"     CACHE PATH "")
+set(VISERA_PHYSICS2D_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"    CACHE PATH "")
 set(VISERA_PHYSICS2D_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"    CACHE PATH "")
 
 macro(install_visera_physics2d in_target)
@@ -15,7 +15,7 @@ macro(install_visera_physics2d in_target)
 
     target_include_directories(${in_target}
         PUBLIC
-        ${VISERA_PHYSICS2D_GLOBAL_DIR})
+        ${VISERA_PHYSICS2D_INCLUDE_DIR})
 
     target_sources(${in_target}
         PUBLIC

@@ -1,6 +1,6 @@
 set(VISERA_ASSETS_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"     CACHE PATH "")
 set(VISERA_ASSETS_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External"   CACHE PATH "")
-set(VISERA_ASSETS_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global"     CACHE PATH "")
+set(VISERA_ASSETS_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"    CACHE PATH "")
 set(VISERA_ASSETS_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"    CACHE PATH "")
 
 macro(install_visera_assets in_target)
@@ -21,7 +21,7 @@ macro(install_visera_assets in_target)
 
     target_include_directories(${in_target}
         PUBLIC
-        ${VISERA_ASSETS_GLOBAL_DIR})
+        ${VISERA_ASSETS_INCLUDE_DIR})
 
     target_sources(${in_target}
         PUBLIC

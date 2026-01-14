@@ -52,36 +52,5 @@ export namespace Visera
         { FPath NewPath{}; NewPath.Data = I_PathA.Data / I_PathB.Data; return NewPath; }
     };
 }
-
-namespace std
-{
-    template<>
-    struct hash<Visera::FPath>
-    {
-        std::size_t operator()(const Visera::FPath& I_Path) const noexcept
-        {  return std::hash<std::filesystem::path>{}(I_Path.GetNativePath()); }
-    };
-}
-
-template <>
-struct fmt::formatter<Visera::FPath>
-{
-    // Parse format specifiers (if any)
-    constexpr auto parse(format_parse_context& I_Context) -> decltype(I_Context.begin())
-    {
-        return I_Context.begin();  // No custom formatting yet
-    }
-
-    // Corrected format function with const-correctness
-    template <typename FormatContext>
-    auto format(const Visera::FPath& I_Path, FormatContext& I_Context) const
-    -> decltype(I_Context.out())
-    {
-        Visera::FText Path{I_Path.GetNativePath().u8string()};
-        return fmt::format_to(
-            I_Context.out(),
-            "{}",
-            Path
-        );
-    }
-};
+VISERA_MAKE_HASH(Visera::FPath, {}, return std::hash<std::filesystem::path>{}(I_Path.GetNativePath()););
+VISERA_MAKE_FORMATTER(Visera::FPath, {}, "{}", I_Formatee.GetUTF8Path());

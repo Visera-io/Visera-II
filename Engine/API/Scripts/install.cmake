@@ -1,6 +1,6 @@
 set(VISERA_API_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"     CACHE PATH "")
 set(VISERA_API_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External"   CACHE PATH "")
-set(VISERA_API_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global"     CACHE PATH "")
+set(VISERA_API_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"    CACHE PATH "")
 set(VISERA_API_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"    CACHE PATH "")
 set(VISERA_API_CSHARP_DIR   "${PROJECT_SOURCE_DIR}/CSharp"     CACHE PATH "")
 
@@ -13,7 +13,7 @@ macro(install_visera_api in_target)
 
     target_include_directories(${in_target}
         PUBLIC
-        ${VISERA_API_GLOBAL_DIR})
+        ${VISERA_API_INCLUDE_DIR})
 
     target_sources(${in_target}
         PUBLIC

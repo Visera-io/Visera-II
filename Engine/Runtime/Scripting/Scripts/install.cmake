@@ -1,6 +1,6 @@
 set(VISERA_SCRIPTING_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"     CACHE PATH "")
 set(VISERA_SCRIPTING_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External"   CACHE PATH "")
-set(VISERA_SCRIPTING_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global"     CACHE PATH "")
+set(VISERA_SCRIPTING_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"    CACHE PATH "")
 set(VISERA_SCRIPTING_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"    CACHE PATH "")
 
 macro(install_visera_scripting in_target)
@@ -15,7 +15,7 @@ macro(install_visera_scripting in_target)
 
     target_include_directories(${in_target}
         PUBLIC
-        ${VISERA_SCRIPTING_GLOBAL_DIR})
+        ${VISERA_SCRIPTING_INCLUDE_DIR})
 
     target_sources(${in_target}
         PUBLIC

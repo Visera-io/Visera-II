@@ -3,7 +3,7 @@ message(STATUS "\nInstalling ${VISERA_APP}...")
 set(VISERA_APP_ASSETS_DIR   "${PROJECT_SOURCE_DIR}/Assets")
 set(VISERA_APP_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source")
 set(VISERA_APP_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External")
-set(VISERA_APP_GLOBAL_DIR   "${PROJECT_SOURCE_DIR}/Global")
+set(VISERA_APP_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include")
 set(VISERA_APP_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts")
 
 if(APPLE)
@@ -23,7 +23,7 @@ target_link_libraries(${VISERA_APP}
         PRIVATE
         Visera
 )
-target_include_directories(${VISERA_APP} PRIVATE ${VISERA_APP_GLOBAL_DIR})
+target_include_directories(${VISERA_APP} PRIVATE ${VISERA_APP_INCLUDE_DIR})
 
 list(APPEND CMAKE_MODULE_PATH ${VISERA_APP_SCRIPTS_DIR})
 
