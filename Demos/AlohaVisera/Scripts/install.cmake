@@ -40,6 +40,8 @@ target_sources(${VISERA_APP}
         FILE_SET "visera_app_modules" TYPE CXX_MODULES
         FILES ${VISERA_APP_MODULES})
 
+target_include_directories(${VISERA_APP} PRIVATE ${VISERA_APP_INCLUDE_DIR})
+
 add_custom_command(
     TARGET ${VISERA_APP}
     POST_BUILD

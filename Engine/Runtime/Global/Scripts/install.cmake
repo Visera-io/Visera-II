@@ -1,7 +1,7 @@
-  set(VISERA_GLOBAL_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"      CACHE PATH "")
-  set(VISERA_GLOBAL_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External"    CACHE PATH "")
-  set(VISERA_GLOBAL_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"      CACHE PATH "")
-  set(VISERA_GLOBAL_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"     CACHE PATH "")
+  set(VISERA_GLOBAL_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"   )
+  set(VISERA_GLOBAL_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External" )
+  set(VISERA_GLOBAL_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"   )
+  set(VISERA_GLOBAL_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"  )
 
   macro(install_visera_global in_target)
     message(STATUS "\nInstalling Visera Global...")

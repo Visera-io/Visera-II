@@ -132,8 +132,8 @@ export namespace Visera
             Slots[LastSlotIndex].Index = DataIndex;
         }
 
-        Data.pop_back();
-        DataToSlot.pop_back();
+        Data.PopBack();
+        DataToSlot.PopBack();
         Free(SlotIndex);
         Size -= 1;
         return True;
@@ -167,9 +167,9 @@ export namespace Visera
     void TSlotMap<ValueType, HandleType>::
     Clear()
     {
-        Slots.clear();
-        Data.clear();
-        DataToSlot.clear();
+        Slots.Clear();
+        Data.Clear();
+        DataToSlot.Clear();
         FreeHead = InvalidIndex;
         Size = 0;
     }

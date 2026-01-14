@@ -1,5 +1,5 @@
 module;
-#include <../Global/Visera-Game.hpp>
+#include <Visera-Game.hpp>
 #include <entt/entt.hpp>
 export module Visera.Game;
 #define VISERA_MODULE_NAME "Game"

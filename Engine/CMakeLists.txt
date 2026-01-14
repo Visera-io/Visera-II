@@ -5,11 +5,6 @@ if(VISERA_OFFSCREEN_MODE)
     add_compile_definitions (VISERA_OFFSCREEN_MODE)
 endif()
 
-if(MSVC)
-    add_compile_definitions (NOMINMAX)
-    add_compile_options     (/utf-8)
-endif()
-
 set(VISERA_API_DIR              "${CMAKE_CURRENT_SOURCE_DIR}/API")
 set(VISERA_CORE_DIR             "${CMAKE_CURRENT_SOURCE_DIR}/Core")
 set(VISERA_RUNTIME_GLOBAL_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Runtime/Global")
@@ -31,6 +26,10 @@ else()
 endif()
 
 add_library(${VISERA} SHARED)
+target_sources(${VISERA}
+    PUBLIC
+    FILE_SET "visera_core_modules" TYPE CXX_MODULES
+    FILES  "${VISERA_API_DIR}/Source/Visera-API.ixx")
 set_target_properties(${VISERA} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
     LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
@@ -54,7 +53,7 @@ add_subdirectory(${VISERA_RUNTIME_RHI_DIR})
 add_subdirectory(${VISERA_RUNTIME_SHADER_DIR})
 add_subdirectory(${VISERA_RUNTIME_GRAPHICS_DIR})
 add_subdirectory(${VISERA_RUNTIME_AUDIO_DIR})
-add_subdirectory(${VISERA_API_DIR})
+#add_subdirectory(${VISERA_API_DIR})
 if(VISERA_MONOLITHIC_MODE)
 target_compile_definitions(${VISERA} PRIVATE VISERA_MONOLITHIC_MODE)
 install_visera_core     (${VISERA})
@@ -75,12 +74,4 @@ target_link_libraries   (${VISERA} PUBLIC Visera::Shader)
 target_link_libraries   (${VISERA} PUBLIC Visera::Graphics)
 target_link_libraries   (${VISERA} PUBLIC Visera::Audio)
 endif()
-install_visera_api      (${VISERA})
-
-add_custom_command(
-    TARGET ${VISERA}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/Assets" #[TODO]: Redesign Engine/Assets
-    "${VISERA_APP_RESOURCE_DIR}/Assets/Engine"
-)
+#install_visera_api      (${VISERA})s

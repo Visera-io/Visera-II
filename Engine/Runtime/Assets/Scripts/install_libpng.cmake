@@ -11,26 +11,6 @@ macro(link_libpng in_target)
             message(FATAL_ERROR "ZLIB::ZLIB target not found. Please ensure Visera-Core is installed before Visera-Runtime.")
         endif()
 
-        # Set ZLIB variables for LibPNG's find_package(ZLIB) call
-        # These are needed because LibPNG's CMakeLists.txt calls find_package(ZLIB REQUIRED)
-        # Get include directory from the ZLIB::ZLIB target
-        get_target_property(ZLIB_INCLUDE_DIR_TEMP ZLIB::ZLIB INTERFACE_INCLUDE_DIRECTORIES)
-        if(ZLIB_INCLUDE_DIR_TEMP)
-            # Handle list of include directories
-            if(ZLIB_INCLUDE_DIR_TEMP MATCHES ";")
-                list(GET ZLIB_INCLUDE_DIR_TEMP 0 ZLIB_INCLUDE_DIR_TEMP)
-            endif()
-            set(ZLIB_INCLUDE_DIR "${ZLIB_INCLUDE_DIR_TEMP}" CACHE STRING "ZLIB include directory" FORCE)
-        else()
-            # Fallback: get include directories from zlibstatic target
-            get_target_property(ZLIB_INCLUDE_DIR_TEMP zlibstatic INTERFACE_INCLUDE_DIRECTORIES)
-            if(ZLIB_INCLUDE_DIR_TEMP)
-                if(ZLIB_INCLUDE_DIR_TEMP MATCHES ";")
-                    list(GET ZLIB_INCLUDE_DIR_TEMP 0 ZLIB_INCLUDE_DIR_TEMP)
-                endif()
-                set(ZLIB_INCLUDE_DIR "${ZLIB_INCLUDE_DIR_TEMP}" CACHE STRING "ZLIB include directory" FORCE)
-            endif()
-        endif()
         # Mark ZLIB as found so find_package uses the existing target
         set(ZLIB_FOUND TRUE CACHE BOOL "ZLIB found" FORCE)
 
