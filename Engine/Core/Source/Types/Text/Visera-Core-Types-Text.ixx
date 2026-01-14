@@ -3,6 +3,7 @@ module;
 #include <windows.h>
 #endif
 #include <Visera-Core.hpp>
+#include <simdutf.h>
 export module Visera.Core.Types.Text;
 #define VISERA_MODULE_NAME "Core.Types"
 
@@ -12,6 +13,9 @@ export namespace Visera
     class VISERA_CORE_API FText
     {
     public:
+        [[nodiscard]] static constexpr Bool
+        ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String); }
+
         template <typename T> [[nodiscard]] static inline FText
         ToUTF8(const T* I_Text) { return FText{I_Text}; }
 
@@ -24,9 +28,9 @@ export namespace Visera
         explicit operator FString()		const	{ return String; }
         explicit operator const char*()	const	{ return String.data(); }
         explicit FText(FStringView    I_String) : String{I_String} {}
-        explicit FText(const char8_t* I_Text) : String{ reinterpret_cast<const char *>(I_Text) } {}
+        explicit FText(const char8_t* I_Text)   : String{ reinterpret_cast<const char *>(I_Text) } {}
         explicit FText(FWideStringView I_Text);
-        explicit FText(FUTF8StringView I_Text) : String{ reinterpret_cast<const char *>(I_Text.data()) } {}
+        explicit FText(FUTF8StringView I_Text)  : String{ reinterpret_cast<const char *>(I_Text.data()) } {}
 
     private:
         FString String;
