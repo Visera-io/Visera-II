@@ -1,4 +1,4 @@
-if(NOT VISERA_APP_EXTERNAL_DIR)
+if(NOT VISERA_AUDIO_EXTERNAL_DIR)
     message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
 endif()
 
@@ -6,9 +6,9 @@ macro(link_wwise in_target)
     message(STATUS "\nLinking Wwise (Wwise)")
 
     if(NOT TARGET Wwise)
-        add_subdirectory(${VISERA_APP_EXTERNAL_DIR}/Wwise)
-        set_target_properties(Wwise PROPERTIES FOLDER "${VISERA_APP}/External/Wwise")
-        set_target_properties(WwiseSamples PROPERTIES FOLDER "${VISERA_APP}/External/Wwise")
+        add_subdirectory(${VISERA_AUDIO_EXTERNAL_DIR}/Wwise)
+        set_target_properties(Wwise PROPERTIES FOLDER "${VISERA_AUDIO}/External/Wwise")
+        set_target_properties(WwiseSamples PROPERTIES FOLDER "${VISERA_AUDIO}/External/Wwise")
     endif()
 
     target_link_libraries(${in_target} PUBLIC

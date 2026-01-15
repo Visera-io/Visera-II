@@ -31,7 +31,7 @@ the specific language governing permissions and limitations under the License.
 
 #pragma once
 
-#include "./V1/Host.h"
+#include "V1/Host.h"
 #include "PlatformID.h"
 #include "PluginInfoGenerator.h"
 

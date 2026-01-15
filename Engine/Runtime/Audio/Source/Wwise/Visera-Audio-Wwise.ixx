@@ -1,5 +1,5 @@
 module;
-#include <Visera-Game.hpp>
+#include <Visera-Audio.hpp>
 #include <AK/SoundEngine/Common/AkTypes.h>
 #include <AK/SoundEngine/Common/AkSoundEngine.h>
 #include <AK/SoundEngine/Common/AkMemoryMgrModule.h>
@@ -8,16 +8,16 @@ module;
 #if !defined(AK_OPTIMIZED)
 #include <AK/Comm/AkCommunication.h>
 #endif
-export module Visera.Game.Audio.Wwise;
-#define VISERA_MODULE_NAME "Game.Audio"
-import Visera.Game.Audio.Interface;
-import Visera.Game.Audio.Wwise.IO;
+export module Visera.Audio.Wwise;
+#define VISERA_MODULE_NAME "Audio.Wwise"
+import Visera.Audio.Interface;
+import Visera.Audio.Wwise.IO;
 import Visera.Core.Types.Text;
 import Visera.Global.Log;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FWwiseAudioEngine : public IAudioEngine
+    export class VISERA_AUDIO_API FWwiseAudioEngine : public IAudioEngine
     {
     public:
         void

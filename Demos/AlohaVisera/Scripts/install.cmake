@@ -30,9 +30,6 @@ list(APPEND CMAKE_MODULE_PATH ${VISERA_APP_SCRIPTS_DIR})
 include(install_entt)
 link_entt(${VISERA_APP})
 
-include(install_wwise)
-link_wwise(${VISERA_APP})
-
 file(GLOB_RECURSE VISERA_APP_MODULES  "${VISERA_APP_SOURCE_DIR}/*.ixx")
 
 target_sources(${VISERA_APP}

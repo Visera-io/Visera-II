@@ -4,7 +4,7 @@ module;
 export module Visera.Game;
 #define VISERA_MODULE_NAME "Game"
 export import Visera.Game.AssetHub;
-export import Visera.Game.Audio;
+export import Visera.Audio;
 export import Visera.Game.Render;
 export import Visera.Game.Event;
 export import Visera.Game.World;

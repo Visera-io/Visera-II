@@ -35,7 +35,7 @@ the specific language governing permissions and limitations under the License.
 
 #include "../AkPlatforms.h"
 
-#include "Plugin/PluginMFCWindows.h"			// Must be set first, as it can include MFC or not
+#include "Plugin/PluginMFCWindows.h"
 
 #include "Plugin/PluginInfoGenerator.h"
 #include "Plugin/PluginLinks.h"

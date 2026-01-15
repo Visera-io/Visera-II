@@ -1,12 +1,12 @@
 module;
-#include <Visera-Game.hpp>
-export module Visera.Game.Audio.Interface;
-#define VISERA_MODULE_NAME "Game.Audio"
+#include <Visera-Audio.hpp>
+export module Visera.Audio.Interface;
+#define VISERA_MODULE_NAME "Audio.Interface"
 import Visera.Global.Log;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API IAudioEngine
+    export class VISERA_AUDIO_API IAudioEngine
     {
     public:
         enum class EType

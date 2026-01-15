@@ -7,6 +7,7 @@ import Visera.Core;
 import Visera.RHI;
 import Visera.Global;
 import Visera.Platform;
+import Visera.Audio;
 import Visera.Assets.Image;
 using namespace Visera;
 
@@ -16,6 +17,7 @@ struct FEngine
     FInput*    Input;
     FWindow*   Window;
     FRHI*      RHI;
+    FAudio*    Audio;
 
     Bool Run()
     {
@@ -40,6 +42,7 @@ struct FEngine
         Input       = IGlobalService::Register<FInput>(EName::Input);
         Window      = IGlobalService::Register<FWindow>(EName::Window);
         RHI         = IGlobalService::Register<FRHI>(EName::RHI);
+        Audio       = IGlobalService::Register<FAudio>(EName::Audio);
 
         IGlobalService::Bootstrap();
     }

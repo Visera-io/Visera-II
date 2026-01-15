@@ -1,18 +1,18 @@
 module;
-#include <Visera-Game.hpp>
+#include <Visera-Audio.hpp>
 #include <AK/SoundEngine/Common/AkStreamMgrModule.h>
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 #include <AKSamples/SoundEngine/Win32/AkDefaultIOHookDeferred.h>
 #else
 #include <AKSamples/SoundEngine/POSIX/AkDefaultIOHookDeferred.h>
 #endif
-export module Visera.Game.Audio.Wwise.IO;
-#define VISERA_MODULE_NAME "Game.Audio"
+export module Visera.Audio.Wwise.IO;
+#define VISERA_MODULE_NAME "Audio.Wwise"
 import Visera.Global.Log;
 
 namespace Visera
 {
-    export class VISERA_ENGINE_API FWwiseIO
+    export class VISERA_AUDIO_API FWwiseIO
         : public AK::StreamMgr::IAkLowLevelIOHook,
           public AK::StreamMgr::IAkFileLocationResolver
     {
