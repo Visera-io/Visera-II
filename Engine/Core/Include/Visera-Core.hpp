@@ -140,17 +140,35 @@ namespace Visera
 
 	namespace Concepts
 	{
-		template<typename T> concept
-		Integral = std::integral<T> && !std::is_same_v<T, Bool>;
+		template <typename T> concept
+		Character = std::same_as<std::remove_cv_t<T>, char>				||
+					std::same_as<std::remove_cv_t<T>, signed char>		||
+					std::same_as<std::remove_cv_t<T>, unsigned char>	||
+					std::same_as<std::remove_cv_t<T>, wchar_t>			||
+					std::same_as<std::remove_cv_t<T>, char8_t>			||
+					std::same_as<std::remove_cv_t<T>, char16_t>			||
+					std::same_as<std::remove_cv_t<T>, char32_t>;
+
+		template <typename T> concept
+		Boolean = std::same_as<std::remove_cvref_t<T>, Bool>;
+
+		template <typename T> concept
+	    Integral =  std::integral<std::remove_cvref_t<T>> &&
+	    	       !Character<T>						  &&
+	               !Boolean<T>;
+
+	    template <typename T> concept
+	    SignedIntegral =  std::signed_integral<std::remove_cvref_t<T>> &&
+	                     !Character<T>								   &&
+	                     !Boolean<T>;
+
+	    template <typename T> concept
+	    UnsignedIntegral =  std::unsigned_integral<std::remove_cvref_t<T>> &&
+	                       !Character<T>								   &&
+	                       !Boolean<T>;
 
 		template<typename T> concept
-		SignedIntegral = std::signed_integral<T>;
-
-		template<typename T> concept
-		UnsignedIntegral = std::unsigned_integral<T>;
-
-		template<typename T> concept
-		FloatingPoint = std::floating_point<T>;
+		FloatingPoint = std::floating_point<std::remove_cvref_t<T>>;
 
 		template<typename T> concept
 		Constant      = std::is_const_v<T>;

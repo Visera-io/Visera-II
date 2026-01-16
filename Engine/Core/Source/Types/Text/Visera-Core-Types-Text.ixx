@@ -44,9 +44,11 @@ export namespace Visera
         [[nodiscard]] const char*
         GetData()   const { return String.data(); }
         [[nodiscard]] UInt64
-        GetLength() const { return static_cast<UInt64>(String.length()); }
+        GetSize() const { return String.size(); }
+        [[nodiscard]] UInt64
+        GetCodepointCount() const noexcept; // 👨‍👩‍👧‍👦 has multiple Codepoints!
         [[nodiscard]] Bool
-        IsEmpty()   const { return String.empty(); }
+        IsEmpty() const { return String.empty(); }
         // String manipulation methods (using const FText& for type safety)
         [[nodiscard]] TArray<FText>
         Split(const FText& I_Delimiter, Bool I_RemoveEmpty = False) const;
@@ -139,10 +141,12 @@ export namespace Visera
         FText& operator=(const FText&)           = default;
         FText& operator=(FText&&)       noexcept = default;
 
+        FText(const char C) noexcept { String.assign(1, C); }
         template <Concepts::FloatingPoint FloatPointType>
         FText(FloatPointType I_Integer) noexcept;
         template <Concepts::Integral IntegralType>
         FText(IntegralType I_Integer) noexcept;
+
     };
     
     template <Concepts::FloatingPoint FloatPointType> FText::
@@ -249,10 +253,10 @@ export namespace Visera
             return Result;
         }
 
-        FStringView DelimiterView{I_Delimiter.GetData(), I_Delimiter.GetLength()};
+        FStringView DelimiterView{I_Delimiter.GetData(), I_Delimiter.GetSize()};
         UInt64 Start = 0;
         UInt64 Pos = 0;
-        const UInt64 DelimiterLength = I_Delimiter.GetLength();
+        const UInt64 DelimiterLength = I_Delimiter.GetSize();
 
         while ((Pos = String.find(DelimiterView, Start)) != FString::npos)
         {
@@ -387,15 +391,15 @@ export namespace Visera
         if (I_Old.IsEmpty() || String.empty()) { return *this; }
 
         FString Result = String;
-        FStringView OldView{reinterpret_cast<const char*>(I_Old.GetData()), I_Old.GetLength()};
-        FStringView NewView{reinterpret_cast<const char*>(I_New.GetData()), I_New.GetLength()};
+        FStringView OldView{reinterpret_cast<const char*>(I_Old.GetData()), I_Old.GetSize()};
+        FStringView NewView{reinterpret_cast<const char*>(I_New.GetData()), I_New.GetSize()};
         UInt64 Pos = 0;
-        const UInt64 OldLength = I_Old.GetLength();
+        const UInt64 OldLength = I_Old.GetSize();
 
         while ((Pos = Result.find(OldView, Pos)) != FString::npos)
         {
             Result.replace(Pos, OldLength, NewView);
-            Pos += I_New.GetLength();
+            Pos += I_New.GetSize();
         }
         return FText{Result};
     }
@@ -403,31 +407,31 @@ export namespace Visera
     Bool
     FText::Contains(const FText& I_Substring) const
     {
-        FStringView SubstringView{reinterpret_cast<const char*>(I_Substring.GetData()), I_Substring.GetLength()};
+        FStringView SubstringView{reinterpret_cast<const char*>(I_Substring.GetData()), I_Substring.GetSize()};
         return String.find(SubstringView) != FString::npos;
     }
 
     Bool
     FText::StartsWith(const FText& I_Prefix) const
     {
-        if (I_Prefix.GetLength() > String.length()) { return False; }
-        FStringView PrefixView{reinterpret_cast<const char*>(I_Prefix.GetData()), I_Prefix.GetLength()};
-        return String.compare(0, I_Prefix.GetLength(), PrefixView) == 0;
+        if (I_Prefix.GetSize() > String.length()) { return False; }
+        FStringView PrefixView{reinterpret_cast<const char*>(I_Prefix.GetData()), I_Prefix.GetSize()};
+        return String.compare(0, I_Prefix.GetSize(), PrefixView) == 0;
     }
 
     Bool
     FText::EndsWith(const FText& I_Suffix) const
     {
-        if (I_Suffix.GetLength() > String.length()) { return False; }
-        FStringView SuffixView{I_Suffix.GetData(), I_Suffix.GetLength()};
-        return String.compare(String.length() - I_Suffix.GetLength(), I_Suffix.GetLength(), SuffixView) == 0;
+        if (I_Suffix.GetSize() > String.length()) { return False; }
+        FStringView SuffixView{I_Suffix.GetData(), I_Suffix.GetSize()};
+        return String.compare(String.length() - I_Suffix.GetSize(), I_Suffix.GetSize(), SuffixView) == 0;
     }
 
     Int64
     FText::Find(const FText& I_Substring, UInt64 I_StartPos) const
     {
         if (I_StartPos >= String.length()) { return -1; }
-        FStringView SubstringView{I_Substring.GetData(), I_Substring.GetLength()};
+        FStringView SubstringView{I_Substring.GetData(), I_Substring.GetSize()};
         UInt64 Pos = String.find(SubstringView, I_StartPos);
         return Pos == FString::npos ? -1 : static_cast<Int64>(Pos);
     }
@@ -435,7 +439,7 @@ export namespace Visera
     Int64
     FText::FindLast(const FText& I_Substring) const
     {
-        FStringView SubstringView{I_Substring.GetData(), I_Substring.GetLength()};
+        FStringView SubstringView{I_Substring.GetData(), I_Substring.GetSize()};
         UInt64 Pos = String.rfind(SubstringView);
         return Pos == FString::npos ? -1 : static_cast<Int64>(Pos);
     }
@@ -463,7 +467,7 @@ export namespace Visera
     FText FText::
     Prepend(const FText& I_Text) const
     {
-        FString Result{I_Text.GetData(), I_Text.GetLength()};
+        FString Result{I_Text.GetData(), I_Text.GetSize()};
         Result.append(String);
         return FText{Result};
     }
@@ -478,7 +482,7 @@ export namespace Visera
         for (const auto& Text : I_Texts)
         {
             if (!First)
-            { Result.append(I_Separator.GetData(), I_Separator.GetLength()); }
+            { Result.append(I_Separator.GetData(), I_Separator.GetSize()); }
 
             Result.append(Text.GetString());
             First = False;
@@ -501,8 +505,8 @@ export namespace Visera
         }
     }
 
-    TArray<FText>
-    FText::FindAll(const FText& I_Pattern) const
+    TArray<FText> FText::
+    FindAll(const FText& I_Pattern) const
     {
         TArray<FText> Result;
         try
@@ -523,6 +527,29 @@ export namespace Visera
             // Return empty array on regex error
         }
         return Result;
+    }
+
+    // 👨‍👩‍👧‍👦 has multiple Codepoints!
+    UInt64 FText::
+    GetCodepointCount() const noexcept
+    {
+        if (String.empty()) { return 0; }
+
+        const char* Data = String.data();
+        const auto  Size = String.size();
+
+        // Optional: in debug you can assert UTF-8 validity; release assumes invariant.
+        // VISERA_ASSERT(ValidateUTF8(FStringView{data, len}));
+
+        // Worst case: 1 code point per byte (ASCII) so len is safe upper bound.
+        // Convert to UTF-32 and count written code points.
+        TArray<char32_t> Buffer(Size);
+
+        const auto Written = simdutf::convert_utf8_to_utf32(Data, Size, Buffer.Data());
+        // convert_* returns 0 on error in simdutf
+        VISERA_ASSERT(Written != 0 || Size == 0);
+
+        return Written;
     }
 }
 VISERA_MAKE_FORMATTER(Visera::FText, {}, "{}", I_Formatee.GetString().c_str())
