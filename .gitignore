@@ -6,6 +6,9 @@ cmake-build*/
 **/External/**/Windows/**
 **/External/**/MacOS/**
 **/External/**/Linux/**
+!**/External/**/Include/**/Windows/**
+!**/External/**/Include/**/MacOS/**
+!**/External/**/Include/**/Linux/**
 *.a
 *.lib
 *.pdb
