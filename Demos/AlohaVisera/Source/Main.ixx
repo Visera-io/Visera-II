@@ -21,13 +21,6 @@ struct FEngine
 
     Bool Run()
     {
-        // auto BankInit = GAssetHub->LoadSound(FPath("Init.bnk"));
-        // auto MainBGM = GAssetHub->LoadSound(FPath("Test.bnk"));
-        //
-        // GAudio->Register(BankInit);
-        // auto ID = GAudio->Register(MainBGM);
-        // GAudio->PostEvent("Play_Advanture", ID);
-
         while (!Window->ShouldClose())
         {
             Window->PollEvents();

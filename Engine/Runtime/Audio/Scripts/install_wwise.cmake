@@ -12,15 +12,15 @@ macro(link_wwise in_target)
     endif()
 
     target_link_libraries(${in_target} PUBLIC
-            Wwise
-            WwiseSamples
+        Wwise
+        WwiseSamples
     )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         if(WIN32)
-            target_link_libraries(${in_target}
-                    PRIVATE
-                    Ws2_32 # Wwise Communication uses Windows Sockets (Winsock) API
-            )
+        target_link_libraries(${in_target}
+            PRIVATE
+            Ws2_32 # Wwise Communication uses Windows Sockets (Winsock) API
+        )
         endif()
     endif()
 
