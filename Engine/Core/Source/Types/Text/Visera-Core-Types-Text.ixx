@@ -1,6 +1,8 @@
 module;
 #include <Visera-Core.hpp>
 #include <simdutf.h>
+#include <regex>
+#include <double-conversion/double-conversion.h>
 export module Visera.Core.Types.Text;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
@@ -11,7 +13,16 @@ export namespace Visera
     class VISERA_CORE_API FText
     {
     public:
-        [[nodiscard]] static constexpr Bool
+        static constexpr FStringView
+        NotANumber       = "nan";
+        static constexpr FStringView
+        PositiveInfinity = "inf";
+        static constexpr FStringView
+        NegativeInfinity = "-inf";
+        static constexpr FStringView
+        Exponent         = "e";
+
+        [[nodiscard]] static Bool
         ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String); }
 
         template <typename T> [[nodiscard]] static inline FText
@@ -20,7 +31,6 @@ export namespace Visera
             if constexpr (std::is_same_v<T, char> || std::is_same_v<T, const char>)
             {
                 FString Str{I_Text};
-                VISERA_ASSERT(ValidateUTF8(Str));
                 return FText{Str};
             }
             else
@@ -40,6 +50,12 @@ export namespace Visera
         // String manipulation methods (using const FText& for type safety)
         [[nodiscard]] TArray<FText>
         Split(const FText& I_Delimiter, Bool I_RemoveEmpty = False) const;
+
+        [[nodiscard]] Bool
+        Match(const FText& I_Pattern) const;
+
+        [[nodiscard]] TArray<FText>
+        FindAll(const FText& I_Pattern) const;
         
         [[nodiscard]] FText
         Trim() const;
@@ -79,6 +95,7 @@ export namespace Visera
         
         [[nodiscard]] static FText
         Join(const TArray<FText>& I_Texts, const FText& I_Separator);
+
     private:
         FString String;
 
@@ -106,22 +123,81 @@ export namespace Visera
         [[nodiscard]] Bool
         operator>=(const FText& I_Other) const { return String >= I_Other.String; }
 
-        // Default constructor
+        [[nodiscard]] FText
+        operator+(const FText& I_Other) const { return this->Append(I_Other); }
+
+        FText&
+        operator+=(const FText& I_Other) { String.append(I_Other.String); return *this; }
+
         FText() = default;
-
-        // Allow explicit construction from FStringView (for bytes that need validation)
-        explicit FText(FStringView I_String)
-        {
-            String = FString{I_String};
-            VISERA_ASSERT(ValidateUTF8(String));
-        }
-
+        FText(FStringView I_String) { VISERA_ASSERT(ValidateUTF8(I_String)); String = I_String; }
+        template <size_t N> constexpr
+        FText(const char (&I_Literal)[N]) { String.assign(I_Literal, N - 1); }
         FText(FWideStringView I_Text);
         FText(const FText&)                      = default;
         FText(FText&&)                  noexcept = default;
         FText& operator=(const FText&)           = default;
         FText& operator=(FText&&)       noexcept = default;
+
+        template <Concepts::FloatingPoint FloatPointType>
+        FText(FloatPointType I_Integer) noexcept;
+        template <Concepts::Integral IntegralType>
+        FText(IntegralType I_Integer) noexcept;
     };
+    
+    template <Concepts::FloatingPoint FloatPointType> FText::
+    FText(FloatPointType I_FloatPointValue) noexcept
+    {
+        if (std::isnan(I_FloatPointValue))
+        {
+            String.assign(NotANumber, 3);
+            return;
+        }
+        if (std::isinf(I_FloatPointValue))
+        {
+            I_FloatPointValue > 0? String.assign(PositiveInfinity) :
+                                   String.assign(NegativeInfinity);
+            return;
+        }
+
+        char Buffer[128];
+        double_conversion::StringBuilder Builder(Buffer, sizeof(Buffer));
+
+        // Recommended default: shortest round-trippable representation
+        // (ASCII only, stable, fast, no locale)
+        static const double_conversion::DoubleToStringConverter Converter(
+            double_conversion::DoubleToStringConverter::UNIQUE_ZERO,
+            PositiveInfinity.data(),
+            NotANumber.data(),
+            Exponent[0],
+            -6,
+            21,
+            0,
+            0
+        );
+
+        const Bool bConverted = Converter.ToShortest(I_FloatPointValue, &Builder);
+        VISERA_ASSERT(bConverted);
+
+        String.assign(Buffer, static_cast<size_t>(Builder.position()));
+    }
+
+    template <Concepts::Integral IntegralType> FText::
+    FText(IntegralType I_Integer) noexcept
+    {
+        // Enough for any integral incl. sign.
+        char Buffer[64];
+
+        auto First = Buffer;
+        auto Last  = Buffer + sizeof(Buffer);
+
+        // Note: bool excluded by concept; char types are OK (will print number).
+        auto [Ptr, Ec] = std::to_chars(First, Last, I_Integer);
+        VISERA_ASSERT(Ec == std::errc{}); // buffer size guarantees this
+
+        // ASCII digits/sign/dot/exponent are valid UTF-8 by construction.
+        String.assign(Buffer, static_cast<size_t>(Ptr - Buffer));
+    }
 
     FText::
     FText(FWideStringView I_Text)
@@ -173,7 +249,7 @@ export namespace Visera
             return Result;
         }
 
-        FStringView DelimiterView{reinterpret_cast<const char*>(I_Delimiter.GetData()), I_Delimiter.GetLength()};
+        FStringView DelimiterView{I_Delimiter.GetData(), I_Delimiter.GetLength()};
         UInt64 Start = 0;
         UInt64 Pos = 0;
         const UInt64 DelimiterLength = I_Delimiter.GetLength();
@@ -183,7 +259,6 @@ export namespace Visera
             if (Pos > Start || !I_RemoveEmpty)
             {
                 FString SubStr = String.substr(Start, Pos - Start);
-                VISERA_ASSERT(ValidateUTF8(SubStr));
                 Result.PushBack(FText{SubStr});
             }
             Start = Pos + DelimiterLength;
@@ -193,7 +268,6 @@ export namespace Visera
         if (Start < String.length() || !I_RemoveEmpty)
         {
             FString SubStr = String.substr(Start);
-            VISERA_ASSERT(ValidateUTF8(SubStr));
             Result.PushBack(FText{SubStr});
         }
 
@@ -203,32 +277,108 @@ export namespace Visera
     FText FText::
     Trim() const
     {
-        return TrimStart().TrimEnd();
+        if (String.empty()) { return FText{}; }
+
+        auto IsSpace = [](unsigned char ch) -> bool
+        { return std::isspace(ch) != 0; };
+
+        const char* const Data = String.data();
+        const size_t Length = String.size();
+
+        size_t Left = 0;
+        while (Left < Length && IsSpace(static_cast<unsigned char>(Data[Left]))) { ++Left; }
+
+        if (Left == Length) { return FText{}; }
+
+        size_t Right = Length;
+        while (Right > Left && IsSpace(static_cast<unsigned char>(Data[Right - 1]))) { --Right; }
+
+        // Avoid copy
+        if (Left == 0 && Right == Length) { return *this;}
+
+        return FText{FStringView{Data + Left, Right - Left}};
     }
 
     FText FText::
     TrimStart() const
     {
-        auto It = std::ranges::find_if_not(String, 
-            [](unsigned char C) { return std::isspace(C); });
-        if (It == String.end()) { return *this; }
-        FString Result{It, String.end()};
-        VISERA_ASSERT(ValidateUTF8(Result));
-        return FText{Result};
+        // Fast path: empty string
+        if (String.empty())
+        {
+            return FText{};
+        }
+
+        // NOTE:
+        // We only trim ASCII whitespace (std::isspace). This is UTF-8 safe because
+        // ASCII whitespace is always single-byte and never splits a multi-byte codepoint.
+        auto IsSpace = [](unsigned char I_Char) -> Bool
+        {
+            return std::isspace(static_cast<int>(I_Char)) != 0;
+        };
+
+        const char* const Data = String.data();
+        const UInt64      Size = static_cast<UInt64>(String.size());
+
+        // Scan from left to find the first non-whitespace byte.
+        UInt64 Left = 0;
+        while (Left < Size && IsSpace(static_cast<unsigned char>(Data[Left])))
+        {
+            ++Left;
+        }
+
+        // All bytes are whitespace -> return empty text.
+        if (Left == Size)
+        {
+            return FText{};
+        }
+
+        // No trimming needed -> return self (no allocation).
+        if (Left == 0)
+        {
+            return *this;
+        }
+
+        return FText{FStringView{Data + Left, static_cast<size_t>(Size - Left)}};
     }
 
     FText FText::
     TrimEnd() const
     {
-        auto ReverseView = String | std::views::reverse;
-        auto It = std::ranges::find_if_not(ReverseView,
-            [](unsigned char C) { return std::isspace(C); });
-        if (It == ReverseView.end()) { return *this; }
-        // Calculate the end position from the reverse iterator
-        UInt64 End = String.length() - std::ranges::distance(ReverseView.begin(), It);
-        FString Result{String.begin(), String.begin() + End};
-        VISERA_ASSERT(ValidateUTF8(Result));
-        return FText{Result};
+        // Fast path: empty string
+        if (String.empty())
+        {
+            return FText{};
+        }
+
+        auto IsSpace = [](unsigned char I_Char) -> Bool
+        {
+            return std::isspace(static_cast<int>(I_Char)) != 0;
+        };
+
+        const char* const Data = String.data();
+        const UInt64      Size = static_cast<UInt64>(String.size());
+
+        // Scan from right to find the last non-whitespace byte.
+        // 'Right' is the one-past-the-end index of the trimmed result.
+        UInt64 Right = Size;
+        while (Right > 0 && IsSpace(static_cast<unsigned char>(Data[Right - 1])))
+        {
+            --Right;
+        }
+
+        // All bytes are whitespace -> return empty text.
+        if (Right == 0)
+        {
+            return FText{};
+        }
+
+        // No trimming needed -> return self (no allocation).
+        if (Right == Size)
+        {
+            return *this;
+        }
+
+        return FText{FStringView{Data, static_cast<size_t>(Right)}};
     }
 
     FText FText::
@@ -247,8 +397,6 @@ export namespace Visera
             Result.replace(Pos, OldLength, NewView);
             Pos += I_New.GetLength();
         }
-
-        VISERA_ASSERT(ValidateUTF8(Result));
         return FText{Result};
     }
 
@@ -301,7 +449,6 @@ export namespace Visera
                         String.length() - Start : static_cast<UInt64>(I_Length);
         Length = std::min(Length, String.length() - Start);
         FString Result = String.substr(Start, Length);
-        VISERA_ASSERT(ValidateUTF8(Result));
         return FText{Result};
     }
 
@@ -309,8 +456,7 @@ export namespace Visera
     Append(const FText& I_Text) const
     {
         FString Result = String;
-        Result.append(I_Text.GetData()), I_Text.GetLength();
-        VISERA_ASSERT(ValidateUTF8(Result));
+        Result.append(I_Text.GetString());
         return FText{Result};
     }
 
@@ -319,7 +465,6 @@ export namespace Visera
     {
         FString Result{I_Text.GetData(), I_Text.GetLength()};
         Result.append(String);
-        VISERA_ASSERT(ValidateUTF8(Result));
         return FText{Result};
     }
 
@@ -338,9 +483,46 @@ export namespace Visera
             Result.append(Text.GetString());
             First = False;
         }
-        
-        VISERA_ASSERT(ValidateUTF8(Result));
+
         return FText{Result};
+    }
+
+    Bool
+    FText::Match(const FText& I_Pattern) const
+    {
+        try
+        {
+            std::regex Regex{I_Pattern.String.begin(), I_Pattern.String.end()};
+            return std::regex_match(String, Regex);
+        }
+        catch (const std::regex_error&)
+        {
+            return False;
+        }
+    }
+
+    TArray<FText>
+    FText::FindAll(const FText& I_Pattern) const
+    {
+        TArray<FText> Result;
+        try
+        {
+            std::regex Regex{I_Pattern.String.begin(), I_Pattern.String.end()};
+            std::sregex_iterator It{String.begin(), String.end(), Regex};
+            std::sregex_iterator End{};
+
+            for (; It != End; ++It)
+            {
+                const std::smatch& Match = *It;
+                FString MatchStr = Match.str();
+                Result.PushBack(FText{MatchStr});
+            }
+        }
+        catch (const std::regex_error&)
+        {
+            // Return empty array on regex error
+        }
+        return Result;
     }
 }
 VISERA_MAKE_FORMATTER(Visera::FText, {}, "{}", I_Formatee.GetString().c_str())

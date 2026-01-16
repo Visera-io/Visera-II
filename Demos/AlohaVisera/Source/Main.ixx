@@ -21,6 +21,19 @@ struct FEngine
 
     Bool Run()
     {
+        FText Text{"123"};
+        for (int i = 0; i < 100; i++)
+        {
+            Text += i;
+        }
+        LOG_INFO("({}): {}",Text.GetLength(), Text);
+        auto Result = Text.FindAll("1");
+        for (auto& R : Result)
+        {
+
+            LOG_INFO("({}): {}", Result.GetSize(), R);
+        }
+
         while (!Window->ShouldClose())
         {
             Window->PollEvents();

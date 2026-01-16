@@ -26,6 +26,9 @@ macro(install_visera_core in_target)
     include(install_ankerl)
     link_ankerl(${in_target})
 
+    include(install_doubleconversion)
+    link_doubleconversion(${in_target})
+
     file(GLOB_RECURSE VISERA_CORE_MODULES "${VISERA_CORE_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}

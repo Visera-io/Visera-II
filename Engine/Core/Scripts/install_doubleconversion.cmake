@@ -1,0 +1,15 @@
+if(NOT VISERA_CORE_EXTERNAL_DIR)
+    message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
+endif()
+
+macro(link_doubleconversion in_target)
+    message(STATUS "\nLinking Double Conversion (double-conversion)")
+
+    if(NOT TARGET double-conversion)
+        set(BUILD_TESTING       OFF)
+        set(BUILD_SHARED_LIBS   OFF)
+        add_subdirectory(${VISERA_CORE_EXTERNAL_DIR}/DoubleConversion)
+        set_target_properties(double-conversion PROPERTIES FOLDER "Visera/Core/External/DoubleConversion")
+    endif()
+    target_link_libraries(${in_target} PUBLIC double-conversion)
+endmacro()

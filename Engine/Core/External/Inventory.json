@@ -26,6 +26,15 @@
         ],
         "URL" : "https://github.com/simdutf/simdutf"
     },
+    "DoubleConversion" :
+    {
+        "Version" : "v3.4.0",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/google/double-conversion"
+    },
     "Eigen" : 
     {
         "Version" : "5.0.0",

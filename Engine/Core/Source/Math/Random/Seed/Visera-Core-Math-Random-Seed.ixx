@@ -9,7 +9,7 @@ namespace Visera
     export class VISERA_CORE_API FSeedPool
     {
     public:
-        template<Concepts::UnsingedIntegral T = UInt32> [[nodiscard]] inline T
+        template<Concepts::UnsignedIntegral T = UInt32> [[nodiscard]] inline T
         Get() noexcept { return static_cast<T>(Generator()); }
 
     private:
