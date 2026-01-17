@@ -77,9 +77,9 @@ export namespace Visera
         ConvertImageLayout(FVulkanImage*           I_Image,
                            vk::ImageLayout         I_NewLayout,
                            EVulkanTransferStage    I_SrcStage,
-                           vk::AccessFlags2        I_SrcAccess,
+                           EVulkanTransferAccess   I_SrcAccess,
                            EVulkanTransferStage    I_DstStage,
-                           vk::AccessFlags2        I_DstAccess);
+                           EVulkanTransferAccess   I_DstAccess);
         void
         BlitImage(FVulkanImage* I_SrcImage,
                   FVulkanImage* I_DstImage);
@@ -137,9 +137,9 @@ export namespace Visera
         ConvertImageLayout(FVulkanImage*           I_Image,
                            vk::ImageLayout         I_NewLayout,
                            EVulkanGraphicsStage    I_SrcStage,
-                           vk::AccessFlags2        I_SrcAccess,
+                           EVulkanGraphicsAccess   I_SrcAccess,
                            EVulkanGraphicsStage    I_DstStage,
-                           vk::AccessFlags2        I_DstAccess);
+                           EVulkanGraphicsAccess   I_DstAccess);
         void
         SetViewport(const vk::Viewport& I_Viewport) { CurrentViewport = I_Viewport; Handle.setViewport(0, CurrentViewport.value()); }
         void
@@ -231,9 +231,9 @@ export namespace Visera
         ConvertImageLayout(FVulkanImage*           I_Image,
                            vk::ImageLayout         I_NewLayout,
                            EVulkanComputeStage     I_SrcStage,
-                           vk::AccessFlags2        I_SrcAccess,
+                           EVulkanComputeAccess    I_SrcAccess,
                            EVulkanComputeStage     I_DstStage,
-                           vk::AccessFlags2        I_DstAccess);
+                           EVulkanComputeAccess    I_DstAccess);
         void
         PushConstants(const void*          I_Data,
                       UInt32               I_Offset,
@@ -393,9 +393,9 @@ export namespace Visera
     ConvertImageLayout(FVulkanImage*           I_Image,
                        vk::ImageLayout         I_NewLayout,
                        EVulkanTransferStage    I_SrcStage,
-                       vk::AccessFlags2        I_SrcAccess,
+                       EVulkanTransferAccess   I_SrcAccess,
                        EVulkanTransferStage    I_DstStage,
-                       vk::AccessFlags2        I_DstAccess)
+                       EVulkanTransferAccess   I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
@@ -405,12 +405,7 @@ export namespace Visera
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
 
-        if (OldLayout == NewLayout)
-        {
-            LOG_WARN("Skipped to convert a image to the same layout \"{}\"!",
-                     NewLayout);
-            return;
-        }
+        if (OldLayout == NewLayout) { return; }
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)
@@ -421,9 +416,9 @@ export namespace Visera
         ;
         auto Barrier = vk::ImageMemoryBarrier2{}
             .setSrcStageMask        (TypeCast(I_SrcStage))
-            .setSrcAccessMask       (I_SrcAccess)
+            .setSrcAccessMask       (TypeCast(I_SrcAccess))
             .setDstStageMask        (TypeCast(I_DstStage))
-            .setDstAccessMask       (I_DstAccess)
+            .setDstAccessMask       (TypeCast(I_DstAccess))
             .setOldLayout           (OldLayout)
             .setNewLayout           (NewLayout)
             .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
@@ -542,9 +537,9 @@ export namespace Visera
     ConvertImageLayout(FVulkanImage*           I_Image,
                        vk::ImageLayout         I_NewLayout,
                        EVulkanGraphicsStage    I_SrcStage,
-                       vk::AccessFlags2        I_SrcAccess,
+                       EVulkanGraphicsAccess   I_SrcAccess,
                        EVulkanGraphicsStage    I_DstStage,
-                       vk::AccessFlags2        I_DstAccess)
+                       EVulkanGraphicsAccess   I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
@@ -554,12 +549,7 @@ export namespace Visera
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
 
-        if (OldLayout == NewLayout)
-        {
-            LOG_WARN("Skipped to convert a image to the same layout \"{}\"!",
-                     NewLayout);
-            return;
-        }
+        if (OldLayout == NewLayout) { return; }
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)
@@ -570,9 +560,9 @@ export namespace Visera
         ;
         auto Barrier = vk::ImageMemoryBarrier2{}
             .setSrcStageMask        (TypeCast(I_SrcStage))
-            .setSrcAccessMask       (I_SrcAccess)
+            .setSrcAccessMask       (TypeCast(I_SrcAccess))
             .setDstStageMask        (TypeCast(I_DstStage))
-            .setDstAccessMask       (I_DstAccess)
+            .setDstAccessMask       (TypeCast(I_DstAccess))
             .setOldLayout           (OldLayout)
             .setNewLayout           (NewLayout)
             .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
@@ -835,9 +825,9 @@ export namespace Visera
     ConvertImageLayout(FVulkanImage*           I_Image,
                        vk::ImageLayout         I_NewLayout,
                        EVulkanComputeStage     I_SrcStage,
-                       vk::AccessFlags2        I_SrcAccess,
+                       EVulkanComputeAccess    I_SrcAccess,
                        EVulkanComputeStage     I_DstStage,
-                       vk::AccessFlags2        I_DstAccess)
+                       EVulkanComputeAccess    I_DstAccess)
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
@@ -847,12 +837,7 @@ export namespace Visera
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
 
-        if (OldLayout == NewLayout)
-        {
-            LOG_WARN("Skipped to convert a image to the same layout \"{}\"!",
-                     NewLayout);
-            return;
-        }
+        if (OldLayout == NewLayout) { return; }
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)
@@ -863,9 +848,9 @@ export namespace Visera
         ;
         auto Barrier = vk::ImageMemoryBarrier2{}
             .setSrcStageMask        (TypeCast(I_SrcStage))
-            .setSrcAccessMask       (I_SrcAccess)
+            .setSrcAccessMask       (TypeCast(I_SrcAccess))
             .setDstStageMask        (TypeCast(I_DstStage))
-            .setDstAccessMask       (I_DstAccess)
+            .setDstAccessMask       (TypeCast(I_DstAccess))
             .setOldLayout           (OldLayout)
             .setNewLayout           (NewLayout)
             .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)

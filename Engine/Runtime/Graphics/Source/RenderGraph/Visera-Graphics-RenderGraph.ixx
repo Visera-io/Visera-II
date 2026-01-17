@@ -29,7 +29,7 @@ export namespace Visera
 
     private:
         //TPMRArray<FRGNode>     Nodes;
-        TMonotonicArena<1_MB>  LocalArena;
+        Memory::TMonotonicArena<1_MB>  LocalArena;
     };
 
     void FRenderGraph::

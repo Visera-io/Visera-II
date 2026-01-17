@@ -5,6 +5,7 @@ export module Visera.RHI;
 export import Visera.RHI.Common;
 export import Visera.RHI.Types;
 export import Visera.RHI.Resource;
+export import Visera.RHI.CommandList;
        import Visera.RHI.Vulkan;
        import Visera.RHI.Registry;
        import Visera.Core.Types.Array;
@@ -15,8 +16,6 @@ export import Visera.RHI.Resource;
 
 export namespace Visera
 {
-    using FRHIImageHandle   = FRHIResourceHandle;
-    using FRHIBufferHandle  = FRHIResourceHandle;
     using FRHIDrawCalls     = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
     using FRHITransferCalls = FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>;
 
@@ -30,10 +29,10 @@ export namespace Visera
         TUnicastDelegate<void(FRHIDrawCalls*, FRHIImageView*)>
         DebugUIDrawCalls;
 
-        [[nodiscard]] FRHIImageHandle
+        [[nodiscard]] FRHITextureHandle
         CreateTexture(FRHITextureCreateDesc&& I_TextureDesc);
         void
-        DestroyTexture(FRHIImageHandle I_TextureHandle, Bool I_bTransient = False);
+        DestroyTexture(FRHITextureHandle I_TextureHandle, Bool I_bTransient = False);
         [[nodiscard]] FRHIBufferHandle
         CreateBuffer(FRHIBufferCreateDesc&& I_BufferDesc);
         void
@@ -114,9 +113,9 @@ export namespace Visera
                     Cmd.ConvertImageLayout(&Image,
                         vk::ImageLayout::ePresentSrcKHR,
                         EVulkanGraphicsStage::TopOfPipe,
-                        vk::AccessFlagBits2::eNone,
+                        EVulkanGraphicsAccess::None,
                         EVulkanGraphicsStage::BottomOfPipe,
-                        vk::AccessFlagBits2::eNone);
+                        EVulkanGraphicsAccess::None);
                 }
                 Cmd.End();
                 auto Fence = Driver->CreateFence(False);
@@ -241,15 +240,24 @@ export namespace Visera
         }
     }
 
-    FRHIImageHandle FRHI::
+    FRHITextureHandle FRHI::
     CreateTexture(FRHITextureCreateDesc&& I_TextureDesc)
     {
-        auto Handle = Registry->Register(std::move(I_TextureDesc));
+        auto Handle  = Registry->Register(std::move(I_TextureDesc));
+        auto Texture = Registry->GetTexture(Handle);
+        auto& CurrentFrame = InFlightFrames[FrameIndex];
+        CurrentFrame.DrawCalls.ConvertImageLayout(
+            Texture->GetImage(),
+            vk::ImageLayout::eColorAttachmentOptimal,
+            EVulkanGraphicsStage::TopOfPipe,
+            EVulkanGraphicsAccess::None,
+            EVulkanGraphicsStage::BottomOfPipe,
+            EVulkanGraphicsAccess::None);
         return Handle;
     }
 
     void FRHI::
-    DestroyTexture(FRHIImageHandle I_TextureHandle, Bool I_bTransient)
+    DestroyTexture(FRHITextureHandle I_TextureHandle, Bool I_bTransient)
     {
         UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
         Registry->Unregister(I_TextureHandle, RetiredFrame);

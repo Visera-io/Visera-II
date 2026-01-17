@@ -24,6 +24,13 @@ struct FEngine
     {
         LOG_INFO("Visera Engine Run()");
 
+        FRHICommandList Commands;
+        Commands.ConvertImageLayout({}, ERHIImageLayout::ColorAttachment);
+        for (auto Command : Commands)
+        {
+            LOG_INFO("Visera Engine Command :{} ", Command.Type);
+        }
+
         while (!Window->ShouldClose())
         {
             Window->PollEvents();

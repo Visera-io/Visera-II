@@ -7,8 +7,8 @@ module;
 #endif
 export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS"
-export import Visera.Core.OS.Memory.Arena;
-       import Visera.Core.Math.Bit;
+import Visera.Core.Math.Bit;
+import :Arena;
 
 export namespace Visera
 {
@@ -32,6 +32,9 @@ export namespace Visera
 
     namespace Memory
     {
+        template<UInt64 InlineBytes>
+        using TMonotonicArena = TMonotonicArena<InlineBytes>;
+
         VISERA_FORCEINLINE auto
         Memset(void* I_Memory, Int32 I_Value, UInt64 I_Size) -> void;
         VISERA_FORCEINLINE auto

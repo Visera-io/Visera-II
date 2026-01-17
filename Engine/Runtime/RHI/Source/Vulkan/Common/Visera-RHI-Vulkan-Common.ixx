@@ -14,6 +14,85 @@ export namespace Visera
         Compute  = static_cast<UInt8>(vk::QueueFlagBits::eCompute),
     };
 
+    enum class EVulkanGraphicsAccess : UInt64
+    {
+       None                           = static_cast<UInt64>(vk::AccessFlagBits2::eNone),
+
+       IndirectCommandRead            = static_cast<UInt64>(vk::AccessFlagBits2::eIndirectCommandRead),
+       IndexRead                      = static_cast<UInt64>(vk::AccessFlagBits2::eIndexRead),
+       VertexAttributeRead            = static_cast<UInt64>(vk::AccessFlagBits2::eVertexAttributeRead),
+       UniformRead                    = static_cast<UInt64>(vk::AccessFlagBits2::eUniformRead),
+       InputAttachmentRead            = static_cast<UInt64>(vk::AccessFlagBits2::eInputAttachmentRead),
+
+       ShaderRead                     = static_cast<UInt64>(vk::AccessFlagBits2::eShaderRead),
+       ShaderWrite                    = static_cast<UInt64>(vk::AccessFlagBits2::eShaderWrite),
+
+       ColorAttachmentRead            = static_cast<UInt64>(vk::AccessFlagBits2::eColorAttachmentRead),
+       ColorAttachmentWrite           = static_cast<UInt64>(vk::AccessFlagBits2::eColorAttachmentWrite),
+
+       DepthStencilAttachmentRead     = static_cast<UInt64>(vk::AccessFlagBits2::eDepthStencilAttachmentRead),
+       DepthStencilAttachmentWrite    = static_cast<UInt64>(vk::AccessFlagBits2::eDepthStencilAttachmentWrite),
+
+       TransferRead                   = static_cast<UInt64>(vk::AccessFlagBits2::eTransferRead),
+       TransferWrite                  = static_cast<UInt64>(vk::AccessFlagBits2::eTransferWrite),
+
+       HostRead                       = static_cast<UInt64>(vk::AccessFlagBits2::eHostRead),
+       HostWrite                      = static_cast<UInt64>(vk::AccessFlagBits2::eHostWrite),
+
+       MemoryRead                     = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryRead),
+       MemoryWrite                    = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryWrite),
+
+       ShaderSampledRead              = static_cast<UInt64>(vk::AccessFlagBits2::eShaderSampledRead),
+       ShaderStorageRead              = static_cast<UInt64>(vk::AccessFlagBits2::eShaderStorageRead),
+       ShaderStorageWrite             = static_cast<UInt64>(vk::AccessFlagBits2::eShaderStorageWrite),
+    };
+    VISERA_MAKE_FLAGS(EVulkanGraphicsAccess);
+    [[nodiscard]] constexpr vk::AccessFlags2
+    TypeCast(EVulkanGraphicsAccess I_Access) { return static_cast<vk::AccessFlagBits2>(I_Access); }
+
+    enum class EVulkanTransferAccess : UInt64
+    {
+       None                           = static_cast<UInt64>(vk::AccessFlagBits2::eNone),
+
+       TransferRead                   = static_cast<UInt64>(vk::AccessFlagBits2::eTransferRead),
+       TransferWrite                  = static_cast<UInt64>(vk::AccessFlagBits2::eTransferWrite),
+
+       HostRead                       = static_cast<UInt64>(vk::AccessFlagBits2::eHostRead),
+       HostWrite                      = static_cast<UInt64>(vk::AccessFlagBits2::eHostWrite),
+
+       MemoryRead                     = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryRead),
+       MemoryWrite                    = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryWrite),
+    };
+    VISERA_MAKE_FLAGS(EVulkanTransferAccess);
+    [[nodiscard]] constexpr vk::AccessFlags2
+    TypeCast(EVulkanTransferAccess I_Access) { return static_cast<vk::AccessFlagBits2>(I_Access); }
+
+    enum class EVulkanComputeAccess : UInt64
+    {
+       None                           = static_cast<UInt64>(vk::AccessFlagBits2::eNone),
+
+       IndirectCommandRead            = static_cast<UInt64>(vk::AccessFlagBits2::eIndirectCommandRead),
+
+       ShaderRead                     = static_cast<UInt64>(vk::AccessFlagBits2::eShaderRead),
+       ShaderWrite                    = static_cast<UInt64>(vk::AccessFlagBits2::eShaderWrite),
+
+       TransferRead                   = static_cast<UInt64>(vk::AccessFlagBits2::eTransferRead),
+       TransferWrite                  = static_cast<UInt64>(vk::AccessFlagBits2::eTransferWrite),
+
+       HostRead                       = static_cast<UInt64>(vk::AccessFlagBits2::eHostRead),
+       HostWrite                      = static_cast<UInt64>(vk::AccessFlagBits2::eHostWrite),
+
+       MemoryRead                     = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryRead),
+       MemoryWrite                    = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryWrite),
+
+       ShaderSampledRead              = static_cast<UInt64>(vk::AccessFlagBits2::eShaderSampledRead),
+       ShaderStorageRead              = static_cast<UInt64>(vk::AccessFlagBits2::eShaderStorageRead),
+       ShaderStorageWrite             = static_cast<UInt64>(vk::AccessFlagBits2::eShaderStorageWrite),
+    };
+    VISERA_MAKE_FLAGS(EVulkanComputeAccess);
+    [[nodiscard]] constexpr vk::AccessFlags2
+    TypeCast(EVulkanComputeAccess I_Access) { return static_cast<vk::AccessFlagBits2>(I_Access); }
+
     enum class EVulkanGraphicsStage : UInt32
     {
         None                    = static_cast<UInt32>(vk::PipelineStageFlagBits2::eNone),

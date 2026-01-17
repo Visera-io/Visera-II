@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 #include <cstddef>
 #include <memory_resource>
-export module Visera.Core.OS.Memory.Arena;
+export module Visera.Core.OS.Memory:Arena;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.Math.Bit;
 

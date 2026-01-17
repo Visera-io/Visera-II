@@ -20,11 +20,15 @@ export namespace Visera
     class VISERA_RHI_API FRHIRegistry
     {
     public:
+        [[nodiscard]] FRHITexture*
+        GetTexture(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Texture); return Textures.Get(I_Handle); }
+        [[nodiscard]] FRHIBuffer*
+        GetBuffer(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Buffer); return Buffers.Get(I_Handle); }
         [[nodiscard]] FRHIResourceHandle
         Register(FRHITextureCreateDesc&& I_TextureDesc);
         [[nodiscard]] FRHIResourceHandle
         Register(FRHIBufferCreateDesc&& I_BufferDesc);
-        [[nodiscard]] void
+        void
         Unregister(FRHIResourceHandle I_Handle, UInt8 I_RetiredFrame);
 
         void

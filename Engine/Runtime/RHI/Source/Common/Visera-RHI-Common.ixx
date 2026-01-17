@@ -207,6 +207,20 @@ export namespace Visera
     [[nodiscard]] constexpr vk::ImageUsageFlags
     TypeCast(ERHIImageUsage I_TextureUsage) { return static_cast<vk::ImageUsageFlagBits>(I_TextureUsage); }
 
+    enum class ERHIImageLayout : UInt32
+    {
+        Undefined               = static_cast<UInt32>(vk::ImageLayout::eUndefined),
+        General                 = static_cast<UInt32>(vk::ImageLayout::eGeneral),
+        ColorAttachment         = static_cast<UInt32>(vk::ImageLayout::eColorAttachmentOptimal),
+        DepthStencilAttachment  = static_cast<UInt32>(vk::ImageLayout::eDepthStencilAttachmentOptimal),
+        DepthStencilReadOnly    = static_cast<UInt32>(vk::ImageLayout::eDepthStencilReadOnlyOptimal),
+        ShaderReadOnly          = static_cast<UInt32>(vk::ImageLayout::eShaderReadOnlyOptimal),
+        TransferSrc             = static_cast<UInt32>(vk::ImageLayout::eTransferSrcOptimal),
+        TransferDst             = static_cast<UInt32>(vk::ImageLayout::eTransferDstOptimal),
+    };
+    [[nodiscard]] constexpr vk::ImageLayout
+    TypeCast(ERHIImageLayout I_ImageLayout) { return static_cast<vk::ImageLayout>(I_ImageLayout); }
+
     enum class ERHIBufferUsage : UInt32
     {
         None = 0,
@@ -264,6 +278,9 @@ export namespace Visera
         }
     };
     static_assert(Concepts::Handle<FRHIResourceHandle>);
+
+    using FRHITextureHandle   = FRHIResourceHandle;
+    using FRHIBufferHandle  = FRHIResourceHandle;
 }
 VISERA_MAKE_FORMATTER(Visera::ERHIFormat,
     const char* FormatName = "Undefined";

@@ -37,8 +37,10 @@ export namespace Visera
     public:
         [[nodiscard]] const auto&
         GetInfo() const { return Info; }
-        [[nodiscard]] Bool
-        IsSameLayout(const FRHITexture& I_Other) const;
+        [[nodiscard]] FVulkanImage*
+        GetImage()     { return &Image; }
+        [[nodiscard]] FVulkanImageView*
+        GetImageView() { return &ImageView; }
 
     private:
         const FRHITextureCreateDesc Info;
