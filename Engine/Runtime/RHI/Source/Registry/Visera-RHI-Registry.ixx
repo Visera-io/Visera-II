@@ -14,9 +14,6 @@ import vulkan_hpp;
 
 export namespace Visera
 {
-    using FRHISampler       = FVulkanSampler;
-    // Note: FRHICommandBuffer is now a template type, use FVulkanCommandBuffer<QueueFamily> directly
-
     class VISERA_RHI_API FRHIRegistry
     {
     public:

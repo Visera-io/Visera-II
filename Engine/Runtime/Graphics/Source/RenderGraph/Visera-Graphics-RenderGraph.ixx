@@ -3,7 +3,7 @@ module;
 export module Visera.Graphics.RenderGraph;
 #define VISERA_MODULE_NAME "Graphics.RenderGraph"
 import Visera.Graphics.RenderGraph.Node;
-import Visera.RHI.Types.CommandBuffer;
+import Visera.RHI.CommandList;
 import Visera.Core.OS.Memory;
 import Visera.Core.Types.Array;
 import Visera.Core.Types.JSON;
@@ -17,9 +17,9 @@ export namespace Visera
     {
     public:
         void inline
-        AddNode(FName I_Name, TUnicastDelegate<void(FRHIDrawCommandList*)> I_Execute);
+        AddNode(FName I_Name, TUnicastDelegate<void(FRHICommandList*)> I_Execute);
         void inline
-        Execute(FRHIDrawCommandList* I_DrawCommandList);
+        Execute(FRHICommandList* I_DrawCommandList);
         void inline
         Clear() { VISERA_UNIMPLEMENTED_API; }
         [[nodiscard]] Bool inline
@@ -33,7 +33,7 @@ export namespace Visera
     };
 
     void FRenderGraph::
-    AddNode(FName I_Name, TUnicastDelegate<void(FRHIDrawCommandList*)> I_Execute)
+    AddNode(FName I_Name, TUnicastDelegate<void(FRHICommandList*)> I_Execute)
     {
         // Nodes.emplace_back(FRGNode{
         //     .Name    = I_Name,
@@ -42,7 +42,7 @@ export namespace Visera
     }
 
     void FRenderGraph::
-    Execute(FRHIDrawCommandList* I_CommandBuffer)
+    Execute(FRHICommandList* I_CommandBuffer)
     {
         if (!I_CommandBuffer) { return; }
         // for (auto& Node : Nodes)

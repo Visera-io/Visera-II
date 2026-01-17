@@ -250,14 +250,14 @@ export namespace Visera
         Int32 X, Y;
     };
     [[nodiscard]] constexpr vk::Offset2D
-    TypeCast(const FRHIOffset2D& I_Offset2D) { return vk::Offset2D{.x = I_Offset2D.X, .y = I_Offset2D.Y}; }
+    TypeCast(const FRHIOffset2D& I_Offset2D) { return vk::Offset2D{I_Offset2D.X, I_Offset2D.Y}; }
 
     struct FRHIExtent2D
     {
         UInt32 Width, Height;
     };
     [[nodiscard]] constexpr vk::Extent2D
-    TypeCast(const FRHIExtent2D& I_Extent2D) { return vk::Extent2D{.width = I_Extent2D.Width, .height = I_Extent2D.Height}; }
+    TypeCast(const FRHIExtent2D& I_Extent2D) { return vk::Extent2D{I_Extent2D.Width, I_Extent2D.Height}; }
 
     struct FRHIViewport
     {
@@ -274,7 +274,7 @@ export namespace Visera
         FRHIExtent2D Extent;
     };
     [[nodiscard]] constexpr vk::Rect2D
-    TypeCast(const FRHIScissor& I_Scissor) { return vk::Rect2D{.offset = TypeCast(I_Scissor.Offset), .extent = TypeCast(I_Scissor.Extent)}; }
+    TypeCast(const FRHIScissor& I_Scissor) { return vk::Rect2D{ TypeCast(I_Scissor.Offset), TypeCast(I_Scissor.Extent)}; }
 
     class VISERA_RHI_API FRHIResourceHandle : public FHandle
     {

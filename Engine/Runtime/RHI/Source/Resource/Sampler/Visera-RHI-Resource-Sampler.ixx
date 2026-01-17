@@ -12,4 +12,8 @@ export namespace Visera
 
     };
 
+    class VISERA_RHI_API FRHISampler
+    {
+
+    };
 }

@@ -20,7 +20,6 @@ export import Visera.RHI.Vulkan.Sync;
        import Visera.RHI.Vulkan.Loader;
        import Visera.RHI.Vulkan.Allocator;
        import Visera.RHI.Vulkan.ShaderModule;
-       import Visera.RHI.Types.Shader;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Set;

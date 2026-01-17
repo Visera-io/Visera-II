@@ -163,36 +163,36 @@ namespace Visera::Graphics
             {
                 EndFrame();
             });
-            if (!GRHI->DebugUIDrawCalls.TryBind([&I_Window]
-            (FRHIDrawCalls* I_CommandBuffer, FRHIImageView* I_ColorRT)
-            {
-                ImGui::Render();
-
-                auto Cmds = I_CommandBuffer->GetHandle();
-
-                VkRenderingAttachmentInfo ColorAttachment
-                {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                    .imageView   = I_ColorRT->GetHandle(),
-                    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
-                    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-                };
-                VkRenderingInfo RenderingInfo
-                {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-                    .renderArea = { {0, 0}, { I_Window->GetWidth(), I_Window->GetHeight() } },
-                    .layerCount = 1,
-                    .colorAttachmentCount   = 1,
-                    .pColorAttachments      = &ColorAttachment,
-                };
-                vkCmdBeginRendering(Cmds, &RenderingInfo);
-
-                ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Cmds);
-
-                vkCmdEndRendering(Cmds);
-            }))
-            { LOG_FATAL("Failed to bind ImGui drawcalls to backend!"); }
+            // if (!GRHI->DebugUIDrawCalls.TryBind([&I_Window]
+            // (FRHIDrawCalls* I_CommandBuffer, FRHIImageView* I_ColorRT)
+            // {
+            //     ImGui::Render();
+            //
+            //     auto Cmds = I_CommandBuffer->GetHandle();
+            //
+            //     VkRenderingAttachmentInfo ColorAttachment
+            //     {
+            //         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            //         .imageView   = I_ColorRT->GetHandle(),
+            //         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            //         .loadOp      = VK_ATTACHMENT_LOAD_OP_LOAD,
+            //         .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+            //     };
+            //     VkRenderingInfo RenderingInfo
+            //     {
+            //         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+            //         .renderArea = { {0, 0}, { I_Window->GetWidth(), I_Window->GetHeight() } },
+            //         .layerCount = 1,
+            //         .colorAttachmentCount   = 1,
+            //         .pColorAttachments      = &ColorAttachment,
+            //     };
+            //     vkCmdBeginRendering(Cmds, &RenderingInfo);
+            //
+            //     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Cmds);
+            //
+            //     vkCmdEndRendering(Cmds);
+            // }))
+            // { LOG_FATAL("Failed to bind ImGui drawcalls to backend!"); }
     #endif
         }
 

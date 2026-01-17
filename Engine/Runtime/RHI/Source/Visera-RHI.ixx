@@ -3,7 +3,6 @@ module;
 export module Visera.RHI;
 #define VISERA_MODULE_NAME "RHI"
 export import Visera.RHI.Common;
-export import Visera.RHI.Types;
 export import Visera.RHI.Resource;
 export import Visera.RHI.CommandList;
        import Visera.RHI.Vulkan;
@@ -26,8 +25,6 @@ export namespace Visera
         OnBeginFrame;
         TMulticastDelegate<>
         OnEndFrame;
-        TUnicastDelegate<void(FRHIDrawCalls*, FRHIImageView*)>
-        DebugUIDrawCalls;
 
         [[nodiscard]] FRHITextureHandle
         CreateTexture(FRHITextureCreateDesc&& I_TextureDesc);
