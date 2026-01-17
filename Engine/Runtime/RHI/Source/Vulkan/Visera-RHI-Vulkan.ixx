@@ -169,6 +169,8 @@ export namespace Visera
 
             [[nodiscard]] inline FVulkanImageView*
             GetCurrentImageView() { return &ImageViews[Cursor]; }
+            [[nodiscard]] inline FVulkanImage*
+            GetCurrentImage()    { return &Images[Cursor]; }
         }SwapChain;
 #endif
 

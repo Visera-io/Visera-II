@@ -218,6 +218,7 @@ export namespace Visera
         ShaderReadOnly          = static_cast<UInt32>(vk::ImageLayout::eShaderReadOnlyOptimal),
         TransferSrc             = static_cast<UInt32>(vk::ImageLayout::eTransferSrcOptimal),
         TransferDst             = static_cast<UInt32>(vk::ImageLayout::eTransferDstOptimal),
+        Present                 = static_cast<UInt32>(vk::ImageLayout::ePresentSrcKHR),
     };
     [[nodiscard]] constexpr vk::ImageLayout
     TypeCast(ERHIImageLayout I_ImageLayout) { return static_cast<vk::ImageLayout>(I_ImageLayout); }

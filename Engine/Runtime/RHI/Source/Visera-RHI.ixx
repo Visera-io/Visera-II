@@ -275,6 +275,39 @@ export namespace Visera
                     });
                     break;
                 }
+            case ECommandType::BlitImage:
+                {
+                    const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitImage*>(Command.PayloadPtrAligned);
+
+                    auto* SrcTexture = Registry->GetTexture(Payload->SrcImage);
+                    auto* DstTexture = Registry->GetTexture(Payload->DstImage);
+                    VISERA_ASSERT(SrcTexture && DstTexture);
+
+                    Frame.DrawCalls.BlitImage(SrcTexture->GetImage(), DstTexture->GetImage());
+                    break;
+                }
+            case ECommandType::BlitToSwapChain:
+                {
+                    const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitToSwapChain*>(Command.PayloadPtrAligned);
+
+                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    VISERA_ASSERT(Texture);
+                    auto  SwapChainImage = Driver->GetSwapChain().GetCurrentImage();
+                    Frame.DrawCalls.ConvertImageLayout(SwapChainImage,
+                        TypeCast(ERHIImageLayout::TransferDst),
+                        EVulkanGraphicsStage::TopOfPipe,
+                        EVulkanGraphicsAccess::None,
+                        EVulkanGraphicsStage::BottomOfPipe,
+                        EVulkanGraphicsAccess::None);
+                    Frame.DrawCalls.BlitImage(Texture->GetImage(), SwapChainImage);
+                    Frame.DrawCalls.ConvertImageLayout(SwapChainImage,
+                        TypeCast(ERHIImageLayout::Present),
+                        EVulkanGraphicsStage::TopOfPipe,
+                        EVulkanGraphicsAccess::None,
+                        EVulkanGraphicsStage::BottomOfPipe,
+                        EVulkanGraphicsAccess::None);
+                    break;
+                }
             default: LOG_ERROR("Unknown Command!"); break;
             }
         }

@@ -15,6 +15,8 @@ export namespace Visera
         ConvertImageLayout,
         CopyBufferToImage,
         ClearColorImage,
+        BlitImage,
+        BlitToSwapChain,
     };
 
     // Command view returned by iterator
@@ -55,6 +57,20 @@ export namespace Visera
         };
         void inline
         ClearColorImage(FRHITextureHandle I_Texture, FRHIClearColor I_ClearColor);
+
+        struct FBlitImage
+        {
+            FRHITextureHandle SrcImage;
+            FRHITextureHandle DstImage;
+        };
+        void inline
+        BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture);
+        struct FBlitToSwapChain
+        {
+            FRHITextureHandle Image;
+        };
+        void inline
+        BlitToSwapChain(FRHITextureHandle I_Texture);
 
         // Check if the command list is empty
         [[nodiscard]] Bool
@@ -220,6 +236,28 @@ export namespace Visera
             .ClearColor = I_ClearColor,
         });
     }
+
+    void FRHICommandList::
+    BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture)
+    {
+        VISERA_ASSERT(I_SrcTexture != FRHITextureHandle{});
+        VISERA_ASSERT(I_DstTexture != FRHITextureHandle{});
+        RecordCommand(ECommandType::BlitImage, FBlitImage
+        {
+            .SrcImage = I_SrcTexture,
+            .DstImage = I_DstTexture,
+        });
+    }
+
+    void FRHICommandList::
+    BlitToSwapChain(FRHITextureHandle I_Texture)
+    {
+        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
+        RecordCommand(ECommandType::BlitToSwapChain, FBlitToSwapChain
+        {
+            .Image = I_Texture,
+        });
+    }
 }
 VISERA_MAKE_FORMATTER(Visera::ECommandType,
     const char* CommandName = "Unknown";
@@ -228,6 +266,8 @@ VISERA_MAKE_FORMATTER(Visera::ECommandType,
     case Visera::ECommandType::ConvertImageLayout:  CommandName = "\"ConvertImageLayout\""; break;
     case Visera::ECommandType::CopyBufferToImage:   CommandName = "\"CopyBufferToImage\""; break;
     case Visera::ECommandType::ClearColorImage:     CommandName = "\"ClearColorImage\""; break;
+    case Visera::ECommandType::BlitImage:           CommandName = "\"BlitImage\""; break;
+    case Visera::ECommandType::BlitToSwapChain:     CommandName = "\"BlitToSwapChain\""; break;
     default: break;
     }
 , "{}", CommandName);
