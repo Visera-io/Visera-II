@@ -113,15 +113,6 @@ export namespace Visera
     [[nodiscard]] constexpr vk::ImageAspectFlags
     TypeCast(ERHIImageAspect I_ImageAspect) { return static_cast<vk::ImageAspectFlagBits>(I_ImageAspect); }
 
-    struct FRHIExtent3D
-    {
-        UInt32 Width  = 0;
-        UInt32 Height = 0;
-        UInt32 Depth  = 0;
-    };
-    [[nodiscard]] inline constexpr vk::Extent3D
-    TypeCast(const FRHIExtent3D& I_Extent) { return vk::Extent3D{I_Extent.Width, I_Extent.Height, I_Extent.Depth}; }
-
     enum class ERHIAttachmentLoadOp : UInt8
     {
         Load     = static_cast<UInt8>(vk::AttachmentLoadOp::eLoad),
@@ -245,6 +236,46 @@ export namespace Visera
         Buffer,
     };
 
+    struct FRHIExtent3D
+    {
+        UInt32 Width  = 0;
+        UInt32 Height = 0;
+        UInt32 Depth  = 0;
+    };
+    [[nodiscard]] constexpr vk::Extent3D
+    TypeCast(const FRHIExtent3D& I_Extent) { return vk::Extent3D{I_Extent.Width, I_Extent.Height, I_Extent.Depth}; }
+
+    struct FRHIOffset2D
+    {
+        Int32 X, Y;
+    };
+    [[nodiscard]] constexpr vk::Offset2D
+    TypeCast(const FRHIOffset2D& I_Offset2D) { return vk::Offset2D{.x = I_Offset2D.X, .y = I_Offset2D.Y}; }
+
+    struct FRHIExtent2D
+    {
+        UInt32 Width, Height;
+    };
+    [[nodiscard]] constexpr vk::Extent2D
+    TypeCast(const FRHIExtent2D& I_Extent2D) { return vk::Extent2D{.width = I_Extent2D.Width, .height = I_Extent2D.Height}; }
+
+    struct FRHIViewport
+    {
+        Float X       , Y       ;
+        Float Width   , Height  ;
+        Float MinDepth, MaxDepth;
+    };
+    [[nodiscard]] constexpr vk::Viewport
+    TypeCast(const FRHIViewport& I_Viewport) { return vk::Viewport{I_Viewport.X, I_Viewport.Y, I_Viewport.Width, I_Viewport.Height, I_Viewport.MinDepth, I_Viewport.MaxDepth}; }
+
+    struct FRHIScissor
+    {
+        FRHIOffset2D Offset;
+        FRHIExtent2D Extent;
+    };
+    [[nodiscard]] constexpr vk::Rect2D
+    TypeCast(const FRHIScissor& I_Scissor) { return vk::Rect2D{.offset = TypeCast(I_Scissor.Offset), .extent = TypeCast(I_Scissor.Extent)}; }
+
     class VISERA_RHI_API FRHIResourceHandle : public FHandle
     {
     public:
@@ -281,8 +312,9 @@ export namespace Visera
     };
     static_assert(Concepts::Handle<FRHIResourceHandle>);
 
-    using FRHITextureHandle = FRHIResourceHandle;
-    using FRHIBufferHandle  = FRHIResourceHandle;
+    using FRHITextureHandle     = FRHIResourceHandle;
+    using FRHIBufferHandle      = FRHIResourceHandle;
+    using FRHIRenderPassHandle  = FRHIResourceHandle;
 
     using FRHIClearColor = FLinearColor;
 }

@@ -24,7 +24,7 @@ namespace Visera
         vk::raii::PipelineLayout Handle {nullptr};
 
     public:
-        FVulkanPipelineLayout() = delete;
+        FVulkanPipelineLayout() = default;
         FVulkanPipelineLayout(const vk::raii::Device&                I_Device,
                               const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
                               const TArray<vk::PushConstantRange>&   I_PushConstants);

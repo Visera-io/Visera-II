@@ -72,9 +72,9 @@ namespace Visera
         FVulkanShaderModule               VertexShader;
         FVulkanShaderModule               FragmentShader;
 
-        vk::RenderingInfo               CurrentRenderingInfo;
-        FVulkanRenderTarget* CurrentColorRT {nullptr};
-        FVulkanRenderTarget* CurrentDepthRT {nullptr};
+        vk::RenderingInfo    CurrentRenderingInfo;
+        FVulkanRenderTarget* CurrentColorRT   {nullptr};
+        FVulkanRenderTarget* CurrentDepthRT   {nullptr};
         FVulkanRenderTarget* CurrentStencilRT {nullptr};
 
         enum : UInt8 { MAX_DYNAMIC_STATE = 2 };
@@ -87,7 +87,7 @@ namespace Visera
         DynamicStateCreateInfo{};
 
     public:
-        FVulkanRenderPipeline() = delete;
+        FVulkanRenderPipeline() = default;
         FVulkanRenderPipeline(FVulkanPipelineLayout&& I_PipelineLayout,
                               FVulkanShaderModule&&   I_VertexShader,
                               FVulkanShaderModule&&   I_FragmentShader)

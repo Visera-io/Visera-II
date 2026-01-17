@@ -17,6 +17,10 @@ export namespace Visera
         ClearColorImage,
         BlitImage,
         BlitToSwapChain,
+        EnterRenderPass,
+        SetViewport,
+        SetScissor,
+        LeaveRenderPass,
     };
 
     // Command view returned by iterator
@@ -33,15 +37,43 @@ export namespace Visera
 
         struct alignas(8) FCommandHeader
         {
-            ECommandType Type;      // Command type
+            ECommandType Type;       // Command type
             UInt16       PayloadOff; // Offset from header start to payload start
             UInt16       TotalBytes; // Total bytes from header start to command end
             UInt16       Pad;        // Reserved / padding
         };
-        static_assert(sizeof(FCommandHeader) == 8);
+        static_assert(sizeof(FCommandHeader)  == 8);
         static_assert(alignof(FCommandHeader) == 8);
 
     public:
+        struct FEnterRenderPass
+        {
+
+        };
+        void inline
+        EnterRenderPass(FRHIRenderPassHandle I_RenderPass) {}
+
+        struct FLeaveRenderPass
+        {
+
+        };
+        void inline
+        LeaveRenderPass() {}
+
+        struct FSetViewport
+        {
+            FRHIViewport Viewport;
+        };
+        void inline
+        SetViewport(const FRHIViewport& I_Viewport);
+
+        struct FSetScissor
+        {
+            FRHIScissor Scissor;
+        };
+        void inline
+        SetScissor(const FRHIScissor& I_Scissor);
+
         struct FConvertImageLayout
         {
             FRHITextureHandle Image;
@@ -65,6 +97,7 @@ export namespace Visera
         };
         void inline
         BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture);
+
         struct FBlitToSwapChain
         {
             FRHITextureHandle Image;
@@ -227,6 +260,24 @@ export namespace Visera
     }
 
     void FRHICommandList::
+    SetViewport(const FRHIViewport& I_Viewport)
+    {
+        RecordCommand(ECommandType::SetViewport, FSetViewport
+        {
+            .Viewport = I_Viewport,
+        });
+    }
+
+    void FRHICommandList::
+    SetScissor(const FRHIScissor& I_Scissor)
+    {
+        RecordCommand(ECommandType::SetScissor, FSetScissor
+        {
+            .Scissor = I_Scissor,
+        });
+    }
+
+    void FRHICommandList::
     ClearColorImage(FRHITextureHandle I_Texture, FRHIClearColor I_ClearColor)
     {
         VISERA_ASSERT(I_Texture != FRHITextureHandle{});
@@ -268,6 +319,8 @@ VISERA_MAKE_FORMATTER(Visera::ECommandType,
     case Visera::ECommandType::ClearColorImage:     CommandName = "\"ClearColorImage\""; break;
     case Visera::ECommandType::BlitImage:           CommandName = "\"BlitImage\""; break;
     case Visera::ECommandType::BlitToSwapChain:     CommandName = "\"BlitToSwapChain\""; break;
+    case Visera::ECommandType::EnterRenderPass:     CommandName = "\"EnterRenderPass\""; break;
+    case Visera::ECommandType::LeaveRenderPass:     CommandName = "\"LeaveRenderPass\""; break;
     default: break;
     }
 , "{}", CommandName);

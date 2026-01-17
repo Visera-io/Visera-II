@@ -20,7 +20,7 @@ namespace Visera
         vk::raii::ShaderModule Handle {nullptr};
 
     public:
-        FVulkanShaderModule() = delete;
+        FVulkanShaderModule() = default;
         FVulkanShaderModule(const vk::raii::Device& I_Device,
                             const TArray<FByte>&    I_SPIRVShader);
         FVulkanShaderModule(FVulkanShaderModule&&) = default;

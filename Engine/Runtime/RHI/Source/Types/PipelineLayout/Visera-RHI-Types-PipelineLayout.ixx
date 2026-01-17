@@ -11,26 +11,7 @@ import Visera.Core.Types.Array;
 
 export namespace Visera
 {
-    struct VISERA_RHI_API FRHIPushConstantRange
-    {
-        UInt32           Size   {0};
-        UInt32           Offset {0};
-        ERHIShaderStages Stages {ERHIShaderStages::Undefined};
 
-        [[nodiscard]] inline UInt64
-        Hash() const { return Math::GoldenRatioHashCombine(0, Size, Offset, Stages); }
-
-        friend constexpr Bool
-        operator==(const FRHIPushConstantRange& I_A, const FRHIPushConstantRange& I_B) noexcept = default;
-
-        friend constexpr auto operator<=>(const FRHIPushConstantRange& a,
-                                          const FRHIPushConstantRange& b) noexcept
-        {
-            if (a.Size   != b.Size)   { return a.Size   <=> b.Size;   }
-            if (a.Offset != b.Offset) { return a.Offset <=> b.Offset; }
-            return ToUnderlying(a.Stages) <=> ToUnderlying(b.Stages);
-        }
-    };
 
     class VISERA_RHI_API FRHIPipelineLayout
     {

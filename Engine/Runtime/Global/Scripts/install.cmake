@@ -1,15 +1,12 @@
-  set(VISERA_GLOBAL_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"   )
-  set(VISERA_GLOBAL_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External" )
-  set(VISERA_GLOBAL_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"   )
-  set(VISERA_GLOBAL_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"  )
+  set(VISERA_GLOBAL_SOURCE_DIR   "${PROJECT_SOURCE_DIR}/Source"   CACHE STRING "")
+  set(VISERA_GLOBAL_EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/External" CACHE STRING "")
+  set(VISERA_GLOBAL_INCLUDE_DIR  "${PROJECT_SOURCE_DIR}/Include"  CACHE STRING "")
+  set(VISERA_GLOBAL_SCRIPTS_DIR  "${PROJECT_SOURCE_DIR}/Scripts"  CACHE STRING "")
 
   macro(install_visera_global in_target)
     message(STATUS "\nInstalling Visera Global...")
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GLOBAL_SCRIPTS_DIR})
-
-    include(install_onetbb)
-    link_onetbb(${in_target})
 
     file(GLOB_RECURSE VISERA_GLOBAL_MODULES "${VISERA_GLOBAL_SOURCE_DIR}/*.ixx")
 

@@ -48,7 +48,7 @@ struct FEngine
             // Rendering
             auto Time = Timer.Elapsed().Milliseconds() / 1000.0;
             auto Pulse = Math::Pow(0.5f + 0.5f * Math::Sin(FRadian(Time)), 2.2f);
-            auto Color = FRHIClearColor::Yellow();
+            auto Color = FRHIClearColor::Red();
             Color.R *= Pulse;
             Color.G *= Pulse;
             Color.B *= Pulse;

@@ -617,6 +617,10 @@ export namespace Visera
                 .setQueuePriorities ({Priority}));
         }
         // First build each feature struct explicitly
+        auto GPUFeatures = vk::PhysicalDeviceFeatures2{};
+        GPUFeatures.features
+            .setSamplerAnisotropy                           (GPU.Features2.features.samplerAnisotropy)
+        ;
         auto Vulkan11Features =  vk::PhysicalDeviceVulkan11Features{}
             .setShaderDrawParameters                        (vk::True)
         ;
@@ -634,7 +638,7 @@ export namespace Visera
         ;
         vk::StructureChain FeatureChain
         {
-            GPU.Features2,   // Bindless
+            GPUFeatures,
             Vulkan11Features,
             Vulkan12Features,
             Vulkan13Features,
@@ -723,7 +727,7 @@ export namespace Visera
             if (!bFoundRequiredPresentMode)
             {
                 LOG_WARN("Failed to find required present mode {} for SwapChain!"
-                         "-- Using FIFO by default.", SwapChain.PresentMode);
+                         " -- Using FIFO by default.", SwapChain.PresentMode);
                 SwapChain.PresentMode = vk::PresentModeKHR::eFifo;
             }
         }
@@ -833,9 +837,6 @@ export namespace Visera
     CollectDeviceLayersAndExtensions()
     {
         this->AddDeviceExtension(vk::EXTDescriptorIndexingExtensionName)
-            ->AddDeviceExtension(vk::KHRSynchronization2ExtensionName)
-            ->AddDeviceExtension(vk::KHRDynamicRenderingExtensionName)
-            ->AddDeviceExtension(vk::KHRMaintenance1ExtensionName)
             ->AddDeviceExtension(vk::KHRMaintenance6ExtensionName) // BindDescriptorSets2() [TODO]: Remove in Vulkan1.4
 #if defined(VISERA_ON_APPLE_SYSTEM)
             ->AddDeviceExtension("VK_KHR_portability_subset")
