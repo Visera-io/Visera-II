@@ -3,7 +3,6 @@ module;
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
-//import Visera.Game;
 import Visera.RHI;
 import Visera.Audio;
 import Visera.Global;
@@ -29,7 +28,7 @@ struct FEngine
         {
             Window->PollEvents();
 
-            if (!RHI->BeginFrame()) continue;
+            if (!RHI->BeginFrame()) { continue; }
 
             auto Texture = RHI->CreateTexture({
             .Width = 1920,

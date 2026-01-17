@@ -15,17 +15,19 @@ namespace Visera
         [[nodiscard]] inline Bool
         ShouldClose() const override { return True; }
         inline void
-        WaitEvents() const override { VISERA_UNIMPLEMENTED_API; }
+        WaitEvents() const override { }
         inline void
-        PollEvents() const override { VISERA_UNIMPLEMENTED_API; }
+        PollEvents() const override { }
         void inline
-        SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { VISERA_UNIMPLEMENTED_API; }
+        SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { }
         void inline
-        SetPosition(Int32 I_X, Int32 I_Y) const override { VISERA_UNIMPLEMENTED_API; }
+        SetPosition(Int32 I_X, Int32 I_Y) const override { }
         [[nodiscard]] FStringView
-        GetTitle() const override { VISERA_UNIMPLEMENTED_API; return ""; }
+        GetTitle() const override { return ""; }
         void inline
-        SetTitle(FStringView I_Title) override { VISERA_UNIMPLEMENTED_API; }
+        SetTitle(FStringView I_Title) override { }
+        void inline
+        SetIcon(const FIconSet& I_IconSet) override { }
 
         FNullWindow();
         ~FNullWindow() override;

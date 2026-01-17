@@ -18,6 +18,7 @@ namespace Visera::Graphics
 {
     export class VISERA_GRAPHICS_API FDebugUI
     {
+#if !defined(VISERA_OFFSCREEN_MODE)
     public:
         struct VISERA_GRAPHICS_API FDebugWindow
         {
@@ -38,7 +39,7 @@ namespace Visera::Graphics
         Button(FStringView I_Label) const { return ImGui::Button(I_Label.data()); }
         VISERA_NOINLINE Bool
         Slider(FStringView I_Label, TMutable<Float> I_Value, Float I_Min, Float I_Max) const { return ImGui::SliderFloat(I_Label.data(), I_Value, I_Min, I_Max); }
-
+#endif
         void inline
         BeginFrame()
         {

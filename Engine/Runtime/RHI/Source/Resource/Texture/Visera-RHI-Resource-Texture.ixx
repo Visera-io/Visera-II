@@ -35,7 +35,7 @@ export namespace Visera
     class VISERA_RHI_API FRHITexture
     {
     public:
-        [[nodiscard]] auto&
+        [[nodiscard]] const auto&
         GetInfo() const { return Info; }
         [[nodiscard]] Bool
         IsSameLayout(const FRHITexture& I_Other) const;

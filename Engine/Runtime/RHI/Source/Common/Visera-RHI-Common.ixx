@@ -210,16 +210,16 @@ export namespace Visera
     enum class ERHIBufferUsage : UInt32
     {
         None = 0,
-        VertexBuffer    = static_cast<UInt32>(vk::BufferUsageFlagBits2::eVertexBuffer),
-        IndexBuffer     = static_cast<UInt32>(vk::BufferUsageFlagBits2::eIndexBuffer),
-        UniformBuffer   = static_cast<UInt32>(vk::BufferUsageFlagBits2::eUniformBuffer),
-        StorageBuffer   = static_cast<UInt32>(vk::BufferUsageFlagBits2::eStorageBuffer),
-        TransferSrc     = static_cast<UInt32>(vk::BufferUsageFlagBits2::eTransferSrc),
-        TransferDst     = static_cast<UInt32>(vk::BufferUsageFlagBits2::eTransferDst),
+        VertexBuffer    = static_cast<UInt32>(vk::BufferUsageFlagBits::eVertexBuffer),
+        IndexBuffer     = static_cast<UInt32>(vk::BufferUsageFlagBits::eIndexBuffer),
+        UniformBuffer   = static_cast<UInt32>(vk::BufferUsageFlagBits::eUniformBuffer),
+        StorageBuffer   = static_cast<UInt32>(vk::BufferUsageFlagBits::eStorageBuffer),
+        TransferSrc     = static_cast<UInt32>(vk::BufferUsageFlagBits::eTransferSrc),
+        TransferDst     = static_cast<UInt32>(vk::BufferUsageFlagBits::eTransferDst),
     };
     VISERA_MAKE_FLAGS(ERHIBufferUsage);
-    [[nodiscard]] constexpr vk::BufferUsageFlagBits2
-    TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits2>(I_BufferUsage); }
+    [[nodiscard]] constexpr vk::BufferUsageFlags
+    TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits>(I_BufferUsage); }
 
     enum class ERHIResourceType : UInt8
     {

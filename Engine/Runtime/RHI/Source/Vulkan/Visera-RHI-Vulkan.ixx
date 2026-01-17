@@ -96,10 +96,12 @@ export namespace Visera
         GetGPU() const { return GPU; }
         [[nodiscard]] inline const auto&
         GetDevice() const { return Device; }
+#if !defined(VISERA_OFFSCREEN_MODE)
         [[nodiscard]] inline const auto&
         GetSwapChain() const { return SwapChain; }
         [[nodiscard]] inline auto&
         GetSwapChain() { return SwapChain; }
+#endif
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
@@ -194,7 +196,7 @@ export namespace Visera
         void inline
         CollectDeviceLayersAndExtensions();
 
-        static VKAPI_ATTR vk::Bool32 VKAPI_CALL
+        static vk::Bool32
         DebugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT      I_Severity,
                       vk::DebugUtilsMessageTypeFlagsEXT             I_Type,
                       const vk::DebugUtilsMessengerCallbackDataEXT* I_CallbackData,
@@ -242,9 +244,9 @@ export namespace Visera
 #endif
         AppInfo = vk::ApplicationInfo{}
         .setPApplicationName    ("Visera")
-        .setApplicationVersion  (VK_MAKE_VERSION(1, 0, 0))
+        .setApplicationVersion  (vk::makeVersion(1, 0, 0))
         .setPEngineName         ("Visera")
-        .setEngineVersion       (VK_MAKE_VERSION(1, 0, 0))
+        .setEngineVersion       (vk::makeVersion(1, 0, 0))
         .setApiVersion          (vk::ApiVersion13)
         ;
         Loader = MakeUnique<FVulkanLoader>();

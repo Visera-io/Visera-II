@@ -16,6 +16,7 @@ export import Visera.RHI.Resource;
 export namespace Visera
 {
     using FRHIImageHandle   = FRHIResourceHandle;
+    using FRHIBufferHandle  = FRHIResourceHandle;
     using FRHIDrawCalls     = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
     using FRHITransferCalls = FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>;
 
@@ -30,9 +31,13 @@ export namespace Visera
         DebugUIDrawCalls;
 
         [[nodiscard]] FRHIImageHandle
-        CreateTexture(FRHITextureCreateDesc&& I_ImageDesc);
+        CreateTexture(FRHITextureCreateDesc&& I_TextureDesc);
         void
-        DestroyTexture(FRHIImageHandle I_ImageHandle);
+        DestroyTexture(FRHIImageHandle I_TextureHandle, Bool I_bTransient = False);
+        [[nodiscard]] FRHIBufferHandle
+        CreateBuffer(FRHIBufferCreateDesc&& I_BufferDesc);
+        void
+        DestroyBuffer(FRHIBufferHandle I_BufferHandle, Bool I_bTransient = False);
 
         [[nodiscard]] Bool
         BeginFrame();
@@ -64,9 +69,9 @@ export namespace Visera
         struct FFrame
         {
             FVulkanFence      Fence;
-
+#if !defined(VISERA_OFFSCREEN_MODE)
             FVulkanSemaphore  SwapChainReadySemaphore;
-
+#endif
             FVulkanSemaphore  RenderFinishedSemaphore;
             FRHIDrawCalls     DrawCalls;
 
@@ -101,6 +106,7 @@ export namespace Visera
                     False
                 );
 
+#if !defined(VISERA_OFFSCREEN_MODE)
                 auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
                 Cmd.Begin();
                 {
@@ -134,6 +140,19 @@ export namespace Visera
                     Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
                     Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
                 }
+#else
+                InFlightFrames.Resize(1);
+                for (auto& Frame : InFlightFrames)
+                {
+                    Frame.Fence = Driver->CreateFence(True);
+
+                    Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
+                    Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
+
+                    Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
+                    Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
+                }
+#endif
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
@@ -161,7 +180,7 @@ export namespace Visera
         if (!CurrentFrame.Fence.Wait()) { return False; }
 
         Registry->CollectGarbage(FrameIndex);
-
+#if !defined(VISERA_OFFSCREEN_MODE)
         if (Driver->WaitNextFrame(&CurrentFrame.SwapChainReadySemaphore))
         {
             if (!CurrentFrame.Fence.Reset())
@@ -169,20 +188,20 @@ export namespace Visera
                 LOG_ERROR("Failed to reset the Fence!");
                 return False;
             }
-
-            CurrentFrame.TransferCalls.Reset();
-            CurrentFrame.TransferCalls.Begin();
-            CurrentFrame.DrawCalls.Reset();
-            CurrentFrame.DrawCalls.Begin();
-            OnBeginFrame.Broadcast();
-
-            return True;
         }
         else
         {
             LOG_ERROR("Failed to begin new frame!");
             return False;
         }
+#endif
+        CurrentFrame.TransferCalls.Reset();
+        CurrentFrame.TransferCalls.Begin();
+        CurrentFrame.DrawCalls.Reset();
+        CurrentFrame.DrawCalls.Begin();
+        OnBeginFrame.Broadcast();
+
+        return True;
     }
 
     void FRHI::
@@ -195,7 +214,11 @@ export namespace Visera
         CurrentFrame.DrawCalls.End();
 
         Driver->Submit(&CurrentFrame.TransferCalls,
+#if !defined(VISERA_OFFSCREEN_MODE)
         &CurrentFrame.SwapChainReadySemaphore,
+#else
+        nullptr,
+#endif
         &CurrentFrame.TransferFinishedSemaphore,
         nullptr);
 
@@ -226,8 +249,23 @@ export namespace Visera
     }
 
     void FRHI::
-    DestroyTexture(FRHIImageHandle I_ImageHandle)
+    DestroyTexture(FRHIImageHandle I_TextureHandle, Bool I_bTransient)
     {
-        Registry->Unregister(I_ImageHandle, FrameIndex);
+        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
+        Registry->Unregister(I_TextureHandle, RetiredFrame);
+    }
+
+    FRHIBufferHandle FRHI::
+    CreateBuffer(FRHIBufferCreateDesc&& I_BufferDesc)
+    {
+        auto Handle = Registry->Register(std::move(I_BufferDesc));
+        return Handle;
+    }
+
+    void FRHI::
+    DestroyBuffer(FRHIBufferHandle I_BufferHandle, Bool I_bTransient)
+    {
+        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
+        Registry->Unregister(I_BufferHandle, RetiredFrame);
     }
 }

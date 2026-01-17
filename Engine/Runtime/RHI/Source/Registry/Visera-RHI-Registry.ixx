@@ -15,7 +15,6 @@ import vulkan_hpp;
 export namespace Visera
 {
     using FRHISampler       = FVulkanSampler;
-    using FRHIBuffer        = FVulkanBuffer;
     // Note: FRHICommandBuffer is now a template type, use FVulkanCommandBuffer<QueueFamily> directly
 
     class VISERA_RHI_API FRHIRegistry
@@ -23,6 +22,8 @@ export namespace Visera
     public:
         [[nodiscard]] FRHIResourceHandle
         Register(FRHITextureCreateDesc&& I_TextureDesc);
+        [[nodiscard]] FRHIResourceHandle
+        Register(FRHIBufferCreateDesc&& I_BufferDesc);
         [[nodiscard]] void
         Unregister(FRHIResourceHandle I_Handle, UInt8 I_RetiredFrame);
 
@@ -56,6 +57,13 @@ export namespace Visera
                 I_TextureDesc.ViewType, I_TextureDesc.SampleCount,
                 I_TextureDesc.MipLevelRange.Left,   I_TextureDesc.MipLevelRange.Right,
                 I_TextureDesc.ArrayLayerRange.Left, I_TextureDesc.ArrayLayerRange.Right);
+        }
+
+        [[nodiscard]] UInt64
+        Hash(const FRHIBufferCreateDesc& I_BufferDesc) const
+        {
+            return Math::GoldenRatioHashCombine(0,
+                I_BufferDesc.Size, I_BufferDesc.Usages);
         }
 
     public:
@@ -122,7 +130,50 @@ export namespace Visera
             FRHITexture{std::move(I_TextureDesc), std::move(Image), std::move(ImageView)},
             ERHIResourceType::Texture, True);
 
-        LOG_DEBUG("Created a new Texture ({}).", Handle);
+        LOG_DEBUG("Created a new resource ({}).", Handle);
+        return Handle;
+    }
+
+    FRHIResourceHandle FRHIRegistry::
+    Register(FRHIBufferCreateDesc&& I_BufferDesc)
+    {
+        const UInt64 Key = Hash(I_BufferDesc);
+
+        auto RecycleBinIter = RecycleBin.Find(Key);
+        if (RecycleBinIter != RecycleBin.end())
+        {
+            auto& Handles = RecycleBinIter->second;
+
+            for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
+            {
+                const auto Handle = Handles[Idx];
+                if (Handle.GetType() != ERHIResourceType::Buffer) { continue; }
+
+                const auto Buffer = Buffers.Get(Handle);
+                if (Buffer == nullptr) { continue; }
+
+                if (Buffer->GetInfo() == I_BufferDesc)
+                {
+                    Handles.RemoveAtSwap(Idx);
+                    // if (Handles.IsEmpty())
+                    // { RecycleBin.Erase(Key); }
+                    return Handle;
+                }
+            }
+        }
+        // Create new resource
+        auto BufferCreateInfo = vk::BufferCreateInfo{}
+            .setSize        (I_BufferDesc.Size)
+            .setUsage       (TypeCast(I_BufferDesc.Usages))
+            .setSharingMode (vk::SharingMode::eExclusive)
+        ;
+        auto Buffer = Driver->CreateBuffer(BufferCreateInfo, Aliasable);
+
+        auto Handle = Buffers.Insert(
+            FRHIBuffer{std::move(I_BufferDesc), std::move(Buffer)},
+            ERHIResourceType::Buffer, True);
+
+        LOG_DEBUG("Created a new resource ({}).", Handle);
         return Handle;
     }
 
@@ -165,7 +216,9 @@ export namespace Visera
                 } break;
             case ERHIResourceType::Buffer:
                 {
-                    VISERA_UNIMPLEMENTED_API;
+                    const auto Buffer = Buffers.Get(CurrentItem.ResourceHandle);
+                    VISERA_ASSERT(Buffer != nullptr);
+                    RecycleBin[Hash(Buffer->GetInfo())].EmplaceBack(Handle);
                 } break;
             default:
                 LOG_ERROR("Unknown Resource Type (handle:{})", CurrentItem.ResourceHandle);
@@ -182,7 +235,7 @@ export namespace Visera
     {
         if (RecycleBin.IsEmpty()) { return; }
 
-        for (auto& [Hash, Handles] : RecycleBin)
+        for (auto& Handles : RecycleBin | std::views::values)
         {
             for (auto Handle : Handles)
             {
@@ -206,6 +259,7 @@ export namespace Visera
                 default:
                     LOG_ERROR("Unknown Resource Type (handle:{})", Handle);
                 }
+                LOG_DEBUG("Destroyed a resource ({}).", Handle);
             }
         }
         RecycleBin.Clear();

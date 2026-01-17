@@ -6,7 +6,6 @@
 
 #include <entt/entt.hpp>
 
-#if define(VISERA_ASSERT)
+#if defined(VISERA_ASSERT)
 #undef VISERA_ASSERT
-
 #endif
