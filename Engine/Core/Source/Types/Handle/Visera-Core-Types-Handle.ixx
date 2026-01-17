@@ -42,7 +42,7 @@ export namespace Visera
         GetValue() const { return Value; }
 
     protected:
-        const UInt64 Value = 0ULL;
+        UInt64 Value = 0ULL;
 
     public:
         constexpr FHandle() = default;
@@ -54,9 +54,15 @@ export namespace Visera
         friend constexpr Bool operator==(FHandle A, FHandle B) { return A.Value == B.Value; }
         friend constexpr Bool operator!=(FHandle A, FHandle B) { return A.Value != B.Value; }
     };
-
     static_assert(Concepts::Handle<FHandle>);
-}
 
+    template<Concepts::Handle HandleType, typename... Args>
+    requires std::constructible_from<HandleType, UInt32, UInt32, Args...>
+    [[nodiscard]] constexpr HandleType
+    MakeHandle(UInt32 I_Generation, UInt32 I_Index, Args&&... I_Args)
+    {
+        return HandleType(I_Generation, I_Index, std::forward<Args>(I_Args)...);
+    }
+}
 VISERA_MAKE_HASH(Visera::FHandle, return I_Object.GetValue(););
 VISERA_MAKE_FORMATTER(Visera::FHandle, {}, "<Gen:{},Idx:{}>", I_Formatee.GetGeneration(), I_Formatee.GetIndex());

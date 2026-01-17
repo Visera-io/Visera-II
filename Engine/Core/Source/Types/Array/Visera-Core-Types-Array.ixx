@@ -314,6 +314,26 @@ export namespace Visera
             Array.swap(I_Other.Array);
         }
 
+        Iterator RemoveAtSwap(Iterator I_Iterator) requires (std::movable<T> && std::assignable_from<T&, T>)
+        {
+            if (I_Iterator == Array.end()) return Array.end();
+            auto Last = std::prev(Array.end());
+            const Bool bRemovedLast = (I_Iterator == Last);
+            if (!bRemovedLast)
+            { *I_Iterator = std::move(*Last); }
+            PopBack();
+            return bRemovedLast ? Array.end() : I_Iterator;
+        }
+
+        void RemoveAtSwap(SizeType I_Index) requires (std::movable<T> && std::assignable_from<T&, T>)
+        {
+            const SizeType LastIndex = Array.size() - 1;
+            if (I_Index != LastIndex)
+            { Array[I_Index] = std::move(Array.back()); }
+
+            PopBack();
+        }
+
         template<typename... Args>
         T& Emplace(ConstIterator I_Pos, Args&&... I_Args)
         {

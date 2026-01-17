@@ -25,11 +25,8 @@ export namespace Visera
             UInt32 Index      = InvalidIndex; // InvalidHandle marks free slot
             UInt32 NextFree   = InvalidIndex; // Free list link
         };
-
-        [[nodiscard]] HandleType
-        Insert(const ValueType& I_Value);
-        [[nodiscard]] HandleType
-        Insert(ValueType&& I_Value);
+        template<typename... Args> [[nodiscard]] HandleType
+        Insert(ValueType&& I_Value, Args&&... I_Args) requires std::move_constructible<ValueType> && std::constructible_from<HandleType, UInt32, UInt32, Args...>;
         [[nodiscard]] Bool
         Erase(HandleType I_Handle);
         void
@@ -79,35 +76,18 @@ export namespace Visera
     }
 
     template<typename ValueType, Concepts::Handle HandleType>
-    HandleType TSlotMap<ValueType, HandleType>::
-    Insert(const ValueType& I_Value)
+    template<typename... Args> [[nodiscard]] HandleType TSlotMap<ValueType, HandleType>::
+    Insert(ValueType&& I_Value, Args&&... I_Args) requires std::move_constructible<ValueType> && std::constructible_from<HandleType, UInt32, UInt32, Args...>
     {
         UInt32 SlotIndex = Allocate();
         FSlot& Slot      = Slots[SlotIndex];
 
-        // Always append (reused slots have InvalidIndex, so always append)
-        // Wrap in TUniquePtr to ensure pointer stability even when Data reallocates
-        Slot.Index = static_cast<UInt32>(Data.size());
-        Data.PushBack(MakeUnique<ValueType>(I_Value));
-        DataToSlot.PushBack(SlotIndex);
-        Size += 1;
-        return HandleType(Slot.Generation, SlotIndex);
-    }
-
-    template<typename ValueType, Concepts::Handle HandleType>
-    HandleType TSlotMap<ValueType, HandleType>::
-    Insert(ValueType&& I_Value)
-    {
-        UInt32 SlotIndex = Allocate();
-        FSlot& Slot      = Slots[SlotIndex];
-
-        // Always append (reused slots have InvalidIndex, so always append)
-        // Wrap in TUniquePtr to ensure pointer stability even when Data reallocates
-        Slot.Index = static_cast<UInt32>(Data.size());
+        Slot.Index = static_cast<UInt32>(Data.GetSize());
         Data.PushBack(MakeUnique<ValueType>(std::move(I_Value)));
         DataToSlot.PushBack(SlotIndex);
         Size += 1;
-        return HandleType(Slot.Generation, SlotIndex);
+
+        return MakeHandle<HandleType>(Slot.Generation, SlotIndex, std::forward<Args>(I_Args)...);
     }
 
     template<typename ValueType, Concepts::Handle HandleType>
@@ -121,12 +101,12 @@ export namespace Visera
         UInt32 DataIndex = Slot.Index;
 
         // Swap with last element to maintain density
-        if (DataIndex != Data.size() - 1)
+        if (DataIndex != Data.GetSize() - 1)
         {
-            Data[DataIndex] = std::move(Data.back());
+            Data[DataIndex] = std::move(Data.Back());
             
             // Use reverse mapping for O(1) lookup
-            UInt32 LastDataIndex = static_cast<UInt32>(Data.size() - 1);
+            UInt32 LastDataIndex = static_cast<UInt32>(Data.GetSize() - 1);
             UInt32 LastSlotIndex = DataToSlot[LastDataIndex];
             DataToSlot[DataIndex] = LastSlotIndex;
             Slots[LastSlotIndex].Index = DataIndex;
@@ -192,7 +172,7 @@ export namespace Visera
         else
         {
             // Allocate a new slot
-            SlotIndex = static_cast<UInt32>(Slots.size());
+            SlotIndex = static_cast<UInt32>(Slots.GetSize());
             FSlot NewSlot
             {
                 .Generation = GenerationRange.Left,
@@ -208,7 +188,7 @@ export namespace Visera
     void TSlotMap<ValueType, HandleType>::
     Free(UInt32 I_SlotIndex)
     {
-        VISERA_ASSERT(I_SlotIndex < Slots.size());
+        VISERA_ASSERT(I_SlotIndex < Slots.GetSize());
         FSlot& Slot = Slots[I_SlotIndex];
         VISERA_ASSERT(Slot.Index != InvalidIndex && "Double free detected");
 
@@ -232,7 +212,7 @@ export namespace Visera
         if (I_Handle.IsNull()) { return False; }
 
         UInt32 SlotIndex = I_Handle.GetIndex();
-        if (SlotIndex >= Slots.size())
+        if (SlotIndex >= Slots.GetSize())
         { return False; }
 
         const FSlot& Slot = Slots[SlotIndex];
