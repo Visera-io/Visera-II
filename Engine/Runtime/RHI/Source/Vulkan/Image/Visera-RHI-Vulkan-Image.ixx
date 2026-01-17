@@ -143,7 +143,7 @@ namespace Visera
 
         auto& Device = Image->GetAllocator()->GetDevice();
 
-        const auto ImageSubresourceRage = vk::ImageSubresourceRange{}
+        const auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (I_Aspect)
             .setBaseMipLevel    (I_MipmapRange.Left)
             .setLevelCount      (I_MipmapRange.Length() + 1)
@@ -155,7 +155,7 @@ namespace Visera
             .setViewType         (I_Type)
             .setFormat           (I_Image->GetFormat())
             .setComponents       (I_Swizzle)
-            .setSubresourceRange (ImageSubresourceRage)
+            .setSubresourceRange (ImageSubresourceRange)
         ;
         auto Result = Device.createImageView(CreateInfo);
         if (!Result.has_value())

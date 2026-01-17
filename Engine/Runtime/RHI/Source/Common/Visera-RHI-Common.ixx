@@ -3,6 +3,7 @@ module;
 export module Visera.RHI.Common;
 #define VISERA_MODULE_NAME "RHI.Common"
 export import Visera.Core.Traits.Flags;
+       import Visera.Core.Math.Arithmetic.Interval;
        import Visera.Core.Types.Handle;
        import Visera.Global.Log;
        import vulkan_hpp;
@@ -93,6 +94,8 @@ export namespace Visera
         Image2DArray    = static_cast<UInt8>(vk::ImageViewType::e2DArray),
         Cube            = static_cast<UInt8>(vk::ImageViewType::eCube),
         CubeArray       = static_cast<UInt8>(vk::ImageViewType::eCubeArray),
+
+        Undefined,
     };
     [[nodiscard]] constexpr vk::ImageViewType
     TypeCast(ERHIImageViewType I_ImageViewType) { return static_cast<vk::ImageViewType>(I_ImageViewType); }
@@ -167,7 +170,7 @@ export namespace Visera
         X4 = static_cast<UInt8>(vk::SampleCountFlagBits::e4),
         X8 = static_cast<UInt8>(vk::SampleCountFlagBits::e8),
     };
-    [[nodiscard]] constexpr vk::SampleCountFlags
+    [[nodiscard]] constexpr vk::SampleCountFlagBits
     TypeCast(ERHISamplingRate I_SamplingRate) { return static_cast<vk::SampleCountFlagBits>(I_SamplingRate); }
 
     enum class ERHIBlendOp : UInt8
@@ -217,6 +220,50 @@ export namespace Visera
     VISERA_MAKE_FLAGS(ERHIBufferUsage);
     [[nodiscard]] constexpr vk::BufferUsageFlagBits2
     TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits2>(I_BufferUsage); }
+
+    enum class ERHIResourceType : UInt8
+    {
+        Unknown = 0,
+        Texture,
+        Sampler,
+        Buffer,
+    };
+
+    class VISERA_RHI_API FRHIResourceHandle : public FHandle
+    {
+    public:
+        enum : UInt32 // Embedded in the Generation(High32)
+        {
+            GENERATION_MASK    = (1U << 28) - 1U,  //[0~27]    : 28Bits
+            TYPE_MASK          = (0b111) << 28,    //[28~30]   :  3Bits
+            WRITABLE_MASK      = (1U << 31),       //[31]      :  1Bit
+        };
+        static constexpr TClosedInterval<UInt32>
+        GetGenerationRange() { return {1U, GENERATION_MASK}; }
+
+        [[nodiscard]] constexpr UInt32
+        GetIndex()      const { return static_cast<UInt32>(Value & 0xFFFFFFFFULL); }
+        [[nodiscard]] constexpr UInt32
+        GetGeneration() const { return static_cast<UInt32>(Value >> 32) & GENERATION_MASK; }
+        [[nodiscard]] constexpr ERHIResourceType
+        GetType() const { return static_cast<ERHIResourceType>((FHandle::GetGeneration() & TYPE_MASK) >> 28); }
+        [[nodiscard]] constexpr Bool
+        IsWritable() const { return (GetGeneration() & WRITABLE_MASK) != 0; }
+
+    public:
+        FRHIResourceHandle() = default;
+        FRHIResourceHandle(UInt32 I_Generation, UInt32 I_Index,
+            ERHIResourceType I_Type      = ERHIResourceType::Unknown,
+            Bool             I_bWritable = False)
+        {
+            const UInt32 GenerationBits = (I_Generation & GENERATION_MASK);
+            const UInt32 TypeBits       = (static_cast<UInt32>(I_Type) & 0b111U) << 28;
+            const UInt32 WritableBit    = I_bWritable ? WRITABLE_MASK : 0U;
+
+            Value = (static_cast<UInt64>(WritableBit | TypeBits | GenerationBits) << 32) | I_Index;
+        }
+    };
+    static_assert(Concepts::Handle<FRHIResourceHandle>);
 }
 VISERA_MAKE_FORMATTER(Visera::ERHIFormat,
     const char* FormatName = "Undefined";
@@ -438,7 +485,6 @@ VISERA_MAKE_FORMATTER(Visera::ERHIImageUsage,
     },
     "{}", ImageUsageName
 );
-
 VISERA_MAKE_FORMATTER(Visera::ERHIBufferUsage,
     const char* BufferUsageName = "None";
     switch (I_Formatee)
@@ -453,4 +499,17 @@ VISERA_MAKE_FORMATTER(Visera::ERHIBufferUsage,
         default: break;
     },
     "{}", BufferUsageName
-);
+    );VISERA_MAKE_FORMATTER(Visera::ERHIResourceType,
+        const char* Name = "Unknown";
+        switch (I_Formatee)
+        {
+        case Visera::ERHIResourceType::Texture:     Name = "Texture";   break;
+        case Visera::ERHIResourceType::Sampler:     Name = "Sampler";   break;
+        case Visera::ERHIResourceType::Buffer:      Name = "Buffer";    break;
+        }, "{}", Name);
+VISERA_MAKE_HASH(Visera::FRHIResourceHandle, { return I_Object.GetValue(); })
+VISERA_MAKE_FORMATTER(Visera::FRHIResourceHandle, {},
+    "Type:{}, Gen:{}, Idx:{}",
+    I_Formatee.GetType(),
+    I_Formatee.GetGeneration(),
+    I_Formatee.GetIndex());

@@ -29,14 +29,16 @@ export namespace Visera
         DebugUIDrawCalls;
 
         [[nodiscard]] FRHIImageHandle
-        CreateTexture(const FRHITextureCreateDesc& I_ImageDesc);
+        CreateTexture(FRHITextureCreateDesc&& I_ImageDesc);
+        void
+        DestroyTexture(FRHIImageHandle I_ImageHandle);
 
         [[nodiscard]] Bool
         BeginFrame();
         void
         EndFrame();
         void
-        Present() { if (!Driver->Present()) { LOG_ERROR("Failed to present!"); } }
+        Present();
 
         // Low-level API
         [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
@@ -58,10 +60,13 @@ export namespace Visera
 
         struct FFrame
         {
-            FVulkanFence Fence;
+            FVulkanFence     Fence;
+            FVulkanSemaphore SwapChainReadySemaphore;
+            FVulkanSemaphore RenderFinishedSemaphore;
+            FRHIDrawCalls    DrawCalls;
         };
-        TArray<FFrame> Frames;
-        UInt8 FrameIndex = 0;
+        TArray<FFrame> InFlightFrames;
+        UInt8          FrameIndex = 0;
 
     public:
         FRHI() : IGlobalService(EName::RHI)
@@ -104,10 +109,13 @@ export namespace Visera
                     LOG_FATAL("Failed to init RHI SwapChain!");
                 }
 
-                Frames.Resize(Driver->GetSwapChain().Images.GetSize());
-                for (auto& Frame : Frames)
+                InFlightFrames.Resize(Driver->GetSwapChain().Images.GetSize());
+                for (auto& Frame : InFlightFrames)
                 {
                     Frame.Fence = Driver->CreateFence(True);
+                    Frame.SwapChainReadySemaphore = Driver->CreateSemaphore();
+                    Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
+                    Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
                 }
                 return True;
             }))
@@ -116,7 +124,7 @@ export namespace Visera
             if (!OnTerminate.TryBind([this]
             {
                 Driver->WaitIdle();
-                Frames.Clear();
+                InFlightFrames.Clear();
                 GraphicsCommandPool = {};
                 Registry.reset();
                 Driver.reset();
@@ -129,13 +137,25 @@ export namespace Visera
     Bool FRHI::
     BeginFrame()
     {
-        auto& Frame = Frames[FrameIndex];
-        if (!Frame.Fence.Wait()) { return False; }
+        FrameIndex = (FrameIndex + 1) % InFlightFrames.GetSize();
+        auto& CurrentFrame = InFlightFrames[FrameIndex];
 
-        if (Driver->WaitNextFrame())
+        if (!CurrentFrame.Fence.Wait()) { return False; }
+
+        Registry->CollectGarbage(FrameIndex);
+
+        if (Driver->WaitNextFrame(&CurrentFrame.SwapChainReadySemaphore))
         {
+            if (!CurrentFrame.Fence.Reset())
+            {
+                LOG_ERROR("Failed to reset the Fence!");
+                return False;
+            }
+
+            CurrentFrame.DrawCalls.Reset();
+            CurrentFrame.DrawCalls.Begin();
             OnBeginFrame.Broadcast();
-            Frame.Fence.Reset();
+
             return True;
         }
         else
@@ -148,15 +168,40 @@ export namespace Visera
     void FRHI::
     EndFrame()
     {
+        auto& CurrentFrame = InFlightFrames[FrameIndex];
         OnEndFrame.Broadcast();
-        FrameIndex = static_cast<UInt8>((FrameIndex + 1) % Frames.GetSize());
+
+        CurrentFrame.DrawCalls.End();
+        Driver->Submit(&CurrentFrame.DrawCalls,
+        &CurrentFrame.SwapChainReadySemaphore,
+        &CurrentFrame.RenderFinishedSemaphore,
+        &CurrentFrame.Fence);
+
+        Registry->ClearGarbage();
     }
 
-    FRHIImageHandle FRHI::
-    CreateTexture(const FRHITextureCreateDesc& I_TextureDesc)
+
+    void FRHI::
+    Present()
     {
-        auto Handle = Registry->Register(I_TextureDesc);
-        LOG_DEBUG("Registered a new Texture (handle:{}).", Handle);
+        auto& CurrentFrame = InFlightFrames[FrameIndex];
+        if (!Driver->Present(&CurrentFrame.RenderFinishedSemaphore))
+        {
+            LOG_ERROR("Failed to present!");
+        }
+    }
+
+
+    FRHIImageHandle FRHI::
+    CreateTexture(FRHITextureCreateDesc&& I_TextureDesc)
+    {
+        auto Handle = Registry->Register(std::move(I_TextureDesc));
         return Handle;
+    }
+
+    void FRHI::
+    DestroyTexture(FRHIImageHandle I_ImageHandle)
+    {
+        Registry->Unregister(I_ImageHandle, FrameIndex);
     }
 }

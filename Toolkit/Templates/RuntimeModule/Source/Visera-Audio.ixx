@@ -1,9 +1,9 @@
 module;
-#include <Visera-Audio.hpp>
-export module Visera.Audio;
-#define VISERA_MODULE_NAME "Audio"
+#include <Visera-?.hpp>
+export module ?;
+#define VISERA_MODULE_NAME "?"
 
-export namespace Visera::Audio
+export namespace Visera::?
 {
-    void VISERA_AUDIO_API Foo() {}
+    void VISERA_?_API Foo() {}
 }

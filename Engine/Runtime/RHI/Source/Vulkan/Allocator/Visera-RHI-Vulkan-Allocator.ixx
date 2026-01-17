@@ -18,7 +18,6 @@ export namespace Visera
         HostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
         Aliasable                      = VMA_ALLOCATION_CREATE_CAN_ALIAS_BIT,
     };
-    VISERA_MAKE_FLAGS(EVMAMemoryProperty);
 
     class VISERA_RHI_API FVulkanAllocator
     {

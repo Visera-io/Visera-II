@@ -37,11 +37,10 @@ export namespace Visera
     class VISERA_RHI_API FVulkanDriver
     {
     public:
-        // return SwapChain.Cursor
-        [[nodiscard]] inline UInt32
-        WaitNextFrame();
         [[nodiscard]] inline Bool
-        Present();
+        WaitNextFrame(FVulkanSemaphore* I_SignalSemaphore);
+        [[nodiscard]] inline Bool
+        Present(FVulkanSemaphore* I_WaitSemaphore);
         template<Concepts::CommandBuffer CommandBufferType> void
         Submit(CommandBufferType*    I_CommandBuffer,
                FVulkanSemaphore*     I_WaitSemaphore,
@@ -152,7 +151,6 @@ export namespace Visera
             vk::Extent2D                    Extent      {0U, 0U};
             TArray<FVulkanSwapChainImage>   Images      {}; // SwapChain manages Images so do NOT use RAII here.
             TArray<FVulkanImageView>        ImageViews;
-            TArray<FVulkanSemaphore>        ReadyToPresentSemaphores;
             UInt32                          Cursor      {0};
             vk::ImageUsageFlags             ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                          vk::ImageUsageFlagBits::eTransferDst};
@@ -321,7 +319,6 @@ export namespace Visera
     DestroySwapChain()
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        SwapChain.ReadyToPresentSemaphores.Clear();
         SwapChain.ImageViews.Clear();
         SwapChain.Images.Clear();
         SwapChain.Context.clear();
@@ -787,12 +784,6 @@ export namespace Visera
                 vk::ImageViewType::e2D,
                 vk::ImageAspectFlagBits::eColor);
         }
-        // Create Semaphores and Fences
-        SwapChain.ReadyToPresentSemaphores.Reserve(SwapChain.Images.GetSize());
-        for (UInt8 Idx = 0; Idx < SwapChain.Images.GetSize(); ++Idx)
-        {
-            //SwapChain.ReadyToPresentSemaphores.EmplaceBack(std::move(CreateSemaphore()));
-        }
 #endif
     }
 
@@ -813,14 +804,15 @@ export namespace Visera
         ;
     }
 
-    UInt32 FVulkanDriver::
-    WaitNextFrame()
+    Bool FVulkanDriver::
+    WaitNextFrame(FVulkanSemaphore* I_SignalSemaphore)
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
+        VISERA_ASSERT(I_SignalSemaphore != nullptr);
         auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
             .setSwapchain   (SwapChain.Context)
             .setTimeout     (Math::UpperBound<UInt64>())
-            .setSemaphore   (nullptr)
+            .setSemaphore   (I_SignalSemaphore->GetHandle())
             .setFence       (nullptr)
             .setDeviceMask  (1)
         ;
@@ -828,22 +820,24 @@ export namespace Visera
         if (NextImageIndex.has_value())
         {
             SwapChain.Cursor = *NextImageIndex;
+            return True;
         }
-        else { LOG_ERROR("Failed to acquire the next Vulkan SwapChain Image!"); }
+        LOG_ERROR("Failed to acquire the next Vulkan SwapChain Image!");
 #else
         LOG_WARN("NOT need to call this in the off-screen mode!");
 #endif
-        return SwapChain.Cursor;
+        return False;
     }
 
     Bool FVulkanDriver::
-    Present()
+    Present(FVulkanSemaphore* I_WaitSemaphore)
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
-        auto ReadyToPresent = SwapChain.ReadyToPresentSemaphores[SwapChain.Cursor].GetHandle();
+        VISERA_ASSERT(I_WaitSemaphore != nullptr);
+        auto WaitSemaphore = I_WaitSemaphore->GetHandle();
         const auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
-            .setPWaitSemaphores     (&ReadyToPresent)
+            .setPWaitSemaphores     (&WaitSemaphore)
             .setSwapchainCount      (1)
             .setPSwapchains         (&(*SwapChain.Context))
             .setPImageIndices       (&SwapChain.Cursor)
@@ -872,17 +866,17 @@ export namespace Visera
         VISERA_ASSERT(I_CommandBuffer->IsReadyToSubmit());
 
         auto CommandBuffer   = I_CommandBuffer->GetHandle();
-        auto WaitSemaphore   = I_WaitSemaphore? I_WaitSemaphore->GetHandle() : nullptr;
+        auto WaitSemaphore   = I_WaitSemaphore  ? I_WaitSemaphore->GetHandle()   : nullptr;
         auto SignalSemaphore = I_SignalSemaphore? I_SignalSemaphore->GetHandle() : nullptr;
-        auto Fence           = I_Fence? I_Fence->GetHandle() : nullptr;
+        auto Fence           = I_Fence          ? I_Fence->GetHandle()           : nullptr;
 
         auto WaitSemaphoreInfo = vk::SemaphoreSubmitInfo{}
             .setSemaphore(WaitSemaphore)
-            .setStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput)
+            .setStageMask(vk::PipelineStageFlagBits2::eTopOfPipe)
         ;
         auto SignalSemaphoreInfo = vk::SemaphoreSubmitInfo{}
             .setSemaphore(SignalSemaphore)
-            .setStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput)
+            .setStageMask(vk::PipelineStageFlagBits2::eBottomOfPipe)
         ;
         auto CommandBufferInfo = vk::CommandBufferSubmitInfo{}
             .setCommandBuffer(CommandBuffer)

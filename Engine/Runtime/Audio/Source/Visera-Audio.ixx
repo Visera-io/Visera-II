@@ -4,7 +4,7 @@ module;
 #include <AK/SoundEngine/Common/AkSoundEngine.h>
 #include <AK/SoundEngine/Common/AkTypedefs.h>
 export module Visera.Audio;
-#define VISERA_MODULE_NAME "Audio."
+#define VISERA_MODULE_NAME "Audio"
 import Visera.Audio.Interface;
 import Visera.Audio.Null;
 import Visera.Audio.Wwise;

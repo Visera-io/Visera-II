@@ -13,7 +13,6 @@ export namespace Visera
 {
     using FRHIRenderPipeline = FVulkanRenderPipeline;
 
-
     struct VISERA_RHI_API FRHIVertexAttribute
     {
         UInt8      Location;

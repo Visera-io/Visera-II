@@ -5,8 +5,10 @@ export module AlohaVisera;
 import Visera.Core;
 //import Visera.Game;
 import Visera.RHI;
+import Visera.Audio;
 import Visera.Global;
 import Visera.Platform;
+import Visera.Graphics;
 import Visera.Assets.Image;
 using namespace Visera;
 
@@ -16,32 +18,35 @@ struct FEngine
     FInput*    Input;
     FWindow*   Window;
     FRHI*      RHI;
+    FAudio*    Audio;
+    FGraphics* Graphics;
 
     Bool Run()
     {
-        struct Case { const char* s; UInt64 expect; };
+        LOG_INFO("Visera Engine Run()");
 
-        Case cases[] = {
-            {"", 0},
-            {"hello", 5},
-            {"中", 1},
-            {"こんにちは", 5},
-            {"😀", 1},
-            {"a😀b", 3},
-            {"e\u0301", 2},
-            {"\u00E9", 1},
-            {"\r\n", 2},
-          };
-
-        for (auto& c : cases)
-        {
-            FText t{c.s};
-            LOG_INFO("{}", t);
-            VISERA_ASSERT(t.GetCodepointCount() == c.expect);
-        }
         while (!Window->ShouldClose())
         {
             Window->PollEvents();
+
+            if (!RHI->BeginFrame()) continue;
+
+            auto Texture = RHI->CreateTexture({
+            .Width = 1920,
+            .Height = 1080,
+            .Depth = 1,
+            .Format = ERHIFormat::R8G8B8A8_UNorm,
+            .Type =  ERHIImageType::Image2D,
+            .Usages = ERHIImageUsage::RenderTarget | ERHIImageUsage::TransferSrc,
+            .ViewType = ERHIImageViewType::Image2D,}
+            );
+
+            // Rendering
+
+            RHI->DestroyTexture(Texture);
+
+            RHI->EndFrame();
+            RHI->Present();
         }
 
         return EXIT_SUCCESS;
@@ -49,17 +54,20 @@ struct FEngine
 
     FEngine()
     {
+        LOG_INFO("Visera Engine");
         Platform    = IGlobalService::Register<FPlatform>(EName::Platform);
         Input       = IGlobalService::Register<FInput>(EName::Input);
         Window      = IGlobalService::Register<FWindow>(EName::Window);
         RHI         = IGlobalService::Register<FRHI>(EName::RHI);
-        //Audio       = IGlobalService::Register<FAudio>(EName::Audio);
+        Audio       = IGlobalService::Register<FAudio>(EName::Audio);
+        Graphics    = IGlobalService::Register<FGraphics>(EName::Graphics);
 
         IGlobalService::Bootstrap();
     }
     ~FEngine()
     {
         IGlobalService::Terminate();
+        LOG_INFO("~Visera Engine");
     }
 };
 

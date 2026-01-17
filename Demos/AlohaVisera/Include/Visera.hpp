@@ -5,3 +5,8 @@
 #endif
 
 #include <entt/entt.hpp>
+
+#if define(VISERA_ASSERT)
+#undef VISERA_ASSERT
+
+#endif
