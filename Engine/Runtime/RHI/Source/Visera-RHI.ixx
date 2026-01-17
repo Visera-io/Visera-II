@@ -15,8 +15,9 @@ export import Visera.RHI.Resource;
 
 export namespace Visera
 {
-    using FRHIImageHandle = FRHIResourceHandle;
-    using FRHIDrawCalls   = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
+    using FRHIImageHandle   = FRHIResourceHandle;
+    using FRHIDrawCalls     = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
+    using FRHITransferCalls = FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>;
 
     class VISERA_RHI_API FRHI : public IGlobalService
     {
@@ -57,13 +58,20 @@ export namespace Visera
 
         FVulkanCommandPool<EVulkanQueueFamily::Graphics>
         GraphicsCommandPool;
+        FVulkanCommandPool<EVulkanQueueFamily::Transfer>
+        TransferCommandPool;
 
         struct FFrame
         {
-            FVulkanFence     Fence;
-            FVulkanSemaphore SwapChainReadySemaphore;
-            FVulkanSemaphore RenderFinishedSemaphore;
-            FRHIDrawCalls    DrawCalls;
+            FVulkanFence      Fence;
+
+            FVulkanSemaphore  SwapChainReadySemaphore;
+
+            FVulkanSemaphore  RenderFinishedSemaphore;
+            FRHIDrawCalls     DrawCalls;
+
+            FVulkanSemaphore  TransferFinishedSemaphore;
+            FRHITransferCalls TransferCalls;
         };
         TArray<FFrame> InFlightFrames;
         UInt8          FrameIndex = 0;
@@ -85,6 +93,10 @@ export namespace Visera
                 Registry = MakeUnique<FRHIRegistry>(Driver);
 
                 GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>
+                (
+                    False
+                );
+                TransferCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Transfer>
                 (
                     False
                 );
@@ -113,9 +125,14 @@ export namespace Visera
                 for (auto& Frame : InFlightFrames)
                 {
                     Frame.Fence = Driver->CreateFence(True);
+
                     Frame.SwapChainReadySemaphore = Driver->CreateSemaphore();
+
                     Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
                     Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
+
+                    Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
+                    Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
                 }
                 return True;
             }))
@@ -126,6 +143,7 @@ export namespace Visera
                 Driver->WaitIdle();
                 InFlightFrames.Clear();
                 GraphicsCommandPool = {};
+                TransferCommandPool = {};
                 Registry.reset();
                 Driver.reset();
                 return True;
@@ -152,6 +170,8 @@ export namespace Visera
                 return False;
             }
 
+            CurrentFrame.TransferCalls.Reset();
+            CurrentFrame.TransferCalls.Begin();
             CurrentFrame.DrawCalls.Reset();
             CurrentFrame.DrawCalls.Begin();
             OnBeginFrame.Broadcast();
@@ -171,9 +191,16 @@ export namespace Visera
         auto& CurrentFrame = InFlightFrames[FrameIndex];
         OnEndFrame.Broadcast();
 
+        CurrentFrame.TransferCalls.End();
         CurrentFrame.DrawCalls.End();
-        Driver->Submit(&CurrentFrame.DrawCalls,
+
+        Driver->Submit(&CurrentFrame.TransferCalls,
         &CurrentFrame.SwapChainReadySemaphore,
+        &CurrentFrame.TransferFinishedSemaphore,
+        nullptr);
+
+        Driver->Submit(&CurrentFrame.DrawCalls,
+        &CurrentFrame.TransferFinishedSemaphore,
         &CurrentFrame.RenderFinishedSemaphore,
         &CurrentFrame.Fence);
 
@@ -190,7 +217,6 @@ export namespace Visera
             LOG_ERROR("Failed to present!");
         }
     }
-
 
     FRHIImageHandle FRHI::
     CreateTexture(FRHITextureCreateDesc&& I_TextureDesc)

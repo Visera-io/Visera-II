@@ -118,7 +118,7 @@ export namespace Visera
             I_TextureDesc.MipLevelRange,
             I_TextureDesc.ArrayLayerRange);
 
-        auto Handle =  Textures.Insert(
+        auto Handle = Textures.Insert(
             FRHITexture{std::move(I_TextureDesc), std::move(Image), std::move(ImageView)},
             ERHIResourceType::Texture, True);
 

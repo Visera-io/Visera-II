@@ -135,8 +135,11 @@ export namespace Visera
             vk::raii::Device    Context        {nullptr};
             TArray<const char*> Layers;
             TArray<const char*> Extensions;
+            UInt32              GraphicsQueueFamilyIndex = 0U;
             vk::raii::Queue     GraphicsQueue  {nullptr};
+            UInt32              TransferQueueFamilyIndex = 0U;
             vk::raii::Queue     TransferQueue  {nullptr};
+            UInt32              ComputeQueueFamilyIndex  = 0U;
             vk::raii::Queue     ComputeQueue   {nullptr};
         }Device;
 
@@ -561,6 +564,8 @@ export namespace Visera
             .setQueueCount      (1)
             .setQueuePriorities ({Priority})
         ;
+        
+        // Select Transfer Queue Family
         auto TransferFamilyIter  = GPU.TransferQueueFamilies.begin();
         auto TransferFamilyIndex = *TransferFamilyIter;
         if (TransferFamilyIndex == GraphicsFamilyIndex)
@@ -568,17 +573,44 @@ export namespace Visera
             if (++TransferFamilyIter != GPU.TransferQueueFamilies.end())
             {
                 TransferFamilyIndex = *TransferFamilyIter;
-
-                DeviceQueueCreateInfos.EmplaceBack(vk::DeviceQueueCreateInfo{}
-                    .setQueueFamilyIndex(TransferFamilyIndex)
-                    .setQueueCount      (1)
-                    .setQueuePriorities ({Priority}));
             }
             else
             {
                 LOG_WARN("Failed to find a separated Transfer Queue Family, "
                          "using the Graphics Queue Family!");
             }
+        }
+        // Add Transfer Queue if it's different from Graphics
+        if (TransferFamilyIndex != GraphicsFamilyIndex)
+        {
+            DeviceQueueCreateInfos.EmplaceBack(vk::DeviceQueueCreateInfo{}
+                .setQueueFamilyIndex(TransferFamilyIndex)
+                .setQueueCount      (1)
+                .setQueuePriorities ({Priority}));
+        }
+        
+        // Select Compute Queue Family
+        auto ComputeFamilyIter  = GPU.ComputeQueueFamilies.begin();
+        auto ComputeFamilyIndex = *ComputeFamilyIter;
+        if (ComputeFamilyIndex == GraphicsFamilyIndex)
+        {
+            if (++ComputeFamilyIter != GPU.ComputeQueueFamilies.end())
+            {
+                ComputeFamilyIndex = *ComputeFamilyIter;
+            }
+            else
+            {
+                LOG_WARN("Failed to find a separated Compute Queue Family, "
+                         "using the Graphics Queue Family!");
+            }
+        }
+        // Check if Compute is different from both Graphics and Transfer
+        if (ComputeFamilyIndex != GraphicsFamilyIndex && ComputeFamilyIndex != TransferFamilyIndex)
+        {
+            DeviceQueueCreateInfos.EmplaceBack(vk::DeviceQueueCreateInfo{}
+                .setQueueFamilyIndex(ComputeFamilyIndex)
+                .setQueueCount      (1)
+                .setQueuePriorities ({Priority}));
         }
         // First build each feature struct explicitly
         auto Vulkan11Features =  vk::PhysicalDeviceVulkan11Features{}
@@ -616,11 +648,17 @@ export namespace Visera
         { LOG_FATAL("Failed to create Vulkan Device!"); }
         else
         { Device.Context = std::move(*Result); }
+        
+        // Store queue family indices
+        Device.GraphicsQueueFamilyIndex = GraphicsFamilyIndex;
+        Device.TransferQueueFamilyIndex = TransferFamilyIndex;
+        Device.ComputeQueueFamilyIndex  = ComputeFamilyIndex;
+        
         // Get Queues
         Device.GraphicsQueue = Device.Context.getQueue(GraphicsFamilyIndex, 0);
         Device.TransferQueue = Device.Context.getQueue(TransferFamilyIndex, 0);
+        Device.ComputeQueue  = Device.Context.getQueue(ComputeFamilyIndex, 0);
     }
-
 
     void FVulkanDriver::
     CollectInstanceLayersAndExtensions()
@@ -856,6 +894,10 @@ export namespace Visera
         return True;
     }
 
+    /**
+     *[TODO]:
+     * 1. Semaphore stages
+     */
     template<Concepts::CommandBuffer CommandBufferType> void FVulkanDriver::
     Submit(CommandBufferType*    I_CommandBuffer,
            FVulkanSemaphore*     I_WaitSemaphore,
@@ -915,13 +957,13 @@ export namespace Visera
         switch (QueueFamily)
         {
         case EVulkanQueueFamily::Graphics:
-            QueueFamilyIndex = *GPU.GraphicsQueueFamilies.begin();
+            QueueFamilyIndex = Device.GraphicsQueueFamilyIndex;
             break;
         case EVulkanQueueFamily::Transfer:
-            QueueFamilyIndex = *GPU.TransferQueueFamilies.begin();
+            QueueFamilyIndex = Device.TransferQueueFamilyIndex;
             break;
         case EVulkanQueueFamily::Compute:
-            QueueFamilyIndex = *GPU.ComputeQueueFamilies.begin();
+            QueueFamilyIndex = Device.ComputeQueueFamilyIndex;
             break;
         default:
             LOG_FATAL("Invalid Vulkan Queue Family for CommandPool!");
