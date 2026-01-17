@@ -141,6 +141,8 @@ export namespace Visera
                            EVulkanGraphicsStage    I_DstStage,
                            EVulkanGraphicsAccess   I_DstAccess);
         void
+        ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor);
+        void
         SetViewport(const vk::Viewport& I_Viewport) { CurrentViewport = I_Viewport; Handle.setViewport(0, CurrentViewport.value()); }
         void
         SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.value());}
@@ -531,6 +533,17 @@ export namespace Visera
         auto Result = Handle.begin(BeginInfo);
 
         Status = EStatus::Recording;
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor)
+    {
+        auto ResourceRange = I_Image->GetResourceRange();
+        Handle.clearColorImage(I_Image->GetHandle(),
+            I_Image->GetLayout(),
+            &I_ClearColor,
+            1,
+            &ResourceRange);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::

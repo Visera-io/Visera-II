@@ -56,6 +56,8 @@ namespace Visera
         GetMipmapLevels() const { return Info.mipLevels; }
         [[nodiscard]] inline UInt8
         GetArrayLayers() const { return Info.arrayLayers; }
+        [[nodiscard]] vk::ImageSubresourceRange
+        GetResourceRange() const;
 
         [[nodiscard]] inline Bool
         HasDepth() const;
@@ -180,6 +182,20 @@ namespace Visera
     ~FVulkanImage()
     {
         Release(&Handle);
+    }
+
+    vk::ImageSubresourceRange FVulkanImage::
+    GetResourceRange() const
+    {
+        auto Aspect = HasDepth()?   vk::ImageAspectFlagBits::eDepth
+                    : HasStencil()? vk::ImageAspectFlagBits::eStencil
+                    : vk::ImageAspectFlagBits::eColor;
+        return vk::ImageSubresourceRange{}
+            .setAspectMask      (Aspect)
+            .setBaseMipLevel    (0)
+            .setLevelCount      (GetMipmapLevels())
+            .setBaseArrayLayer  (0)
+            .setLayerCount      (GetArrayLayers());
     }
 
     void FVulkanImage::

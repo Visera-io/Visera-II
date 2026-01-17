@@ -14,6 +14,7 @@ export namespace Visera
     {
         ConvertImageLayout,
         CopyBufferToImage,
+        ClearColorImage,
     };
 
     // Command view returned by iterator
@@ -39,8 +40,21 @@ export namespace Visera
         static_assert(alignof(FCommandHeader) == 8);
 
     public:
+        struct FConvertImageLayout
+        {
+            FRHITextureHandle Image;
+            ERHIImageLayout   NewLayout;
+        };
         void inline
-        ConvertImageLayout(FRHITextureHandle I_Image, ERHIImageLayout I_NewLayout);
+        ConvertImageLayout(FRHITextureHandle I_Texture, ERHIImageLayout I_NewLayout);
+
+        struct FClearColorImage
+        {
+            FRHITextureHandle Image;
+            FRHIClearColor    ClearColor;
+        };
+        void inline
+        ClearColorImage(FRHITextureHandle I_Texture, FRHIClearColor I_ClearColor);
 
         // Check if the command list is empty
         [[nodiscard]] Bool
@@ -142,37 +156,37 @@ export namespace Visera
         {
             // Align header start to CommandAlignment
             const UInt64 HeaderOffset = Memory::Align(Buffer.GetSize(), CommandAlignment);
-            
+
             // Align payload start to CommandAlignment (fixed alignment, no alignof)
             const UInt64 PayloadStart = Memory::Align(HeaderOffset + sizeof(FCommandHeader), CommandAlignment);
             const UInt64 PayloadEnd = PayloadStart + sizeof(Payload);
-            
+
             // Align command end to CommandAlignment (optional but recommended)
             const UInt64 CommandEnd = Memory::Align(PayloadEnd, CommandAlignment);
-            
+
             // Compute offsets
             const UInt64 PayloadOff = PayloadStart - HeaderOffset;
             const UInt64 TotalBytes = CommandEnd - HeaderOffset;
-            
+
             // Validation
             VISERA_ASSERT(PayloadOff <= TotalBytes);
             VISERA_ASSERT(TotalBytes <= 0xFFFF);
             VISERA_ASSERT(PayloadOff % CommandAlignment == 0);
             VISERA_ASSERT(TotalBytes % CommandAlignment == 0);
-            
+
             // Resize buffer
             Buffer.Resize(CommandEnd);
-            
+
             // Write header
             FCommandHeader Header{};
             Header.Type = I_Type;
             Header.PayloadOff = static_cast<UInt16>(PayloadOff);
             Header.TotalBytes = static_cast<UInt16>(TotalBytes);
             Header.Pad = 0;
-            
+
             Memory::Memcpy(Buffer.Data() + HeaderOffset, &Header, sizeof(FCommandHeader));
             Memory::Memcpy(Buffer.Data() + PayloadStart, &I_Payload, sizeof(Payload));
-            
+
 #if !defined(VISERA_RELEASE_MODE)
             // Zero padding for debug-friendly buffer dumps
             if (PayloadEnd < CommandEnd)
@@ -180,24 +194,30 @@ export namespace Visera
                 Memory::Memset(Buffer.Data() + PayloadEnd, 0, CommandEnd - PayloadEnd);
             }
 #endif
-            
+
             ++CommandCount;
         }
     };
 
-    void inline FRHICommandList::
-    ConvertImageLayout(FRHITextureHandle I_Image, ERHIImageLayout I_NewLayout)
+    void FRHICommandList::
+    ConvertImageLayout(FRHITextureHandle I_Texture, ERHIImageLayout I_NewLayout)
     {
-        struct FPayload
+        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
+        RecordCommand(ECommandType::ConvertImageLayout, FConvertImageLayout
         {
-            FRHITextureHandle Image;
-            ERHIImageLayout    NewLayout;
-        };
-
-        RecordCommand(ECommandType::ConvertImageLayout, FPayload
-        {
-            .Image     = I_Image,
+            .Image     = I_Texture,
             .NewLayout = I_NewLayout,
+        });
+    }
+
+    void FRHICommandList::
+    ClearColorImage(FRHITextureHandle I_Texture, FRHIClearColor I_ClearColor)
+    {
+        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
+        RecordCommand(ECommandType::ClearColorImage, FClearColorImage
+        {
+            .Image      = I_Texture,
+            .ClearColor = I_ClearColor,
         });
     }
 }
@@ -205,8 +225,9 @@ VISERA_MAKE_FORMATTER(Visera::ECommandType,
     const char* CommandName = "Unknown";
     switch (I_Formatee)
     {
-    case Visera::ECommandType::ConvertImageLayout: CommandName = "\"ConvertImageLayout\""; break;
-    case Visera::ECommandType::CopyBufferToImage:  CommandName = "\"CopyBufferToImage\""; break;
+    case Visera::ECommandType::ConvertImageLayout:  CommandName = "\"ConvertImageLayout\""; break;
+    case Visera::ECommandType::CopyBufferToImage:   CommandName = "\"CopyBufferToImage\""; break;
+    case Visera::ECommandType::ClearColorImage:     CommandName = "\"ClearColorImage\""; break;
     default: break;
     }
 , "{}", CommandName);

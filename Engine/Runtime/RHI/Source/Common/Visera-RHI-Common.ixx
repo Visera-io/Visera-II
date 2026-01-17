@@ -5,6 +5,7 @@ export module Visera.RHI.Common;
 export import Visera.Core.Traits.Flags;
        import Visera.Core.Math.Arithmetic.Interval;
        import Visera.Core.Types.Handle;
+       import Visera.Core.Color.Linear;
        import Visera.Global.Log;
        import vulkan_hpp;
 
@@ -279,8 +280,10 @@ export namespace Visera
     };
     static_assert(Concepts::Handle<FRHIResourceHandle>);
 
-    using FRHITextureHandle   = FRHIResourceHandle;
+    using FRHITextureHandle = FRHIResourceHandle;
     using FRHIBufferHandle  = FRHIResourceHandle;
+
+    using FRHIClearColor = FLinearColor;
 }
 VISERA_MAKE_FORMATTER(Visera::ERHIFormat,
     const char* FormatName = "Undefined";

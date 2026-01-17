@@ -43,6 +43,8 @@ export namespace Visera
         void
         EndFrame();
         void
+        Submit(const FRHICommandList& I_CommandList);
+        void
         Present();
 
         // Low-level API
@@ -229,6 +231,54 @@ export namespace Visera
         Registry->ClearGarbage();
     }
 
+    void FRHI::
+    Submit(const FRHICommandList& I_CommandList)
+    {
+        auto& Frame = InFlightFrames[FrameIndex];
+        VISERA_ASSERT(Frame.DrawCalls.IsRecording());
+
+        for (auto Command : I_CommandList)
+        {
+            if (Command.PayloadPtrAligned == nullptr) { continue; }
+
+            switch (Command.Type)
+            {
+            case ECommandType::ConvertImageLayout:
+                {
+                    const auto* Payload = reinterpret_cast<const FRHICommandList::FConvertImageLayout*>(Command.PayloadPtrAligned);
+
+                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    VISERA_ASSERT(Texture);
+
+                    Frame.DrawCalls.ConvertImageLayout(
+                        Texture->GetImage(),
+                        TypeCast(Payload->NewLayout),
+                        EVulkanGraphicsStage::TopOfPipe,
+                        EVulkanGraphicsAccess::None,
+                        EVulkanGraphicsStage::BottomOfPipe,
+                        EVulkanGraphicsAccess::None
+                    );
+                    break;
+                }
+            case ECommandType::ClearColorImage:
+                {
+                    const auto* Payload = reinterpret_cast<const FRHICommandList::FClearColorImage*>(Command.PayloadPtrAligned);
+
+                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    VISERA_ASSERT(Texture);
+
+                    Frame.DrawCalls.ClearColorImage(Texture->GetImage(),{
+                            Payload->ClearColor.R,
+                            Payload->ClearColor.G,
+                            Payload->ClearColor.B,
+                            Payload->ClearColor.A,
+                    });
+                    break;
+                }
+            default: LOG_ERROR("Unknown Command!"); break;
+            }
+        }
+    }
 
     void FRHI::
     Present()

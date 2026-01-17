@@ -25,17 +25,13 @@ struct FEngine
         LOG_INFO("Visera Engine Run()");
 
         FRHICommandList Commands;
-        Commands.ConvertImageLayout({}, ERHIImageLayout::ColorAttachment);
-        for (auto Command : Commands)
-        {
-            LOG_INFO("Visera Engine Command :{} ", Command.Type);
-        }
-
         while (!Window->ShouldClose())
         {
             Window->PollEvents();
+            Sleep(0.5);
 
             if (!RHI->BeginFrame()) { continue; }
+            Commands.Reset();
 
             auto Texture = RHI->CreateTexture({
             .Width = 1920,
@@ -43,13 +39,22 @@ struct FEngine
             .Depth = 1,
             .Format = ERHIFormat::R8G8B8A8_UNorm,
             .Type =  ERHIImageType::Image2D,
-            .Usages = ERHIImageUsage::RenderTarget | ERHIImageUsage::TransferSrc,
+            .Usages = ERHIImageUsage::RenderTarget | ERHIImageUsage::TransferSrc | ERHIImageUsage::TransferDst,
             .ViewType = ERHIImageViewType::Image2D,}
             );
 
             // Rendering
 
             RHI->DestroyTexture(Texture);
+            Commands.ConvertImageLayout(Texture, ERHIImageLayout::TransferDst);
+            Commands.ClearColorImage   (Texture, FRHIClearColor::Green());
+            Commands.ConvertImageLayout(Texture, ERHIImageLayout::ColorAttachment);
+            for (auto Command : Commands)
+            {
+                LOG_INFO("Visera Engine Command :{} ", Command.Type);
+            }
+
+            RHI->Submit(Commands);
 
             RHI->EndFrame();
             RHI->Present();
