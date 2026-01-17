@@ -21,11 +21,11 @@ export namespace Visera
         void inline
         Execute(FRHIDrawCommandList* I_DrawCommandList);
         void inline
-        Clear();
+        Clear() { VISERA_UNIMPLEMENTED_API; }
         [[nodiscard]] Bool inline
-        Compile();
+        Compile() { VISERA_UNIMPLEMENTED_API; }
         [[nodiscard]] Bool  inline
-        CreateFromJSON(const FJSON& I_JSON);
+        CreateFromJSON(const FJSON& I_JSON) { VISERA_UNIMPLEMENTED_API; }
 
     private:
         //TPMRArray<FRGNode>     Nodes;
