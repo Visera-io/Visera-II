@@ -20,9 +20,6 @@ namespace Visera
         template<class T> void
         Write(const T& I_Data) { Write(&I_Data, sizeof(T)); }
 
-        [[nodiscard]] inline Bool
-        IsMapped() const { return GetAllocation()->GetMappedData() != nullptr; }
-
     protected:
         vk::Buffer           Handle {nullptr};
         vk::BufferCreateInfo Info;
@@ -71,7 +68,9 @@ namespace Visera
     void FVulkanBuffer::
     Write(const void* I_Data, UInt64 I_Size)
     {
-        if(!I_Data || I_Size == 0) { return; }
+        if (!I_Data || I_Size == 0) { return; }
+        if (!IsHostWritable())
+        { LOG_FATAL("Cannot write a host-invisible buffer!"); }
 
         VISERA_ASSERT(I_Size <= GetMemorySize());
         void* MappedMemory = GetAllocation()->GetMappedData();
@@ -79,11 +78,13 @@ namespace Visera
         if (!MappedMemory)
         {
             MapMemory(&MappedMemory);
+            VISERA_ASSERT(IsSequentialWritable());
             Memory::Memcpy(MappedMemory, I_Data, I_Size);
             UnmapMemory();
         }
         else
         {
+            VISERA_ASSERT(IsSequentialWritable());
             Memory::Memcpy(MappedMemory, I_Data, I_Size);
         }
     }

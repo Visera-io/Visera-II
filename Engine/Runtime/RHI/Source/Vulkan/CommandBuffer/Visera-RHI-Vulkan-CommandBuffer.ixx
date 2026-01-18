@@ -401,13 +401,16 @@ export namespace Visera
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
-        
-        const auto ImageHandle = I_Image->GetHandle();
 
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
+        if (NewLayout == vk::ImageLayout::eUndefined ||
+            OldLayout == NewLayout)
+        {
+            return;
+        }
 
-        if (OldLayout == NewLayout) { return; }
+        const auto ImageHandle = I_Image->GetHandle();
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)
@@ -477,29 +480,23 @@ export namespace Visera
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_SrcBuffer != nullptr);
-        VISERA_ASSERT(I_DstImage != nullptr);
+        VISERA_ASSERT(I_DstImage  != nullptr);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
-        const auto ImageSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setMipLevel        (I_DstImage->GetMipmapLevels())
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (I_DstImage->GetArrayLayers())
-        ;
         auto CopyRegion = vk::BufferImageCopy2{}
             .setBufferOffset        (0)
             .setBufferRowLength     (0)
             .setBufferImageHeight   (0)
-            .setImageSubresource    (ImageSubresourceRange)
+            .setImageSubresource    (I_DstImage->GetSubresourceLayers(0))
             .setImageOffset         ({0, 0, 0})
             .setImageExtent         (I_DstImage->GetExtent())
         ;
         auto CopyInfo = vk::CopyBufferToImageInfo2{}
-            .setSrcBuffer(I_SrcBuffer->GetHandle())
-            .setDstImage(I_DstImage->GetHandle())
-            .setDstImageLayout(I_DstImage->GetLayout())
-            .setRegionCount(1)
-            .setPRegions(&CopyRegion)
+            .setSrcBuffer           (I_SrcBuffer->GetHandle())
+            .setDstImage            (I_DstImage->GetHandle())
+            .setDstImageLayout      (I_DstImage->GetLayout())
+            .setRegionCount         (1)
+            .setPRegions            (&CopyRegion)
         ;
         Handle.copyBufferToImage2(CopyInfo);
     }
@@ -538,7 +535,7 @@ export namespace Visera
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
     ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor)
     {
-        auto ResourceRange = I_Image->GetResourceRange();
+        auto ResourceRange = I_Image->GetSubresourceRange();
         Handle.clearColorImage(I_Image->GetHandle(),
             I_Image->GetLayout(),
             &I_ClearColor,
@@ -556,13 +553,16 @@ export namespace Visera
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
-        
-        const auto ImageHandle = I_Image->GetHandle();
 
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
+        if (NewLayout == vk::ImageLayout::eUndefined ||
+            OldLayout == NewLayout)
+        {
+            return;
+        }
 
-        if (OldLayout == NewLayout) { return; }
+        const auto ImageHandle = I_Image->GetHandle();
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)
@@ -845,12 +845,15 @@ export namespace Visera
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
         
-        const auto ImageHandle = I_Image->GetHandle();
-
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
+        if (NewLayout == vk::ImageLayout::eUndefined ||
+            OldLayout == NewLayout)
+        {
+            return;
+        }
 
-        if (OldLayout == NewLayout) { return; }
+        const auto ImageHandle = I_Image->GetHandle();
 
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (vk::ImageAspectFlagBits::eColor)

@@ -13,6 +13,7 @@ export namespace Visera
     enum class ECommandType : UInt16
     {
         ConvertImageLayout,
+        WriteBuffer,
         CopyBufferToImage,
         ClearColorImage,
         BlitImage,
@@ -46,6 +47,15 @@ export namespace Visera
         static_assert(alignof(FCommandHeader) == 8);
 
     public:
+        struct FWriteBuffer
+        {
+            FRHIBufferHandle Buffer;
+            const FByte*     Data;
+            UInt64           Size;
+        };
+        void inline
+        WriteBuffer(FRHIBufferHandle I_Buffer, const FByte* I_Data, UInt64 I_Size);
+
         struct FEnterRenderPass
         {
 
@@ -59,6 +69,14 @@ export namespace Visera
         };
         void inline
         LeaveRenderPass() {}
+
+        struct FCopyBufferToImage
+        {
+            FRHIBufferHandle  Buffer;
+            FRHITextureHandle Image;
+        };
+        void inline
+        CopyBufferToImage(FRHIBufferHandle I_Buffer, FRHITextureHandle I_Texture);
 
         struct FSetViewport
         {
@@ -249,6 +267,18 @@ export namespace Visera
     };
 
     void FRHICommandList::
+    WriteBuffer(FRHIBufferHandle I_Buffer, const FByte* I_Data, UInt64 I_Size)
+    {
+        VISERA_ASSERT(I_Buffer != FRHIBufferHandle{});
+        RecordCommand(ECommandType::WriteBuffer, FWriteBuffer
+        {
+            .Buffer = I_Buffer,
+            .Data   = I_Data,
+            .Size   = I_Size,
+        });
+    }
+
+    void FRHICommandList::
     ConvertImageLayout(FRHITextureHandle I_Texture, ERHIImageLayout I_NewLayout)
     {
         VISERA_ASSERT(I_Texture != FRHITextureHandle{});
@@ -256,6 +286,18 @@ export namespace Visera
         {
             .Image     = I_Texture,
             .NewLayout = I_NewLayout,
+        });
+    }
+
+    void FRHICommandList::
+    CopyBufferToImage(FRHIBufferHandle I_Buffer, FRHITextureHandle I_Texture)
+    {
+        VISERA_ASSERT(I_Buffer  != FRHIBufferHandle{});
+        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
+        RecordCommand(ECommandType::CopyBufferToImage, FCopyBufferToImage
+        {
+            .Buffer = I_Buffer,
+            .Image  = I_Texture,
         });
     }
 
@@ -315,6 +357,7 @@ VISERA_MAKE_FORMATTER(Visera::ECommandType,
     switch (I_Formatee)
     {
     case Visera::ECommandType::ConvertImageLayout:  CommandName = "\"ConvertImageLayout\""; break;
+    case Visera::ECommandType::WriteBuffer:         CommandName = "\"WriteBuffer\""; break;
     case Visera::ECommandType::CopyBufferToImage:   CommandName = "\"CopyBufferToImage\""; break;
     case Visera::ECommandType::ClearColorImage:     CommandName = "\"ClearColorImage\""; break;
     case Visera::ECommandType::BlitImage:           CommandName = "\"BlitImage\""; break;

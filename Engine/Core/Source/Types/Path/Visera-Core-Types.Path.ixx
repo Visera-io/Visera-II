@@ -43,7 +43,7 @@ export namespace Visera
         FPath(FUTF8StringView I_Path): Data{ I_Path } { Data.make_preferred(); }
         FPath(FWideStringView I_Path): Data{ I_Path } { Data.make_preferred(); }
         template <size_t N>
-        FPath(const char (&lit)[N]) : Data(FStringView(lit)) { Data.make_preferred(); }
+        FPath(const char (&I_Literal)[N]) : Data(FStringView(I_Literal)) { Data.make_preferred(); }
 
     private:
         std::filesystem::path Data;

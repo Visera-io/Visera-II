@@ -24,7 +24,7 @@ namespace Visera
       [[nodiscard]] inline const FByte*
       GetData() const { return Data.Data(); }
       [[nodiscard]] inline UInt64
-      GetSize() const { return Data.GetSize(); }
+      GetSizeInByte() const { return Data.GetSize(); }
       [[nodiscard]] inline UInt32
       GetWidth() const { return Wrapper->GetWidth(); }
       [[nodiscard]] inline UInt32

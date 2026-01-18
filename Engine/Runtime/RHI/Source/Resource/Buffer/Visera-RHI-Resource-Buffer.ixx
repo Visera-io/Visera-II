@@ -9,10 +9,12 @@ export namespace Visera
 {
     struct VISERA_RHI_API FRHIBufferCreateDesc
     {
-        UInt64           Size   {0};
-        ERHIBufferUsage  Usages {ERHIBufferUsage::None};
+        UInt64           Size       {0};
+        ERHIBufferUsage  Usages     {ERHIBufferUsage::None};
 
-        Bool operator==(const FRHIBufferCreateDesc&) const = default;
+        Bool IsCompatibleWith(const FRHIBufferCreateDesc& I_Other) const
+        { return (Size >= I_Other.Size) &&
+                 ((Usages & I_Other.Usages) == I_Other.Usages); }
     };
 
     class VISERA_RHI_API FRHIBuffer
@@ -20,6 +22,10 @@ export namespace Visera
     public:
         [[nodiscard]] const auto&
         GetInfo() const { return Info; }
+        [[nodiscard]] void
+        Write(const FByte* I_Data, UInt64 I_Size) { Buffer.Write(I_Data, I_Size); }
+        [[nodiscard]] auto*
+        GetVulkanBuffer() { return &Buffer; }
 
     private:
         const FRHIBufferCreateDesc Info;

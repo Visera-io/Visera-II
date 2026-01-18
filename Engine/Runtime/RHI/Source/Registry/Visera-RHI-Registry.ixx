@@ -98,7 +98,7 @@ export namespace Visera
                 const auto Texture = Textures.Get(Handle);
                 if (Texture == nullptr) { continue; }
 
-                if (Texture->GetInfo() == I_TextureDesc)
+                if (Texture->GetInfo().IsCompatibleWith(I_TextureDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
                     // if (Handles.IsEmpty())
@@ -153,7 +153,7 @@ export namespace Visera
                 const auto Buffer = Buffers.Get(Handle);
                 if (Buffer == nullptr) { continue; }
 
-                if (Buffer->GetInfo() == I_BufferDesc)
+                if (Buffer->GetInfo().IsCompatibleWith(I_BufferDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
                     // if (Handles.IsEmpty())
@@ -168,7 +168,15 @@ export namespace Visera
             .setUsage       (TypeCast(I_BufferDesc.Usages))
             .setSharingMode (vk::SharingMode::eExclusive)
         ;
-        auto Buffer = Driver->CreateBuffer(BufferCreateInfo, Aliasable);
+
+        auto MemoryProperties = EVulkanMemoryProperty::None;
+        if (I_BufferDesc.Usages & ERHIBufferUsage::TransferSrc)
+        {
+            MemoryProperties |= EVulkanMemoryProperty::HostAccessAllowTransferInstead |
+                                EVulkanMemoryProperty::HostAccessSequentialWrite;
+        }
+
+        auto Buffer = Driver->CreateBuffer(BufferCreateInfo, MemoryProperties);
 
         auto Handle = Buffers.Insert(
             FRHIBuffer{std::move(I_BufferDesc), std::move(Buffer)},

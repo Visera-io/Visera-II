@@ -30,6 +30,8 @@ export namespace Visera
         SampleCount         {ERHISamplingRate::X1};
 
         Bool operator==(const FRHITextureCreateDesc&) const = default;
+        Bool IsCompatibleWith(const FRHITextureCreateDesc& I_Other) const
+        { return *this == I_Other; }
     };
 
     class VISERA_RHI_API FRHITexture
@@ -38,9 +40,9 @@ export namespace Visera
         [[nodiscard]] const auto&
         GetInfo() const { return Info; }
         [[nodiscard]] FVulkanImage*
-        GetImage()     { return &Image; }
+        GetVulkanImage()     { return &Image; }
         [[nodiscard]] FVulkanImageView*
-        GetImageView() { return &ImageView; }
+        GetVulkanImageView() { return &ImageView; }
 
     private:
         const FRHITextureCreateDesc Info;

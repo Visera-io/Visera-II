@@ -4,13 +4,13 @@ module;
 #include <vk_mem_alloc.h>
 export module Visera.RHI.Vulkan.Allocator;
 #define VISERA_MODULE_NAME "RHI.Vulkan"
-import Visera.Core.Traits.Flags;
-import Visera.Global.Log;
-import vulkan_hpp;
+export import Visera.Core.Traits.Flags;
+       import Visera.Global.Log;
+       import vulkan_hpp;
 
 export namespace Visera
 {
-    enum EVMAMemoryProperty : UInt32
+    enum class EVMAMemoryProperty : UInt32
     {
         None                           = 0,
         Mapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
@@ -18,6 +18,9 @@ export namespace Visera
         HostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
         Aliasable                      = VMA_ALLOCATION_CREATE_CAN_ALIAS_BIT,
     };
+    VISERA_MAKE_FLAGS(EVMAMemoryProperty);
+    [[nodiscard]] inline VmaAllocationCreateFlags
+    TypeCast(EVMAMemoryProperty I_MemoryProperties) { return static_cast<VmaAllocationCreateFlags>(I_MemoryProperties); }
 
     class VISERA_RHI_API FVulkanAllocator
     {
@@ -93,7 +96,13 @@ export namespace Visera
 		[[nodiscard]] inline Bool
         IsEmpty() const { return GetMemorySize() == 0; }
         [[nodiscard]] inline Bool
-        IsAliased() const { return !bOwnsAllocation; }
+        IsMapped()      const { return Allocation->GetMappedData() != nullptr; }
+        [[nodiscard]] inline Bool
+        IsAliased() const { return !Properties.bOwnsAllocation; }
+        [[nodiscard]] inline Bool
+        IsHostWritable() const { return Properties.bAllowWriteByTransferInstead; }
+        [[nodiscard]] inline Bool
+        IsSequentialWritable() const { return Properties.bSequentialWritable; }
 
     protected:
         inline void
@@ -118,8 +127,12 @@ export namespace Visera
         EType             Type              { EType::Unknown };
         FVulkanAllocator* Allocator         { nullptr };
         VmaAllocation     Allocation        { nullptr };
-        Bool              bOwnsAllocation   { True    };
-
+        struct
+        {
+            Bool          bOwnsAllocation               { True  };
+            Bool          bAllowWriteByTransferInstead  { False };
+            Bool          bSequentialWritable           { False };
+        }Properties;
     public:
         IVulkanResource() = delete;
         IVulkanResource(FVulkanAllocator* I_Allocator, EType I_Type)
@@ -132,10 +145,10 @@ export namespace Visera
         : Type              (I_Other.Type)
         , Allocator         (I_Other.Allocator)
         , Allocation        (I_Other.Allocation)
-        , bOwnsAllocation   (I_Other.bOwnsAllocation)
+        , Properties        (I_Other.Properties)
         {
             I_Other.Allocation      = nullptr;
-            I_Other.bOwnsAllocation = False;
+            I_Other.Properties      = {};
         }
 
         IVulkanResource& operator=(IVulkanResource&& I_Other) noexcept
@@ -145,10 +158,10 @@ export namespace Visera
                 Type             = I_Other.Type;
                 Allocator        = I_Other.Allocator;
                 Allocation       = I_Other.Allocation;
-                bOwnsAllocation  = I_Other.bOwnsAllocation;
+                Properties       = I_Other.Properties;
 
                 I_Other.Allocation      = nullptr;
-                I_Other.bOwnsAllocation = False;
+                I_Other.Properties      = {};
             }
             return *this;
         }
@@ -162,13 +175,23 @@ export namespace Visera
     {
         if (I_Owner)
         {
-            bOwnsAllocation = False;
-            Allocation      = I_Owner->GetAllocation();
+            Allocation                 = I_Owner->GetAllocation();
+            Properties                 = I_Owner->Properties;
+            Properties.bOwnsAllocation = False;
+        }
+        else
+        {
+            Properties =
+            {
+                .bOwnsAllocation                = True,
+                .bAllowWriteByTransferInstead   = EVMAMemoryProperty::HostAccessAllowTransferInstead & I_MemoryProperties,
+                .bSequentialWritable            = EVMAMemoryProperty::HostAccessSequentialWrite      & I_MemoryProperties,
+            };
         }
 
         VmaAllocationCreateInfo AllocationCreateInfo
         {
-            .flags          = I_MemoryProperties,
+            .flags          = TypeCast(I_MemoryProperties),
             .usage          = VMA_MEMORY_USAGE_AUTO,
             .requiredFlags  = 0x0,
             .preferredFlags = 0x0,

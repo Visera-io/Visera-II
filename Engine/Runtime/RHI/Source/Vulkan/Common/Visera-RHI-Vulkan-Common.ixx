@@ -100,6 +100,8 @@ export namespace Visera
         TopOfPipe               = static_cast<UInt32>(vk::PipelineStageFlagBits2::eTopOfPipe),
         BottomOfPipe            = static_cast<UInt32>(vk::PipelineStageFlagBits2::eBottomOfPipe),
 
+        Transfer                = static_cast<UInt32>(vk::PipelineStageFlagBits2::eTransfer),
+
         DrawIndirect            = static_cast<UInt32>(vk::PipelineStageFlagBits2::eDrawIndirect),
 
         VertexInput             = static_cast<UInt32>(vk::PipelineStageFlagBits2::eVertexInput),

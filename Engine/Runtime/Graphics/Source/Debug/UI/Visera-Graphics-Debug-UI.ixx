@@ -101,17 +101,14 @@ namespace Visera::Graphics
             auto GRHI = IGlobalService::Get<FRHI>(EName::RHI);
             auto& Vulkan = GRHI->GetDriver();
 
-            auto& QueueFamily = *Vulkan->GetGPU().GraphicsQueueFamilies.begin();
-            auto& Queue = Vulkan->GetDevice().GraphicsQueue;
-
-            const VkFormat ColorRTFormat = static_cast<VkFormat>(ERHIFormat::R16G16B16A16_Float);
+            const VkFormat ColorRTFormat = static_cast<VkFormat>(ERHIFormat::R8G8B8A8_sRGB);
             ImGui_ImplVulkan_InitInfo CreateInfo
             {
                 .Instance		= *Vulkan->GetInstance(),
                 .PhysicalDevice = *Vulkan->GetGPU().Context,
                 .Device			= *Vulkan->GetDevice().Context,
-                .QueueFamily	= QueueFamily,
-                .Queue			= *Queue,
+                .QueueFamily	= Vulkan->GetDevice().GraphicsQueueFamilyIndex,
+                .Queue			= *Vulkan->GetDevice().GraphicsQueue,
                 .DescriptorPool	= nullptr, //[TODO] :Add a descriptor pool for ImGui
                 .DescriptorPoolSize = 100,
 

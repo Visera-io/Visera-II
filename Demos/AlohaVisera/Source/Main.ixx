@@ -19,6 +19,7 @@ struct FEngine
     FRHI*      RHI;
     FAudio*    Audio;
     FGraphics* Graphics;
+
     FHiResClock Timer;
 
     Bool Run()
@@ -33,30 +34,51 @@ struct FEngine
             if (!RHI->BeginFrame()) { continue; }
             Commands.Reset();
 
+            static FImage ViseraImage{"Assets/App/Texture/Visera.png"};
+            if(!ViseraImage.IsRGBA())
+            { LOG_FATAL("Not RGBA!"); }
             auto Texture = RHI->CreateTexture({
-                .Width = 1920,
-                .Height = 1080,
-                .Depth = 1,
-                .Format = ERHIFormat::R8G8B8A8_sRGB,
-                .Type =  ERHIImageType::Image2D,
-                .Usages = ERHIImageUsage::RenderTarget |
+                .Width      = ViseraImage.GetWidth(),
+                .Height     = ViseraImage.GetHeight(),
+                .Depth      = 1,
+                .Format     = ViseraImage.IsSRGB()? ERHIFormat::R8G8B8A8_sRGB : ERHIFormat::R8G8B8A8_UNorm,
+                .Type       =  ERHIImageType::Image2D,
+                .Usages = ERHIImageUsage::ShaderResource |
                           ERHIImageUsage::TransferSrc  |
                           ERHIImageUsage::TransferDst,
                 .ViewType = ERHIImageViewType::Image2D,}
             );
+            static TSet<FRHITextureHandle> InitedTextures;
+            if (!InitedTextures.Contains(Texture))
+            {
+                LOG_INFO("Copying Buffer to Image");
 
+                auto Buffer = RHI->CreateBuffer({
+                    .Size   = ViseraImage.GetSizeInByte(),
+                    .Usages = ERHIBufferUsage::TransferSrc
+                }, ViseraImage.GetData(), ViseraImage.GetSizeInByte());
+
+                Commands.CopyBufferToImage(Buffer, Texture);
+                InitedTextures.Insert(Texture);
+                RHI->DestroyBuffer(Buffer);
+            }
             // Rendering
-            auto Time = Timer.Elapsed().Milliseconds() / 1000.0;
-            auto Pulse = Math::Pow(0.5f + 0.5f * Math::Sin(FRadian(Time)), 2.2f);
             auto Color = FRHIClearColor::Red();
-            Color.R *= Pulse;
-            Color.G *= Pulse;
-            Color.B *= Pulse;
+            {
+                auto Time = Timer.Elapsed().Milliseconds() / 1000.0;
+                auto Pulse = Math::Pow(0.5f + 0.5f * Math::Sin(FRadian(Time)), 2.2f);
+                Color.R *= Pulse;
+                Color.G *= Pulse;
+                Color.B *= Pulse;
+            }
             Commands.ConvertImageLayout (Texture, ERHIImageLayout::TransferDst);
-            Commands.ClearColorImage    (Texture, Color);
+
+
+            //Commands.ClearColorImage    (Texture, Color);
+
             Commands.ConvertImageLayout (Texture, ERHIImageLayout::TransferSrc);
             Commands.BlitToSwapChain    (Texture);
-            Commands.ConvertImageLayout (Texture, ERHIImageLayout::ColorAttachment);
+            Commands.ConvertImageLayout (Texture, ERHIImageLayout::ShaderReadOnly);
 
             // for (auto Command : Commands)
             // {

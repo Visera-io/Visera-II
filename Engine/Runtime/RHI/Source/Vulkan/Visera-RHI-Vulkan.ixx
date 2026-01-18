@@ -87,20 +87,7 @@ export namespace Visera
                      EVulkanMemoryProperty       I_MemoryProperties);
         [[nodiscard]] FVulkanDescriptorSetLayout
         CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
-        [[nodiscard]] const TUniqueRef<FVulkanPipelineCache>
-        GetPipelineCache() const { return PipelineCache; }
-        [[nodiscard]] inline const auto&
-        GetInstance() const { return Instance; }
-        [[nodiscard]] inline const auto&
-        GetGPU() const { return GPU; }
-        [[nodiscard]] inline const auto&
-        GetDevice() const { return Device; }
-#if !defined(VISERA_OFFSCREEN_MODE)
-        [[nodiscard]] inline const auto&
-        GetSwapChain() const { return SwapChain; }
-        [[nodiscard]] inline auto&
-        GetSwapChain() { return SwapChain; }
-#endif
+
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
@@ -120,10 +107,11 @@ export namespace Visera
         struct
         {
             vk::raii::PhysicalDevice Context {nullptr};
-            TSet<UInt32> GraphicsQueueFamilies{};
+            TSet<UInt32> GraphicsQueueCandidateueueFamilies{};
             TSet<UInt32> PresentQueueFamilies {};
-            TSet<UInt32> ComputeQueueFamilies {};
-            TSet<UInt32> TransferQueueFamilies{};
+            TSet<UInt32> ComputeQueueCandidateueueFamilies {};
+            TSet<UInt32> TransferQueueCandidateueueFamilies{};
+            TArray<vk::QueueFamilyProperties> QueueFamilyProperties{};
             vk::PhysicalDeviceProperties  Properties;
             vk::PhysicalDeviceProperties2 Properties2;
             vk::PhysicalDeviceDescriptorIndexingProperties DescriptorIndexingProperties;
@@ -173,7 +161,6 @@ export namespace Visera
         }SwapChain;
 #endif
 
-    private:
         void inline CreateInstance();       void inline DestroyInstance();
         void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
         void inline CreateSurface();        void inline DestroySurface();
@@ -215,7 +202,21 @@ export namespace Visera
             { LOG_ERROR("Unknown Vulkan Debug Message Severity {}", static_cast<Int32>(I_Severity)); }
             return vk::False; // Always return VK_FALSE
         }
-
+    public:
+        [[nodiscard]] const TUniqueRef<FVulkanPipelineCache>
+        GetPipelineCache() const { return PipelineCache; }
+        [[nodiscard]] inline const auto&
+        GetInstance() const { return Instance; }
+        [[nodiscard]] inline const auto&
+        GetGPU() const { return GPU; }
+        [[nodiscard]] inline const auto&
+        GetDevice() const { return Device; }
+#if !defined(VISERA_OFFSCREEN_MODE)
+        [[nodiscard]] inline const auto&
+        GetSwapChain() const { return SwapChain; }
+        [[nodiscard]] inline auto&
+        GetSwapChain() { return SwapChain; }
+#endif
     public:
         FVulkanDriver();
         ~FVulkanDriver();
@@ -232,12 +233,12 @@ export namespace Visera
     {
         auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        auto VulkanICDPath = FPath{ GPlatform->GetResourceDirectory() / FPath{"Vulkan/MoltenVK_icd.json"}}.GetUTF8Path();
+        auto VulkanICDPath = FPath{ GPlatform->GetResourceDirectory() / "Vulkan/MoltenVK_icd.json"}.GetUTF8Path();
         if (!GPlatform->SetEnvironmentVariable(
             "VK_ICD_FILENAMES", VulkanICDPath))
         { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\" as {}!", VulkanICDPath); }
 #if !defined(VISERA_RELEASE_MODE)
-        auto VulkanLayerPath = FPath{ GPlatform->GetResourceDirectory() / FPath{"Vulkan"}}.GetUTF8Path();
+        auto VulkanLayerPath = FPath{ GPlatform->GetResourceDirectory() / "Vulkan"}.GetUTF8Path();
         if (!GPlatform->SetEnvironmentVariable(
             "VK_LAYER_PATH", VulkanLayerPath))
         { LOG_FATAL("Failed to set \"VK_LAYER_PATH\" as {}!", VulkanLayerPath); }
@@ -483,21 +484,26 @@ export namespace Visera
 
             LOG_TRACE("Checking Queue Families...");
             auto QueueFamilies = PhysicalDeviceCandidate.getQueueFamilyProperties();
+            GPU.QueueFamilyProperties.Clear();
+            for (const auto& QueueFamily : QueueFamilies)
+            {
+                GPU.QueueFamilyProperties.EmplaceBack(QueueFamily);
+            }
 
-            GPU.GraphicsQueueFamilies.Clear();
-            GPU.ComputeQueueFamilies.Clear();
-            GPU.TransferQueueFamilies.Clear();
+            GPU.GraphicsQueueCandidateueueFamilies.Clear();
+            GPU.ComputeQueueCandidateueueFamilies.Clear();
+            GPU.TransferQueueCandidateueueFamilies.Clear();
             GPU.PresentQueueFamilies.Clear();
 
             for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
             {
                 auto& QueueFamily = QueueFamilies[Idx];
                 if (vk::QueueFlagBits::eGraphics & QueueFamily.queueFlags)
-                { GPU.GraphicsQueueFamilies.Insert(Idx); }
+                { GPU.GraphicsQueueCandidateueueFamilies.Insert(Idx); }
                 if (vk::QueueFlagBits::eCompute & QueueFamily.queueFlags)
-                { GPU.ComputeQueueFamilies.Insert(Idx); }
+                { GPU.ComputeQueueCandidateueueFamilies.Insert(Idx); }
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
-                { GPU.TransferQueueFamilies.Insert(Idx); }
+                { GPU.TransferQueueCandidateueueFamilies.Insert(Idx); }
 
 #if !defined(VISERA_OFFSCREEN_MODE)
                 auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
@@ -505,9 +511,9 @@ export namespace Visera
                 { GPU.PresentQueueFamilies.Insert(Idx); }
 #endif
             }
-            bSuitable = !GPU.GraphicsQueueFamilies.IsEmpty() &&
-                        !GPU.ComputeQueueFamilies.IsEmpty()  &&
-                        !GPU.TransferQueueFamilies.IsEmpty();
+            bSuitable = !GPU.GraphicsQueueCandidateueueFamilies.IsEmpty() &&
+                        !GPU.ComputeQueueCandidateueueFamilies.IsEmpty()  &&
+                        !GPU.TransferQueueCandidateueueFamilies.IsEmpty();
 #if !defined(VISERA_OFFSCREEN_MODE)
             bSuitable &= !GPU.PresentQueueFamilies.IsEmpty();
 #endif
@@ -557,63 +563,165 @@ export namespace Visera
         CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
 
-        constexpr Float Priority = 0.0f;
+        // ---- Decide queue families and queue indices (prefer same family, different queue index) ----
+        struct FQueueSelection
+        {
+            UInt32 Family = VK_QUEUE_FAMILY_IGNORED;
+            UInt32 Index  = 0;
+        };
 
-        TArray<vk::DeviceQueueCreateInfo> DeviceQueueCreateInfos(1);
-        auto GraphicsFamilyIter  = GPU.GraphicsQueueFamilies.begin();
-        auto GraphicsFamilyIndex = *GraphicsFamilyIter;
-        DeviceQueueCreateInfos[0] = vk::DeviceQueueCreateInfo{}
-            .setQueueFamilyIndex(GraphicsFamilyIndex)
-            .setQueueCount      (1)
-            .setQueuePriorities ({Priority})
-        ;
-        
-        // Select Transfer Queue Family
-        auto TransferFamilyIter  = GPU.TransferQueueFamilies.begin();
-        auto TransferFamilyIndex = *TransferFamilyIter;
-        if (TransferFamilyIndex == GraphicsFamilyIndex)
+        auto GetQueueCount = [&](UInt32 I_Family) -> UInt32
         {
-            if (++TransferFamilyIter != GPU.TransferQueueFamilies.end())
+            VISERA_ASSERT(I_Family != VK_QUEUE_FAMILY_IGNORED);
+            VISERA_ASSERT(I_Family < GPU.QueueFamilyProperties.GetSize());
+            return GPU.QueueFamilyProperties[I_Family].queueCount;
+        };
+
+        auto PickFirstFamily = [&](const TSet<UInt32>& I_Families) -> UInt32
+        {
+            VISERA_ASSERT(!I_Families.IsEmpty());
+            return *I_Families.begin();
+        };
+
+        const UInt32 GraphicsFamily = PickFirstFamily(GPU.GraphicsQueueCandidateueueFamilies);
+
+        FQueueSelection GraphicsQueueCandidate{ GraphicsFamily, 0 };
+        FQueueSelection TransferQueueCandidate{ GraphicsFamily, 0 };
+        FQueueSelection ComputeQueueCandidate { PickFirstFamily(GPU.ComputeQueueCandidateueueFamilies), 0 };
+
+        // How many queues we will request from GraphicsFamily.
+        UInt32 GraphicsFamilyRequestedQueues = 1;
+
+        // Try to allocate an extra queue from the SAME graphics family for Transfer
+        // (so no ownership transfer is needed; only semaphore sync).
+        if (GetQueueCount(GraphicsFamily) >= 2)
+        {
+            TransferQueueCandidate = { GraphicsFamily, 1 };
+            GraphicsFamilyRequestedQueues = 2;
+        }
+        else
+        {
+            // Fallback: try a different transfer family (may require ownership transfer later).
+            UInt32 TransferFamily = PickFirstFamily(GPU.TransferQueueCandidateueueFamilies);
+            if (TransferFamily == GraphicsFamily)
             {
-                TransferFamilyIndex = *TransferFamilyIter;
+                auto It = GPU.TransferQueueCandidateueueFamilies.begin();
+                ++It;
+                if (It != GPU.TransferQueueCandidateueueFamilies.end())
+                {
+                    TransferFamily = *It;
+                }
+                else
+                {
+                    LOG_WARN("No extra queue in Graphics family and no separate Transfer family found; "
+                             "using Graphics queue as Transfer.");
+                    TransferQueueCandidate = { GraphicsFamily, 0 };
+                    TransferFamily = GraphicsFamily;
+                }
+            }
+            TransferQueueCandidate = { TransferFamily, 0 };
+        }
+
+        // Try to allocate another queue from Graphics family for Compute, if possible.
+        // Prefer queue index 2 if we already used 0 (graphics) and 1 (transfer).
+        if (ComputeQueueCandidate.Family == GraphicsFamily)
+        {
+            const UInt32 WantIndex = (TransferQueueCandidate.Family == GraphicsFamily && TransferQueueCandidate.Index == 1) ? 2U : 1U;
+            if (GetQueueCount(GraphicsFamily) > WantIndex)
+            {
+                ComputeQueueCandidate = { GraphicsFamily, WantIndex };
+                GraphicsFamilyRequestedQueues = Math::Max(GraphicsFamilyRequestedQueues, WantIndex + 1);
             }
             else
             {
-                LOG_WARN("Failed to find a separated Transfer Queue Family, "
-                         "using the Graphics Queue Family!");
+                // Fallback: try a different compute family.
+                UInt32 ComputeFamily = PickFirstFamily(GPU.ComputeQueueCandidateueueFamilies);
+                if (ComputeFamily == GraphicsFamily)
+                {
+                    auto It = GPU.ComputeQueueCandidateueueFamilies.begin();
+                    ++It;
+                    if (It != GPU.ComputeQueueCandidateueueFamilies.end())
+                    {
+                        ComputeFamily = *It;
+                    }
+                    else
+                    {
+                        LOG_WARN("Failed to find separate Compute family and no spare queue in Graphics family; "
+                                 "using Graphics queue as Compute.");
+                        ComputeQueueCandidate = { GraphicsFamily, 0 };
+                        ComputeFamily = GraphicsFamily;
+                    }
+                }
+                ComputeQueueCandidate = { ComputeFamily, 0 };
             }
         }
-        // Add Transfer Queue if it's different from Graphics
-        if (TransferFamilyIndex != GraphicsFamilyIndex)
+
+        // ---- Build unique vk::DeviceQueueCreateInfo per family ----
+        // We need stable memory for priorities arrays.
+        // For each family we request queueCount N with priorities[N].
+        struct FFamilyQueues
         {
-            DeviceQueueCreateInfos.EmplaceBack(vk::DeviceQueueCreateInfo{}
-                .setQueueFamilyIndex(TransferFamilyIndex)
-                .setQueueCount      (1)
-                .setQueuePriorities ({Priority}));
-        }
-        
-        // Select Compute Queue Family
-        auto ComputeFamilyIter  = GPU.ComputeQueueFamilies.begin();
-        auto ComputeFamilyIndex = *ComputeFamilyIter;
-        if (ComputeFamilyIndex == GraphicsFamilyIndex)
+            UInt32 Family = VK_QUEUE_FAMILY_IGNORED;
+            UInt32 Count  = 0;
+            TArray<Float> Priorities{};
+            vk::DeviceQueueCreateInfo Info;
+        };
+
+        // Collect required queue counts per family
+        // (Graphics family might request 1~3 queues; others request 1).
+        TArray<FFamilyQueues> Families;
+        Families.Reserve(3);
+
+        auto AddOrUpdateFamily = [&](UInt32 I_Family, UInt32 I_Count)
         {
-            if (++ComputeFamilyIter != GPU.ComputeQueueFamilies.end())
+            FFamilyQueues* FoundFamily = nullptr;
+            for (auto& Family : Families)
             {
-                ComputeFamilyIndex = *ComputeFamilyIter;
+                if (Family.Family == I_Family)
+                {
+                    FoundFamily = &Family;
+                    break;
+                }
             }
-            else
+            if (FoundFamily == nullptr)
             {
-                LOG_WARN("Failed to find a separated Compute Queue Family, "
-                         "using the Graphics Queue Family!");
+                Families.EmplaceBack();
+                auto& NewFamily = Families[Families.GetSize() - 1];
+                NewFamily.Family = I_Family;
+                NewFamily.Count  = 0;
+                FoundFamily = &NewFamily;
             }
-        }
-        // Check if Compute is different from both Graphics and Transfer
-        if (ComputeFamilyIndex != GraphicsFamilyIndex && ComputeFamilyIndex != TransferFamilyIndex)
+            FoundFamily->Count = Math::Max(FoundFamily->Count, I_Count);
+        };
+
+        AddOrUpdateFamily(GraphicsFamily, GraphicsFamilyRequestedQueues);
+        if (TransferQueueCandidate.Family != GraphicsFamily) { AddOrUpdateFamily(TransferQueueCandidate.Family, 1); }
+        if (ComputeQueueCandidate.Family  != GraphicsFamily && ComputeQueueCandidate.Family != TransferQueueCandidate.Family)
         {
-            DeviceQueueCreateInfos.EmplaceBack(vk::DeviceQueueCreateInfo{}
-                .setQueueFamilyIndex(ComputeFamilyIndex)
-                .setQueueCount      (1)
-                .setQueuePriorities ({Priority}));
+            AddOrUpdateFamily(ComputeQueueCandidate.Family, 1);
+        }
+
+        // Fill queue create infos
+        constexpr Float Priority = 1.0f;
+        TArray<vk::DeviceQueueCreateInfo> DeviceQueueCreateInfos;
+        DeviceQueueCreateInfos.Reserve(Families.GetSize());
+
+        for (auto& Family : Families)
+        {
+            Family.Priorities.Clear();
+            Family.Priorities.Reserve(Family.Count);
+            for (UInt32 Idx = 0; Idx < Family.Count; ++Idx)
+            {
+                Family.Priorities.EmplaceBack(Priority);
+            }
+
+            Family.Info = vk::DeviceQueueCreateInfo{}
+                .setQueueFamilyIndex(Family.Family)
+                .setQueueCount     (Family.Count)
+                .setPQueuePriorities(Family.Priorities.Data())
+            ;
+
+            DeviceQueueCreateInfos.EmplaceBack(Family.Info);
         }
         // First build each feature struct explicitly
         auto GPUFeatures = vk::PhysicalDeviceFeatures2{};
@@ -657,14 +765,22 @@ export namespace Visera
         { Device.Context = std::move(*Result); }
         
         // Store queue family indices
-        Device.GraphicsQueueFamilyIndex = GraphicsFamilyIndex;
-        Device.TransferQueueFamilyIndex = TransferFamilyIndex;
-        Device.ComputeQueueFamilyIndex  = ComputeFamilyIndex;
-        
-        // Get Queues
-        Device.GraphicsQueue = Device.Context.getQueue(GraphicsFamilyIndex, 0);
-        Device.TransferQueue = Device.Context.getQueue(TransferFamilyIndex, 0);
-        Device.ComputeQueue  = Device.Context.getQueue(ComputeFamilyIndex, 0);
+        Device.GraphicsQueueFamilyIndex = GraphicsQueueCandidate.Family;
+        Device.TransferQueueFamilyIndex = TransferQueueCandidate.Family;
+        Device.ComputeQueueFamilyIndex  = ComputeQueueCandidate.Family;
+
+        // Get Queues (family + queueIndex)
+        Device.GraphicsQueue = Device.Context.getQueue(GraphicsQueueCandidate.Family, GraphicsQueueCandidate.Index);
+        Device.TransferQueue = Device.Context.getQueue(TransferQueueCandidate.Family, TransferQueueCandidate.Index);
+        Device.ComputeQueue  = Device.Context.getQueue(ComputeQueueCandidate.Family,  ComputeQueueCandidate.Index);
+
+        LOG_DEBUG("Selected Device Queues: "
+                  "Graphics(family:{}, idx:{}) "
+                  "Transfer(family:{}, idx:{}) "
+                  "Compute(family:{}, idx:{})",
+                  GraphicsQueueCandidate.Family, GraphicsQueueCandidate.Index,
+                  TransferQueueCandidate.Family, TransferQueueCandidate.Index,
+                  ComputeQueueCandidate.Family,  ComputeQueueCandidate.Index);
     }
 
     void FVulkanDriver::
@@ -1089,7 +1205,7 @@ export namespace Visera
         PipelineCache = MakeUnique<FVulkanPipelineCache>(
             GPU.Context,
             Device.Context,
-            GPlatform->GetResourceDirectory() / FPath("Cache/VulkanPipelines.cache")
+            GPlatform->GetResourceDirectory() / "Cache/VulkanPipelines.cache"
         );
     }
 
