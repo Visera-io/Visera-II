@@ -5,6 +5,7 @@ export module Visera.Core.Types;
 export import Visera.Core.Types.Array;
 export import Visera.Core.Types.Queue;
 export import Visera.Core.Types.JSON;
+export import Visera.Core.Types.Half;
 export import Visera.Core.Types.Path;
 export import Visera.Core.Types.Text;
 export import Visera.Core.Types.List;

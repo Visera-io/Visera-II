@@ -429,6 +429,16 @@ export namespace Visera
         VkSurfaceKHR SurfaceHandle {nullptr};
         auto GWindow = IGlobalService::Get<FWindow>(EName::Window);
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
+        GWindow->OnResizeWindow.Subscribe([this]
+        (UInt32 I_NewWidth, UInt32 I_NewHeight)
+        {
+            LOG_DEBUG("Recreating SwapChain.");
+            WaitIdle();
+            DestroySwapChain();
+            DestroySurface();
+            CreateSurface();
+            CreateSwapChain();
+        });
 
         SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
 

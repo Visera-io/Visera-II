@@ -4,9 +4,26 @@ export module Visera.Core.Color;
 #define VISERA_MODULE_NAME "Core.Color"
 export import Visera.Core.Color.Linear;
        import Visera.Core.Color.Common;
+       import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
 {
+    namespace Concepts
+    {
+        /**
+         * Concept that defines a color type with R, G, B, A components.
+         * Used to constrain template parameters for color operations.
+         */
+        template<typename TColor>
+        concept Color = requires(TColor I_Color)
+        {
+            I_Color.R;
+            I_Color.G;
+            I_Color.B;
+            I_Color.A;
+        };
+    }
+
     class VISERA_CORE_API FColor
     {
     public:
@@ -15,6 +32,27 @@ export namespace Visera
 #else
         union { struct { UInt8 A, R, G, B; }; UInt32 Bits; UInt8 Data[4]; };
 #endif
+
+        static inline FColor
+        SRGB8ColorFromLinear(const FLinearColor& I_LinearColor)
+        {
+            static auto ConvertRGB = [](Float I_Value) -> UInt8
+            {
+                const Float  Clamped = Math::Clamp(I_Value, 0.0f, 1.0f);
+                Float SRGB = Clamped <= 0.0031308f?
+                             Clamped * 12.92f
+                             :
+                             1.055f * Math::Pow(Clamped, 1.0f / 2.4f) - 0.055f;
+                return static_cast<UInt8>(SRGB * 255.0f + 0.5f);
+            };
+            FColor SRGB8Color{};
+            SRGB8Color.R = ConvertRGB(I_LinearColor.R);
+            SRGB8Color.G = ConvertRGB(I_LinearColor.G);
+            SRGB8Color.B = ConvertRGB(I_LinearColor.B);
+            // Alpha is always linear
+            SRGB8Color.A = static_cast<UInt8>(Math::Clamp(I_LinearColor.A, 0.0f, 1.0f) * 255.0f + 0.5f);
+            return SRGB8Color;
+        }
 
         [[nodiscard]] static constexpr FColor
         White() noexcept { return FColor{255,255,255,255}; }

@@ -160,14 +160,286 @@ export namespace Visera
 	static_assert(sizeof(FVector4F) == 16);
 	static_assert(std::is_standard_layout_v<FVector4F>);
 
+	// Integer Vector Types (Int32)
+	class VISERA_CORE_API FVector2I
+	{
+	public:
+		union
+		{
+			struct { Int32 X, Y; };
+			Int32 Data[2]{0, 0};
+		};
+
+		[[nodiscard]] constexpr Bool
+		IsZero() const noexcept { return X == 0 && Y == 0; }
+		[[nodiscard]] constexpr Int32
+		Dot(const FVector2I& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y; }
+		[[nodiscard]] inline Int32
+		SquaredNorm() const noexcept { return X * X + Y * Y; }
+
+		constexpr Int32&
+		operator[](UInt32 I_Index)		 noexcept { CHECK(I_Index < 2); return (&X)[I_Index]; }
+		constexpr const Int32&
+		operator[](UInt32 I_Index) const noexcept{ CHECK(I_Index < 2); return (&X)[I_Index]; }
+		constexpr FVector2I
+		operator+(const FVector2I& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y}; }
+		constexpr FVector2I
+		operator-(const FVector2I& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y}; }
+		constexpr FVector2I
+		operator*(Int32 I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor}; }
+		constexpr FVector2I
+		operator/(Int32 I_Factor) const noexcept { CHECK(I_Factor != 0); return {X / I_Factor , Y / I_Factor}; }
+		constexpr FVector2I&
+		operator+=(const FVector2I& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; return *this; }
+		constexpr FVector2I&
+		operator-=(const FVector2I& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; return *this; }
+		constexpr FVector2I&
+		operator*=(Int32 I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; return *this; }
+		constexpr FVector2I&
+		operator/=(Int32 I_Factor) noexcept { CHECK(I_Factor != 0); X /= I_Factor; Y /= I_Factor; return *this; }
+
+		constexpr FVector2I() noexcept = default;
+		constexpr FVector2I(Int32 I_X, Int32 I_Y) noexcept : X{I_X}, Y{I_Y} {}
+	};
+	static_assert(sizeof(FVector2I) == 8);
+	static_assert(std::is_standard_layout_v<FVector2I>);
+
+	class VISERA_CORE_API FVector3I
+	{
+	public:
+		union
+		{
+			struct { Int32 X, Y, Z; };
+			Int32 Data[3]{0, 0, 0};
+		};
+
+		[[nodiscard]] constexpr Bool
+		IsZero() const noexcept { return X == 0 && Y == 0 && Z == 0; }
+		[[nodiscard]] constexpr Int32
+		Dot(const FVector3I& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z; }
+		[[nodiscard]] inline Int32
+		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z; }
+
+		constexpr Int32&
+		operator[](UInt32 I_Index)       noexcept { CHECK(I_Index < 3); return (&X)[I_Index]; }
+		constexpr const Int32&
+		operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 3); return (&X)[I_Index]; }
+		constexpr FVector3I
+		operator+(const FVector3I& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z}; }
+		constexpr FVector3I
+		operator-(const FVector3I& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z}; }
+		constexpr FVector3I
+		operator*(Int32 I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor , Z * I_Factor}; }
+		constexpr FVector3I
+		operator/(Int32 I_Factor) const noexcept { CHECK(I_Factor != 0); return {X / I_Factor , Y / I_Factor , Z / I_Factor}; }
+		constexpr FVector3I&
+		operator+=(const FVector3I& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; Z += I_Vector.Z; return *this; }
+		constexpr FVector3I&
+		operator-=(const FVector3I& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; Z -= I_Vector.Z; return *this; }
+		constexpr FVector3I&
+		operator*=(Int32 I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; Z *= I_Factor; return *this; }
+		constexpr FVector3I&
+		operator/=(Int32 I_Factor) noexcept { CHECK(I_Factor != 0); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; return *this; }
+
+		constexpr FVector3I() noexcept = default;
+		constexpr FVector3I(Int32 I_X, Int32 I_Y, Int32 I_Z) noexcept : X{I_X}, Y{I_Y}, Z{I_Z} {}
+	};
+	static_assert(sizeof(FVector3I) == 12);
+	static_assert(std::is_standard_layout_v<FVector3I>);
+
+	class VISERA_CORE_API FVector4I
+	{
+	public:
+		union
+		{
+			struct { Int32 X, Y, Z, W; };
+			Int32 Data[4]{0, 0, 0, 0};
+		};
+
+		[[nodiscard]] constexpr Bool
+		IsZero() const noexcept { return X == 0 && Y == 0 && Z == 0 && W == 0; }
+		[[nodiscard]] constexpr Int32
+		Dot(const FVector4I& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z + W * I_Vector.W; }
+		[[nodiscard]] inline Int32
+		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z + W * W; }
+
+		constexpr Int32&
+		operator[](UInt32 I_Index)       noexcept { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		constexpr const Int32&
+		operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		constexpr FVector4I
+		operator+(const FVector4I& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z, W + I_Vector.W}; }
+		constexpr FVector4I
+		operator-(const FVector4I& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z, W - I_Vector.W}; }
+		constexpr FVector4I
+		operator*(Int32 I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor , Z * I_Factor, W * I_Factor}; }
+		constexpr FVector4I
+		operator/(Int32 I_Factor) const noexcept { CHECK(I_Factor != 0); return {X / I_Factor , Y / I_Factor , Z / I_Factor, W / I_Factor}; }
+		constexpr FVector4I&
+		operator+=(const FVector4I& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; Z += I_Vector.Z; W += I_Vector.W; return *this; }
+		constexpr FVector4I&
+		operator-=(const FVector4I& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; Z -= I_Vector.Z; W -= I_Vector.W; return *this; }
+		constexpr FVector4I&
+		operator*=(Int32 I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; Z *= I_Factor; W *= I_Factor; return *this; }
+		constexpr FVector4I&
+		operator/=(Int32 I_Factor) noexcept { CHECK(I_Factor != 0); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; W /= I_Factor; return *this; }
+
+		constexpr FVector4I() noexcept = default;
+		constexpr FVector4I(Int32 I_X, Int32 I_Y, Int32 I_Z, Int32 I_W) noexcept : X{I_X}, Y{I_Y}, Z{I_Z}, W{I_W} {}
+	};
+	static_assert(sizeof(FVector4I) == 16);
+	static_assert(std::is_standard_layout_v<FVector4I>);
+
+	// Unsigned Integer Vector Types (UInt32)
+	class VISERA_CORE_API FVector2U
+	{
+	public:
+		union
+		{
+			struct { UInt32 X, Y; };
+			UInt32 Data[2]{0, 0};
+		};
+
+		[[nodiscard]] constexpr Bool
+		IsZero() const noexcept { return X == 0 && Y == 0; }
+		[[nodiscard]] constexpr UInt32
+		Dot(const FVector2U& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y; }
+		[[nodiscard]] inline UInt32
+		SquaredNorm() const noexcept { return X * X + Y * Y; }
+
+		constexpr UInt32&
+		operator[](UInt32 I_Index)		 noexcept { CHECK(I_Index < 2); return (&X)[I_Index]; }
+		constexpr const UInt32&
+		operator[](UInt32 I_Index) const noexcept{ CHECK(I_Index < 2); return (&X)[I_Index]; }
+		constexpr FVector2U
+		operator+(const FVector2U& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y}; }
+		constexpr FVector2U
+		operator-(const FVector2U& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y}; }
+		constexpr FVector2U
+		operator*(UInt32 I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor}; }
+		constexpr FVector2U
+		operator/(UInt32 I_Factor) const noexcept { CHECK(I_Factor != 0); return {X / I_Factor , Y / I_Factor}; }
+		constexpr FVector2U&
+		operator+=(const FVector2U& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; return *this; }
+		constexpr FVector2U&
+		operator-=(const FVector2U& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; return *this; }
+		constexpr FVector2U&
+		operator*=(UInt32 I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; return *this; }
+		constexpr FVector2U&
+		operator/=(UInt32 I_Factor) noexcept { CHECK(I_Factor != 0); X /= I_Factor; Y /= I_Factor; return *this; }
+
+		constexpr FVector2U() noexcept = default;
+		constexpr FVector2U(UInt32 I_X, UInt32 I_Y) noexcept : X{I_X}, Y{I_Y} {}
+	};
+	static_assert(sizeof(FVector2U) == 8);
+	static_assert(std::is_standard_layout_v<FVector2U>);
+
+	class VISERA_CORE_API FVector3U
+	{
+	public:
+		union
+		{
+			struct { UInt32 X, Y, Z; };
+			UInt32 Data[3]{0, 0, 0};
+		};
+
+		[[nodiscard]] constexpr Bool
+		IsZero() const noexcept { return X == 0 && Y == 0 && Z == 0; }
+		[[nodiscard]] constexpr UInt32
+		Dot(const FVector3U& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z; }
+		[[nodiscard]] inline UInt32
+		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z; }
+
+		constexpr UInt32&
+		operator[](UInt32 I_Index)       noexcept { CHECK(I_Index < 3); return (&X)[I_Index]; }
+		constexpr const UInt32&
+		operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 3); return (&X)[I_Index]; }
+		constexpr FVector3U
+		operator+(const FVector3U& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z}; }
+		constexpr FVector3U
+		operator-(const FVector3U& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z}; }
+		constexpr FVector3U
+		operator*(UInt32 I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor , Z * I_Factor}; }
+		constexpr FVector3U
+		operator/(UInt32 I_Factor) const noexcept { CHECK(I_Factor != 0); return {X / I_Factor , Y / I_Factor , Z / I_Factor}; }
+		constexpr FVector3U&
+		operator+=(const FVector3U& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; Z += I_Vector.Z; return *this; }
+		constexpr FVector3U&
+		operator-=(const FVector3U& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; Z -= I_Vector.Z; return *this; }
+		constexpr FVector3U&
+		operator*=(UInt32 I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; Z *= I_Factor; return *this; }
+		constexpr FVector3U&
+		operator/=(UInt32 I_Factor) noexcept { CHECK(I_Factor != 0); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; return *this; }
+
+		constexpr FVector3U() noexcept = default;
+		constexpr FVector3U(UInt32 I_X, UInt32 I_Y, UInt32 I_Z) noexcept : X{I_X}, Y{I_Y}, Z{I_Z} {}
+	};
+	static_assert(sizeof(FVector3U) == 12);
+	static_assert(std::is_standard_layout_v<FVector3U>);
+
+	class VISERA_CORE_API FVector4U
+	{
+	public:
+		union
+		{
+			struct { UInt32 X, Y, Z, W; };
+			UInt32 Data[4]{0, 0, 0, 0};
+		};
+
+		[[nodiscard]] constexpr Bool
+		IsZero() const noexcept { return X == 0 && Y == 0 && Z == 0 && W == 0; }
+		[[nodiscard]] constexpr UInt32
+		Dot(const FVector4U& I_Vector) const { return X * I_Vector.X + Y * I_Vector.Y + Z * I_Vector.Z + W * I_Vector.W; }
+		[[nodiscard]] inline UInt32
+		SquaredNorm() const noexcept { return X * X + Y * Y + Z * Z + W * W; }
+
+		constexpr UInt32&
+		operator[](UInt32 I_Index)       noexcept { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		constexpr const UInt32&
+		operator[](UInt32 I_Index) const noexcept { CHECK(I_Index < 4); return (&X)[I_Index]; }
+		constexpr FVector4U
+		operator+(const FVector4U& I_Vector) const noexcept { return {X + I_Vector.X , Y + I_Vector.Y , Z + I_Vector.Z, W + I_Vector.W}; }
+		constexpr FVector4U
+		operator-(const FVector4U& I_Vector) const noexcept { return {X - I_Vector.X , Y - I_Vector.Y , Z - I_Vector.Z, W - I_Vector.W}; }
+		constexpr FVector4U
+		operator*(UInt32 I_Factor) const noexcept { return {X * I_Factor , Y * I_Factor , Z * I_Factor, W * I_Factor}; }
+		constexpr FVector4U
+		operator/(UInt32 I_Factor) const noexcept { CHECK(I_Factor != 0); return {X / I_Factor , Y / I_Factor , Z / I_Factor, W / I_Factor}; }
+		constexpr FVector4U&
+		operator+=(const FVector4U& I_Vector) noexcept { X += I_Vector.X; Y += I_Vector.Y; Z += I_Vector.Z; W += I_Vector.W; return *this; }
+		constexpr FVector4U&
+		operator-=(const FVector4U& I_Vector) noexcept { X -= I_Vector.X; Y -= I_Vector.Y; Z -= I_Vector.Z; W -= I_Vector.W; return *this; }
+		constexpr FVector4U&
+		operator*=(UInt32 I_Factor) noexcept { X *= I_Factor; Y *= I_Factor; Z *= I_Factor; W *= I_Factor; return *this; }
+		constexpr FVector4U&
+		operator/=(UInt32 I_Factor) noexcept { CHECK(I_Factor != 0); X /= I_Factor; Y /= I_Factor; Z /= I_Factor; W /= I_Factor; return *this; }
+
+		constexpr FVector4U() noexcept = default;
+		constexpr FVector4U(UInt32 I_X, UInt32 I_Y, UInt32 I_Z, UInt32 I_W) noexcept : X{I_X}, Y{I_Y}, Z{I_Z}, W{I_W} {}
+	};
+	static_assert(sizeof(FVector4U) == 16);
+	static_assert(std::is_standard_layout_v<FVector4U>);
+
 	namespace Concepts
 	{
 		template<class T>
 		concept Vectorial = std::same_as<std::remove_cvref_t<T>, FVector2F> ||
 							std::same_as<std::remove_cvref_t<T>, FVector3F> ||
-							std::same_as<std::remove_cvref_t<T>, FVector4F>;
+							std::same_as<std::remove_cvref_t<T>, FVector4F> ||
+							std::same_as<std::remove_cvref_t<T>, FVector2I> ||
+							std::same_as<std::remove_cvref_t<T>, FVector3I> ||
+							std::same_as<std::remove_cvref_t<T>, FVector4I> ||
+							std::same_as<std::remove_cvref_t<T>, FVector2U> ||
+							std::same_as<std::remove_cvref_t<T>, FVector3U> ||
+							std::same_as<std::remove_cvref_t<T>, FVector4U>;
 	}
 }
 VISERA_MAKE_FORMATTER(Visera::FVector2F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |_Vector2F", I_Formatee.X, I_Formatee.Y);
 VISERA_MAKE_FORMATTER(Visera::FVector3F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |_Vector3F", I_Formatee.X, I_Formatee.Y, I_Formatee.Z);
 VISERA_MAKE_FORMATTER(Visera::FVector4F, {}, "\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |\n| {:>10.6f} |_Vector4F", I_Formatee.X, I_Formatee.Y, I_Formatee.Z, I_Formatee.W);
+VISERA_MAKE_FORMATTER(Visera::FVector2I, {}, "\n| {:>10} |\n| {:>10} |_Vector2I", I_Formatee.X, I_Formatee.Y);
+VISERA_MAKE_FORMATTER(Visera::FVector3I, {}, "\n| {:>10} |\n| {:>10} |\n| {:>10} |_Vector3I", I_Formatee.X, I_Formatee.Y, I_Formatee.Z);
+VISERA_MAKE_FORMATTER(Visera::FVector4I, {}, "\n| {:>10} |\n| {:>10} |\n| {:>10} |\n| {:>10} |_Vector4I", I_Formatee.X, I_Formatee.Y, I_Formatee.Z, I_Formatee.W);
+VISERA_MAKE_FORMATTER(Visera::FVector2U, {}, "\n| {:>10} |\n| {:>10} |_Vector2U", I_Formatee.X, I_Formatee.Y);
+VISERA_MAKE_FORMATTER(Visera::FVector3U, {}, "\n| {:>10} |\n| {:>10} |\n| {:>10} |_Vector3U", I_Formatee.X, I_Formatee.Y, I_Formatee.Z);
+VISERA_MAKE_FORMATTER(Visera::FVector4U, {}, "\n| {:>10} |\n| {:>10} |\n| {:>10} |\n| {:>10} |_Vector4U", I_Formatee.X, I_Formatee.Y, I_Formatee.Z, I_Formatee.W);

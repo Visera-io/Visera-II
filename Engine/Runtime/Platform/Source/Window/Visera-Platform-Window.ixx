@@ -19,6 +19,9 @@ namespace Visera
     export class VISERA_PLATFORM_API FWindow : public IGlobalService
     {
     public:
+        TMulticastDelegate<UInt32, UInt32>
+        OnResizeWindow;
+
         using FIconSet = IWindow::FIconSet;
         [[nodiscard]] inline void*
         GetHandle() const { return Window->GetHandle(); }
@@ -29,7 +32,7 @@ namespace Visera
         inline void
         PollEvents() const  { Window->PollEvents(); }
         inline void
-        SetSize(Int32 I_NewWidth, Int32 I_NewHeight) { Window->SetSize(I_NewWidth, I_NewHeight); };
+        SetSize(Int32 I_NewWidth, Int32 I_NewHeight) { Window->SetSize(I_NewWidth, I_NewHeight); OnResizeWindow.Broadcast(I_NewWidth, I_NewHeight); }
         inline void
         SetPosition(Int32 I_X, Int32 I_Y) const { Window->SetPosition(I_X, I_Y); }
         [[nodiscard]] inline FStringView

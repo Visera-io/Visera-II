@@ -190,7 +190,7 @@ export namespace Visera
         GetNative() const noexcept { return Data; }
 
         FJSON() = default;
-        explicit FJSON(FStringView I_JSONData) { Parse(I_JSONData); }
+        explicit FJSON(FStringView I_JSONData) { auto bSuccessed = Parse(I_JSONData); VISERA_ASSERT(bSuccessed); }
 
         [[nodiscard]] Bool
         Parse(FStringView I_JSONData) noexcept

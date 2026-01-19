@@ -59,6 +59,14 @@ export namespace Visera
 			if (I_Max < *IO_Value) { *IO_Value = I_Max; return; }
 		}
 
+    	template<Concepts::Arithmetical NumT> constexpr NumT
+		Clamp(NumT I_Value, NumT I_Min, NumT I_Max)
+		{
+			if (I_Min > I_Value) { return I_Min; }
+			if (I_Max < I_Value) { return I_Max; }
+			return I_Value;
+		}
+
     	template<Concepts::Arithmetical NumT, Concepts::Integral IntT> [[nodiscard]] Double
 		Pow(NumT I_Base, IntT I_Exp)
     	{

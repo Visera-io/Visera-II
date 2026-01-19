@@ -27,7 +27,7 @@ export namespace Visera
         png_infop   PNGInfo   = nullptr;
 
         EPixelFormat PixelFormat = EPixelFormat::Invalid;
-        EColorSpace  ColorSpace  = EColorSpace::sRGB;
+        EColorSpace  ColorSpace  = EColorSpace::Linear;
         UInt32       Width      {0};
         UInt32       Height     {0};
         UInt8        Channels   {0};

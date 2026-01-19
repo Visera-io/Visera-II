@@ -21,7 +21,7 @@ export namespace Visera
      * Enumerates pixel storage formats.
      * Each format fully defines the storage layout, bit depth, and data type.
      */
-    enum class EPixelFormat : UInt16
+    enum class EPixelFormat : UInt8
     {
         // 8-bit unsigned normalized formats
         R8_UNorm,          /** Single channel, 8-bit unsigned normalized */

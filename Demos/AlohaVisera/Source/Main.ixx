@@ -9,9 +9,6 @@ import Visera.Global;
 import Visera.Platform;
 import Visera.Graphics;
 import Visera.AssetHub;
-import Visera.AssetHub.Image;
-
-import Visera.Core.Image;
 using namespace Visera;
 
 struct FEngine
@@ -30,12 +27,25 @@ struct FEngine
     {
         LOG_INFO("Visera Engine Run()");
 
-        FImage Image(FImage::FCreateInfo{
-            .Width  = 100,
-            .Height = 100,
-        });
+        Window->SetSize(512, 512);
+
+        FHalf HalfPI = 3.1415;
+        LOG_INFO("{}", HalfPI);
 
         FRHICommandList Commands;
+
+        auto ViseraImage = AssetHub->LoadImage("Assets/App/Texture/Visera.png");
+
+        LOG_WARN("Timer Begin");
+        for (FPixel& Pixel : ViseraImage->View())
+        {
+            if (Pixel.Get().R >= 100)
+            {
+                Pixel.Set({255, 255, 255, 255});
+            }
+        }
+        LOG_WARN("Timer End");
+
         while (!Window->ShouldClose())
         {
             Window->PollEvents();
@@ -43,14 +53,14 @@ struct FEngine
             if (!RHI->BeginFrame()) { continue; }
             Commands.Reset();
 
-            static auto ViseraImage = AssetHub->LoadImage("Assets/App/Texture/Visera.png");
+            //ViseraImage->Resize(1024, 1024);
             if(!ViseraImage->IsRGBA())
             { LOG_FATAL("Not RGBA!"); }
             auto Texture = RHI->CreateTexture({
                 .Width      = ViseraImage->GetWidth(),
                 .Height     = ViseraImage->GetHeight(),
                 .Depth      = 1,
-                .Format     = ViseraImage->IsSRGB()? ERHIFormat::R8G8B8A8_sRGB : ERHIFormat::R8G8B8A8_UNorm,
+                .Format     =  ERHIFormat::R8G8B8A8_sRGB,
                 .Type       =  ERHIImageType::Image2D,
                 .Usages = ERHIImageUsage::ShaderResource |
                           ERHIImageUsage::TransferSrc  |

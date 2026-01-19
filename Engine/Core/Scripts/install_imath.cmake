@@ -1,0 +1,21 @@
+if(NOT VISERA_CORE_EXTERNAL_DIR)
+    message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
+endif()
+
+macro(link_imath in_target)
+    message(STATUS "\nLinking Imath (Imath::Imath)")
+
+    if(NOT TARGET Imath::Imath)
+        set(BUILD_SHARED_LIBS           OFF)
+        set(IMATH_BUILD_TESTS           OFF)
+        set(IMATH_BUILD_TOOLS           OFF)
+        set(IMATH_ENABLE_LOGGING        OFF)
+        set(IMATH_INSTALL               OFF)
+        set(IMATH_INSTALL_PKG_CONFIG    OFF)
+        add_subdirectory("${VISERA_CORE_EXTERNAL_DIR}/Imath")
+        set_target_properties(Imath PROPERTIES FOLDER "Visera/Core/External/Imath")
+    endif()
+
+    target_link_libraries(${in_target} PUBLIC Imath::Imath)
+    target_include_directories(${in_target} PRIVATE "${VISERA_CORE_EXTERNAL_DIR}/Imath/src")
+endmacro()

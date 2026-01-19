@@ -17,6 +17,9 @@ macro(install_visera_core in_target)
     include(install_eigen)
     link_eigen(${in_target})
 
+    include(install_imath)
+    link_imath(${in_target})
+
     include(install_zlib)
     link_zlib(${in_target})
 

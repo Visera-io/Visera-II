@@ -5,7 +5,7 @@ from pathlib import Path
 # Directories to scan
 SOURCE_DIRS = [
     "Engine/Core/Source",
-    "Engine/Runtime/Assets/Source",
+    "Engine/Runtime/AssetHub/Source",
     "Engine/Runtime/Audio/Source",
     "Engine/Runtime/Graphics/Source",
     "Engine/Runtime/Physics2D/Source",
@@ -18,7 +18,7 @@ SOURCE_DIRS = [
 
 SCRIPT_DIRS = [
     "Engine/Core/Scripts",
-    "Engine/Runtime/Assets/Scripts",
+    "Engine/Runtime/AssetHub/Scripts",
     "Engine/Runtime/Audio/Scripts",
     "Engine/Runtime/Graphics/Scripts",
     "Engine/Runtime/Physics2D/Scripts",
