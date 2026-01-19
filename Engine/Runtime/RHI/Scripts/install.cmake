@@ -57,11 +57,6 @@ else()
     endif()
     target_link_libraries(${VISERA_RHI} PRIVATE Visera::Platform)
 
-    if(NOT TARGET Visera::Assets)
-        message(FATAL_ERROR "Visera-Assets is not installed!")
-    endif()
-    target_link_libraries(${VISERA_RHI} PRIVATE Visera::Assets)
-
     install_visera_rhi(${VISERA_RHI})
     set_target_properties(${VISERA_RHI} PROPERTIES FOLDER "Visera/RHI")
 endif()

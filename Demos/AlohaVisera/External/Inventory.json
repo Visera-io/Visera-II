@@ -1,22 +1,4 @@
 {
-  "Wwise" :
-  {
-    "Version" : "2025.1.3.9039",
-    "Dependencies" :
-    [
-
-    ],
-    "URL" : "https://www.audiokinetic.com"
-  },
-  "Slang" :
-  {
-    "Version" : "2025.19.1",
-    "Dependencies" :
-    [
-
-    ],
-    "URL" : "https://github.com/shader-slang/slang"
-  },
   "EnTT" :
   {
     "Version" : "3.16.0",

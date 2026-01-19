@@ -8,7 +8,10 @@ import Visera.Audio;
 import Visera.Global;
 import Visera.Platform;
 import Visera.Graphics;
-import Visera.Assets.Image;
+import Visera.AssetHub;
+import Visera.AssetHub.Image;
+
+import Visera.Core.Image;
 using namespace Visera;
 
 struct FEngine
@@ -19,12 +22,18 @@ struct FEngine
     FRHI*      RHI;
     FAudio*    Audio;
     FGraphics* Graphics;
+    FAssetHub* AssetHub;
 
     FHiResClock Timer;
 
     Bool Run()
     {
         LOG_INFO("Visera Engine Run()");
+
+        FImage Image(FImage::FCreateInfo{
+            .Width  = 100,
+            .Height = 100,
+        });
 
         FRHICommandList Commands;
         while (!Window->ShouldClose())
@@ -34,14 +43,14 @@ struct FEngine
             if (!RHI->BeginFrame()) { continue; }
             Commands.Reset();
 
-            static FImage ViseraImage{"Assets/App/Texture/Visera.png"};
-            if(!ViseraImage.IsRGBA())
+            static auto ViseraImage = AssetHub->LoadImage("Assets/App/Texture/Visera.png");
+            if(!ViseraImage->IsRGBA())
             { LOG_FATAL("Not RGBA!"); }
             auto Texture = RHI->CreateTexture({
-                .Width      = ViseraImage.GetWidth(),
-                .Height     = ViseraImage.GetHeight(),
+                .Width      = ViseraImage->GetWidth(),
+                .Height     = ViseraImage->GetHeight(),
                 .Depth      = 1,
-                .Format     = ViseraImage.IsSRGB()? ERHIFormat::R8G8B8A8_sRGB : ERHIFormat::R8G8B8A8_UNorm,
+                .Format     = ViseraImage->IsSRGB()? ERHIFormat::R8G8B8A8_sRGB : ERHIFormat::R8G8B8A8_UNorm,
                 .Type       =  ERHIImageType::Image2D,
                 .Usages = ERHIImageUsage::ShaderResource |
                           ERHIImageUsage::TransferSrc  |
@@ -54,9 +63,9 @@ struct FEngine
                 LOG_INFO("Copying Buffer to Image");
 
                 auto Buffer = RHI->CreateBuffer({
-                    .Size   = ViseraImage.GetSizeInByte(),
+                    .Size   = ViseraImage->GetSizeInBytes(),
                     .Usages = ERHIBufferUsage::TransferSrc
-                }, ViseraImage.GetData(), ViseraImage.GetSizeInByte());
+                }, ViseraImage->GetData(), ViseraImage->GetSizeInBytes());
 
                 Commands.CopyBufferToImage(Buffer, Texture);
                 InitedTextures.Insert(Texture);
@@ -105,6 +114,7 @@ struct FEngine
         RHI         = IGlobalService::Register<FRHI>(EName::RHI);
         Audio       = IGlobalService::Register<FAudio>(EName::Audio);
         Graphics    = IGlobalService::Register<FGraphics>(EName::Graphics);
+        AssetHub    = IGlobalService::Register<FAssetHub>(EName::AssetHub);
 
         IGlobalService::Bootstrap();
     }
