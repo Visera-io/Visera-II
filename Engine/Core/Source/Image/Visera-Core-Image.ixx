@@ -1150,17 +1150,17 @@ export namespace Visera
                             if (bIsBGRA)
                             {
                                 // BGRA format: B, G, R, A
-                                InputFloatBuffer[BaseIdx + 0] = FLinearColor::LUT_sRGBToLinear[InputU8[BaseIdx + 2]]; // dst.R = src.R
-                                InputFloatBuffer[BaseIdx + 1] = FLinearColor::LUT_sRGBToLinear[InputU8[BaseIdx + 1]]; // dst.G = src.G
-                                InputFloatBuffer[BaseIdx + 2] = FLinearColor::LUT_sRGBToLinear[InputU8[BaseIdx + 0]]; // dst.B = src.B
+                                InputFloatBuffer[BaseIdx + 0] = FLinearColor::SRGBToLinear(InputU8[BaseIdx + 0]); // dst.R = src.R
+                                InputFloatBuffer[BaseIdx + 1] = FLinearColor::SRGBToLinear(InputU8[BaseIdx + 1]); // dst.G = src.G
+                                InputFloatBuffer[BaseIdx + 2] = FLinearColor::SRGBToLinear(InputU8[BaseIdx + 2]); // dst.B = src.B
                                 InputFloatBuffer[BaseIdx + 3] = static_cast<Float>(InputU8[BaseIdx + 3]) / 255.0f; // A
                             }
                             else
                             {
                                 // RGBA format: R, G, B, A
-                                InputFloatBuffer[BaseIdx + 0] = FLinearColor::LUT_sRGBToLinear[InputU8[BaseIdx + 0]]; // R
-                                InputFloatBuffer[BaseIdx + 1] = FLinearColor::LUT_sRGBToLinear[InputU8[BaseIdx + 1]]; // G
-                                InputFloatBuffer[BaseIdx + 2] = FLinearColor::LUT_sRGBToLinear[InputU8[BaseIdx + 2]]; // B
+                                InputFloatBuffer[BaseIdx + 0] = FLinearColor::SRGBToLinear(InputU8[BaseIdx + 0]); // R
+                                InputFloatBuffer[BaseIdx + 1] = FLinearColor::SRGBToLinear(InputU8[BaseIdx + 1]); // G
+                                InputFloatBuffer[BaseIdx + 2] = FLinearColor::SRGBToLinear(InputU8[BaseIdx + 2]); // B
                                 InputFloatBuffer[BaseIdx + 3] = static_cast<Float>(InputU8[BaseIdx + 3]) / 255.0f; // A
                             }
                         }
@@ -1179,17 +1179,17 @@ export namespace Visera
                                 if (bIsBGRA)
                                 {
                                     // BGRA format: B, G, R, A
-                                    DstRow[DstBaseIdx + 0] = FLinearColor::LUT_sRGBToLinear[SrcRow[SrcBaseIdx + 2]]; // dst.R = src.R
-                                    DstRow[DstBaseIdx + 1] = FLinearColor::LUT_sRGBToLinear[SrcRow[SrcBaseIdx + 1]]; // dst.G = src.G
-                                    DstRow[DstBaseIdx + 2] = FLinearColor::LUT_sRGBToLinear[SrcRow[SrcBaseIdx + 0]]; // dst.B = src.B
+                                    DstRow[DstBaseIdx + 0] = FLinearColor::SRGBToLinear(SrcRow[SrcBaseIdx + 2]); // dst.R = src.R
+                                    DstRow[DstBaseIdx + 1] = FLinearColor::SRGBToLinear(SrcRow[SrcBaseIdx + 1]); // dst.G = src.G
+                                    DstRow[DstBaseIdx + 2] = FLinearColor::SRGBToLinear(SrcRow[SrcBaseIdx + 0]); // dst.B = src.B
                                     DstRow[DstBaseIdx + 3] = static_cast<Float>(SrcRow[SrcBaseIdx + 3]) / 255.0f; // A
                                 }
                                 else
                                 {
                                     // RGBA format: R, G, B, A
-                                    DstRow[DstBaseIdx + 0] = FLinearColor::LUT_sRGBToLinear[SrcRow[SrcBaseIdx + 0]]; // R
-                                    DstRow[DstBaseIdx + 1] = FLinearColor::LUT_sRGBToLinear[SrcRow[SrcBaseIdx + 1]]; // G
-                                    DstRow[DstBaseIdx + 2] = FLinearColor::LUT_sRGBToLinear[SrcRow[SrcBaseIdx + 2]]; // B
+                                    DstRow[DstBaseIdx + 0] = FLinearColor::SRGBToLinear(SrcRow[SrcBaseIdx + 0]); // R
+                                    DstRow[DstBaseIdx + 1] = FLinearColor::SRGBToLinear(SrcRow[SrcBaseIdx + 1]); // G
+                                    DstRow[DstBaseIdx + 2] = FLinearColor::SRGBToLinear(SrcRow[SrcBaseIdx + 2]); // B
                                     DstRow[DstBaseIdx + 3] = static_cast<Float>(SrcRow[SrcBaseIdx + 3]) / 255.0f; // A
                                 }
                             }
@@ -1290,7 +1290,7 @@ export namespace Visera
                             const auto* InputU8 = reinterpret_cast<const UInt8*>(InputSliceData);
                             for (UInt32 i = 0; i < InputPixelCount * ChannelCount; ++i)
                             {
-                                InputFloatBuffer[i] = FLinearColor::LUT_sRGBToLinear[InputU8[i]];
+                                InputFloatBuffer[i] = FLinearColor::SRGBToLinear(InputU8[i]);
                             }
                         }
                         else
@@ -1302,7 +1302,7 @@ export namespace Visera
                                 Float* DstRow = InputFloatBuffer.Data() + y * Info.Width * ChannelCount;
                                 for (UInt32 x = 0; x < Info.Width * ChannelCount; ++x)
                                 {
-                                    DstRow[x] = FLinearColor::LUT_sRGBToLinear[SrcRow[x]];
+                                    DstRow[x] = FLinearColor::SRGBToLinear(SrcRow[x]);
                                 }
                             }
                         }

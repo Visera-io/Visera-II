@@ -3,7 +3,7 @@ module;
 export module Visera.Core.Color;
 #define VISERA_MODULE_NAME "Core.Color"
 export import Visera.Core.Color.Linear;
-       import Visera.Core.Color.Common;
+export import Visera.Core.Color.Common;
        import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
@@ -108,17 +108,6 @@ export namespace Visera
     static_assert(sizeof(FColor) == 4);
     static_assert(std::is_standard_layout_v<FColor>);
     static_assert(std::is_trivially_copyable_v<FColor>);
-
-    [[nodiscard]] inline VISERA_CORE_API FLinearColor
-    CreateLinearColorFromPow22Color(const FColor& I_Color) noexcept
-    {
-        FLinearColor LinearColor{};
-        LinearColor.R = FLinearColor::LUT_Pow22over255[I_Color.R];
-        LinearColor.G = FLinearColor::LUT_Pow22over255[I_Color.G];
-        LinearColor.B = FLinearColor::LUT_Pow22over255[I_Color.B];
-        LinearColor.A = static_cast<Float>(I_Color.A) / 255.0f;
-        return LinearColor;
-    }
 }
-VISERA_MAKE_HASH(Visera::FColor, return static_cast<std::size_t>(I_Object.Bits););
+VISERA_MAKE_HASH(Visera::FColor, return I_Object.Bits;);
 VISERA_MAKE_FORMATTER(Visera::FColor, {}, "[R:{}, G:{}, B:{}, A:{}]", I_Formatee.R, I_Formatee.G, I_Formatee.B, I_Formatee.A)

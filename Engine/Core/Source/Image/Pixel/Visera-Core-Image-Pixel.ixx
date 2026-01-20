@@ -429,7 +429,7 @@ export namespace Visera
         return Result;
     }
 
-    template<Concepts::Color TColor = FColor> void FPixel::
+    template<Concepts::Color TColor /* = FColor */> void FPixel::
     Set(const TColor& I_Color)
     {
         if (!Data) { return; }

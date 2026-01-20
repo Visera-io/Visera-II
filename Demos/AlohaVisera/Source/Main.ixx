@@ -40,13 +40,7 @@ struct FEngine
         for (FPixel& Pixel : ViseraImage->View())
         {
             FColor Color = Pixel.Get();
-            FLinearColor LinearColor
-            {
-             FLinearColor::LUT_sRGBToLinear[Color.R],
-             FLinearColor::LUT_sRGBToLinear[Color.G],
-             FLinearColor::LUT_sRGBToLinear[Color.B],
-             Color.A / 255.0f
-            };
+            FLinearColor LinearColor { Color.R, Color.G,Color.B,Color.A };
             LinearColor = FLinearColor
             {
              LinearColor.R * LinearColor.A,
