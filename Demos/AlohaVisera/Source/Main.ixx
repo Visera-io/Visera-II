@@ -28,30 +28,13 @@ struct FEngine
     Bool Run()
     {
         LOG_INFO("Visera Engine Run()");
-        ;
-        Window->SetSize(512, 512);
 
         LOG_INFO("{}", FText{Math::PI});
 
         FRHICommandList Commands;
 
-        auto ViseraImage = AssetHub->LoadImage("Assets/App/Texture/Visera.png");
-
-        LOG_WARN("Timer Begin");
-        for (FPixel& Pixel : ViseraImage->View())
-        {
-            FColor Color = Pixel.Get();
-            FLinearColor LinearColor { Color.R, Color.G,Color.B,Color.A };
-            LinearColor = FLinearColor
-            {
-             LinearColor.R * LinearColor.A,
-             LinearColor.G * LinearColor.A,
-             LinearColor.B * LinearColor.A,
-             LinearColor.A
-            };
-            Pixel.Set(LinearColor);
-        }
-        LOG_WARN("Timer End");
+        auto TestImage = AssetHub->LoadImage("Assets/App/Texture/Carrots.exr");
+        Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
 
         while (!Window->ShouldClose())
         {
@@ -59,15 +42,47 @@ struct FEngine
 
             if (!RHI->BeginFrame()) { continue; }
             Commands.Reset();
+            // for (FPixel& Pixel : TestImage->View())
+            // {
+            //     FColor Color = Pixel.Get();
+            //     FLinearColor LinearColor { Color.R, Color.G,Color.B,Color.A };
+            //     LinearColor = FLinearColor
+            //     {
+            //         LinearColor.R * LinearColor.A,
+            //         LinearColor.G * LinearColor.A,
+            //         LinearColor.B * LinearColor.A,
+            //         LinearColor.A
+            //        };
+            //     Pixel.Set(LinearColor);
+            // }
+            //TestImage->Resize(1024, 1024);
+            auto RHIFormat = ERHIFormat::Undefined;
+            switch (TestImage->GetPixelFormat())
+            {
+            case EPixelFormat::RGBA8_UNorm:
+                if (TestImage->GetColorSpace() == EColorSpace::sRGB)
+                {
+                    RHIFormat = ERHIFormat::R8G8B8A8_sRGB;
+                }
+                else
+                {
+                    RHIFormat = ERHIFormat::R8G8B8A8_UNorm;
+                }
+                break;
+            case EPixelFormat::RGBA16_Float:
+                RHIFormat = ERHIFormat::R16G16B16A16_Float;
+                break;
+            default: LOG_FATAL("Unknown pixel format!");
+            }
 
-            //ViseraImage->Resize(1024, 1024);
-            if(!ViseraImage->IsRGBA())
+
+            if(!TestImage->IsRGBA())
             { LOG_FATAL("Not RGBA!"); }
             auto Texture = RHI->CreateTexture({
-                .Width      = ViseraImage->GetWidth(),
-                .Height     = ViseraImage->GetHeight(),
+                .Width      = TestImage->GetWidth(),
+                .Height     = TestImage->GetHeight(),
                 .Depth      = 1,
-                .Format     =  ERHIFormat::R8G8B8A8_sRGB,
+                .Format     =  RHIFormat,
                 .Type       =  ERHIImageType::Image2D,
                 .Usages = ERHIImageUsage::ShaderResource |
                           ERHIImageUsage::TransferSrc  |
@@ -80,9 +95,9 @@ struct FEngine
                 LOG_INFO("Copying Buffer to Image");
 
                 auto Buffer = RHI->CreateBuffer({
-                    .Size   = ViseraImage->GetSizeInBytes(),
+                    .Size   = TestImage->GetSizeInBytes(),
                     .Usages = ERHIBufferUsage::TransferSrc
-                }, ViseraImage->GetData(), ViseraImage->GetSizeInBytes());
+                }, TestImage->GetData(), TestImage->GetSizeInBytes());
 
                 Commands.CopyBufferToImage(Buffer, Texture);
                 InitedTextures.Insert(Texture);

@@ -1,4 +1,4 @@
-if(NOT VISERA_ASSETHUB_EXTERNAL_DIR)
+if(NOT VISERA_AUDIO_EXTERNAL_DIR)
     message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
 endif()
 
@@ -8,8 +8,8 @@ macro(link_miniaudio in_target)
     if(NOT TARGET MiniAudio)
         add_library(MiniAudio INTERFACE)
         target_include_directories(MiniAudio INTERFACE
-            "${VISERA_ASSETHUB_EXTERNAL_DIR}/MiniAudio")
-        set_target_properties(MiniAudio PROPERTIES FOLDER "Visera/Assets/External/MiniAudio")
+            "${VISERA_AUDIO_EXTERNAL_DIR}/MiniAudio")
+        set_target_properties(MiniAudio PROPERTIES FOLDER "${VISERA_AUDIO_EXTERNAL_DIR}/MiniAudio")
     endif()
 
     target_link_libraries(${in_target} PRIVATE MiniAudio)

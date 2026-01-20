@@ -15,8 +15,8 @@ export namespace Visera
         Invalid = -1,
         /** Portable Network Graphics. */
         PNG = 0,
-        /** Joint Photographic Experts Group. */
-        //JPEG,
+        /** JPEG2000 / HTJ2K (OpenJPH). */
+        JPEG2000,
         /** Single channel JPEG. */
         //GrayscaleJPEG,
         /** Windows Bitmap. */
@@ -24,7 +24,7 @@ export namespace Visera
         /** Windows Icon resource. */
         //ICO,
         /** OpenEXR (HDR) image file format. */
-        //EXR,
+        EXR,
         /** Mac icon. */
         //ICNS,
         /** Hdr file from radiance using RGBE */

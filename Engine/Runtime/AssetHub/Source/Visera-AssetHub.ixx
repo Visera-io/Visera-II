@@ -2,12 +2,9 @@ module;
 #include <Visera-AssetHub.hpp>
 export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
-export import Visera.Core.Image;
 export import Visera.Core.Types.Path;
+       import Visera.AssetHub.Image;
        import Visera.Global;
-       import Visera.AssetHub.Image.Wrapper;
-       import Visera.AssetHub.Image.PNG;
-       import Visera.Global.Log;
 
 export namespace Visera
 {
@@ -65,6 +62,10 @@ export namespace Visera
         {
         case EImageFormat::PNG:
             Wrapper = MakeUnique<FPNGImageWrapper>();
+            break;
+
+        case EImageFormat::EXR:
+            Wrapper = MakeUnique<FEXRImageWrapper>();
             break;
         
         default:

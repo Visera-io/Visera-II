@@ -8,6 +8,9 @@ macro(install_visera_audio in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_AUDIO_SCRIPTS_DIR})
 
+    include(install_miniaudio)
+    link_miniaudio(${in_target})
+
     include(install_wwise)
     link_wwise(${in_target})
 

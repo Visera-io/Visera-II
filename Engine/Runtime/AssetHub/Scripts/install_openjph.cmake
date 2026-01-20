@@ -4,7 +4,7 @@ endif()
 
 macro(link_openjph in_target)
     message(STATUS "\nLinking OpenJPH (OpenJPH)")
-    
+
     if(NOT TARGET openjph)
         set(BUILD_SHARED_LIBS           OFF CACHE BOOL "" FORCE)
         set(OJPH_BUILD_EXECUTABLES      OFF CACHE BOOL "" FORCE)

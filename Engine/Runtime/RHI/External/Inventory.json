@@ -10,7 +10,7 @@
     },
     "Vulkan" :
     {
-        "Version" : "1.4.X",
+        "Version" : "1.4",
         "Dependencies" :
         [
 

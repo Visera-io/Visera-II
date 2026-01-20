@@ -10,7 +10,7 @@
     },
     "ImGui" :
     {
-        "Version" : "v1.92.3-docking",
+        "Version" : "1.92.3-docking",
         "Dependencies" :
         [
             "Vulkan",

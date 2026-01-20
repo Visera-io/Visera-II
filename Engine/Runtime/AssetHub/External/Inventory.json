@@ -26,14 +26,5 @@
             "OpenJPH"
         ],
         "URL" : "https://github.com/AcademySoftwareFoundation/openexr"
-    },
-    "MiniAudio" :
-    {
-        "Version" : "0.11.23",
-        "Dependencies" :
-        [
-
-        ],
-        "URL" : "https://github.com/mackron/miniaudio"
     }
 }

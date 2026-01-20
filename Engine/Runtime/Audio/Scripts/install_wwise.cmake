@@ -7,8 +7,8 @@ macro(link_wwise in_target)
 
     if(NOT TARGET Wwise)
         add_subdirectory(${VISERA_AUDIO_EXTERNAL_DIR}/Wwise)
-        set_target_properties(Wwise PROPERTIES FOLDER "${VISERA_AUDIO}/External/Wwise")
-        set_target_properties(WwiseSamples PROPERTIES FOLDER "${VISERA_AUDIO}/External/Wwise")
+        set_target_properties(Wwise PROPERTIES FOLDER "${VISERA_AUDIO_EXTERNAL_DIR}/Wwise")
+        set_target_properties(WwiseSamples PROPERTIES FOLDER "${VISERA_AUDIO_EXTERNAL_DIR}/Wwise")
     endif()
 
     target_link_libraries(${in_target} PUBLIC
