@@ -11,6 +11,12 @@ macro(install_visera_assethub in_target)
     include(install_libpng)
     link_libpng(${in_target})
 
+    include(install_openjph)
+    link_openjph(${in_target})
+
+    include(install_openexr)
+    link_openexr(${in_target})
+
     include(install_miniaudio)
     link_miniaudio(${in_target})
 

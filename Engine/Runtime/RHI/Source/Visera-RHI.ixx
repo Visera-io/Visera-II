@@ -1,7 +1,5 @@
 module;
 #include <Visera-RHI.hpp>
-
-#include "imgui.h"
 export module Visera.RHI;
 #define VISERA_MODULE_NAME "RHI"
 export import Visera.RHI.Common;
@@ -327,12 +325,12 @@ export namespace Visera
                 }
             case ECommandType::BlitToSwapChain:
                 {
+#if !defined(VISERA_OFFSCREEN_MODE)
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitToSwapChain*>(Command.PayloadPtrAligned);
 
                     auto* Texture = Registry->GetTexture(Payload->Image);
                     VISERA_ASSERT(Texture);
                     auto* SwapChainImage = Driver->GetSwapChain().GetCurrentImage();
-
                     {
                         const auto OldLayout = SwapChainImage->GetLayout();
                         const auto NewLayout = TypeCast(ERHIImageLayout::TransferDst);
@@ -353,6 +351,7 @@ export namespace Visera
                         InferGraphicsBarrier(OldLayout, NewLayout, &SrcStage, &SrcAccess, &DstStage, &DstAccess);
                         Frame.DrawCalls.ConvertImageLayout(SwapChainImage, NewLayout, SrcStage, SrcAccess, DstStage, DstAccess);
                     }
+#endif
                     break;
                 }
             case ECommandType::CopyBufferToImage:

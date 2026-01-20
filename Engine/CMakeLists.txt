@@ -45,7 +45,6 @@ add_custom_command(
 endif()
 
 add_subdirectory(${VISERA_CORE_DIR})
-
 add_subdirectory(${VISERA_RUNTIME_GLOBAL_DIR})
 add_subdirectory(${VISERA_RUNTIME_PLATFORM_DIR})
 add_subdirectory(${VISERA_RUNTIME_ASSETHUB_DIR})
@@ -74,4 +73,4 @@ target_link_libraries   (${VISERA} PUBLIC Visera::Shader)
 target_link_libraries   (${VISERA} PUBLIC Visera::Graphics)
 target_link_libraries   (${VISERA} PUBLIC Visera::Audio)
 endif()
-#install_visera_api      (${VISERA})s
+#install_visera_api      (${VISERA})

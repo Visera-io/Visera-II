@@ -13,15 +13,6 @@ export namespace Visera
     class VISERA_CORE_API FText
     {
     public:
-        static constexpr FStringView
-        NotANumber       = "nan";
-        static constexpr FStringView
-        PositiveInfinity = "inf";
-        static constexpr FStringView
-        NegativeInfinity = "-inf";
-        static constexpr FStringView
-        Exponent         = "e";
-
         [[nodiscard]] static Bool
         ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String); }
 
@@ -154,13 +145,13 @@ export namespace Visera
     {
         if (std::isnan(I_FloatPointValue))
         {
-            String.assign(NotANumber, 3);
+            String.assign("nan", 3);
             return;
         }
         if (std::isinf(I_FloatPointValue))
         {
-            I_FloatPointValue > 0? String.assign(PositiveInfinity) :
-                                   String.assign(NegativeInfinity);
+            I_FloatPointValue > 0? String.assign("inf") :
+                                   String.assign("-inf");
             return;
         }
 
@@ -171,9 +162,9 @@ export namespace Visera
         // (ASCII only, stable, fast, no locale)
         static const double_conversion::DoubleToStringConverter Converter(
             double_conversion::DoubleToStringConverter::UNIQUE_ZERO,
-            PositiveInfinity.data(),
-            NotANumber.data(),
-            Exponent[0],
+            "inf",
+            "nan",
+            'e',
             -6,
             21,
             0,

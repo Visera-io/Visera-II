@@ -1,5 +1,7 @@
 module;
 #include <Visera.hpp>
+
+#include "Visera-Core.hpp"
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
@@ -26,11 +28,10 @@ struct FEngine
     Bool Run()
     {
         LOG_INFO("Visera Engine Run()");
-
+        ;
         Window->SetSize(512, 512);
 
-        FHalf HalfPI = 3.1415;
-        LOG_INFO("{}", HalfPI);
+        LOG_INFO("{}", FText{Math::PI});
 
         FRHICommandList Commands;
 

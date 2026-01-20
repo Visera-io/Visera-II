@@ -576,13 +576,13 @@ export namespace Visera
         // ---- Decide queue families and queue indices (prefer same family, different queue index) ----
         struct FQueueSelection
         {
-            UInt32 Family = VK_QUEUE_FAMILY_IGNORED;
+            UInt32 Family = vk::QueueFamilyIgnored;
             UInt32 Index  = 0;
         };
 
         auto GetQueueCount = [&](UInt32 I_Family) -> UInt32
         {
-            VISERA_ASSERT(I_Family != VK_QUEUE_FAMILY_IGNORED);
+            VISERA_ASSERT(I_Family != vk::QueueFamilyIgnored);
             VISERA_ASSERT(I_Family < GPU.QueueFamilyProperties.GetSize());
             return GPU.QueueFamilyProperties[I_Family].queueCount;
         };
@@ -671,7 +671,7 @@ export namespace Visera
         // For each family we request queueCount N with priorities[N].
         struct FFamilyQueues
         {
-            UInt32 Family = VK_QUEUE_FAMILY_IGNORED;
+            UInt32 Family = vk::QueueFamilyIgnored;
             UInt32 Count  = 0;
             TArray<Float> Priorities{};
             vk::DeviceQueueCreateInfo Info;
