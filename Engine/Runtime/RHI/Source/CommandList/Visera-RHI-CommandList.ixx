@@ -112,16 +112,18 @@ export namespace Visera
         {
             FRHITextureHandle SrcImage;
             FRHITextureHandle DstImage;
+            ERHIFilter        Filter;
         };
         void inline
-        BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture);
+        BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture, ERHIFilter I_Filter);
 
         struct FBlitToSwapChain
         {
             FRHITextureHandle Image;
+            ERHIFilter        Filter;
         };
         void inline
-        BlitToSwapChain(FRHITextureHandle I_Texture);
+        BlitToSwapChain(FRHITextureHandle I_Texture, ERHIFilter I_Filter);
 
         // Check if the command list is empty
         [[nodiscard]] Bool
@@ -331,7 +333,9 @@ export namespace Visera
     }
 
     void FRHICommandList::
-    BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture)
+    BlitImage(FRHITextureHandle I_SrcTexture,
+              FRHITextureHandle I_DstTexture,
+              ERHIFilter        I_Filter)
     {
         VISERA_ASSERT(I_SrcTexture != FRHITextureHandle{});
         VISERA_ASSERT(I_DstTexture != FRHITextureHandle{});
@@ -339,16 +343,18 @@ export namespace Visera
         {
             .SrcImage = I_SrcTexture,
             .DstImage = I_DstTexture,
+            .Filter   = I_Filter,
         });
     }
 
     void FRHICommandList::
-    BlitToSwapChain(FRHITextureHandle I_Texture)
+    BlitToSwapChain(FRHITextureHandle I_Texture, ERHIFilter I_Filter)
     {
         VISERA_ASSERT(I_Texture != FRHITextureHandle{});
         RecordCommand(ECommandType::BlitToSwapChain, FBlitToSwapChain
         {
-            .Image = I_Texture,
+            .Image  = I_Texture,
+            .Filter = I_Filter,
         });
     }
 }

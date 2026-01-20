@@ -319,7 +319,10 @@ export namespace Visera
                     auto* DstTexture = Registry->GetTexture(Payload->DstImage);
                     VISERA_ASSERT(SrcTexture && DstTexture);
 
-                    Frame.DrawCalls.BlitImage(SrcTexture->GetVulkanImage(), DstTexture->GetVulkanImage());
+                    Frame.DrawCalls.BlitImage(
+                        SrcTexture->GetVulkanImage(),
+                        DstTexture->GetVulkanImage(),
+                        TypeCast(Payload->Filter));
                     break;
                 }
             case ECommandType::BlitToSwapChain:
@@ -338,7 +341,10 @@ export namespace Visera
                         InferGraphicsBarrier(OldLayout, NewLayout, &SrcStage, &SrcAccess, &DstStage, &DstAccess);
                         Frame.DrawCalls.ConvertImageLayout(SwapChainImage, NewLayout, SrcStage, SrcAccess, DstStage, DstAccess);
                     }
-                    Frame.DrawCalls.BlitImage(Texture->GetVulkanImage(), SwapChainImage);
+                    Frame.DrawCalls.BlitImage(
+                        Texture->GetVulkanImage(),
+                        SwapChainImage,
+                        TypeCast(Payload->Filter));
                     {
                         const auto OldLayout = SwapChainImage->GetLayout();
                         const auto NewLayout = TypeCast(ERHIImageLayout::Present);

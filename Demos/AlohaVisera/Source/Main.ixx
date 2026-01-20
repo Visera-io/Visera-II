@@ -39,10 +39,22 @@ struct FEngine
         LOG_WARN("Timer Begin");
         for (FPixel& Pixel : ViseraImage->View())
         {
-            if (Pixel.Get().R >= 100)
+            FColor Color = Pixel.Get();
+            FLinearColor LinearColor
             {
-                Pixel.Set({255, 255, 255, 255});
-            }
+             FLinearColor::LUT_sRGBToLinear[Color.R],
+             FLinearColor::LUT_sRGBToLinear[Color.G],
+             FLinearColor::LUT_sRGBToLinear[Color.B],
+             Color.A / 255.0f
+            };
+            LinearColor = FLinearColor
+            {
+             LinearColor.R * LinearColor.A,
+             LinearColor.G * LinearColor.A,
+             LinearColor.B * LinearColor.A,
+             LinearColor.A
+            };
+            Pixel.Set(LinearColor);
         }
         LOG_WARN("Timer End");
 
@@ -96,7 +108,7 @@ struct FEngine
             //Commands.ClearColorImage    (Texture, Color);
 
             Commands.ConvertImageLayout (Texture, ERHIImageLayout::TransferSrc);
-            Commands.BlitToSwapChain    (Texture);
+            Commands.BlitToSwapChain    (Texture, ERHIFilter::Nearest);
             Commands.ConvertImageLayout (Texture, ERHIImageLayout::ShaderReadOnly);
 
             // for (auto Command : Commands)

@@ -82,7 +82,8 @@ export namespace Visera
                            EVulkanTransferAccess   I_DstAccess);
         void
         BlitImage(FVulkanImage* I_SrcImage,
-                  FVulkanImage* I_DstImage);
+                  FVulkanImage* I_DstImage,
+                  vk::Filter    I_Filter);
         void
         CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
                           FVulkanImage*  I_DstImage);
@@ -173,7 +174,8 @@ export namespace Visera
         LeaveRenderPipeline();
         void
         BlitImage(FVulkanImage* I_SrcImage,
-                  FVulkanImage* I_DstImage);
+                  FVulkanImage* I_DstImage,
+                  vk::Filter    I_Filter);
         void
         CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
                           FVulkanImage*  I_DstImage);
@@ -252,9 +254,6 @@ export namespace Visera
         Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ);
         void
         LeaveComputePipeline();
-        void
-        BlitImage(FVulkanImage* I_SrcImage,
-                  FVulkanImage* I_DstImage);
         void
         CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
                           FVulkanImage*  I_DstImage);
@@ -436,7 +435,8 @@ export namespace Visera
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
     BlitImage(FVulkanImage* I_SrcImage,
-              FVulkanImage* I_DstImage)
+              FVulkanImage* I_DstImage,
+              vk::Filter    I_Filter)
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_SrcImage != nullptr);
@@ -450,16 +450,10 @@ export namespace Visera
         const auto&  DstExtent = I_DstImage->GetExtent();
         vk::Offset3D DstRange(DstExtent.width, DstExtent.height, DstExtent.depth);
 
-        const auto BlitSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setMipLevel        (I_SrcImage->GetMipmapLevels())
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (I_SrcImage->GetArrayLayers())
-        ;
         const auto BlitRegion = vk::ImageBlit2{}
-            .setSrcSubresource (BlitSubresourceRange)
+            .setSrcSubresource (I_SrcImage->GetSubresourceLayers(0))
             .setSrcOffsets({Offset, SrcRange})
-            .setDstSubresource (BlitSubresourceRange)
+            .setDstSubresource (I_DstImage->GetSubresourceLayers(0))
             .setDstOffsets     ({Offset, DstRange})
         ;
         const auto BlitInfo = vk::BlitImageInfo2{}
@@ -469,7 +463,7 @@ export namespace Visera
             .setDstImageLayout  (I_DstImage->GetLayout())
             .setRegionCount     (1)
             .setPRegions        (&BlitRegion)
-            .setFilter          (vk::Filter::eLinear)
+            .setFilter          (I_Filter)
         ;
         Handle.blitImage2(BlitInfo);
     }
@@ -721,7 +715,8 @@ export namespace Visera
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
     BlitImage(FVulkanImage* I_SrcImage,
-              FVulkanImage* I_DstImage)
+              FVulkanImage* I_DstImage,
+              vk::Filter    I_Filter)
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_SrcImage != nullptr);
@@ -729,22 +724,16 @@ export namespace Visera
         VISERA_ASSERT(I_SrcImage->GetLayout() == vk::ImageLayout::eTransferSrcOptimal);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
 
-        const auto Offset = vk::Offset3D{0, 0, 0};
+        constexpr auto Offset = vk::Offset3D{0, 0, 0};
         const auto&  SrcExtent = I_SrcImage->GetExtent();
         vk::Offset3D SrcRange(SrcExtent.width, SrcExtent.height, SrcExtent.depth);
         const auto&  DstExtent = I_DstImage->GetExtent();
         vk::Offset3D DstRange(DstExtent.width, DstExtent.height, DstExtent.depth);
 
-        const auto BlitSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setMipLevel        (0)
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (1)
-        ;
         const auto BlitRegion = vk::ImageBlit2{}
-            .setSrcSubresource (BlitSubresourceRange)
-            .setSrcOffsets({Offset, SrcRange})
-            .setDstSubresource (BlitSubresourceRange)
+            .setSrcSubresource (I_SrcImage->GetSubresourceLayers(0))
+            .setSrcOffsets     ({Offset, SrcRange})
+            .setDstSubresource (I_DstImage->GetSubresourceLayers(0))
             .setDstOffsets     ({Offset, DstRange})
         ;
         const auto BlitInfo = vk::BlitImageInfo2{}
@@ -754,7 +743,7 @@ export namespace Visera
             .setDstImageLayout  (I_DstImage->GetLayout())
             .setRegionCount     (1)
             .setPRegions        (&BlitRegion)
-            .setFilter          (vk::Filter::eLinear)
+            .setFilter          (I_Filter)
         ;
         Handle.blitImage2(BlitInfo);
     }
