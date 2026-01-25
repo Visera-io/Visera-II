@@ -36,6 +36,10 @@ export namespace Visera
                      UInt64                 I_InitialDataSize   = 0);
         void
         DestroyBuffer(FRHIBufferHandle I_BufferHandle, Bool I_bTransient = False);
+        [[nodiscard]] FRHISamplerHandle
+        CreateSampler(FRHISamplerCreateDesc&& I_SamplerDesc);
+        void
+        DestroySampler(FRHISamplerHandle I_SamplerHandle, Bool I_bTransient = False);
 
         [[nodiscard]] Bool
         BeginFrame();
@@ -55,7 +59,7 @@ export namespace Visera
                              I_Location.line(),
                              I_Location.function_name()));
             return Driver;
-        };
+        }
 
     private:
         TUniquePtr<FVulkanDriver>   Driver;
@@ -65,6 +69,11 @@ export namespace Visera
         GraphicsCommandPool;
         FVulkanCommandPool<EVulkanQueueFamily::Transfer>
         TransferCommandPool;
+        //[TODO]: Remove
+        vk::raii::DescriptorPool
+        GlobalDescriptorPool {nullptr};
+        FVulkanDescriptorSetLayout
+        GlobalDescriptorSetLayout;
 
         struct FFrame
         {
@@ -102,6 +111,7 @@ export namespace Visera
 
                 Registry = MakeUnique<FRHIRegistry>(Driver);
 
+                // Command Pools
                 GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>
                 (
                     False
@@ -110,6 +120,42 @@ export namespace Visera
                 (
                     False
                 );
+
+                // Descriptor Pools
+                TArray<vk::DescriptorPoolSize> PoolSizes(2);
+                PoolSizes[0] = vk::DescriptorPoolSize{}
+                    .setType(vk::DescriptorType::eUniformBuffer)
+                    .setDescriptorCount(1000);
+                PoolSizes[1] = vk::DescriptorPoolSize{}
+                    .setType(vk::DescriptorType::eCombinedImageSampler)
+                    .setDescriptorCount(1000);
+
+                auto DescritorPoolCreateInfo = vk::DescriptorPoolCreateInfo{}
+                    .setMaxSets(Driver->GetGPU().Properties.limits.maxBoundDescriptorSets)
+                    .setPoolSizeCount(PoolSizes.GetSize())
+                    .setPPoolSizes(PoolSizes.Data())
+                ;
+                auto Result = Driver->GetDevice().Context.createDescriptorPool(DescritorPoolCreateInfo);
+                if (Result.has_value())
+                {
+                    GlobalDescriptorPool = std::move(*Result);
+                }
+                else { LOG_FATAL("Failed to create the global descriptor pool!"); }
+
+                TArray<vk::DescriptorSetLayoutBinding> Bindings(2);
+                Bindings[0] = vk::DescriptorSetLayoutBinding{}
+                    .setBinding(0)
+                    .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                    .setDescriptorCount(1)
+                    .setStageFlags(vk::ShaderStageFlagBits::eAll)
+                ;
+                Bindings[1] = vk::DescriptorSetLayoutBinding{}
+                    .setBinding(1)
+                    .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+                    .setDescriptorCount(1)
+                    .setStageFlags(vk::ShaderStageFlagBits::eAll)
+                ;
+                GlobalDescriptorSetLayout = Driver->CreateDescriptorSetLayout(Bindings);
 
 #if !defined(VISERA_OFFSCREEN_MODE)
                 auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
@@ -166,6 +212,8 @@ export namespace Visera
             {
                 Driver->WaitIdle();
                 InFlightFrames.Clear();
+                GlobalDescriptorSetLayout = {};
+                GlobalDescriptorPool.clear();
                 GraphicsCommandPool = {};
                 TransferCommandPool = {};
                 Registry.reset();
@@ -443,6 +491,19 @@ export namespace Visera
     {
         UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
         Registry->Unregister(I_BufferHandle, RetiredFrame);
+    }
+
+    FRHISamplerHandle FRHI::
+    CreateSampler(FRHISamplerCreateDesc&& I_SamplerDesc)
+    {
+        return Registry->Register(std::move(I_SamplerDesc));
+    }
+
+    void FRHI::
+    DestroySampler(FRHISamplerHandle I_SamplerHandle, Bool I_bTransient)
+    {
+        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
+        Registry->Unregister(I_SamplerHandle, RetiredFrame);
     }
 
     void FRHI::

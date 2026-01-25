@@ -63,9 +63,11 @@ export namespace Visera
 
     enum class ERHISamplerType : UInt8
     {
-        Linear,
-        Nearest,
+        Linear  = static_cast<UInt8>(vk::Filter::eLinear),
+        Nearest = static_cast<UInt8>(vk::Filter::eNearest),
     };
+    [[nodiscard]] constexpr vk::Filter
+    TypeCast(ERHISamplerType I_SamplerType) { return static_cast<vk::Filter>(I_SamplerType); }
 
     enum class ERHIFilter : UInt8
     {
@@ -295,7 +297,7 @@ export namespace Visera
         [[nodiscard]] constexpr ERHIResourceType
         GetType() const { return static_cast<ERHIResourceType>((FHandle::GetGeneration() & TYPE_MASK) >> 28); }
         [[nodiscard]] constexpr Bool
-        IsWritable() const { return (GetGeneration() & WRITABLE_MASK) != 0; }
+        IsWritable() const { return ((Value >> 32) & WRITABLE_MASK) != 0; }
 
     public:
         FRHIResourceHandle() = default;
@@ -314,6 +316,7 @@ export namespace Visera
 
     using FRHITextureHandle     = FRHIResourceHandle;
     using FRHIBufferHandle      = FRHIResourceHandle;
+    using FRHISamplerHandle     = FRHIResourceHandle;
     using FRHIRenderPassHandle  = FRHIResourceHandle;
 
     using FRHIClearColor = FLinearColor;
@@ -562,7 +565,8 @@ VISERA_MAKE_FORMATTER(Visera::ERHIBufferUsage,
         }, "{}", Name);
 VISERA_MAKE_HASH(Visera::FRHIResourceHandle, { return I_Object.GetValue(); })
 VISERA_MAKE_FORMATTER(Visera::FRHIResourceHandle, {},
-    "Type:{}, Gen:{}, Idx:{}",
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
     I_Formatee.GetType(),
+    I_Formatee.IsWritable(),
     I_Formatee.GetGeneration(),
     I_Formatee.GetIndex());

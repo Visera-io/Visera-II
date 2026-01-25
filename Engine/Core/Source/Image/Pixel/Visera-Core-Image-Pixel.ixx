@@ -56,22 +56,24 @@ export namespace Visera
         [[nodiscard]] UInt8 GetBytesPerPixel() const { return BytesPerPixel; }
 
         /**
-         * Gets the pixel value as FColor.
+         * Gets the pixel value as FLinearColor.
          * This is a RAW READ operation - it directly reads the pixel values
          * from the pixel format without any colorspace conversion (e.g., sRGB).
-         * @return FColor value representing the pixel
+         * For HDR formats (float), values can exceed 1.0 to represent high dynamic range.
+         * @return FLinearColor value representing the pixel
          */
-        [[nodiscard]] FColor Get() const;
+        [[nodiscard]] FLinearColor Get() const;
 
         /**
          * Sets the pixel value from a color type.
          * This is a RAW WRITE operation - it directly writes the color values
          * to the pixel format without any colorspace conversion (e.g., sRGB).
          * For colorspace-aware writes, use FImage-level methods that handle sRGB conversion.
-         * @tparam TColor Color type (must satisfy Concepts::Color, defaults to FColor)
+         * For HDR formats (float), values can exceed 1.0 to represent high dynamic range.
+         * @tparam TColor Color type (must satisfy Concepts::Color, defaults to FLinearColor)
          * @param I_Color Color value
          */
-        template<Concepts::Color TColor = FColor>
+        template<Concepts::Color TColor = FLinearColor>
         void Set(const TColor& I_Color);
 
     private:
@@ -211,12 +213,12 @@ export namespace Visera
                I_Format == EPixelFormat::RGBA32_Float;
     }
 
-    FColor FPixel::
+    FLinearColor FPixel::
     Get() const
     {
-        if (!Data) { return FColor{}; }
+        if (!Data) { return FLinearColor{}; }
 
-        FColor Result{};
+        FLinearColor Result{};
 
         switch (PixelFormat)
         {
@@ -224,46 +226,46 @@ export namespace Visera
         case EPixelFormat::R8_UNorm:
         {
             const UInt8* U8Data = reinterpret_cast<const UInt8*>(Data);
-            Result.R = U8Data[0];
-            Result.G = 0;
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = static_cast<Float>(U8Data[0]) / 255.0f;
+            Result.G = 0.0f;
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RG8_UNorm:
         {
             const UInt8* U8Data = reinterpret_cast<const UInt8*>(Data);
-            Result.R = U8Data[0];
-            Result.G = U8Data[1];
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = static_cast<Float>(U8Data[0]) / 255.0f;
+            Result.G = static_cast<Float>(U8Data[1]) / 255.0f;
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGB8_UNorm:
         {
             const UInt8* U8Data = reinterpret_cast<const UInt8*>(Data);
-            Result.R = U8Data[0];
-            Result.G = U8Data[1];
-            Result.B = U8Data[2];
-            Result.A = 255;
+            Result.R = static_cast<Float>(U8Data[0]) / 255.0f;
+            Result.G = static_cast<Float>(U8Data[1]) / 255.0f;
+            Result.B = static_cast<Float>(U8Data[2]) / 255.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGBA8_UNorm:
         {
             const UInt8* U8Data = reinterpret_cast<const UInt8*>(Data);
-            Result.R = U8Data[0];
-            Result.G = U8Data[1];
-            Result.B = U8Data[2];
-            Result.A = U8Data[3];
+            Result.R = static_cast<Float>(U8Data[0]) / 255.0f;
+            Result.G = static_cast<Float>(U8Data[1]) / 255.0f;
+            Result.B = static_cast<Float>(U8Data[2]) / 255.0f;
+            Result.A = static_cast<Float>(U8Data[3]) / 255.0f;
             break;
         }
         case EPixelFormat::BGRA8_UNorm:
         {
             const UInt8* U8Data = reinterpret_cast<const UInt8*>(Data);
-            Result.R = U8Data[2]; // BGR -> RGB
-            Result.G = U8Data[1];
-            Result.B = U8Data[0];
-            Result.A = U8Data[3];
+            Result.R = static_cast<Float>(U8Data[2]) / 255.0f; // BGR -> RGB
+            Result.G = static_cast<Float>(U8Data[1]) / 255.0f;
+            Result.B = static_cast<Float>(U8Data[0]) / 255.0f;
+            Result.A = static_cast<Float>(U8Data[3]) / 255.0f;
             break;
         }
 
@@ -271,50 +273,49 @@ export namespace Visera
         case EPixelFormat::R16_UNorm:
         {
             const UInt16* U16Data = reinterpret_cast<const UInt16*>(Data);
-            Result.R = static_cast<UInt8>((U16Data[0] * 255) / 65535);
-            Result.G = 0;
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = static_cast<Float>(U16Data[0]) / 65535.0f;
+            Result.G = 0.0f;
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RG16_UNorm:
         {
             const UInt16* U16Data = reinterpret_cast<const UInt16*>(Data);
-            Result.R = static_cast<UInt8>((U16Data[0] * 255) / 65535);
-            Result.G = static_cast<UInt8>((U16Data[1] * 255) / 65535);
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = static_cast<Float>(U16Data[0]) / 65535.0f;
+            Result.G = static_cast<Float>(U16Data[1]) / 65535.0f;
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGB16_UNorm:
         {
             const UInt16* U16Data = reinterpret_cast<const UInt16*>(Data);
-            Result.R = static_cast<UInt8>((U16Data[0] * 255) / 65535);
-            Result.G = static_cast<UInt8>((U16Data[1] * 255) / 65535);
-            Result.B = static_cast<UInt8>((U16Data[2] * 255) / 65535);
-            Result.A = 255;
+            Result.R = static_cast<Float>(U16Data[0]) / 65535.0f;
+            Result.G = static_cast<Float>(U16Data[1]) / 65535.0f;
+            Result.B = static_cast<Float>(U16Data[2]) / 65535.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGBA16_UNorm:
         {
             const UInt16* U16Data = reinterpret_cast<const UInt16*>(Data);
-            Result.R = static_cast<UInt8>((U16Data[0] * 255) / 65535);
-            Result.G = static_cast<UInt8>((U16Data[1] * 255) / 65535);
-            Result.B = static_cast<UInt8>((U16Data[2] * 255) / 65535);
-            Result.A = static_cast<UInt8>((U16Data[3] * 255) / 65535);
+            Result.R = static_cast<Float>(U16Data[0]) / 65535.0f;
+            Result.G = static_cast<Float>(U16Data[1]) / 65535.0f;
+            Result.B = static_cast<Float>(U16Data[2]) / 65535.0f;
+            Result.A = static_cast<Float>(U16Data[3]) / 65535.0f;
             break;
         }
 
-        // 16-bit Float formats
+        // 16-bit Float formats (HDR - no clamping)
         case EPixelFormat::R16_Float:
         {
             const UInt16* HalfBits = reinterpret_cast<const UInt16*>(Data);
             const FHalf HalfValue = FHalf::FromBits(HalfBits[0]);
-            const Float FloatValue = static_cast<Float>(HalfValue);
-            Result.R = static_cast<UInt8>(Math::Clamp(FloatValue, 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = 0;
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = static_cast<Float>(HalfValue);
+            Result.G = 0.0f;
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RG16_Float:
@@ -322,10 +323,10 @@ export namespace Visera
             const UInt16* HalfBits = reinterpret_cast<const UInt16*>(Data);
             const FHalf HalfR = FHalf::FromBits(HalfBits[0]);
             const FHalf HalfG = FHalf::FromBits(HalfBits[1]);
-            Result.R = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfR), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfG), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = static_cast<Float>(HalfR);
+            Result.G = static_cast<Float>(HalfG);
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGB16_Float:
@@ -334,10 +335,10 @@ export namespace Visera
             const FHalf HalfR = FHalf::FromBits(HalfBits[0]);
             const FHalf HalfG = FHalf::FromBits(HalfBits[1]);
             const FHalf HalfB = FHalf::FromBits(HalfBits[2]);
-            Result.R = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfR), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfG), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.B = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfB), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.A = 255;
+            Result.R = static_cast<Float>(HalfR);
+            Result.G = static_cast<Float>(HalfG);
+            Result.B = static_cast<Float>(HalfB);
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGBA16_Float:
@@ -347,74 +348,71 @@ export namespace Visera
             const FHalf HalfG = FHalf::FromBits(HalfBits[1]);
             const FHalf HalfB = FHalf::FromBits(HalfBits[2]);
             const FHalf HalfA = FHalf::FromBits(HalfBits[3]);
-            Result.R = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfR), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfG), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.B = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfB), 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.A = static_cast<UInt8>(Math::Clamp(static_cast<Float>(HalfA), 0.0f, 1.0f) * 255.0f + 0.5f);
+            Result.R = static_cast<Float>(HalfR);
+            Result.G = static_cast<Float>(HalfG);
+            Result.B = static_cast<Float>(HalfB);
+            Result.A = static_cast<Float>(HalfA);
             break;
         }
 
-        // 32-bit Float formats
+        // 32-bit Float formats (HDR - no clamping)
         case EPixelFormat::R32_Float:
         {
             const Float* FloatData = reinterpret_cast<const Float*>(Data);
-            Result.R = static_cast<UInt8>(Math::Clamp(FloatData[0], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = 0;
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = FloatData[0];
+            Result.G = 0.0f;
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RG32_Float:
         {
             const Float* FloatData = reinterpret_cast<const Float*>(Data);
-            Result.R = static_cast<UInt8>(Math::Clamp(FloatData[0], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = static_cast<UInt8>(Math::Clamp(FloatData[1], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.B = 0;
-            Result.A = 255;
+            Result.R = FloatData[0];
+            Result.G = FloatData[1];
+            Result.B = 0.0f;
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGB32_Float:
         {
             const Float* FloatData = reinterpret_cast<const Float*>(Data);
-            Result.R = static_cast<UInt8>(Math::Clamp(FloatData[0], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = static_cast<UInt8>(Math::Clamp(FloatData[1], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.B = static_cast<UInt8>(Math::Clamp(FloatData[2], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.A = 255;
+            Result.R = FloatData[0];
+            Result.G = FloatData[1];
+            Result.B = FloatData[2];
+            Result.A = 1.0f;
             break;
         }
         case EPixelFormat::RGBA32_Float:
         {
             const Float* FloatData = reinterpret_cast<const Float*>(Data);
-            Result.R = static_cast<UInt8>(Math::Clamp(FloatData[0], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.G = static_cast<UInt8>(Math::Clamp(FloatData[1], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.B = static_cast<UInt8>(Math::Clamp(FloatData[2], 0.0f, 1.0f) * 255.0f + 0.5f);
-            Result.A = static_cast<UInt8>(Math::Clamp(FloatData[3], 0.0f, 1.0f) * 255.0f + 0.5f);
+            Result.R = FloatData[0];
+            Result.G = FloatData[1];
+            Result.B = FloatData[2];
+            Result.A = FloatData[3];
             break;
         }
 
         // Special formats
         case EPixelFormat::RGBE8_HDR:
         {
-            // RGBE format: decode from shared exponent representation
+            // RGBE format: decode from shared exponent representation (HDR - no clamping)
             const UInt8* U8Data = reinterpret_cast<const UInt8*>(Data);
             if (U8Data[3] == 0)
             {
-                Result.R = 0;
-                Result.G = 0;
-                Result.B = 0;
-                Result.A = 255;
+                Result.R = 0.0f;
+                Result.G = 0.0f;
+                Result.B = 0.0f;
+                Result.A = 1.0f;
             }
             else
             {
                 const Int32 Exponent = static_cast<Int32>(U8Data[3]) - 128;
                 const Float Scale = std::ldexp(1.0f, Exponent - 8); // 2^(exponent-8)
-                const Float R = static_cast<Float>(U8Data[0]) * Scale;
-                const Float G = static_cast<Float>(U8Data[1]) * Scale;
-                const Float B = static_cast<Float>(U8Data[2]) * Scale;
-                Result.R = static_cast<UInt8>(Math::Clamp(R, 0.0f, 1.0f) * 255.0f + 0.5f);
-                Result.G = static_cast<UInt8>(Math::Clamp(G, 0.0f, 1.0f) * 255.0f + 0.5f);
-                Result.B = static_cast<UInt8>(Math::Clamp(B, 0.0f, 1.0f) * 255.0f + 0.5f);
-                Result.A = 255;
+                Result.R = static_cast<Float>(U8Data[0]) * Scale;
+                Result.G = static_cast<Float>(U8Data[1]) * Scale;
+                Result.B = static_cast<Float>(U8Data[2]) * Scale;
+                Result.A = 1.0f;
             }
             break;
         }
@@ -422,45 +420,46 @@ export namespace Visera
         case EPixelFormat::Invalid:
         default:
             // Unsupported format - return black
-            Result = FColor::Black();
+            Result = FLinearColor::Black();
             break;
         }
 
         return Result;
     }
 
-    template<Concepts::Color TColor /* = FColor */> void FPixel::
+    template<Concepts::Color TColor /* = FLinearColor */> void FPixel::
     Set(const TColor& I_Color)
     {
         if (!Data) { return; }
 
-        // Convert color components to Float for processing
-        Float ClampedR, ClampedG, ClampedB, ClampedA;
+        // Extract color components as Float
+        // For HDR formats (float), values can exceed 1.0, so we don't clamp for those formats
+        Float R, G, B, A;
         
-        if constexpr (std::is_same_v<TColor, FColor>)
+        if constexpr (std::is_same_v<TColor, FLinearColor>)
         {
-            // FColor: UInt8 (0-255) -> Float (0.0-1.0)
-            ClampedR = static_cast<Float>(I_Color.R) / 255.0f;
-            ClampedG = static_cast<Float>(I_Color.G) / 255.0f;
-            ClampedB = static_cast<Float>(I_Color.B) / 255.0f;
-            ClampedA = static_cast<Float>(I_Color.A) / 255.0f;
-        }
-        else if constexpr (std::is_same_v<TColor, FLinearColor>)
-        {
-            // FLinearColor: already Float (0.0-1.0)
-            ClampedR = Math::Clamp(I_Color.R, 0.0f, 1.0f);
-            ClampedG = Math::Clamp(I_Color.G, 0.0f, 1.0f);
-            ClampedB = Math::Clamp(I_Color.B, 0.0f, 1.0f);
-            ClampedA = Math::Clamp(I_Color.A, 0.0f, 1.0f);
+            // FLinearColor: already Float, can be > 1.0 for HDR
+            R = I_Color.R;
+            G = I_Color.G;
+            B = I_Color.B;
+            A = I_Color.A;
         }
         else
         {
-            // Generic color type: assume Float components (0.0-1.0)
-            ClampedR = Math::Clamp(static_cast<Float>(I_Color.R), 0.0f, 1.0f);
-            ClampedG = Math::Clamp(static_cast<Float>(I_Color.G), 0.0f, 1.0f);
-            ClampedB = Math::Clamp(static_cast<Float>(I_Color.B), 0.0f, 1.0f);
-            ClampedA = Math::Clamp(static_cast<Float>(I_Color.A), 0.0f, 1.0f);
+            // Generic color type: assume Float components
+            R = static_cast<Float>(I_Color.R);
+            G = static_cast<Float>(I_Color.G);
+            B = static_cast<Float>(I_Color.B);
+            A = static_cast<Float>(I_Color.A);
         }
+        
+        // For UNorm formats, clamp to 0.0-1.0 range
+        // For Float formats (HDR), preserve full range (including > 1.0)
+        const Bool IsHDRFormat = FPixel::IsFloatFormat(PixelFormat) || PixelFormat == EPixelFormat::RGBE8_HDR;
+        Float ClampedR = IsHDRFormat ? R : Math::Clamp(R, 0.0f, 1.0f);
+        Float ClampedG = IsHDRFormat ? G : Math::Clamp(G, 0.0f, 1.0f);
+        Float ClampedB = IsHDRFormat ? B : Math::Clamp(B, 0.0f, 1.0f);
+        Float ClampedA = IsHDRFormat ? A : Math::Clamp(A, 0.0f, 1.0f);
 
         switch (PixelFormat)
         {
@@ -615,9 +614,9 @@ export namespace Visera
         case EPixelFormat::RGBE8_HDR:
         {
             // RGBE format: 3x8-bit RGB + 8-bit exponent
-            // Encode HDR values using shared exponent representation
+            // Encode HDR values using shared exponent representation (use unclamped values for HDR)
             UInt8* U8Data = reinterpret_cast<UInt8*>(Data);
-            const Float MaxChannel = Math::Max(Math::Max(ClampedR, ClampedG), ClampedB);
+            const Float MaxChannel = Math::Max(Math::Max(R, G), B);
             if (MaxChannel < 1e-32f)
             {
                 U8Data[0] = 0;
@@ -630,9 +629,9 @@ export namespace Visera
                 Int32 Exponent;
                 const Float Mantissa = std::frexp(MaxChannel, &Exponent);
                 const Float NormalizedMax = Mantissa * 256.0f;
-                U8Data[0] = static_cast<UInt8>(Math::Clamp(ClampedR / MaxChannel * NormalizedMax, 0.0f, 255.0f));
-                U8Data[1] = static_cast<UInt8>(Math::Clamp(ClampedG / MaxChannel * NormalizedMax, 0.0f, 255.0f));
-                U8Data[2] = static_cast<UInt8>(Math::Clamp(ClampedB / MaxChannel * NormalizedMax, 0.0f, 255.0f));
+                U8Data[0] = static_cast<UInt8>(Math::Clamp(R / MaxChannel * NormalizedMax, 0.0f, 255.0f));
+                U8Data[1] = static_cast<UInt8>(Math::Clamp(G / MaxChannel * NormalizedMax, 0.0f, 255.0f));
+                U8Data[2] = static_cast<UInt8>(Math::Clamp(B / MaxChannel * NormalizedMax, 0.0f, 255.0f));
                 U8Data[3] = static_cast<UInt8>(Exponent + 128);
             }
             break;

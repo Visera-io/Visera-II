@@ -21,10 +21,14 @@ export namespace Visera
         GetTexture(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Texture); return Textures.Get(I_Handle); }
         [[nodiscard]] FRHIBuffer*
         GetBuffer(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Buffer); return Buffers.Get(I_Handle); }
+        [[nodiscard]] FRHISampler*
+        GetSampler(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Sampler); return Samplers.Get(I_Handle); }
         [[nodiscard]] FRHIResourceHandle
         Register(FRHITextureCreateDesc&& I_TextureDesc);
         [[nodiscard]] FRHIResourceHandle
         Register(FRHIBufferCreateDesc&& I_BufferDesc);
+        [[nodiscard]] FRHIResourceHandle
+        Register(FRHISamplerCreateDesc&& I_SamplerDesc);
         void
         Unregister(FRHIResourceHandle I_Handle, UInt8 I_RetiredFrame);
 
@@ -67,6 +71,13 @@ export namespace Visera
                 I_BufferDesc.Size, I_BufferDesc.Usages);
         }
 
+        [[nodiscard]] UInt64
+        Hash(const FRHISamplerCreateDesc& I_SamplerDesc) const
+        {
+            UInt64 Value = static_cast<UInt64>(I_SamplerDesc.Type);
+            return (Value << 32) | static_cast<UInt64>(I_SamplerDesc.AddressMode);
+        }
+
     public:
         FRHIRegistry() = delete;
         FRHIRegistry(TUniqueRef<FVulkanDriver> I_Driver)
@@ -79,6 +90,47 @@ export namespace Visera
 
         }
     };
+
+
+    FRHIResourceHandle FRHIRegistry::
+    Register(FRHISamplerCreateDesc&& I_SamplerDesc)
+    {
+        const UInt64 Key = Hash(I_SamplerDesc);
+
+        auto RecycleBinIter = RecycleBin.Find(Key);
+        if (RecycleBinIter != RecycleBin.end())
+        {
+            auto& Handles = RecycleBinIter->second;
+
+            for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
+            {
+                const auto Handle = Handles[Idx];
+                if (Handle.GetType() != ERHIResourceType::Sampler) { continue; }
+
+                const auto Sampelr = Samplers.Get(Handle);
+                if (Sampelr == nullptr) { continue; }
+
+                if (Sampelr->GetInfo().IsCompatibleWith(I_SamplerDesc))
+                {
+                    Handles.RemoveAtSwap(Idx);
+                    // if (Handles.IsEmpty())
+                    // { RecycleBin.Erase(Key); }
+                    return Handle;
+                }
+            }
+        }
+        // Create new resource
+        auto Sampler = Driver->CreateImageSampler(
+            TypeCast(I_SamplerDesc.Type),
+            TypeCast(I_SamplerDesc.AddressMode));
+
+        auto Handle = Samplers.Insert(
+            FRHISampler{std::move(I_SamplerDesc), std::move(Sampler)},
+            ERHIResourceType::Sampler, False);
+
+        LOG_DEBUG("Created a new resource ({}).", Handle);
+        return Handle;
+    }
 
     FRHIResourceHandle FRHIRegistry::
     Register(FRHITextureCreateDesc&& I_TextureDesc)
@@ -221,7 +273,9 @@ export namespace Visera
                 } break;
             case ERHIResourceType::Sampler:
                 {
-                    VISERA_UNIMPLEMENTED_API;
+                    const auto Sampler = Samplers.Get(CurrentItem.ResourceHandle);
+                    VISERA_ASSERT(Sampler != nullptr);
+                    RecycleBin[Hash(Sampler->GetInfo())].EmplaceBack(Handle);
                 } break;
             case ERHIResourceType::Buffer:
                 {

@@ -106,6 +106,7 @@ export namespace Visera
     {
     public:
 
+
     private:
         FVulkanRenderPipeline Pipeline;
     };

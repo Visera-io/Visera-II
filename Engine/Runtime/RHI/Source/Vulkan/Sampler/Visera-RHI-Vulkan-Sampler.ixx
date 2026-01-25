@@ -18,7 +18,7 @@ namespace Visera
         vk::raii::Sampler Handle {nullptr};
 
     public:
-        FVulkanSampler() = delete;
+        FVulkanSampler() = default;
         FVulkanSampler(const vk::raii::Device&      I_Device,
                        const vk::SamplerCreateInfo& I_CreateInfo)
         {

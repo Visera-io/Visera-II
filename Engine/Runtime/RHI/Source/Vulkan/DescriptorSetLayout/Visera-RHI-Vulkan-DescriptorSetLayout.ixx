@@ -19,7 +19,7 @@ namespace Visera
         vk::raii::DescriptorSetLayout          Handle {nullptr};
 
     public:
-        FVulkanDescriptorSetLayout() = delete;
+        FVulkanDescriptorSetLayout() = default;
         FVulkanDescriptorSetLayout(const vk::raii::Device&                       I_Device,
                                    const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
         FVulkanDescriptorSetLayout(const vk::raii::Device&                       I_Device,
