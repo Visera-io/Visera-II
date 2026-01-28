@@ -3,6 +3,8 @@ module;
 #include <nlohmann/json.hpp>
 export module Visera.Core.Types.JSON;
 #define VISERA_MODULE_NAME "Core.Types"
+import Visera.Core.Types.Array;
+import Visera.Core.Types.Text;
 
 //#define VISERA_SAFE_MODE;
 #if defined(VISERA_SAFE_MODE)
@@ -23,7 +25,7 @@ export namespace Visera
         void
         Clear() noexcept { Data = Json{}; LastError.clear(); }
         [[nodiscard]] FString
-        Dump(Bool bPretty = True) const { return bPretty ? Data.dump(4) : Data.dump(); }
+        Dump(Bool I_bPretty = True) const { return I_bPretty ? Data.dump(4) : Data.dump(); }
         [[nodiscard]] const FString&
         GetLastError() const noexcept { return LastError; }
         void
@@ -33,21 +35,21 @@ export namespace Visera
         void
         Set(FStringView I_Key, Bool I_Value) { Data[FString(I_Key)] = static_cast<bool>(I_Value); }
         // ---- Get (safe) ----
-        [[nodiscard]] FString
-        GetString(FStringView I_Key, FStringView I_DefaultValue = "") const
+        [[nodiscard]] FText
+        GetText(FStringView I_Key, FStringView I_DefaultValue = "") const
         {
             const auto It = Data.find(FString(I_Key));
-            if (It == Data.end() || !It->is_string()) { return FString(I_DefaultValue); }
-            try { return It->get<FString>(); } catch (...) { return FString(I_DefaultValue); }
+            if (It == Data.end() || !It->is_string()) { return FText(I_DefaultValue); }
+            try { return FText(It->get<FString>()); } catch (...) { return FText(I_DefaultValue); }
         }
 
         [[nodiscard]] Bool
-        TryGetString(FStringView I_Key, FString* O_Value) const noexcept
+        TryGetText(FStringView I_Key, FText* O_Value) const noexcept
         {
             CHECK(O_Value != nullptr);
             const auto It = Data.find(FString(I_Key));
             if (It == Data.end() || !It->is_string()) { return False; }
-            try { *O_Value = It->get<FString>(); return True; } catch (...) { return False; }
+            try { *O_Value = FText(It->get<FString>()); return True; } catch (...) { return False; }
         }
 
         [[nodiscard]] Double
@@ -82,6 +84,37 @@ export namespace Visera
             try { *O_Value = static_cast<Bool>(It->get<bool>()); return True; } catch (...) { return False; }
         }
 
+        [[nodiscard]] TArray<FText>
+        GetTextArray(FStringView I_Key) const noexcept
+        {
+            TArray<FText> Result;
+            TryGetTextArray(I_Key, &Result);
+            return Result;
+        }
+
+        [[nodiscard]] Bool
+        TryGetTextArray(FStringView I_Key, TArray<FText>* O_Value) const noexcept
+        {
+            CHECK(O_Value != nullptr);
+            const auto It = Data.find(FString(I_Key));
+            if (It == Data.end() || !It->is_array()) { return False; }
+            try
+            {
+                const auto& Array = *It;
+                O_Value->Clear();
+                O_Value->Reserve(Array.size());
+                for (const auto& Item : Array)
+                {
+                    if (Item.is_string())
+                    {
+                        O_Value->PushBack(FText(Item.get<FString>()));
+                    }
+                }
+                return True;
+            }
+            catch (...) { return False; }
+        }
+
         [[nodiscard]] Bool
         ContainsPath(FStringView I_Path) const noexcept
         {
@@ -89,21 +122,27 @@ export namespace Visera
             return TryResolvePathConst(Data, I_Path, &Node);
         }
 
-        [[nodiscard]] FString
-        GetStringPath(FStringView I_Path, FStringView I_DefaultValue = "") const
+        [[nodiscard]] FText
+        Get(FStringView I_Path, FStringView I_DefaultValue = "") const noexcept
+        {
+            return GetTextPath(I_Path, I_DefaultValue);
+        }
+
+        [[nodiscard]] FText
+        GetTextPath(FStringView I_Path, FStringView I_DefaultValue = "") const
         {
             const Json* Node = nullptr;
-            if (!TryResolvePathConst(Data, I_Path, &Node) || Node == nullptr || !Node->is_string()) { return FString(I_DefaultValue); }
-            try { return Node->get<FString>(); } catch (...) { return FString(I_DefaultValue); }
+            if (!TryResolvePathConst(Data, I_Path, &Node) || Node == nullptr || !Node->is_string()) { return FText(I_DefaultValue); }
+            try { return FText(Node->get<FString>()); } catch (...) { return FText(I_DefaultValue); }
         }
 
         [[nodiscard]] Bool
-        TryGetStringPath(FStringView I_Path, FString* O_Value) const noexcept
+        TryGetTextPath(FStringView I_Path, FText* O_Value) const noexcept
         {
             CHECK(O_Value != nullptr);
             const Json* Node = nullptr;
             if (!TryResolvePathConst(Data, I_Path, &Node) || Node == nullptr || !Node->is_string()) { return False; }
-            try { *O_Value = Node->get<FString>(); return True; } catch (...) { return False; }
+            try { *O_Value = FText(Node->get<FString>()); return True; } catch (...) { return False; }
         }
 
         [[nodiscard]] Double
@@ -136,6 +175,36 @@ export namespace Visera
             const Json* Node = nullptr;
             if (!TryResolvePathConst(Data, I_Path, &Node) || Node == nullptr || !Node->is_boolean()) { return False; }
             try { *O_Value = static_cast<Bool>(Node->get<bool>()); return True; } catch (...) { return False; }
+        }
+
+        [[nodiscard]] TArray<FText>
+        GetTextArrayPath(FStringView I_Path) const noexcept
+        {
+            TArray<FText> Result;
+            TryGetTextArrayPath(I_Path, &Result);
+            return Result;
+        }
+
+        [[nodiscard]] Bool
+        TryGetTextArrayPath(FStringView I_Path, TArray<FText>* O_Value) const noexcept
+        {
+            CHECK(O_Value != nullptr);
+            const Json* Node = nullptr;
+            if (!TryResolvePathConst(Data, I_Path, &Node) || Node == nullptr || !Node->is_array()) { return False; }
+            try
+            {
+                O_Value->Clear();
+                O_Value->Reserve(Node->size());
+                for (const auto& Item : *Node)
+                {
+                    if (Item.is_string())
+                    {
+                        O_Value->PushBack(FText(Item.get<FString>()));
+                    }
+                }
+                return True;
+            }
+            catch (...) { return False; }
         }
 
         // ---- Set with dotted path ----
@@ -176,7 +245,7 @@ export namespace Visera
         // ---- Get (view, UNSAFE by design) ----
         // This returns a view into json's internal string storage; it becomes dangling if Data is modified.
         [[nodiscard]] Bool
-        TryGetStringView(FStringView I_Key, FStringView* O_Value) const noexcept
+        TryGetTextView(FStringView I_Key, FStringView* O_Value) const noexcept
         {
             CHECK(O_Value != nullptr);
             const auto It = Data.find(FString(I_Key));
@@ -216,7 +285,7 @@ export namespace Visera
         FString LastError{};
 
     private:
-                [[nodiscard]] static Bool
+        [[nodiscard]] static Bool
         TrySplitPathOnce(FStringView I_Path, FStringView* O_Head, FStringView* O_Tail) noexcept
         {
             CHECK(O_Head != nullptr && O_Tail != nullptr);
@@ -242,6 +311,32 @@ export namespace Visera
         }
 
         [[nodiscard]] static Bool
+        TryParseArrayIndex(FStringView I_Key, FStringView* O_BaseKey, UInt64* O_Index) noexcept
+        {
+            CHECK(O_BaseKey != nullptr && O_Index != nullptr);
+            const size_t BracketStart = I_Key.find('[');
+            if (BracketStart == FStringView::npos)
+            {
+                *O_BaseKey = I_Key;
+                *O_Index = UINT64_MAX; // No index
+                return True;
+            }
+
+            const size_t BracketEnd = I_Key.find(']', BracketStart);
+            if (BracketEnd == FStringView::npos || BracketEnd != I_Key.length() - 1)
+            { return False; }
+
+            *O_BaseKey = I_Key.substr(0, BracketStart);
+            FString IndexStr(I_Key.substr(BracketStart + 1, BracketEnd - BracketStart - 1));
+            try
+            {
+                *O_Index = std::stoull(IndexStr);
+                return True;
+            }
+            catch (...) { return False; }
+        }
+
+        [[nodiscard]] static Bool
         TryResolvePathConst(const Json& I_Root, FStringView I_Path, const Json** O_Node) noexcept
         {
             CHECK(O_Node != nullptr);
@@ -254,12 +349,27 @@ export namespace Visera
             while (TrySplitPathOnce(Path, &Head, &Tail))
             {
                 if (!IsValidPathKey(Head)) { return False; }
+
+                FStringView BaseKey{};
+                UInt64 ArrayIndex = UINT64_MAX;
+                if (!TryParseArrayIndex(Head, &BaseKey, &ArrayIndex))
+                { return False; }
+
                 if (!Cur->is_object()) { return False; }
 
-                auto It = Cur->find(FString(Head));
+                auto It = Cur->find(FString(BaseKey));
                 if (It == Cur->end()) { return False; }
 
                 Cur = &(*It);
+
+                // Handle array indexing
+                if (ArrayIndex != UINT64_MAX)
+                {
+                    if (!Cur->is_array()) { return False; }
+                    if (ArrayIndex >= Cur->size()) { return False; }
+                    Cur = &((*Cur)[ArrayIndex]);
+                }
+
                 if (Tail.empty()) { *O_Node = Cur; return True; }
                 Path = Tail;
             }

@@ -13,55 +13,6 @@ import Visera.Graphics;
 import Visera.AssetHub;
 using namespace Visera;
 
-// ACES tone mapping implementation
-[[nodiscard]] static FLinearColor
-TonemapACESFitted(const FLinearColor& I_Color)
-{
-    // ACES Input Matrix (sRGB to ACES working space)
-    static constexpr FMatrix3x3F ACESInputMat(
-        0.59719f, 0.35458f, 0.04823f,
-        0.07600f, 0.90834f, 0.01566f,
-        0.02840f, 0.13383f, 0.83777f
-    );
-    
-    // ACES Output Matrix (ACES to display space)
-    static constexpr FMatrix3x3F ACESOutputMat(
-         1.60475f, -0.53108f, -0.07367f,
-        -0.10208f,  1.10813f, -0.00605f,
-        -0.00327f, -0.07276f,  1.07602f
-    );
-    
-    // RRT and ODT fit function
-    auto RRTAndODTFit = [](Float V) -> Float
-    {
-        const Float A = V * (V + 0.0245786f) - 0.000090537f;
-        const Float B = V * (0.983729f * V + 0.4329510f) + 0.238081f;
-        return A / B;
-    };
-    
-    // Extract RGB as vector
-    FVector3F ColorVec(I_Color.R, I_Color.G, I_Color.B);
-    
-    // Apply ACES Input Matrix
-    ColorVec = ACESInputMat * ColorVec;
-    
-    // Apply RRT and ODT fit
-    ColorVec.X = RRTAndODTFit(ColorVec.X);
-    ColorVec.Y = RRTAndODTFit(ColorVec.Y);
-    ColorVec.Z = RRTAndODTFit(ColorVec.Z);
-    
-    // Apply ACES Output Matrix
-    ColorVec = ACESOutputMat * ColorVec;
-    
-    // Clamp to valid range and preserve alpha
-    return FLinearColor(
-        Math::Clamp(ColorVec.X, 0.0f, 1.0f),
-        Math::Clamp(ColorVec.Y, 0.0f, 1.0f),
-        Math::Clamp(ColorVec.Z, 0.0f, 1.0f),
-        I_Color.A
-    );
-}
-
 struct FEngine
 {
     FPlatform* Platform;
@@ -78,23 +29,31 @@ struct FEngine
     {
         LOG_INFO("Visera Engine Run()");
 
-        LOG_INFO("{}", FText{Math::PI});
-
         FRHICommandList Commands;
 
-        auto TestImage = AssetHub->LoadImage("Assets/App/Texture/Carrots.exr");
-        Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
-        
-        // Apply ACES tone mapping to HDR EXR image for display
-        LOG_INFO("Applying ACES tone mapping to EXR image...");
-        for (auto& Pixel : TestImage->View())
+        FJSON Configuration{};
+        auto File = FFileSystem::OpenFile("Assets/App/Configs/config.json", EIOMode::Read);
+        if (File && File->IsOpen())
         {
-            auto PixelColor = Pixel.Get();
-            // Apply ACES tone mapping to convert HDR to displayable range
-            auto TonemappedColor = TonemapACESFitted(PixelColor);
-            Pixel.Set(TonemappedColor);
+            TArray<FByte> FileData = File->ReadAll();
+            if (!FileData.IsEmpty())
+            {
+                Configuration = FJSON(reinterpret_cast<const char*>(FileData.Data()));
+                LOG_INFO("Config.json dump:\n{}", Configuration.Dump());
+            }
+            else
+            {
+                LOG_WARN("Failed to read config.json or file is empty");
+            }
         }
-        LOG_INFO("ACES tone mapping complete.");
+        else
+        {
+            LOG_ERROR("Failed to open config.json");
+        }
+
+        auto Textures = Configuration.GetTextArrayPath("Assets.Textures");
+        auto TestImage = AssetHub->LoadImage(Textures[0]);
+        Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
 
         auto TestSampler = RHI->CreateSampler(FRHISamplerCreateDesc
             {
@@ -103,26 +62,18 @@ struct FEngine
             });
         RHI->DestroySampler(TestSampler);
 
+        // FJSON SceneDescription;
+        // SceneDescription.SetPath("Scene.Camera.Type", "Orth");
+        //
+        // LOG_INFO("JSON:\n{}", SceneDescription.Dump());
+
         while (!Window->ShouldClose())
         {
             Window->PollEvents();
 
             if (!RHI->BeginFrame()) { continue; }
             Commands.Reset();
-            // for (FPixel& Pixel : TestImage->View())
-            // {
-            //     FColor Color = Pixel.Get();
-            //     FLinearColor LinearColor { Color.R, Color.G,Color.B,Color.A };
-            //     LinearColor = FLinearColor
-            //     {
-            //         LinearColor.R * LinearColor.A,
-            //         LinearColor.G * LinearColor.A,
-            //         LinearColor.B * LinearColor.A,
-            //         LinearColor.A
-            //        };
-            //     Pixel.Set(LinearColor);
-            // }
-            //TestImage->Resize(1024, 1024);
+
             auto RHIFormat = ERHIFormat::Undefined;
             switch (TestImage->GetPixelFormat())
             {
@@ -141,7 +92,6 @@ struct FEngine
                 break;
             default: LOG_FATAL("Unknown pixel format!");
             }
-
 
             if(!TestImage->IsRGBA())
             { LOG_FATAL("Not RGBA!"); }
