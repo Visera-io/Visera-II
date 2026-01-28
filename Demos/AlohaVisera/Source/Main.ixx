@@ -6,6 +6,7 @@ export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
 import Visera.RHI;
+import Visera.Tasks;
 import Visera.Audio;
 import Visera.Global;
 import Visera.Platform;
@@ -18,6 +19,7 @@ struct FEngine
     FPlatform* Platform;
     FInput*    Input;
     FWindow*   Window;
+    FTasks*    Tasks;
     FRHI*      RHI;
     FAudio*    Audio;
     FGraphics* Graphics;
@@ -153,6 +155,7 @@ struct FEngine
         Platform    = IGlobalService::Register<FPlatform>(EName::Platform);
         Input       = IGlobalService::Register<FInput>(EName::Input);
         Window      = IGlobalService::Register<FWindow>(EName::Window);
+        Tasks       = IGlobalService::Register<FTasks>(EName::Tasks);
         RHI         = IGlobalService::Register<FRHI>(EName::RHI);
         Audio       = IGlobalService::Register<FAudio>(EName::Audio);
         Graphics    = IGlobalService::Register<FGraphics>(EName::Graphics);

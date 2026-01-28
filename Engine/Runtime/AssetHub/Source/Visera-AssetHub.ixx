@@ -22,6 +22,7 @@ export namespace Visera
             Dependencies =
             {
                 EName::Platform,
+                EName::Tasks,
             };
 
             if (!OnBootstrap.TryBind([this]

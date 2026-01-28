@@ -34,6 +34,8 @@ export namespace Visera
         Physics2D = FName{"physics2d",   0};
         VISERA_GLOBAL_API inline const auto
         AssetHub  = FName{"assethub",   0};
+        VISERA_GLOBAL_API inline const auto
+        Tasks     = FName{"tasks",   0};
     }
 
     class IGlobalService;

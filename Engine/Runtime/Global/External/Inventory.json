@@ -1,11 +1,3 @@
 {
-    "OneTBB" :
-    {
-        "Version" : "2022.2.0",
-        "Dependencies" :
-        [
 
-        ],
-        "URL" : "https://github.com/uxlfoundation/oneTBB"
-    }
 }
