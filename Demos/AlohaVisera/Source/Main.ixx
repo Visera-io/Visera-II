@@ -48,10 +48,7 @@ struct FEngine
                 LOG_WARN("Failed to read config.json or file is empty");
             }
         }
-        else
-        {
-            LOG_ERROR("Failed to open config.json");
-        }
+        else { LOG_ERROR("Failed to open config.json"); }
 
         auto Textures = Configuration.GetTextArrayPath("Assets.Textures");
         auto TestImage = AssetHub->LoadImage(Textures[0]);
@@ -63,11 +60,6 @@ struct FEngine
                 .AddressMode = ERHISamplerAddressMode::Repeat,
             });
         RHI->DestroySampler(TestSampler);
-
-        // FJSON SceneDescription;
-        // SceneDescription.SetPath("Scene.Camera.Type", "Orth");
-        //
-        // LOG_INFO("JSON:\n{}", SceneDescription.Dump());
 
         while (!Window->ShouldClose())
         {

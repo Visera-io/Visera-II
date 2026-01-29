@@ -1,3 +1,11 @@
 {
-    
+  "Taskflow" :
+  {
+    "Version" : "4.0.0",
+    "Dependencies" :
+    [
+
+    ],
+    "URL" : "https://github.com/taskflow/taskflow"
+  }
 }
