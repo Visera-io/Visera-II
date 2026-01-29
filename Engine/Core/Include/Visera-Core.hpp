@@ -179,6 +179,12 @@ namespace Visera
 			requires !std::is_const_v<std::remove_reference_t<T>>;
 			requires !std::is_const_v<std::remove_pointer_t<T>>;
 		};
+
+		template <typename F, typename R, typename... Args> concept
+		Callable = requires(F&& I_Fn, Args&&... I_Args)
+		{
+			{ std::invoke(std::forward<F>(I_Fn), std::forward<Args>(I_Args)...) } -> std::same_as<R>;
+		};
 	}
 
 	template <Concepts::Mutable T>

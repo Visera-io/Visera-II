@@ -12,28 +12,20 @@ export namespace Visera
     public:
         [[nodiscard]] Bool
         IsOpen() const { return Handle != nullptr; }
-
         [[nodiscard]] UInt64
         Read(void* I_Buffer, UInt64 I_Size, UInt64 I_Count = 1);
-
         [[nodiscard]] TArray<FByte>
         ReadAll();
-
         [[nodiscard]] Bool
-        Seek(Int64 I_Offset, Int32 I_Whence);
-
+        Seek(Int64 I_Offset, Int32 I_Whence) { return Handle? std::fseek(Handle, I_Offset, I_Whence) == 0 : False; }
         [[nodiscard]] Int64
-        Tell() const;
-
+        Tell() const { return Handle? std::ftell(Handle) : -1; }
         [[nodiscard]] Bool
-        IsEOF() const;
-
+        IsEOF() const { return Handle? std::feof(Handle) != 0 : True; }
         [[nodiscard]] Int32
-        GetError() const;
-
+        GetError() const { return Handle? std::ferror(Handle) : -1; }
         void
-        ClearError();
-
+        ClearError() { if (Handle != nullptr) { std::clearerr(Handle); } }
         [[nodiscard]] FILE*
         GetHandle() const { return Handle; }
 
@@ -107,7 +99,7 @@ export namespace Visera
         if (FileSize < 0)
         {
             // Restore original position on error
-            Seek(CurrentPos, SEEK_SET);
+            (void)Seek(CurrentPos, SEEK_SET);
             return Result;
         }
 
@@ -115,7 +107,7 @@ export namespace Visera
         if (!Seek(0, SEEK_SET))
         {
             // Restore original position on error
-            Seek(CurrentPos, SEEK_SET);
+            (void)Seek(CurrentPos, SEEK_SET);
             return Result;
         }
 
@@ -134,47 +126,8 @@ export namespace Visera
         }
 
         // Restore original position
-        Seek(CurrentPos, SEEK_SET);
+        (void)Seek(CurrentPos, SEEK_SET);
 
         return Result;
-    }
-
-    Bool FFile::
-    Seek(Int64 I_Offset, Int32 I_Whence)
-    {
-        if (Handle == nullptr)
-        { return False; }
-        return std::fseek(Handle, static_cast<long>(I_Offset), I_Whence) == 0;
-    }
-
-    Int64 FFile::
-    Tell() const
-    {
-        if (Handle == nullptr)
-        { return -1; }
-        return std::ftell(Handle);
-    }
-
-    Bool FFile::
-    IsEOF() const
-    {
-        if (Handle == nullptr)
-        { return True; }
-        return std::feof(Handle) != 0;
-    }
-
-    Int32 FFile::
-    GetError() const
-    {
-        if (Handle == nullptr)
-        { return -1; }
-        return std::ferror(Handle);
-    }
-
-    void FFile::
-    ClearError()
-    {
-        if (Handle != nullptr)
-        { std::clearerr(Handle); }
     }
 }

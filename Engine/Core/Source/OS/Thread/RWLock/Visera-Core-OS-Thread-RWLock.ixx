@@ -10,20 +10,20 @@ export namespace Visera
     {
     public:
         [[nodiscard]] inline Bool
-        TryToRead()    const { return Handle.try_lock_shared(); }
+        TryToRead()    const { return Self.try_lock_shared(); }
         void
-        StartReading() const { Handle.lock_shared(); }
+        StartReading() const { Self.lock_shared(); }
         void
-        StopReading()  const { Handle.unlock_shared(); }
+        StopReading()  const { Self.unlock_shared(); }
 
         [[nodiscard]] inline Bool
-        TryToWrite()   { return Handle.try_lock(); }
+        TryToWrite()   { return Self.try_lock(); }
         void
-        StartWriting() { Handle.lock(); }
+        StartWriting() { Self.lock(); }
         void
-        StopWriting()  { Handle.unlock(); }
+        StopWriting()  { Self.unlock(); }
 
     private:
-        mutable std::shared_mutex Handle;
+        mutable std::shared_mutex Self;
     };
 }
