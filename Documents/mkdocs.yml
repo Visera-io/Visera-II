@@ -1,6 +1,7 @@
 site_name: Visera Engine
 site_description: Visera Engine documentation.
-repo_url: https://github.com/Visera-io
+site_url: https://visera.io/
+repo_url: https://github.com/Visera-io/Visera-II
 repo_name: Visera
 
 theme:

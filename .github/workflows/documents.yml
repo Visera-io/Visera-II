@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd Documents
-          pip install -r requirements-docs.txt
+          pip install -r requirements.txt
 
       - name: Deploy to GitHub Pages (GitHub-Pages branch)
         run: |
