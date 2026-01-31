@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd Documents
-          pip install -r requirements-docs.txt || pip install mkdocs mkdocs-material
+          pip install -r requirements-docs.txt
 
       - name: Deploy to GitHub Pages (GitHub-Pages branch)
         run: |
