@@ -1,0 +1,32 @@
+name: Deploy Documents
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          cd Documents
+          pip install -r requirements-docs.txt || pip install mkdocs mkdocs-material
+
+      - name: Deploy to GitHub Pages (GitHub-Pages branch)
+        run: |
+          cd Documents
+          mkdocs gh-deploy --force --remote-branch GitHub-Pages
+

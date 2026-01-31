@@ -1,0 +1,54 @@
+site_name: Visera Engine
+site_description: Visera Engine documentation.
+repo_url: https://github.com/Visera-io
+repo_name: Visera
+
+theme:
+  name: material
+  language: en
+  logo: assets/images/Visera.png
+  favicon: assets/images/Visera.png
+  palette:
+    # Light mode
+    - scheme: default
+      primary: blue grey
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Dark mode
+    - scheme: slate
+      primary: blue grey
+      accent: cyan
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - content.tabs.link
+
+nav:
+  - Home: index.md
+  - Fundamentals:
+      - Material: Fundamentals/Material.md
+  - Development:
+      - Coding Standard: Development/CodingStandard.md
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra_css:
+  - assets/styles/visera.css

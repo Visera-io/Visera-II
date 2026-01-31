@@ -43,6 +43,8 @@ export namespace Visera
 		IsFinite(T I_Num) { return true; }
     	template<Concepts::FloatingPoint NumT> [[nodiscard]] constexpr Bool
 		IsNearlyEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
+    	template<Concepts::FloatingPoint T> constexpr T
+		Round(T I_Value) { return std::round(I_Value); }
 
     	// More Precise (runtime) A * B + C. Falls back during constant-evaluation.
     	template <Concepts::FloatingPoint T> [[nodiscard]] constexpr T
