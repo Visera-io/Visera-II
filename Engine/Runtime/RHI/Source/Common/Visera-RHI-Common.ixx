@@ -239,6 +239,7 @@ export namespace Visera
         Sampler,
         Buffer,
         DescriptorSet,
+        DescriptorSetLayout, // Internal cache only; not exposed to users
     };
 
     struct FRHIExtent3D
@@ -323,6 +324,8 @@ export namespace Visera
         FRHITextureHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
         FRHITextureHandle(UInt32 I_Generation, UInt32 I_Index)
         : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Texture, False) {}
+        FRHITextureHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
+        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Texture, I_bWritable) {}
     };
 
     struct VISERA_RHI_API FRHIBufferHandle : FRHIResourceHandle
@@ -331,6 +334,8 @@ export namespace Visera
         FRHIBufferHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
         FRHIBufferHandle(UInt32 I_Generation, UInt32 I_Index)
         : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Buffer, False) {}
+        FRHIBufferHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
+        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Buffer, I_bWritable) {}
     };
 
     struct VISERA_RHI_API FRHISamplerHandle : FRHIResourceHandle
@@ -339,6 +344,8 @@ export namespace Visera
         FRHISamplerHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
         FRHISamplerHandle(UInt32 I_Generation, UInt32 I_Index)
         : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Sampler, False) {}
+        FRHISamplerHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
+        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Sampler, I_bWritable) {}
     };
 
     struct VISERA_RHI_API FRHIRenderPassHandle : FRHIResourceHandle
@@ -347,12 +354,25 @@ export namespace Visera
         FRHIRenderPassHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
     };
 
+    /** Internal use only: index into Registry's DescriptorSetLayout cache. Users create layout + DSet via FRHIDescriptorSetCreateDesc only. */
+    struct VISERA_RHI_API FRHIDescriptorSetLayoutHandle : FRHIResourceHandle
+    {
+        FRHIDescriptorSetLayoutHandle() = default;
+        FRHIDescriptorSetLayoutHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
+        FRHIDescriptorSetLayoutHandle(UInt32 I_Generation, UInt32 I_Index)
+        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSetLayout, False) {}
+        FRHIDescriptorSetLayoutHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
+        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSetLayout, I_bWritable) {}
+    };
+
     struct VISERA_RHI_API FRHIDescriptorSetHandle : FRHIResourceHandle
     {
         FRHIDescriptorSetHandle() = default;
         FRHIDescriptorSetHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
         FRHIDescriptorSetHandle(UInt32 I_Generation, UInt32 I_Index)
         : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSet, False) {}
+        FRHIDescriptorSetHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
+        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSet, I_bWritable) {}
     };
 
     using FRHIClearColor = FLinearColor;
@@ -600,7 +620,8 @@ VISERA_MAKE_FORMATTER(Visera::ERHIBufferUsage,
         case Visera::ERHIResourceType::Texture:           Name = "Texture";           break;
         case Visera::ERHIResourceType::Sampler:           Name = "Sampler";           break;
         case Visera::ERHIResourceType::Buffer:            Name = "Buffer";            break;
-        case Visera::ERHIResourceType::DescriptorSet:     Name = "DescriptorSet";     break;
+        case Visera::ERHIResourceType::DescriptorSet:       Name = "DescriptorSet";       break;
+        case Visera::ERHIResourceType::DescriptorSetLayout: Name = "DescriptorSetLayout"; break;
         }, "{}", Name);
 VISERA_MAKE_HASH(Visera::FRHIResourceHandle, { return I_Object.GetValue(); })
 VISERA_MAKE_FORMATTER(Visera::FRHIResourceHandle, {},
@@ -618,6 +639,9 @@ VISERA_MAKE_FORMATTER(Visera::FRHIBufferHandle, {}, "{}", static_cast<Visera::FR
 
 VISERA_MAKE_HASH(Visera::FRHISamplerHandle, { return I_Object.GetValue(); })
 VISERA_MAKE_FORMATTER(Visera::FRHISamplerHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
+
+VISERA_MAKE_HASH(Visera::FRHIDescriptorSetLayoutHandle, { return I_Object.GetValue(); })
+VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetLayoutHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
 
 VISERA_MAKE_HASH(Visera::FRHIDescriptorSetHandle, { return I_Object.GetValue(); })
 VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));

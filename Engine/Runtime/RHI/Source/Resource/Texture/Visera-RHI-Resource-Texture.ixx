@@ -37,7 +37,7 @@ export namespace Visera
     class VISERA_RHI_API FRHITexture
     {
     public:
-        [[nodiscard]] const auto&
+        [[nodiscard]] const FRHITextureCreateDesc&
         GetInfo() const { return Info; }
         [[nodiscard]] FVulkanImage*
         GetVulkanImage()     { return &Image; }

@@ -21,7 +21,7 @@ export namespace Visera
     {
     public:
         [[nodiscard]] const FRHISamplerCreateDesc&
-        GetInfo() { return Info; }
+        GetInfo() const { return Info; }
         [[nodiscard]] FVulkanSampler*
         GetVulkanSampler() { return &Sampler; }
 

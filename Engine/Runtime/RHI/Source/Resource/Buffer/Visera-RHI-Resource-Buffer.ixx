@@ -20,7 +20,7 @@ export namespace Visera
     class VISERA_RHI_API FRHIBuffer
     {
     public:
-        [[nodiscard]] const auto&
+        [[nodiscard]] const FRHIBufferCreateDesc&
         GetInfo() const { return Info; }
         [[nodiscard]] void
         Write(const FByte* I_Data, UInt64 I_Size) { Buffer.Write(I_Data, I_Size); }

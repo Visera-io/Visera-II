@@ -7,9 +7,9 @@ import Visera.Global.Log;
 import Visera.Core.Types.Array;
 import vulkan_hpp;
 
-namespace Visera
+export namespace Visera
 {
-    export class VISERA_RHI_API FVulkanDescriptorSetLayout
+    class VISERA_RHI_API FVulkanDescriptorSetLayout
     {
     public:
         [[nodiscard]] inline vk::DescriptorSetLayout
@@ -25,6 +25,10 @@ namespace Visera
         FVulkanDescriptorSetLayout(const vk::raii::Device&                       I_Device,
                                    const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings,
                                    const TArray<vk::DescriptorBindingFlags>&     I_BindingFlags);
+        FVulkanDescriptorSetLayout(const FVulkanDescriptorSetLayout&)            = delete;
+        FVulkanDescriptorSetLayout& operator=(const FVulkanDescriptorSetLayout&) = delete;
+        FVulkanDescriptorSetLayout(FVulkanDescriptorSetLayout&&)                 = default;
+        FVulkanDescriptorSetLayout& operator=(FVulkanDescriptorSetLayout&&)      = default;
     };
 
     FVulkanDescriptorSetLayout::

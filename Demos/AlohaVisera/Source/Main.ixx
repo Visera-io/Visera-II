@@ -50,23 +50,10 @@ struct FEngine
         else { LOG_ERROR("Failed to open config.json"); }
 
         auto TexturePaths = Configuration.GetTextArrayPath("Assets.Textures");
-        TSharedPtr<FImage> TestImage;
-        FTextureID TexID;
 
-        FSeedPool SeedPool;
-        FPCG32 PCG{};
-        PCG.SetSequence(0, SeedPool.Get());
-        UInt32 Idx = Math::Round(PCG.Uniform() * TexturePaths.GetSize());
-        LOG_INFO("{}", Idx);
+        TSharedPtr<FImage> TestImage = AssetHub->LoadImage(TexturePaths[0]);
+        FTextureID TexID = Graphics->CreateTexture2D(TestImage);
 
-        FEvent TextureUpload;
-        Tasks->Enqueue([&]
-        {
-            TestImage = AssetHub->LoadImage(TexturePaths[Idx]);
-            TexID = Graphics->CreateTexture2D(TestImage);
-            TextureUpload.Trigger();
-        });
-        TextureUpload.Wait();
         Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
 
         auto TestTexture = Graphics->GetTexture2D(TexID);

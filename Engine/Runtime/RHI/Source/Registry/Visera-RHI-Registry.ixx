@@ -18,39 +18,78 @@ export namespace Visera
     {
     public:
         [[nodiscard]] FRHITexture*
-        GetTexture(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Texture); return Textures.Get(I_Handle); }
+        Get(FRHITextureHandle I_Handle) { return Textures.Get(I_Handle); }
         [[nodiscard]] FRHIBuffer*
-        GetBuffer(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Buffer); return Buffers.Get(I_Handle); }
+        Get(FRHIBufferHandle I_Handle) { return Buffers.Get(I_Handle); }
         [[nodiscard]] FRHISampler*
-        GetSampler(FRHIResourceHandle I_Handle) { VISERA_ASSERT(I_Handle.GetType() == ERHIResourceType::Sampler); return Samplers.Get(I_Handle); }
-        [[nodiscard]] FRHIResourceHandle
+        Get(FRHISamplerHandle I_Handle) { return Samplers.Get(I_Handle); }
+        [[nodiscard]] FRHIDescriptorSet*
+        Get(FRHIDescriptorSetHandle I_Handle) { return DescriptorSets.Get(I_Handle); }
+        [[nodiscard]] const FRHITexture*
+        Get(FRHITextureHandle I_Handle) const { return Textures.Get(I_Handle); }
+        [[nodiscard]] const FRHIBuffer*
+        Get(FRHIBufferHandle I_Handle) const { return Buffers.Get(I_Handle); }
+        [[nodiscard]] const FRHISampler*
+        Get(FRHISamplerHandle I_Handle) const { return Samplers.Get(I_Handle); }
+        [[nodiscard]] const FRHIDescriptorSet*
+        Get(FRHIDescriptorSetHandle I_Handle) const { return DescriptorSets.Get(I_Handle); }
+        [[nodiscard]] FRHITextureHandle
         Register(FRHITextureCreateDesc&& I_TextureDesc);
-        [[nodiscard]] FRHIResourceHandle
+        [[nodiscard]] FRHIBufferHandle
         Register(FRHIBufferCreateDesc&& I_BufferDesc);
-        [[nodiscard]] FRHIResourceHandle
+        [[nodiscard]] FRHISamplerHandle
         Register(FRHISamplerCreateDesc&& I_SamplerDesc);
+        [[nodiscard]] FRHIDescriptorSetHandle
+        Register(FRHIDescriptorSetCreateDesc&& I_DescriptorSetDesc);
         void
-        Unregister(FRHIResourceHandle I_Handle, UInt8 I_RetiredFrame);
+        Unregister(FRHITextureHandle I_Handle, UInt8 I_RetiredFrame);
+        void
+        Unregister(FRHIBufferHandle I_Handle, UInt8 I_RetiredFrame);
+        void
+        Unregister(FRHISamplerHandle I_Handle, UInt8 I_RetiredFrame);
+        void
+        Unregister(FRHIDescriptorSetHandle I_Handle, UInt8 I_RetiredFrame);
 
         void
         CollectGarbage(UInt8 I_FrameIndex);
         void
         ClearGarbage();
 
-    private:
-        TSlotMap<FRHITexture,   FRHIResourceHandle> Textures;
-        TSlotMap<FRHISampler,   FRHIResourceHandle> Samplers;
-        TSlotMap<FRHIBuffer,    FRHIResourceHandle> Buffers;
+        [[nodiscard]] FVulkanDescriptorPool&
+        GetDescriptorSetPool() { return DescriptorSetPool; }
+        [[nodiscard]] const FVulkanDescriptorPool&
+        GetDescriptorSetPool() const { return DescriptorSetPool; }
 
+    private:
+        TSlotMap<FRHITexture,                FRHITextureHandle>             Textures;
+        TSlotMap<FRHISampler,                FRHISamplerHandle>             Samplers;
+        TSlotMap<FRHIBuffer,                 FRHIBufferHandle>              Buffers;
+        TSlotMap<FRHIDescriptorSet,          FRHIDescriptorSetHandle>       DescriptorSets;
+        TSlotMap<FVulkanDescriptorSetLayout, FRHIDescriptorSetLayoutHandle> DescriptorSetLayouts;
+
+
+        template<typename HandleType>
         struct FGarbageItem
         {
-            FRHIResourceHandle ResourceHandle { };
-            UInt8              RetiredFrame   {0};
+            HandleType ResourceHandle { };
+            UInt8      RetiredFrame   {0};
         };
-        TArray<FGarbageItem>                     GarbageBin;
-        TMap<UInt64, TArray<FRHIResourceHandle>> RecycleBin; // Resource may revive
+        TArray<FGarbageItem<FRHITextureHandle>>         GarbageBinTextures;
+        TArray<FGarbageItem<FRHIBufferHandle>>          GarbageBinBuffers;
+        TArray<FGarbageItem<FRHISamplerHandle>>         GarbageBinSamplers;
+        TArray<FGarbageItem<FRHIDescriptorSetHandle>>   GarbageBinDescriptorSets;
 
-        TUniqueRef<FVulkanDriver>  Driver;
+        TMap<UInt64, TArray<FRHITextureHandle>>         RecycleBinTextures;
+        TMap<UInt64, TArray<FRHIBufferHandle>>          RecycleBinBuffers;
+        TMap<UInt64, TArray<FRHISamplerHandle>>         RecycleBinSamplers;
+        TMap<UInt64, TArray<FRHIDescriptorSetHandle>>   RecycleBinDescriptorSets;
+
+        TUniqueRef<FVulkanDriver> Driver;
+        FVulkanDescriptorPool     DescriptorSetPool;
+
+    private:
+        static TArray<vk::DescriptorPoolSize>
+        GetDefaultDescriptorPoolSizes();
 
     private:
         [[nodiscard]] UInt64
@@ -78,12 +117,27 @@ export namespace Visera
             return (Value << 32) | static_cast<UInt64>(I_SamplerDesc.AddressMode);
         }
 
+        [[nodiscard]] UInt64
+        Hash(const FRHIDescriptorSetCreateDesc& I_DescriptorSetDesc) const
+        {
+            UInt64 H = 0;
+            for (const auto& B : I_DescriptorSetDesc.Bindings)
+            {
+                H = Math::GoldenRatioHashCombine(H,
+                    B.binding,
+                    B.descriptorType,
+                    B.descriptorCount,
+                    B.stageFlags);
+            }
+            return H;
+        }
+
     public:
         FRHIRegistry() = delete;
         FRHIRegistry(TUniqueRef<FVulkanDriver> I_Driver)
-        : Driver(I_Driver)
+        : Driver(std::move(I_Driver))
         {
-
+            DescriptorSetPool = Driver->CreateDescriptorPool(GetDefaultDescriptorPoolSizes());
         }
         ~FRHIRegistry()
         {
@@ -91,76 +145,78 @@ export namespace Visera
         }
     };
 
+    inline TArray<vk::DescriptorPoolSize> FRHIRegistry::
+    GetDefaultDescriptorPoolSizes()
+    {
+        return TArray<vk::DescriptorPoolSize>{
+            { vk::DescriptorType::eSampledImage,         1024 },
+            { vk::DescriptorType::eUniformBuffer,         512 },
+            { vk::DescriptorType::eStorageBuffer,         128 },
+            { vk::DescriptorType::eSampler,               256 },
+        };
+    }
 
-    FRHIResourceHandle FRHIRegistry::
+
+    FRHISamplerHandle FRHIRegistry::
     Register(FRHISamplerCreateDesc&& I_SamplerDesc)
     {
         const UInt64 Key = Hash(I_SamplerDesc);
 
-        auto RecycleBinIter = RecycleBin.Find(Key);
-        if (RecycleBinIter != RecycleBin.end())
+        auto RecycleBinIter = RecycleBinSamplers.Find(Key);
+        if (RecycleBinIter != RecycleBinSamplers.end())
         {
             auto& Handles = RecycleBinIter->second;
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const auto Handle = Handles[Idx];
-                if (Handle.GetType() != ERHIResourceType::Sampler) { continue; }
+                const FRHISamplerHandle Handle  = Handles[Idx];
+                const auto*            Sampler = Samplers.Get(Handle);
+                if (Sampler == nullptr) { continue; }
 
-                const auto Sampelr = Samplers.Get(Handle);
-                if (Sampelr == nullptr) { continue; }
-
-                if (Sampelr->GetInfo().IsCompatibleWith(I_SamplerDesc))
+                if (Sampler->GetInfo().IsCompatibleWith(I_SamplerDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
-                    // if (Handles.IsEmpty())
-                    // { RecycleBin.Erase(Key); }
                     return Handle;
                 }
             }
         }
         // Create new resource
-        auto Sampler = Driver->CreateImageSampler(
+        FVulkanSampler   Sampler = Driver->CreateImageSampler(
             TypeCast(I_SamplerDesc.Type),
             TypeCast(I_SamplerDesc.AddressMode));
-
-        auto Handle = Samplers.Insert(
+        FRHISamplerHandle Handle = Samplers.Insert(
             FRHISampler{std::move(I_SamplerDesc), std::move(Sampler)},
-            ERHIResourceType::Sampler, False);
+            False);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return Handle;
     }
 
-    FRHIResourceHandle FRHIRegistry::
+    FRHITextureHandle FRHIRegistry::
     Register(FRHITextureCreateDesc&& I_TextureDesc)
     {
         const UInt64 Key = Hash(I_TextureDesc);
 
-        auto RecycleBinIter = RecycleBin.Find(Key);
-        if (RecycleBinIter != RecycleBin.end())
+        auto RecycleBinIter = RecycleBinTextures.Find(Key);
+        if (RecycleBinIter != RecycleBinTextures.end())
         {
             auto& Handles = RecycleBinIter->second;
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const auto Handle = Handles[Idx];
-                if (Handle.GetType() != ERHIResourceType::Texture) { continue; }
-
-                const auto Texture = Textures.Get(Handle);
+                const FRHITextureHandle Handle  = Handles[Idx];
+                const auto*            Texture = Textures.Get(Handle);
                 if (Texture == nullptr) { continue; }
 
                 if (Texture->GetInfo().IsCompatibleWith(I_TextureDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
-                    // if (Handles.IsEmpty())
-                    // { RecycleBin.Erase(Key); }
                     return Handle;
                 }
             }
         }
         // Create new resource
-        const auto ImageCreateInfo = vk::ImageCreateInfo{}
+        const vk::ImageCreateInfo ImageCreateInfo = vk::ImageCreateInfo{}
             .setImageType   (TypeCast(I_TextureDesc.Type))
             .setFormat      (TypeCast(I_TextureDesc.Format))
             .setUsage       (TypeCast(I_TextureDesc.Usages))
@@ -172,78 +228,126 @@ export namespace Visera
             .setSharingMode (vk::SharingMode::eExclusive)
         ;
 
-        auto Image = Driver->CreateImage(ImageCreateInfo, EVulkanMemoryProperty::Aliasable);
-        auto ImageView = Driver->CreateImageView(&Image,
+        FVulkanImage     Image     = Driver->CreateImage(ImageCreateInfo, EVulkanMemoryProperty::Aliasable);
+        FVulkanImageView ImageView = Driver->CreateImageView(&Image,
             TypeCast(I_TextureDesc.ViewType),
             vk::ImageAspectFlagBits::eColor,
             I_TextureDesc.MipLevelRange,
             I_TextureDesc.ArrayLayerRange);
-
-        auto Handle = Textures.Insert(
+        FRHITextureHandle Handle = Textures.Insert(
             FRHITexture{std::move(I_TextureDesc), std::move(Image), std::move(ImageView)},
-            ERHIResourceType::Texture, True);
+            True);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return Handle;
     }
 
-    FRHIResourceHandle FRHIRegistry::
+    FRHIBufferHandle FRHIRegistry::
     Register(FRHIBufferCreateDesc&& I_BufferDesc)
     {
         const UInt64 Key = Hash(I_BufferDesc);
 
-        auto RecycleBinIter = RecycleBin.Find(Key);
-        if (RecycleBinIter != RecycleBin.end())
+        auto RecycleBinIter = RecycleBinBuffers.Find(Key);
+        if (RecycleBinIter != RecycleBinBuffers.end())
         {
             auto& Handles = RecycleBinIter->second;
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const auto Handle = Handles[Idx];
-                if (Handle.GetType() != ERHIResourceType::Buffer) { continue; }
-
-                const auto Buffer = Buffers.Get(Handle);
+                const FRHIBufferHandle Handle = Handles[Idx];
+                const FRHIBuffer*      Buffer = Buffers.Get(Handle);
                 if (Buffer == nullptr) { continue; }
 
                 if (Buffer->GetInfo().IsCompatibleWith(I_BufferDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
-                    // if (Handles.IsEmpty())
-                    // { RecycleBin.Erase(Key); }
                     return Handle;
                 }
             }
         }
         // Create new resource
-        auto BufferCreateInfo = vk::BufferCreateInfo{}
+        vk::BufferCreateInfo       BufferCreateInfo = vk::BufferCreateInfo{}
             .setSize        (I_BufferDesc.Size)
             .setUsage       (TypeCast(I_BufferDesc.Usages))
             .setSharingMode (vk::SharingMode::eExclusive)
         ;
-
-        auto MemoryProperties = EVulkanMemoryProperty::None;
+        EVulkanMemoryProperty MemoryProperties = EVulkanMemoryProperty::None;
         if (I_BufferDesc.Usages & ERHIBufferUsage::TransferSrc)
         {
             MemoryProperties |= EVulkanMemoryProperty::HostAccessAllowTransferInstead |
                                 EVulkanMemoryProperty::HostAccessSequentialWrite;
         }
 
-        auto Buffer = Driver->CreateBuffer(BufferCreateInfo, MemoryProperties);
-
-        auto Handle = Buffers.Insert(
+        FVulkanBuffer     Buffer = Driver->CreateBuffer(BufferCreateInfo, MemoryProperties);
+        FRHIBufferHandle  Handle = Buffers.Insert(
             FRHIBuffer{std::move(I_BufferDesc), std::move(Buffer)},
-            ERHIResourceType::Buffer, True);
+            True);
+
+        LOG_DEBUG("Created a new resource ({}).", Handle);
+        return Handle;
+    }
+
+    FRHIDescriptorSetHandle FRHIRegistry::
+    Register(FRHIDescriptorSetCreateDesc&& I_DescriptorSetDesc)
+    {
+        VISERA_ASSERT(!I_DescriptorSetDesc.Bindings.IsEmpty());
+        const UInt64 Key = Hash(I_DescriptorSetDesc);
+
+        auto RecycleBinIter = RecycleBinDescriptorSets.Find(Key);
+        if (RecycleBinIter != RecycleBinDescriptorSets.end())
+        {
+            auto& Handles = RecycleBinIter->second;
+
+            for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
+            {
+                const FRHIDescriptorSetHandle Handle = Handles[Idx];
+                const auto* DescriptorSet = DescriptorSets.Get(Handle);
+                if (DescriptorSet == nullptr) { continue; }
+
+                if (DescriptorSet->GetInfo().IsCompatibleWith(I_DescriptorSetDesc))
+                {
+                    Handles.RemoveAtSwap(Idx);
+                    return Handle;
+                }
+            }
+        }
+        FVulkanDescriptorSetLayout Layout =
+            Driver->CreateDescriptorSetLayout(I_DescriptorSetDesc.Bindings);
+        FRHIDescriptorSetLayoutHandle LayoutHandle =
+            DescriptorSetLayouts.Insert(std::move(Layout), False);
+        FVulkanDescriptorSetLayout* LayoutPtr = DescriptorSetLayouts.Get(LayoutHandle);
+        VISERA_ASSERT(LayoutPtr != nullptr);
+        FVulkanDescriptorSet VulkanDescriptorSet = DescriptorSetPool.CreateDescriptorSet(*LayoutPtr);
+        FRHIDescriptorSetHandle Handle = DescriptorSets.Insert(
+            FRHIDescriptorSet{std::move(I_DescriptorSetDesc), std::move(VulkanDescriptorSet)},
+            False);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return Handle;
     }
 
     void FRHIRegistry::
-    Unregister(FRHIResourceHandle I_Handle, UInt8 I_RetiredFrame)
+    Unregister(FRHITextureHandle I_Handle, UInt8 I_RetiredFrame)
     {
-        GarbageBin.PushBack({
-            .ResourceHandle = I_Handle,
-            .RetiredFrame = I_RetiredFrame});
+        GarbageBinTextures.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
+    }
+
+    void FRHIRegistry::
+    Unregister(FRHIBufferHandle I_Handle, UInt8 I_RetiredFrame)
+    {
+        GarbageBinBuffers.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
+    }
+
+    void FRHIRegistry::
+    Unregister(FRHISamplerHandle I_Handle, UInt8 I_RetiredFrame)
+    {
+        GarbageBinSamplers.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
+    }
+
+    void FRHIRegistry::
+    Unregister(FRHIDescriptorSetHandle I_Handle, UInt8 I_RetiredFrame)
+    {
+        GarbageBinDescriptorSets.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
     }
 
     /**
@@ -252,41 +356,57 @@ export namespace Visera
     void FRHIRegistry::
     CollectGarbage(UInt8 I_FrameIndex)
     {
-        for (UInt32 Idx = 0; Idx < GarbageBin.GetSize();)
+        for (UInt32 Idx = 0; Idx < GarbageBinTextures.GetSize();)
         {
-            auto& CurrentItem = GarbageBin[Idx];
-            if (CurrentItem.RetiredFrame != I_FrameIndex) // Per-Frame Fence mode
+            auto& CurrentItem = GarbageBinTextures[Idx];
+            if (CurrentItem.RetiredFrame != I_FrameIndex)
             {
-                Idx += 1; // Next Idx
+                Idx += 1;
                 continue;
             }
-            // Move the resource to the Recycle Bin.
-            auto Type   = CurrentItem.ResourceHandle.GetType();
-            auto Handle = CurrentItem.ResourceHandle;
-            switch (Type)
+            const auto* Texture = Textures.Get(CurrentItem.ResourceHandle);
+            VISERA_ASSERT(Texture != nullptr);
+            RecycleBinTextures[Hash(Texture->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
+            GarbageBinTextures.RemoveAtSwap(Idx);
+        }
+        for (UInt32 Idx = 0; Idx < GarbageBinBuffers.GetSize();)
+        {
+            auto& CurrentItem = GarbageBinBuffers[Idx];
+            if (CurrentItem.RetiredFrame != I_FrameIndex)
             {
-            case ERHIResourceType::Texture:
-                {
-                    const auto Texture = Textures.Get(CurrentItem.ResourceHandle);
-                    VISERA_ASSERT(Texture != nullptr);
-                    RecycleBin[Hash(Texture->GetInfo())].EmplaceBack(Handle);
-                } break;
-            case ERHIResourceType::Sampler:
-                {
-                    const auto Sampler = Samplers.Get(CurrentItem.ResourceHandle);
-                    VISERA_ASSERT(Sampler != nullptr);
-                    RecycleBin[Hash(Sampler->GetInfo())].EmplaceBack(Handle);
-                } break;
-            case ERHIResourceType::Buffer:
-                {
-                    const auto Buffer = Buffers.Get(CurrentItem.ResourceHandle);
-                    VISERA_ASSERT(Buffer != nullptr);
-                    RecycleBin[Hash(Buffer->GetInfo())].EmplaceBack(Handle);
-                } break;
-            default:
-                LOG_ERROR("Unknown Resource Type (handle:{})", CurrentItem.ResourceHandle);
+                Idx += 1;
+                continue;
             }
-            GarbageBin.RemoveAtSwap(Idx);
+            const auto* Buffer = Buffers.Get(CurrentItem.ResourceHandle);
+            VISERA_ASSERT(Buffer != nullptr);
+            RecycleBinBuffers[Hash(Buffer->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
+            GarbageBinBuffers.RemoveAtSwap(Idx);
+        }
+        for (UInt32 Idx = 0; Idx < GarbageBinSamplers.GetSize();)
+        {
+            auto& CurrentItem = GarbageBinSamplers[Idx];
+            if (CurrentItem.RetiredFrame != I_FrameIndex)
+            {
+                Idx += 1;
+                continue;
+            }
+            const auto* Sampler = Samplers.Get(CurrentItem.ResourceHandle);
+            VISERA_ASSERT(Sampler != nullptr);
+            RecycleBinSamplers[Hash(Sampler->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
+            GarbageBinSamplers.RemoveAtSwap(Idx);
+        }
+        for (UInt32 Idx = 0; Idx < GarbageBinDescriptorSets.GetSize();)
+        {
+            auto& CurrentItem = GarbageBinDescriptorSets[Idx];
+            if (CurrentItem.RetiredFrame != I_FrameIndex)
+            {
+                Idx += 1;
+                continue;
+            }
+            const auto* DescriptorSet = DescriptorSets.Get(CurrentItem.ResourceHandle);
+            VISERA_ASSERT(DescriptorSet != nullptr);
+            RecycleBinDescriptorSets[Hash(DescriptorSet->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
+            GarbageBinDescriptorSets.RemoveAtSwap(Idx);
         }
     }
 
@@ -296,35 +416,49 @@ export namespace Visera
     void FRHIRegistry::
     ClearGarbage()
     {
-        if (RecycleBin.IsEmpty()) { return; }
-
-        for (auto& Handles : RecycleBin | std::views::values)
+        for (auto& Handles : RecycleBinTextures | std::views::values)
         {
             for (auto Handle : Handles)
             {
-                switch (Handle.GetType())
-                {
-                case ERHIResourceType::Texture:
-                    {
-                        if (!Textures.Erase(Handle))
-                        { LOG_ERROR("Failed to erase the texture (handle:{})!", Handle); }
-                    } break;
-                case ERHIResourceType::Sampler:
-                    {
-                        if (!Samplers.Erase(Handle))
-                        { LOG_ERROR("Failed to erase the sampler (handle:{})!", Handle); }
-                    } break;
-                case ERHIResourceType::Buffer:
-                    {
-                        if (!Buffers.Erase(Handle))
-                        { LOG_ERROR("Failed to erase the buffer (handle:{})!", Handle); }
-                    } break;
-                default:
-                    LOG_ERROR("Unknown Resource Type (handle:{})", Handle);
-                }
-                LOG_DEBUG("Destroyed a resource ({}).", Handle);
+                if (!Textures.Erase(Handle))
+                { LOG_ERROR("Failed to erase the texture (handle:{})!", Handle); }
+                else
+                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
             }
         }
-        RecycleBin.Clear();
+        RecycleBinTextures.Clear();
+        for (auto& Handles : RecycleBinBuffers | std::views::values)
+        {
+            for (auto Handle : Handles)
+            {
+                if (!Buffers.Erase(Handle))
+                { LOG_ERROR("Failed to erase the buffer (handle:{})!", Handle); }
+                else
+                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+            }
+        }
+        RecycleBinBuffers.Clear();
+        for (auto& Handles : RecycleBinSamplers | std::views::values)
+        {
+            for (auto Handle : Handles)
+            {
+                if (!Samplers.Erase(Handle))
+                { LOG_ERROR("Failed to erase the sampler (handle:{})!", Handle); }
+                else
+                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+            }
+        }
+        RecycleBinSamplers.Clear();
+        for (auto& Handles : RecycleBinDescriptorSets | std::views::values)
+        {
+            for (auto Handle : Handles)
+            {
+                if (!DescriptorSets.Erase(Handle))
+                { LOG_ERROR("Failed to erase the descriptor set (handle:{})!", Handle); }
+                else
+                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+            }
+        }
+        RecycleBinDescriptorSets.Clear();
     }
 }

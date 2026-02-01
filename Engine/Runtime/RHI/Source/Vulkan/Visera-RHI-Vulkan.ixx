@@ -25,7 +25,6 @@ export import Visera.RHI.Vulkan.Sync;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Set;
        import Visera.Core.Types.Array;
-       import Visera.Core.Traits.Flags;
        import Visera.Global;
        import Visera.Platform;
        import vulkan_hpp;

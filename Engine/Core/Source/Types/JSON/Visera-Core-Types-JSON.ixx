@@ -88,7 +88,7 @@ export namespace Visera
         GetTextArray(FStringView I_Key) const noexcept
         {
             TArray<FText> Result;
-            TryGetTextArray(I_Key, &Result);
+            (void)TryGetTextArray(I_Key, &Result);
             return Result;
         }
 
@@ -181,7 +181,7 @@ export namespace Visera
         GetTextArrayPath(FStringView I_Path) const noexcept
         {
             TArray<FText> Result;
-            TryGetTextArrayPath(I_Path, &Result);
+            (void)TryGetTextArrayPath(I_Path, &Result);
             return Result;
         }
 

@@ -90,7 +90,6 @@ export namespace Visera
         InitializeSwapChain()
         {
 #if !defined(VISERA_OFFSCREEN_MODE)
-
             InFlightFrames.Resize(Driver->GetSwapChain().Images.GetSize());
             for (auto& Frame : InFlightFrames)
             {
@@ -104,7 +103,7 @@ export namespace Visera
                 Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
                 Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
             }
-            auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
+            FRHIDrawCalls Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
             Cmd.Begin();
             {
                 for (auto& Image : Driver->GetSwapChain().Images)
@@ -116,14 +115,13 @@ export namespace Visera
                         EVulkanGraphicsAccess::None);
                 }
                 Cmd.End();
-                auto Fence = Driver->CreateFence(False);
+                FVulkanFence Fence = Driver->CreateFence(False);
 
                 Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
                 if (!Fence.Wait())
                 {
                     LOG_FATAL("Failed to init RHI SwapChain!");
                 }
-
 #else
             InFlightFrames.Resize(1);
             for (auto& Frame : InFlightFrames)
@@ -227,7 +225,7 @@ export namespace Visera
     Bool FRHI::
     BeginFrame()
     {
-        auto& CurrentFrame = InFlightFrames[FrameIndex];
+        FFrame& CurrentFrame = InFlightFrames[FrameIndex];
 
         if (!CurrentFrame.Fence.Wait()) { return False; }
 
@@ -259,7 +257,7 @@ export namespace Visera
     void FRHI::
     EndFrame()
     {
-        auto& CurrentFrame = InFlightFrames[FrameIndex];
+        FFrame& CurrentFrame = InFlightFrames[FrameIndex];
         OnEndFrame.Broadcast();
 
         CurrentFrame.TransferCalls.End();
@@ -289,7 +287,7 @@ export namespace Visera
     void FRHI::
     Submit(const FRHICommandList& I_CommandList)
     {
-        auto& Frame = InFlightFrames[FrameIndex];
+        FFrame& Frame = InFlightFrames[FrameIndex];
         VISERA_ASSERT(Frame.DrawCalls.IsRecording());
         VISERA_ASSERT(Frame.TransferCalls.IsRecording());
 
@@ -303,12 +301,12 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FConvertImageLayout*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Texture);
 
                     auto* Img = Texture->GetVulkanImage();
-                    const auto OldLayout = Img->GetLayout();
-                    const auto NewLayout = TypeCast(Payload->NewLayout);
+                    vk::ImageLayout OldLayout = Img->GetLayout();
+                    vk::ImageLayout NewLayout = TypeCast(Payload->NewLayout);
 
                     EVulkanGraphicsStage  SrcStage{},  DstStage{};
                     EVulkanGraphicsAccess SrcAccess{}, DstAccess{};
@@ -321,7 +319,7 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FClearColorImage*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Texture);
 
                     Frame.DrawCalls.ClearColorImage(Texture->GetVulkanImage(),{
@@ -336,8 +334,8 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitImage*>(Command.PayloadPtrAligned);
 
-                    auto* SrcTexture = Registry->GetTexture(Payload->SrcImage);
-                    auto* DstTexture = Registry->GetTexture(Payload->DstImage);
+                    auto* SrcTexture = Registry->Get(Payload->SrcImage);
+                    auto* DstTexture = Registry->Get(Payload->DstImage);
                     VISERA_ASSERT(SrcTexture && DstTexture);
 
                     Frame.DrawCalls.BlitImage(
@@ -351,12 +349,12 @@ export namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitToSwapChain*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->GetTexture(Payload->Image);
-                    VISERA_ASSERT(Texture);
+                    auto* Texture        = Registry->Get(Payload->Image);
                     auto* SwapChainImage = Driver->GetSwapChain().GetCurrentImage();
+                    VISERA_ASSERT(Texture);
                     {
-                        const auto OldLayout = SwapChainImage->GetLayout();
-                        const auto NewLayout = TypeCast(ERHIImageLayout::TransferDst);
+                        vk::ImageLayout OldLayout = SwapChainImage->GetLayout();
+                        vk::ImageLayout NewLayout = TypeCast(ERHIImageLayout::TransferDst);
                         EVulkanGraphicsStage  SrcStage{},  DstStage{};
                         EVulkanGraphicsAccess SrcAccess{}, DstAccess{};
                         InferGraphicsBarrier(OldLayout, NewLayout, &SrcStage, &SrcAccess, &DstStage, &DstAccess);
@@ -367,8 +365,8 @@ export namespace Visera
                         SwapChainImage,
                         TypeCast(Payload->Filter));
                     {
-                        const auto OldLayout = SwapChainImage->GetLayout();
-                        const auto NewLayout = TypeCast(ERHIImageLayout::Present);
+                        vk::ImageLayout OldLayout = SwapChainImage->GetLayout();
+                        vk::ImageLayout NewLayout = TypeCast(ERHIImageLayout::Present);
                         EVulkanGraphicsStage  SrcStage{},  DstStage{};
                         EVulkanGraphicsAccess SrcAccess{}, DstAccess{};
                         InferGraphicsBarrier(OldLayout, NewLayout, &SrcStage, &SrcAccess, &DstStage, &DstAccess);
@@ -380,13 +378,14 @@ export namespace Visera
             case ECommandType::CopyBufferToImage:
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FCopyBufferToImage*>(Command.PayloadPtrAligned);
-                    auto* Buffer  = Registry->GetBuffer(Payload->Buffer);
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+
+                    auto* Buffer  = Registry->Get(Payload->Buffer);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Buffer && Texture);
                     auto* VulkanBuffer = Buffer->GetVulkanBuffer();
                     auto* VulkanImage  = Texture->GetVulkanImage();
-                    const auto OldLayout = VulkanImage->GetLayout();
-                    const auto TransferDst = TypeCast(ERHIImageLayout::TransferDst);
+                    vk::ImageLayout OldLayout    = VulkanImage->GetLayout();
+                    vk::ImageLayout TransferDst   = TypeCast(ERHIImageLayout::TransferDst);
                     {
                         EVulkanTransferStage  SrcStage{}, DstStage{};
                         EVulkanTransferAccess SrcAccess{}, DstAccess{};
@@ -405,7 +404,8 @@ export namespace Visera
             case ECommandType::WriteBuffer:
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FWriteBuffer*>(Command.PayloadPtrAligned);
-                    auto Buffer = Registry->GetBuffer(Payload->Buffer);
+
+                    auto* Buffer       = Registry->Get(Payload->Buffer);
                     VISERA_ASSERT(Buffer && Payload->Data);
                     auto* VulkanBuffer = Buffer->GetVulkanBuffer();
                     if (VulkanBuffer->IsHostWritable())
@@ -429,7 +429,7 @@ export namespace Visera
     {
         // Use LastSubmittedFrameIndex instead of calculating PrevFrameIndex
         // to avoid issues when EndFrame() and Present() are called in different contexts
-        auto& SubmittedFrame = InFlightFrames[LastSubmittedFrameIndex];
+        FFrame& SubmittedFrame = InFlightFrames[LastSubmittedFrameIndex];
         if (!Driver->Present(&SubmittedFrame.RenderFinishedSemaphore))
         {
             LOG_ERROR("Failed to present frame {}!", LastSubmittedFrameIndex);
@@ -454,10 +454,10 @@ export namespace Visera
                 const FByte*            I_InitialData,
                 UInt64                  I_InitialDataSize)
     {
-        auto Handle = Registry->Register(std::move(I_BufferDesc));
+        FRHIBufferHandle Handle = Registry->Register(std::move(I_BufferDesc));
         if (I_InitialData)
         {
-            auto Buffer = Registry->GetBuffer(Handle);
+            auto* Buffer = Registry->Get(Handle);
             Buffer->Write(I_InitialData, I_InitialDataSize);
         }
         return Handle;
