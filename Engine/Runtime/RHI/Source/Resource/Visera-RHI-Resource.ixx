@@ -5,8 +5,7 @@ export module Visera.RHI.Resource;
 export import Visera.RHI.Resource.Texture;
 export import Visera.RHI.Resource.Sampler;
 export import Visera.RHI.Resource.Buffer;
-       import Visera.Core.Types.Handle;
-       import Visera.Core.Math.Arithmetic.Interval;
+export import Visera.RHI.Resource.DescriptorSet;
 
 export namespace Visera
 {

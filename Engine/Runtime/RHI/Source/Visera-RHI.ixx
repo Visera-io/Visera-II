@@ -7,10 +7,10 @@ export import Visera.RHI.Resource;
 export import Visera.RHI.CommandList;
        import Visera.RHI.Vulkan;
        import Visera.RHI.Registry;
+       import Visera.Platform.Window;
        import Visera.Core.Types.Array;
        import Visera.Core.Delegate;
-       import Visera.Global.Service;
-       import Visera.Global.Log;
+       import Visera.Global;
        import vulkan_hpp;
 
 export namespace Visera
@@ -41,6 +41,26 @@ export namespace Visera
         void
         DestroySampler(FRHISamplerHandle I_SamplerHandle, Bool I_bTransient = False);
 
+        [[nodiscard]] FRHIDescriptorSetHandle
+        CreateDescriptorSet(FRHIDescriptorSetCreateDesc&& I_CreateDesc);
+        void
+        DestroyDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSetHandle, Bool I_bTransient = False);
+        void
+        UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
+                            UInt32                 I_Binding,
+                            FRHITextureHandle      I_Texture,
+                            UInt32                 I_ArrayElement = 0);
+        void
+        UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
+                            UInt32                 I_Binding,
+                            FRHISamplerHandle      I_Sampler,
+                            UInt32                 I_ArrayElement = 0);
+        void
+        UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
+                            UInt32                 I_Binding,
+                            FRHIBufferHandle       I_Buffer,
+                            UInt32                 I_ArrayElement = 0);
+
         [[nodiscard]] Bool
         BeginFrame();
         void
@@ -69,11 +89,6 @@ export namespace Visera
         GraphicsCommandPool;
         FVulkanCommandPool<EVulkanQueueFamily::Transfer>
         TransferCommandPool;
-        //[TODO]: Remove
-        vk::raii::DescriptorPool
-        GlobalDescriptorPool {nullptr};
-        FVulkanDescriptorSetLayout
-        GlobalDescriptorSetLayout;
 
         struct FFrame
         {
@@ -89,6 +104,60 @@ export namespace Visera
         };
         TArray<FFrame> InFlightFrames;
         UInt8          FrameIndex = 0;
+        UInt8          LastSubmittedFrameIndex = 0; // Frame index that was last submitted in EndFrame()
+
+        void
+        InitializeSwapChain()
+        {
+#if !defined(VISERA_OFFSCREEN_MODE)
+
+            InFlightFrames.Resize(Driver->GetSwapChain().Images.GetSize());
+            for (auto& Frame : InFlightFrames)
+            {
+                Frame.Fence = Driver->CreateFence(True);
+
+                Frame.SwapChainReadySemaphore = Driver->CreateSemaphore();
+
+                Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
+                Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
+
+                Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
+                Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
+            }
+            auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
+            Cmd.Begin();
+            {
+                for (auto& Image : Driver->GetSwapChain().Images)
+                    Cmd.ConvertImageLayout(&Image,
+                        vk::ImageLayout::ePresentSrcKHR,
+                        EVulkanGraphicsStage::TopOfPipe,
+                        EVulkanGraphicsAccess::None,
+                        EVulkanGraphicsStage::BottomOfPipe,
+                        EVulkanGraphicsAccess::None);
+                }
+                Cmd.End();
+                auto Fence = Driver->CreateFence(False);
+
+                Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
+                if (!Fence.Wait())
+                {
+                    LOG_FATAL("Failed to init RHI SwapChain!");
+                }
+
+#else
+            InFlightFrames.Resize(1);
+            for (auto& Frame : InFlightFrames)
+            {
+                Frame.Fence = Driver->CreateFence(True);
+
+                Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
+                Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
+
+                Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
+                Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
+            }
+#endif
+        }
 
     public:
         FRHI() : IGlobalService(EName::RHI)
@@ -121,89 +190,14 @@ export namespace Visera
                     False
                 );
 
-                // Descriptor Pools
-                TArray<vk::DescriptorPoolSize> PoolSizes(2);
-                PoolSizes[0] = vk::DescriptorPoolSize{}
-                    .setType(vk::DescriptorType::eUniformBuffer)
-                    .setDescriptorCount(1000);
-                PoolSizes[1] = vk::DescriptorPoolSize{}
-                    .setType(vk::DescriptorType::eCombinedImageSampler)
-                    .setDescriptorCount(1000);
-
-                auto DescritorPoolCreateInfo = vk::DescriptorPoolCreateInfo{}
-                    .setMaxSets(Driver->GetGPU().Properties.limits.maxBoundDescriptorSets)
-                    .setPoolSizeCount(PoolSizes.GetSize())
-                    .setPPoolSizes(PoolSizes.Data())
-                ;
-                auto Result = Driver->GetDevice().Context.createDescriptorPool(DescritorPoolCreateInfo);
-                if (Result.has_value())
+                Get<FWindow>(EName::Window)->OnResizeWindow.Subscribe([this]
+                (UInt32 I_NewWidth, UInt32 I_NewHeight)
                 {
-                    GlobalDescriptorPool = std::move(*Result);
-                }
-                else { LOG_FATAL("Failed to create the global descriptor pool!"); }
+                    LOG_DEBUG("Recreating SwapChain.");
+                    Driver->RecreateSwapChain();
+                    InitializeSwapChain();
+                });
 
-                TArray<vk::DescriptorSetLayoutBinding> Bindings(2);
-                Bindings[0] = vk::DescriptorSetLayoutBinding{}
-                    .setBinding(0)
-                    .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-                    .setDescriptorCount(1)
-                    .setStageFlags(vk::ShaderStageFlagBits::eAll)
-                ;
-                Bindings[1] = vk::DescriptorSetLayoutBinding{}
-                    .setBinding(1)
-                    .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-                    .setDescriptorCount(1)
-                    .setStageFlags(vk::ShaderStageFlagBits::eAll)
-                ;
-                GlobalDescriptorSetLayout = Driver->CreateDescriptorSetLayout(Bindings);
-
-#if !defined(VISERA_OFFSCREEN_MODE)
-                auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
-                Cmd.Begin();
-                {
-                    for (auto& Image : Driver->GetSwapChain().Images)
-                    Cmd.ConvertImageLayout(&Image,
-                        vk::ImageLayout::ePresentSrcKHR,
-                        EVulkanGraphicsStage::TopOfPipe,
-                        EVulkanGraphicsAccess::None,
-                        EVulkanGraphicsStage::BottomOfPipe,
-                        EVulkanGraphicsAccess::None);
-                }
-                Cmd.End();
-                auto Fence = Driver->CreateFence(False);
-
-                Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-                if (!Fence.Wait())
-                {
-                    LOG_FATAL("Failed to init RHI SwapChain!");
-                }
-
-                InFlightFrames.Resize(Driver->GetSwapChain().Images.GetSize());
-                for (auto& Frame : InFlightFrames)
-                {
-                    Frame.Fence = Driver->CreateFence(True);
-
-                    Frame.SwapChainReadySemaphore = Driver->CreateSemaphore();
-
-                    Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
-                    Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
-
-                    Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
-                    Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
-                }
-#else
-                InFlightFrames.Resize(1);
-                for (auto& Frame : InFlightFrames)
-                {
-                    Frame.Fence = Driver->CreateFence(True);
-
-                    Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
-                    Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
-
-                    Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
-                    Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
-                }
-#endif
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
@@ -212,8 +206,6 @@ export namespace Visera
             {
                 Driver->WaitIdle();
                 InFlightFrames.Clear();
-                GlobalDescriptorSetLayout = {};
-                GlobalDescriptorPool.clear();
                 GraphicsCommandPool = {};
                 TransferCommandPool = {};
                 Registry.reset();
@@ -225,7 +217,7 @@ export namespace Visera
     private:
         // Map a single vk::ImageLayout to the stage/access for barrier src or dst.
         static void MapGraphicsLayoutToBarrier(
-            vk::ImageLayout         I_Layout,
+            vk::ImageLayout        I_Layout,
             EVulkanGraphicsStage*  IO_Stage,
             EVulkanGraphicsAccess* IO_Access);
 
@@ -239,7 +231,7 @@ export namespace Visera
             EVulkanGraphicsAccess* IO_DstAccess) const;
 
         static void MapTransferLayoutToBarrier(
-            vk::ImageLayout         I_Layout,
+            vk::ImageLayout        I_Layout,
             EVulkanTransferStage*  IO_Stage,
             EVulkanTransferAccess* IO_Access);
 
@@ -255,7 +247,6 @@ export namespace Visera
     Bool FRHI::
     BeginFrame()
     {
-        FrameIndex = (FrameIndex + 1) % InFlightFrames.GetSize();
         auto& CurrentFrame = InFlightFrames[FrameIndex];
 
         if (!CurrentFrame.Fence.Wait()) { return False; }
@@ -309,6 +300,10 @@ export namespace Visera
         &CurrentFrame.Fence);
 
         Registry->ClearGarbage();
+
+        // Record the frame index that was just submitted before incrementing
+        LastSubmittedFrameIndex = FrameIndex;
+        FrameIndex = (FrameIndex + 1) % InFlightFrames.GetSize();
     }
 
     void FRHI::
@@ -328,7 +323,7 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FConvertImageLayout*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Texture);
 
                     auto* Img = Texture->GetVulkanImage();
@@ -346,7 +341,7 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FClearColorImage*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Texture);
 
                     Frame.DrawCalls.ClearColorImage(Texture->GetVulkanImage(),{
@@ -361,8 +356,8 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitImage*>(Command.PayloadPtrAligned);
 
-                    auto* SrcTexture = Registry->GetTexture(Payload->SrcImage);
-                    auto* DstTexture = Registry->GetTexture(Payload->DstImage);
+                    auto* SrcTexture = Registry->Get(Payload->SrcImage);
+                    auto* DstTexture = Registry->Get(Payload->DstImage);
                     VISERA_ASSERT(SrcTexture && DstTexture);
 
                     Frame.DrawCalls.BlitImage(
@@ -376,7 +371,7 @@ export namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitToSwapChain*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Texture);
                     auto* SwapChainImage = Driver->GetSwapChain().GetCurrentImage();
                     {
@@ -405,8 +400,8 @@ export namespace Visera
             case ECommandType::CopyBufferToImage:
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FCopyBufferToImage*>(Command.PayloadPtrAligned);
-                    auto* Buffer  = Registry->GetBuffer(Payload->Buffer);
-                    auto* Texture = Registry->GetTexture(Payload->Image);
+                    auto* Buffer  = Registry->Get(Payload->Buffer);
+                    auto* Texture = Registry->Get(Payload->Image);
                     VISERA_ASSERT(Buffer && Texture);
                     auto* VulkanBuffer = Buffer->GetVulkanBuffer();
                     auto* VulkanImage  = Texture->GetVulkanImage();
@@ -430,7 +425,7 @@ export namespace Visera
             case ECommandType::WriteBuffer:
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FWriteBuffer*>(Command.PayloadPtrAligned);
-                    auto Buffer = Registry->GetBuffer(Payload->Buffer);
+                    auto Buffer = Registry->Get(Payload->Buffer);
                     VISERA_ASSERT(Buffer && Payload->Data);
                     auto* VulkanBuffer = Buffer->GetVulkanBuffer();
                     if (VulkanBuffer->IsHostWritable())
@@ -452,10 +447,12 @@ export namespace Visera
     void FRHI::
     Present()
     {
-        auto& CurrentFrame = InFlightFrames[FrameIndex];
-        if (!Driver->Present(&CurrentFrame.RenderFinishedSemaphore))
+        // Use LastSubmittedFrameIndex instead of calculating PrevFrameIndex
+        // to avoid issues when EndFrame() and Present() are called in different contexts
+        auto& SubmittedFrame = InFlightFrames[LastSubmittedFrameIndex];
+        if (!Driver->Present(&SubmittedFrame.RenderFinishedSemaphore))
         {
-            LOG_ERROR("Failed to present!");
+            LOG_ERROR("Failed to present frame {}!", LastSubmittedFrameIndex);
         }
     }
 
@@ -480,7 +477,7 @@ export namespace Visera
         auto Handle = Registry->Register(std::move(I_BufferDesc));
         if (I_InitialData)
         {
-            auto Buffer = Registry->GetBuffer(Handle);
+            auto Buffer = Registry->Get(Handle);
             Buffer->Write(I_InitialData, I_InitialDataSize);
         }
         return Handle;
@@ -504,6 +501,55 @@ export namespace Visera
     {
         UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
         Registry->Unregister(I_SamplerHandle, RetiredFrame);
+    }
+
+    FRHIDescriptorSetHandle FRHI::
+    CreateDescriptorSet(FRHIDescriptorSetCreateDesc&& I_CreateDesc)
+    {
+        return Registry->Register(std::move(I_CreateDesc));
+    }
+
+    void FRHI::
+    DestroyDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSetHandle, Bool I_bTransient)
+    {
+        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
+        Registry->Unregister(I_DescriptorSetHandle, RetiredFrame);
+    }
+
+    void FRHI::
+    UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
+                        UInt32                 I_Binding,
+                        FRHITextureHandle      I_Texture,
+                        UInt32                 I_ArrayElement)
+    {
+        auto* Set     = Registry->Get(I_DescriptorSet);
+        auto* Texture = Registry->Get(I_Texture);
+        VISERA_ASSERT(Set != nullptr && Texture != nullptr);
+        Set->WriteSampledImage(I_Binding, Texture->GetVulkanImageView(), I_ArrayElement);
+    }
+
+    void FRHI::
+    UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
+                        UInt32                 I_Binding,
+                        FRHISamplerHandle      I_Sampler,
+                        UInt32                 I_ArrayElement)
+    {
+        auto* Set   = Registry->Get(I_DescriptorSet);
+        auto* Sampler = Registry->Get(I_Sampler);
+        VISERA_ASSERT(Set != nullptr && Sampler != nullptr);
+        Set->WriteSampler(I_Binding, Sampler->GetVulkanSampler(), I_ArrayElement);
+    }
+
+    void FRHI::
+    UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
+                        UInt32                 I_Binding,
+                        FRHIBufferHandle       I_Buffer,
+                        UInt32                 I_ArrayElement)
+    {
+        auto* Set   = Registry->Get(I_DescriptorSet);
+        auto* Buffer = Registry->Get(I_Buffer);
+        VISERA_ASSERT(Set != nullptr && Buffer != nullptr);
+        Set->WriteUniformBuffer(I_Binding, Buffer->GetVulkanBuffer(), I_ArrayElement);
     }
 
     void FRHI::
