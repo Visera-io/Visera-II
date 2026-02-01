@@ -8,9 +8,6 @@
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_TASKS_SCRIPTS_DIR})
 
-    include(install_taskflow)
-    link_taskflow(${in_target})
-
     file(GLOB_RECURSE VISERA_TASKS_MODULES "${VISERA_TASKS_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}
