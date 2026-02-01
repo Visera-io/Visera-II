@@ -1,7 +1,5 @@
 module;
 #include <Visera.hpp>
-
-#include "Visera-Core.hpp"
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
@@ -11,6 +9,7 @@ import Visera.Audio;
 import Visera.Global;
 import Visera.Platform;
 import Visera.Graphics;
+import Visera.Graphics.Renderer;
 import Visera.AssetHub;
 using namespace Visera;
 
@@ -40,8 +39,8 @@ struct FEngine
             TArray<FByte> FileData = File->ReadAll();
             if (!FileData.IsEmpty())
             {
-                Configuration = FJSON(reinterpret_cast<const char*>(FileData.Data()));
-                LOG_INFO("Config.json dump:\n{}", Configuration.Dump());
+                Configuration = FJSON(FileData);
+                LOG_INFO("\n{}", Configuration.Dump());
             }
             else
             {
@@ -50,92 +49,73 @@ struct FEngine
         }
         else { LOG_ERROR("Failed to open config.json"); }
 
-        auto Textures = Configuration.GetTextArrayPath("Assets.Textures");
-        auto TestImage = AssetHub->LoadImage(Textures[0]);
+        auto TexturePaths = Configuration.GetTextArrayPath("Assets.Textures");
+        TSharedPtr<FImage> TestImage;
+        FTextureID TexID;
+
+        FSeedPool SeedPool;
+        FPCG32 PCG{};
+        PCG.SetSequence(0, SeedPool.Get());
+        UInt32 Idx = Math::Round(PCG.Uniform() * TexturePaths.GetSize());
+        LOG_INFO("{}", Idx);
+
+        FEvent TextureUpload;
+        Tasks->Enqueue([&]
+        {
+            TestImage = AssetHub->LoadImage(TexturePaths[Idx]);
+            TexID = Graphics->CreateTexture2D(TestImage);
+            TextureUpload.Trigger();
+        });
+        TextureUpload.Wait();
         Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
 
-        auto TestSampler = RHI->CreateSampler(FRHISamplerCreateDesc
+        auto TestTexture = Graphics->GetTexture2D(TexID);
+
+        auto Material = MakeShared<FMaterial>("Assets/App/Material/BasicSprite.vmaterial");
+        if (Material->IsValid())
+        {
+            const char* SurfaceName = "Unknown";
+            switch (Material->GetSurface())
             {
-                .Type        = ERHISamplerType::Linear,
-                .AddressMode = ERHISamplerAddressMode::Repeat,
-            });
-        RHI->DestroySampler(TestSampler);
+            case ESurfaceType::Opaque:      SurfaceName = "Opaque";      break;
+            case ESurfaceType::Masked:     SurfaceName = "Masked";      break;
+            case ESurfaceType::Transparent: SurfaceName = "Transparent"; break;
+            }
+            LOG_INFO("[Material] Version={} Shader=\"{}\" Surface={} BaseColorPath=\"{}\"",
+                     Material->GetVersion(),
+                     Material->GetShader(),
+                     SurfaceName,
+                     Material->GetBaseColorPath());
+        }
+        else { LOG_WARN("[Material] Load failed or invalid (check Assets/App/Material/BasicSprite.vmaterial)"); }
+
+        Material->SetBaseColorHandle(TexID);
+
+        FSpriteRenderer Sprite;
+        Sprite.SetMaterial(Material);
 
         while (!Window->ShouldClose())
         {
             Window->PollEvents();
 
             if (!RHI->BeginFrame()) { continue; }
+
+            Graphics->Tick(0);
+
             Commands.Reset();
 
-            auto RHIFormat = ERHIFormat::Undefined;
-            switch (TestImage->GetPixelFormat())
-            {
-            case EPixelFormat::RGBA8_UNorm:
-                if (TestImage->GetColorSpace() == EColorSpace::sRGB)
-                {
-                    RHIFormat = ERHIFormat::R8G8B8A8_sRGB;
-                }
-                else
-                {
-                    RHIFormat = ERHIFormat::R8G8B8A8_UNorm;
-                }
-                break;
-            case EPixelFormat::RGBA16_Float:
-                RHIFormat = ERHIFormat::R16G16B16A16_Float;
-                break;
-            default: LOG_FATAL("Unknown pixel format!");
-            }
-
-            if(!TestImage->IsRGBA())
-            { LOG_FATAL("Not RGBA!"); }
-            auto Texture = RHI->CreateTexture({
-                .Width      = TestImage->GetWidth(),
-                .Height     = TestImage->GetHeight(),
-                .Depth      = 1,
-                .Format     =  RHIFormat,
-                .Type       =  ERHIImageType::Image2D,
-                .Usages = ERHIImageUsage::ShaderResource |
-                          ERHIImageUsage::TransferSrc  |
-                          ERHIImageUsage::TransferDst,
-                .ViewType = ERHIImageViewType::Image2D,}
-            );
-            static TSet<FRHITextureHandle> InitedTextures;
-            if (!InitedTextures.Contains(Texture))
-            {
-                LOG_INFO("Copying Buffer to Image");
-
-                auto Buffer = RHI->CreateBuffer({
-                    .Size   = TestImage->GetSizeInBytes(),
-                    .Usages = ERHIBufferUsage::TransferSrc
-                }, TestImage->GetData(), TestImage->GetSizeInBytes());
-
-                Commands.CopyBufferToImage(Buffer, Texture);
-                InitedTextures.Insert(Texture);
-                RHI->DestroyBuffer(Buffer);
-            }
             // Rendering
             {
 
             }
-
-            Commands.ConvertImageLayout (Texture, ERHIImageLayout::TransferDst);
-
-            Commands.ConvertImageLayout (Texture, ERHIImageLayout::TransferSrc);
-            Commands.BlitToSwapChain    (Texture, ERHIFilter::Nearest);
-            Commands.ConvertImageLayout (Texture, ERHIImageLayout::ShaderReadOnly);
-
-            // for (auto Command : Commands)
-            // {
-            //     LOG_INFO("Visera Engine Command :{} ", Command.Type);
-            // }
+            Commands.ConvertImageLayout(TestTexture->TextureHandle, ERHIImageLayout::TransferSrc);
+            Commands.BlitToSwapChain(TestTexture->TextureHandle, ERHIFilter::Linear);
+            Commands.ConvertImageLayout(TestTexture->TextureHandle, ERHIImageLayout::ShaderReadOnly);
 
             RHI->Submit(Commands);
 
             RHI->EndFrame();
             RHI->Present();
-
-            RHI->DestroyTexture(Texture);
         }
 
         return EXIT_SUCCESS;
@@ -144,14 +124,14 @@ struct FEngine
     FEngine()
     {
         LOG_INFO("Visera Engine");
-        Platform    = IGlobalService::Register<FPlatform>(EName::Platform);
-        Input       = IGlobalService::Register<FInput>(EName::Input);
-        Window      = IGlobalService::Register<FWindow>(EName::Window);
-        Tasks       = IGlobalService::Register<FTasks>(EName::Tasks);
-        RHI         = IGlobalService::Register<FRHI>(EName::RHI);
-        Audio       = IGlobalService::Register<FAudio>(EName::Audio);
-        Graphics    = IGlobalService::Register<FGraphics>(EName::Graphics);
-        AssetHub    = IGlobalService::Register<FAssetHub>(EName::AssetHub);
+        Platform = IGlobalService::Register<FPlatform> (EName::Platform);
+        Input    = IGlobalService::Register<FInput>    (EName::Input);
+        Window   = IGlobalService::Register<FWindow>   (EName::Window);
+        Tasks    = IGlobalService::Register<FTasks>    (EName::Tasks);
+        RHI      = IGlobalService::Register<FRHI>      (EName::RHI);
+        Audio    = IGlobalService::Register<FAudio>    (EName::Audio);
+        Graphics = IGlobalService::Register<FGraphics> (EName::Graphics);
+        AssetHub = IGlobalService::Register<FAssetHub> (EName::AssetHub);
 
         IGlobalService::Bootstrap();
     }

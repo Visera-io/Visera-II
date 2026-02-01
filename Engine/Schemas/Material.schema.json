@@ -1,0 +1,55 @@
+{
+    "$schema":  "http://json-schema.org/draft-07/schema#",
+    "$id":      "visera://schemas/Material.schema.json",
+    "title":    "Visera Material (Minimal)",
+    "type":     "object",
+    "additionalProperties": false,
+    "required": ["Version", "Shader", "Surface", "Textures"],
+
+    "properties":
+    {
+        "Version":
+        {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Visera material asset format version."
+        },
+
+        "Name":
+        {
+            "type": "string",
+            "description": "Optional display name."
+        },
+
+        "Shader":
+        {
+            "type": "string",
+            "minLength": 1,
+            "description": "Shader identifier or path."
+        },
+
+        "Surface":
+        {
+            "type": "string",
+            "enum": ["Opaque", "Masked", "Transparent"],
+            "description": "High-level surface type."
+        },
+
+        "Textures":
+        {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["BaseColor"],
+            "properties":
+            {
+                "BaseColor":
+                {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Base color texture asset path/id."
+                }
+            },
+            "description": "Texture bindings by semantic name."
+        }
+    }
+}

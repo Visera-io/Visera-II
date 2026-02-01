@@ -58,6 +58,8 @@ set(VISERA_APP_DIR      "Demos/AlohaVisera")
 if(NOT VISERA_APP OR NOT VISERA_APP_DIR)
     message(FATAL_ERROR "Please specify both VISERA_APP and VISERA_APP_DIR!")
 endif()
+# Keep relative path for build tree (e.g. pre-creating output dirs)
+set(VISERA_APP_BINARY_REL "${VISERA_APP_DIR}")
 # Turn VISERA_APP_DIR into an absolute path
 get_filename_component(
     VISERA_APP_DIR    ${VISERA_APP_DIR}
@@ -80,6 +82,12 @@ elseif(APPLE)
     set(VISERA_APP_FRAMEWORK_DIR  "${VISERA_APP_BUNDLE_DIR}/Contents/Frameworks")
     set(VISERA_APP_RESOURCE_DIR   "${VISERA_APP_BUNDLE_DIR}/Contents/Resources")
 endif()
+
+# Pre-create app output directories for each configuration to avoid MSBuild MSB3191
+# (e.g. when a file named "Develop" exists or the directory is missing)
+foreach(CFG ${CMAKE_CONFIGURATION_TYPES})
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/${VISERA_APP_BINARY_REL}/${CFG}")
+endforeach()
 
 add_subdirectory(Engine)
 add_subdirectory(${VISERA_APP_DIR})

@@ -3,7 +3,9 @@
   {
     "Textures": [
       "Assets/App/Texture/Bronya.png",
-      "Assets/App/Texture/Visera.png"
+      "Assets/App/Texture/Visera.png",
+      "Assets/App/Texture/Lake.png",
+      "Assets/App/Texture/Carrots.exr"
     ]
   }
 }

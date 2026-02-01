@@ -1,0 +1,10 @@
+{
+  "Version" : 1,
+  "Name"    : "BasicSprite",
+  "Shader"  : "Sprite.slang",
+  "Surface" : "Transparent",
+  "Textures":
+  {
+    "BaseColor": "Fairy.png"
+  }
+}

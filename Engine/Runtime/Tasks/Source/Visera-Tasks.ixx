@@ -44,7 +44,6 @@ export namespace Visera
             {
                 // Initialize default scheduler in bootstrap
                 Scheduler = MakeUnique<FTaskScheduler>();
-                LOG_INFO("Tasks service bootstrapped");
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
@@ -58,7 +57,6 @@ export namespace Visera
                 }
                 // Destroy scheduler
                 Scheduler.reset();
-                LOG_INFO("Tasks service terminated");
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }
