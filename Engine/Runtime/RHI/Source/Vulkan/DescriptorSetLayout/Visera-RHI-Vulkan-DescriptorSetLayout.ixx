@@ -12,11 +12,11 @@ namespace Visera
     export class VISERA_RHI_API FVulkanDescriptorSetLayout
     {
     public:
-        [[nodiscard]] inline const vk::raii::DescriptorSetLayout&
+        [[nodiscard]] inline vk::DescriptorSetLayout
         GetHandle() const { return Handle; }
 
     private:
-        vk::raii::DescriptorSetLayout          Handle {nullptr};
+        vk::raii::DescriptorSetLayout Handle {nullptr};
 
     public:
         FVulkanDescriptorSetLayout() = default;

@@ -14,6 +14,7 @@ export import Visera.RHI.Vulkan.Buffer;
 export import Visera.RHI.Vulkan.Sampler;
 export import Visera.RHI.Vulkan.Pipeline;
 export import Visera.RHI.Vulkan.RenderTarget;
+export import Visera.RHI.Vulkan.DescriptorPool;
 export import Visera.RHI.Vulkan.DescriptorSet;
 export import Visera.RHI.Vulkan.DescriptorSetLayout;
 export import Visera.RHI.Vulkan.Sync;
@@ -87,6 +88,8 @@ export namespace Visera
                      EVulkanMemoryProperty       I_MemoryProperties);
         [[nodiscard]] FVulkanDescriptorSetLayout
         CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
+        [[nodiscard]] FVulkanDescriptorPool
+        CreateDescriptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes);
 
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
@@ -104,13 +107,13 @@ export namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
         vk::raii::SurfaceKHR             Surface         {nullptr};
 #endif
-        struct
+        struct FGPU
         {
             vk::raii::PhysicalDevice Context {nullptr};
-            TSet<UInt32> GraphicsQueueCandidateueueFamilies{};
+            TSet<UInt32> GraphicsQueueFamilies{};
             TSet<UInt32> PresentQueueFamilies {};
-            TSet<UInt32> ComputeQueueCandidateueueFamilies {};
-            TSet<UInt32> TransferQueueCandidateueueFamilies{};
+            TSet<UInt32> ComputeQueueFamilies {};
+            TSet<UInt32> TransferQueueFamilies{};
             TArray<vk::QueueFamilyProperties> QueueFamilyProperties{};
             vk::PhysicalDeviceProperties  Properties;
             vk::PhysicalDeviceProperties2 Properties2;
@@ -119,7 +122,7 @@ export namespace Visera
             vk::PhysicalDeviceFeatures2   Features2;
         }GPU;
 
-        struct
+        struct FDevice
         {
             vk::raii::Device    Context        {nullptr};
             TArray<const char*> Layers;
@@ -136,7 +139,7 @@ export namespace Visera
         TUniquePtr<FVulkanAllocator> Allocator;
 
 #if !defined(VISERA_OFFSCREEN_MODE)
-        struct
+        struct FSwapChain
         {
             vk::raii::SwapchainKHR          Context     {nullptr};
             vk::raii::SwapchainKHR          OldContext  {nullptr};
@@ -216,6 +219,15 @@ export namespace Visera
         GetSwapChain() const { return SwapChain; }
         [[nodiscard]] inline auto&
         GetSwapChain() { return SwapChain; }
+        void
+        RecreateSwapChain()
+        {
+            WaitIdle();
+            DestroySwapChain();
+            DestroySurface();
+            CreateSurface();
+            CreateSwapChain();
+        }
 #endif
     public:
         FVulkanDriver();
@@ -429,16 +441,6 @@ export namespace Visera
         VkSurfaceKHR SurfaceHandle {nullptr};
         auto GWindow = IGlobalService::Get<FWindow>(EName::Window);
         VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
-        GWindow->OnResizeWindow.Subscribe([this]
-        (UInt32 I_NewWidth, UInt32 I_NewHeight)
-        {
-            LOG_DEBUG("Recreating SwapChain.");
-            WaitIdle();
-            DestroySwapChain();
-            DestroySurface();
-            CreateSurface();
-            CreateSwapChain();
-        });
 
         SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
 
@@ -500,20 +502,20 @@ export namespace Visera
                 GPU.QueueFamilyProperties.EmplaceBack(QueueFamily);
             }
 
-            GPU.GraphicsQueueCandidateueueFamilies.Clear();
-            GPU.ComputeQueueCandidateueueFamilies.Clear();
-            GPU.TransferQueueCandidateueueFamilies.Clear();
+            GPU.GraphicsQueueFamilies.Clear();
+            GPU.ComputeQueueFamilies.Clear();
+            GPU.TransferQueueFamilies.Clear();
             GPU.PresentQueueFamilies.Clear();
 
             for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
             {
                 auto& QueueFamily = QueueFamilies[Idx];
                 if (vk::QueueFlagBits::eGraphics & QueueFamily.queueFlags)
-                { GPU.GraphicsQueueCandidateueueFamilies.Insert(Idx); }
+                { GPU.GraphicsQueueFamilies.Insert(Idx); }
                 if (vk::QueueFlagBits::eCompute & QueueFamily.queueFlags)
-                { GPU.ComputeQueueCandidateueueFamilies.Insert(Idx); }
+                { GPU.ComputeQueueFamilies.Insert(Idx); }
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
-                { GPU.TransferQueueCandidateueueFamilies.Insert(Idx); }
+                { GPU.TransferQueueFamilies.Insert(Idx); }
 
 #if !defined(VISERA_OFFSCREEN_MODE)
                 auto Result = PhysicalDeviceCandidate.getSurfaceSupportKHR(Idx, *Surface);
@@ -521,9 +523,9 @@ export namespace Visera
                 { GPU.PresentQueueFamilies.Insert(Idx); }
 #endif
             }
-            bSuitable = !GPU.GraphicsQueueCandidateueueFamilies.IsEmpty() &&
-                        !GPU.ComputeQueueCandidateueueFamilies.IsEmpty()  &&
-                        !GPU.TransferQueueCandidateueueFamilies.IsEmpty();
+            bSuitable = !GPU.GraphicsQueueFamilies.IsEmpty() &&
+                        !GPU.ComputeQueueFamilies.IsEmpty()  &&
+                        !GPU.TransferQueueFamilies.IsEmpty();
 #if !defined(VISERA_OFFSCREEN_MODE)
             bSuitable &= !GPU.PresentQueueFamilies.IsEmpty();
 #endif
@@ -593,11 +595,11 @@ export namespace Visera
             return *I_Families.begin();
         };
 
-        const UInt32 GraphicsFamily = PickFirstFamily(GPU.GraphicsQueueCandidateueueFamilies);
+        const UInt32 GraphicsFamily = PickFirstFamily(GPU.GraphicsQueueFamilies);
 
         FQueueSelection GraphicsQueueCandidate{ GraphicsFamily, 0 };
         FQueueSelection TransferQueueCandidate{ GraphicsFamily, 0 };
-        FQueueSelection ComputeQueueCandidate { PickFirstFamily(GPU.ComputeQueueCandidateueueFamilies), 0 };
+        FQueueSelection ComputeQueueCandidate { PickFirstFamily(GPU.ComputeQueueFamilies), 0 };
 
         // How many queues we will request from GraphicsFamily.
         UInt32 GraphicsFamilyRequestedQueues = 1;
@@ -612,12 +614,12 @@ export namespace Visera
         else
         {
             // Fallback: try a different transfer family (may require ownership transfer later).
-            UInt32 TransferFamily = PickFirstFamily(GPU.TransferQueueCandidateueueFamilies);
+            UInt32 TransferFamily = PickFirstFamily(GPU.TransferQueueFamilies);
             if (TransferFamily == GraphicsFamily)
             {
-                auto It = GPU.TransferQueueCandidateueueFamilies.begin();
+                auto It = GPU.TransferQueueFamilies.begin();
                 ++It;
-                if (It != GPU.TransferQueueCandidateueueFamilies.end())
+                if (It != GPU.TransferQueueFamilies.end())
                 {
                     TransferFamily = *It;
                 }
@@ -645,12 +647,12 @@ export namespace Visera
             else
             {
                 // Fallback: try a different compute family.
-                UInt32 ComputeFamily = PickFirstFamily(GPU.ComputeQueueCandidateueueFamilies);
+                UInt32 ComputeFamily = PickFirstFamily(GPU.ComputeQueueFamilies);
                 if (ComputeFamily == GraphicsFamily)
                 {
-                    auto It = GPU.ComputeQueueCandidateueueFamilies.begin();
+                    auto It = GPU.ComputeQueueFamilies.begin();
                     ++It;
-                    if (It != GPU.ComputeQueueCandidateueueFamilies.end())
+                    if (It != GPU.ComputeQueueFamilies.end())
                     {
                         ComputeFamily = *It;
                     }
@@ -1223,6 +1225,12 @@ export namespace Visera
     CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
     {
         return FVulkanDescriptorSetLayout{Device.Context, I_Bindings};
+    }
+
+    FVulkanDescriptorPool FVulkanDriver::
+    CreateDescriptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes)
+    {
+        return FVulkanDescriptorPool(Device.Context, I_PoolSizes, GPU.Properties.limits.maxBoundDescriptorSets);
     }
 
     FVulkanSampler FVulkanDriver::
