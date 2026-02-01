@@ -611,22 +611,13 @@ VISERA_MAKE_FORMATTER(Visera::FRHIResourceHandle, {},
     I_Formatee.GetIndex());
 
 VISERA_MAKE_HASH(Visera::FRHITextureHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHITextureHandle, {},
-    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
-    I_Formatee.GetType(), I_Formatee.IsWritable(), I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHITextureHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
+
 VISERA_MAKE_HASH(Visera::FRHIBufferHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIBufferHandle, {},
-    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
-    I_Formatee.GetType(), I_Formatee.IsWritable(), I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHIBufferHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
+
 VISERA_MAKE_HASH(Visera::FRHISamplerHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHISamplerHandle, {},
-    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
-    I_Formatee.GetType(), I_Formatee.IsWritable(), I_Formatee.GetGeneration(), I_Formatee.GetIndex());
-VISERA_MAKE_HASH(Visera::FRHIRenderPassHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIRenderPassHandle, {},
-    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
-    I_Formatee.GetType(), I_Formatee.IsWritable(), I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHISamplerHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
+
 VISERA_MAKE_HASH(Visera::FRHIDescriptorSetHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetHandle, {},
-    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
-    I_Formatee.GetType(), I_Formatee.IsWritable(), I_Formatee.GetGeneration(), I_Formatee.GetIndex());
+VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));

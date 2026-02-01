@@ -41,26 +41,6 @@ export namespace Visera
         void
         DestroySampler(FRHISamplerHandle I_SamplerHandle, Bool I_bTransient = False);
 
-        [[nodiscard]] FRHIDescriptorSetHandle
-        CreateDescriptorSet(FRHIDescriptorSetCreateDesc&& I_CreateDesc);
-        void
-        DestroyDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSetHandle, Bool I_bTransient = False);
-        void
-        UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
-                            UInt32                 I_Binding,
-                            FRHITextureHandle      I_Texture,
-                            UInt32                 I_ArrayElement = 0);
-        void
-        UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
-                            UInt32                 I_Binding,
-                            FRHISamplerHandle      I_Sampler,
-                            UInt32                 I_ArrayElement = 0);
-        void
-        UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
-                            UInt32                 I_Binding,
-                            FRHIBufferHandle       I_Buffer,
-                            UInt32                 I_ArrayElement = 0);
-
         [[nodiscard]] Bool
         BeginFrame();
         void
@@ -323,7 +303,7 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FConvertImageLayout*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->Get(Payload->Image);
+                    auto* Texture = Registry->GetTexture(Payload->Image);
                     VISERA_ASSERT(Texture);
 
                     auto* Img = Texture->GetVulkanImage();
@@ -341,7 +321,7 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FClearColorImage*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->Get(Payload->Image);
+                    auto* Texture = Registry->GetTexture(Payload->Image);
                     VISERA_ASSERT(Texture);
 
                     Frame.DrawCalls.ClearColorImage(Texture->GetVulkanImage(),{
@@ -356,8 +336,8 @@ export namespace Visera
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitImage*>(Command.PayloadPtrAligned);
 
-                    auto* SrcTexture = Registry->Get(Payload->SrcImage);
-                    auto* DstTexture = Registry->Get(Payload->DstImage);
+                    auto* SrcTexture = Registry->GetTexture(Payload->SrcImage);
+                    auto* DstTexture = Registry->GetTexture(Payload->DstImage);
                     VISERA_ASSERT(SrcTexture && DstTexture);
 
                     Frame.DrawCalls.BlitImage(
@@ -371,7 +351,7 @@ export namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FBlitToSwapChain*>(Command.PayloadPtrAligned);
 
-                    auto* Texture = Registry->Get(Payload->Image);
+                    auto* Texture = Registry->GetTexture(Payload->Image);
                     VISERA_ASSERT(Texture);
                     auto* SwapChainImage = Driver->GetSwapChain().GetCurrentImage();
                     {
@@ -400,8 +380,8 @@ export namespace Visera
             case ECommandType::CopyBufferToImage:
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FCopyBufferToImage*>(Command.PayloadPtrAligned);
-                    auto* Buffer  = Registry->Get(Payload->Buffer);
-                    auto* Texture = Registry->Get(Payload->Image);
+                    auto* Buffer  = Registry->GetBuffer(Payload->Buffer);
+                    auto* Texture = Registry->GetTexture(Payload->Image);
                     VISERA_ASSERT(Buffer && Texture);
                     auto* VulkanBuffer = Buffer->GetVulkanBuffer();
                     auto* VulkanImage  = Texture->GetVulkanImage();
@@ -425,7 +405,7 @@ export namespace Visera
             case ECommandType::WriteBuffer:
                 {
                     const auto* Payload = reinterpret_cast<const FRHICommandList::FWriteBuffer*>(Command.PayloadPtrAligned);
-                    auto Buffer = Registry->Get(Payload->Buffer);
+                    auto Buffer = Registry->GetBuffer(Payload->Buffer);
                     VISERA_ASSERT(Buffer && Payload->Data);
                     auto* VulkanBuffer = Buffer->GetVulkanBuffer();
                     if (VulkanBuffer->IsHostWritable())
@@ -477,7 +457,7 @@ export namespace Visera
         auto Handle = Registry->Register(std::move(I_BufferDesc));
         if (I_InitialData)
         {
-            auto Buffer = Registry->Get(Handle);
+            auto Buffer = Registry->GetBuffer(Handle);
             Buffer->Write(I_InitialData, I_InitialDataSize);
         }
         return Handle;
@@ -501,55 +481,6 @@ export namespace Visera
     {
         UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
         Registry->Unregister(I_SamplerHandle, RetiredFrame);
-    }
-
-    FRHIDescriptorSetHandle FRHI::
-    CreateDescriptorSet(FRHIDescriptorSetCreateDesc&& I_CreateDesc)
-    {
-        return Registry->Register(std::move(I_CreateDesc));
-    }
-
-    void FRHI::
-    DestroyDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSetHandle, Bool I_bTransient)
-    {
-        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
-        Registry->Unregister(I_DescriptorSetHandle, RetiredFrame);
-    }
-
-    void FRHI::
-    UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
-                        UInt32                 I_Binding,
-                        FRHITextureHandle      I_Texture,
-                        UInt32                 I_ArrayElement)
-    {
-        auto* Set     = Registry->Get(I_DescriptorSet);
-        auto* Texture = Registry->Get(I_Texture);
-        VISERA_ASSERT(Set != nullptr && Texture != nullptr);
-        Set->WriteSampledImage(I_Binding, Texture->GetVulkanImageView(), I_ArrayElement);
-    }
-
-    void FRHI::
-    UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
-                        UInt32                 I_Binding,
-                        FRHISamplerHandle      I_Sampler,
-                        UInt32                 I_ArrayElement)
-    {
-        auto* Set   = Registry->Get(I_DescriptorSet);
-        auto* Sampler = Registry->Get(I_Sampler);
-        VISERA_ASSERT(Set != nullptr && Sampler != nullptr);
-        Set->WriteSampler(I_Binding, Sampler->GetVulkanSampler(), I_ArrayElement);
-    }
-
-    void FRHI::
-    UpdateDescriptorSet(FRHIDescriptorSetHandle I_DescriptorSet,
-                        UInt32                 I_Binding,
-                        FRHIBufferHandle       I_Buffer,
-                        UInt32                 I_ArrayElement)
-    {
-        auto* Set   = Registry->Get(I_DescriptorSet);
-        auto* Buffer = Registry->Get(I_Buffer);
-        VISERA_ASSERT(Set != nullptr && Buffer != nullptr);
-        Set->WriteUniformBuffer(I_Binding, Buffer->GetVulkanBuffer(), I_ArrayElement);
     }
 
     void FRHI::
