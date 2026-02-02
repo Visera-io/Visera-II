@@ -198,8 +198,6 @@ namespace Visera
     template <typename... Args>
 	using TTuple    = std::tuple<Args...>;
 
-	template<typename T>
-	using TOptional = std::optional<T>;
 
 	template<typename Signature>
 	using TFunction = std::function<Signature>;

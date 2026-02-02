@@ -2,6 +2,7 @@ module;
 #include <Visera-RHI.hpp>
 export module Visera.RHI.Vulkan.CommandBuffer;
 #define VISERA_MODULE_NAME "RHI.Vulkan"
+import Visera.Core.Types.Optional;
 import Visera.RHI.Vulkan.Common;
 import Visera.RHI.Vulkan.Pipeline;
 import Visera.RHI.Vulkan.Image;
@@ -144,9 +145,9 @@ export namespace Visera
         void
         ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor);
         void
-        SetViewport(const vk::Viewport& I_Viewport) { CurrentViewport = I_Viewport; Handle.setViewport(0, CurrentViewport.value()); }
+        SetViewport(const vk::Viewport& I_Viewport) { CurrentViewport = I_Viewport; Handle.setViewport(0, CurrentViewport.GetValue()); }
         void
-        SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.value());}
+        SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.GetValue());}
         void
         EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline);
         void
@@ -593,7 +594,7 @@ export namespace Visera
         Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
                             CurrentRenderPipeline->GetHandle());
 
-        if (!CurrentViewport.has_value())
+        if (!CurrentViewport.HasValue())
         {
             SetViewport(vk::Viewport{}
                 .setX       (RenderingInfo.renderArea.offset.x)
@@ -604,7 +605,7 @@ export namespace Visera
                 .setMaxDepth(1.0));
         }
 
-        if (!CurrentScissor.has_value())
+        if (!CurrentScissor.HasValue())
         {
             SetScissor(vk::Rect2D{}
                 .setOffset(RenderingInfo.renderArea.offset)
@@ -705,8 +706,8 @@ export namespace Visera
 
         Handle.endRendering();
 
-        CurrentViewport.reset();
-        CurrentScissor.reset();
+        CurrentViewport.Reset();
+        CurrentScissor.Reset();
 
         CurrentRenderPipeline = nullptr;
 

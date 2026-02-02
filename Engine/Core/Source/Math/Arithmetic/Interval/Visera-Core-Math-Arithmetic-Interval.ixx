@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Math.Arithmetic.Interval;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic.Operation;
+import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
@@ -35,7 +36,7 @@ export namespace Visera
 		{
 			T Lo = Math::Max(Left, I_Other.Left);
 			T Hi = Math::Min(Right, I_Other.Right);
-			if (Hi < Lo) { return std::nullopt; }
+			if (Hi < Lo) { return NullOpt; }
 			return TClosedInterval(Lo, Hi);
 		}
 		[[nodiscard]] constexpr TClosedInterval

@@ -13,6 +13,7 @@ export import Visera.Core.Types.Map;
 export import Visera.Core.Types.Set;
 export import Visera.Core.Types.Handle;
 export import Visera.Core.Types.SlotMap;
+export import Visera.Core.Types.Optional;
 export import Visera.Core.Types.UUID;
 
 export namespace Visera
