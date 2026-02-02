@@ -50,7 +50,7 @@ export namespace Visera
 
 	public:
 		FMaterial() = default;
-		explicit FMaterial(const FPath& I_Path) { (void)Parse(I_Path); }
+		FMaterial(const FPath& I_Path) { (void)Parse(I_Path); }
 
 		[[nodiscard]] Bool
 		Parse(const FPath& I_Path)
@@ -69,19 +69,7 @@ export namespace Visera
 				return False;
 			}
 
-			FJSON Desc;
-			if (!Desc.Parse(FStringView(reinterpret_cast<const char*>(Raw.Data()), Raw.GetSize())))
-			{
-				LOG_ERROR("Failed to parse material JSON \"{}\": {}.", I_Path.GetUTF8Path(), Desc.GetLastError());
-				return False;
-			}
-
-			if (!Desc.Contains("Version") || !Desc.Contains("Shader") || !Desc.Contains("Surface")
-				|| !Desc.ContainsPath("Textures.BaseColor"))
-			{
-				LOG_ERROR("Material \"{}\" missing required fields (Version, Shader, Surface, Textures.BaseColor).", I_Path.GetUTF8Path());
-				return False;
-			}
+			FJSON Desc{Raw};
 
 			Version = static_cast<UInt8>(Desc.GetNumber("Version", 1));
 			Shader  = Desc.GetText("Shader");

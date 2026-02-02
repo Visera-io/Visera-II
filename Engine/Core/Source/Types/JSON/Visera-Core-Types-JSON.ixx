@@ -262,6 +262,11 @@ export namespace Visera
         explicit FJSON(FStringView         I_JSONString) { Bool bSuccessed = Parse(I_JSONString); VISERA_ASSERT(bSuccessed); }
         explicit FJSON(const TArray<FByte> I_JSONData)   { Bool bSuccessed = Parse(reinterpret_cast<const char*>(I_JSONData.Data())); VISERA_ASSERT(bSuccessed); }
 
+    private:
+        Json    Data{};
+        FString LastError{};
+
+    private:
         [[nodiscard]] Bool
         Parse(FStringView I_JSONData) noexcept
         {
@@ -281,11 +286,6 @@ export namespace Visera
             }
         }
 
-    private:
-        Json    Data{};
-        FString LastError{};
-
-    private:
         [[nodiscard]] static Bool
         TrySplitPathOnce(FStringView I_Path, FStringView* O_Head, FStringView* O_Tail) noexcept
         {
