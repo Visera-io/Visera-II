@@ -1,10 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#if defined(VISERA_ON_X86_CPU)
-#include <xmmintrin.h>
-#elif defined(VISERA_ON_ARM_CPU)
-#include <arm_acle.h>
-#endif
 export module Visera.Core.OS.Memory;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.Math.Bit;
@@ -65,6 +60,148 @@ export namespace Visera
         template <Concepts::Alignable T> [[nodiscard]] constexpr T
         Align(T I_Value, UInt64 I_Alignment) { VISERA_ASSERT(Math::IsPowerOfTwo(I_Alignment)); return (T)(((UInt64)I_Value + I_Alignment - 1) & ~(I_Alignment - 1)); };
     }
+
+
+    /** An untyped array of data with compile-time alignment and size derived from another type. */
+	template<typename ElementType>
+	struct TTypeCompatibleBytes
+	{
+		using ElementTypeAlias_NatVisHelper = ElementType;
+
+		// Trivially constructible and destuctible - users are responsible for managing the lifetime of the inner element.
+		TTypeCompatibleBytes()  = default;
+		~TTypeCompatibleBytes() = default;
+
+		// Noncopyable
+		TTypeCompatibleBytes(TTypeCompatibleBytes&&)				 = delete;
+		TTypeCompatibleBytes(const TTypeCompatibleBytes&)			 = delete;
+		TTypeCompatibleBytes& operator=(TTypeCompatibleBytes&&)		 = delete;
+		TTypeCompatibleBytes& operator=(const TTypeCompatibleBytes&) = delete;
+
+		// GetTypedPtr only exists for backwards compatibility - these functions do not exist and cannot be implemented for the reference and void specializations.
+		ElementType* GetTypedPtr()
+		{
+			return (ElementType*)this;
+		}
+		const ElementType* GetTypedPtr() const
+		{
+			return (const ElementType*)this;
+		}
+
+		using MutableGetType = ElementType&;       // The type returned by Bytes.Get() where Bytes is a non-const lvalue
+		using ConstGetType   = const ElementType&; // The type returned by Bytes.Get() where Bytes is a const lvalue
+		using RvalueGetType  = ElementType&&;      // The type returned by Bytes.Get() where Bytes is an rvalue (non-const)
+
+		// Gets the inner element - no checks are performed to ensure an element is present.
+		ElementType& GetUnchecked() &
+		{
+			return *(ElementType*)this;
+		}
+		const ElementType& GetUnchecked() const&
+		{
+			return *(const ElementType*)this;
+		}
+		ElementType&& GetUnchecked() &&
+		{
+			return (ElementType&&)*(ElementType*)this;
+		}
+
+		// Emplaces an inner element.
+		// Note: no checks are possible to ensure that an element isn't already present.  DestroyUnchecked() must be called to end the element's lifetime.
+		template <typename... ArgTypes>
+		void EmplaceUnchecked(ArgTypes&&... Args)
+		{
+			new ((void*)GetTypedPtr()) ElementType((ArgTypes&&)Args...);
+		}
+
+		// Destroys the inner element.
+		// Note: no checks are possible to ensure that there is an element already present.
+		void DestroyUnchecked()
+		{
+			ElementTypeAlias_NatVisHelper* Ptr = (ElementTypeAlias_NatVisHelper*)this;
+			Ptr->ElementTypeAlias_NatVisHelper::~ElementTypeAlias_NatVisHelper();
+		}
+
+		alignas(ElementType) FByte Pad[sizeof(ElementType)];
+	};
+
+	template <typename T>
+	struct TTypeCompatibleBytes<T&>
+	{
+		using ElementTypeAlias_NatVisHelper = T&;
+
+		// Trivially constructible and destuctible - users are responsible for managing the lifetime of the inner element.
+		TTypeCompatibleBytes()  = default;
+		~TTypeCompatibleBytes() = default;
+
+		// Noncopyable
+		TTypeCompatibleBytes(TTypeCompatibleBytes&&)				 = delete;
+		TTypeCompatibleBytes(const TTypeCompatibleBytes&)			 = delete;
+		TTypeCompatibleBytes& operator=(TTypeCompatibleBytes&&)		 = delete;
+		TTypeCompatibleBytes& operator=(const TTypeCompatibleBytes&) = delete;
+
+		using MutableGetType = T&; // The type returned by Bytes.Get() where Bytes is a non-const lvalue
+		using ConstGetType   = T&; // The type returned by Bytes.Get() where Bytes is a const lvalue
+		using RvalueGetType  = T&; // The type returned by Bytes.Get() where Bytes is an rvalue (non-const)
+
+		// Gets the inner element - no checks are performed to ensure an element is present.
+		T& GetUnchecked() const
+		{
+			return *Ptr;
+		}
+
+		// Emplaces an inner element.
+		// Note: no checks are possible to ensure that an element isn't already present.  DestroyUnchecked() must be called to end the element's lifetime.
+		void EmplaceUnchecked(T& Ref)
+		{
+			Ptr = &Ref;
+		}
+
+		// Destroys the inner element.
+		// Note: no checks are possible to ensure that there is an element already present.
+		void DestroyUnchecked()
+		{
+		}
+
+		T* Ptr;
+	};
+
+	template <>
+	struct TTypeCompatibleBytes<void>
+	{
+		using ElementTypeAlias_NatVisHelper = void;
+
+		// Trivially constructible and destuctible - users are responsible for managing the lifetime of the inner element.
+		TTypeCompatibleBytes()  = default;
+		~TTypeCompatibleBytes() = default;
+
+		// Noncopyable
+		TTypeCompatibleBytes(TTypeCompatibleBytes&&)				 = delete;
+		TTypeCompatibleBytes(const TTypeCompatibleBytes&)			 = delete;
+		TTypeCompatibleBytes& operator=(TTypeCompatibleBytes&&)		 = delete;
+		TTypeCompatibleBytes& operator=(const TTypeCompatibleBytes&) = delete;
+
+		using MutableGetType = void; // The type returned by Bytes.Get() where Bytes is a non-const lvalue
+		using ConstGetType   = void; // The type returned by Bytes.Get() where Bytes is a const lvalue
+		using RvalueGetType  = void; // The type returned by Bytes.Get() where Bytes is an rvalue (non-const)
+
+		// Gets the inner element - no checks are performed to ensure an element is present.
+		void GetUnchecked() const
+		{
+		}
+
+		// Emplaces an inner element.
+		// Note: no checks are possible to ensure that an element isn't already present.  DestroyUnchecked() must be called to end the element's lifetime.
+		void EmplaceUnchecked()
+		{
+		}
+
+		// Destroys the inner element.
+		// Note: no checks are possible to ensure that there is an element already present.
+		void DestroyUnchecked()
+		{
+		}
+	};
 
     // << Implementation >>
     namespace Memory

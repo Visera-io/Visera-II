@@ -28,16 +28,17 @@ struct FEngine
 
     Bool Run()
     {
-        TSPSCQueue<Int32> Queue;
-        Queue.Produce(1);
-        Queue.Produce(2);
+        TMPSCQueue<Int32> MPSCQueue;
+        MPSCQueue.Enqueue(1);
+        MPSCQueue.Enqueue(2);
+        LOG_INFO("{}", MPSCQueue.Dequeue().GetValue());
+        LOG_INFO("{}", MPSCQueue.Dequeue().GetValue());
+        TSPSCQueue<Float> SPSCQueue;
+        SPSCQueue.Enqueue(1);
+        SPSCQueue.Enqueue(2);
+        LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
+        LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
 
-        Int32 Value;
-        if (Queue.Consume(&Value))
-        {
-            LOG_INFO("Consumed {}", Value);
-            LOG_INFO("Empty?: {}", Queue.IsEmpty());
-        }
 
         LOG_INFO("Visera Engine Run()");
 
