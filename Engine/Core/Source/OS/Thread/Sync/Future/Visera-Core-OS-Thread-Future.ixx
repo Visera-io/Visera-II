@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 #include <future>
 #include <chrono>
-export module Visera.Core.OS.Thread.Future;
+export module Visera.Core.OS.Thread.Sync.Future;
 #define VISERA_MODULE_NAME "Core.OS"
 
 export namespace Visera

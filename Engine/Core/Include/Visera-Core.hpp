@@ -41,6 +41,8 @@
 #define VISERA_NO_OPERATION (void)(0)
 #endif
 
+#define VISERA_CACHELINE_SIZE std::hardware_destructive_interference_size
+
 #if defined(VISERA_ON_MSVC_COMPILER)
 	#define VISERA_NOINLINE      __declspec(noinline)
 	#define VISERA_FORCEINLINE   __forceinline

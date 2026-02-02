@@ -28,6 +28,17 @@ struct FEngine
 
     Bool Run()
     {
+        TSPSCQueue<Int32> Queue;
+        Queue.Produce(1);
+        Queue.Produce(2);
+
+        Int32 Value;
+        if (Queue.Consume(&Value))
+        {
+            LOG_INFO("Consumed {}", Value);
+            LOG_INFO("Empty?: {}", Queue.IsEmpty());
+        }
+
         LOG_INFO("Visera Engine Run()");
 
         FRHICommandList Commands;

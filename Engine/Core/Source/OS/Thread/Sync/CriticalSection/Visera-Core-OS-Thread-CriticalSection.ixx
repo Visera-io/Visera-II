@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 #include <mutex>
-export module Visera.Core.OS.Thread.CriticalSection;
+export module Visera.Core.OS.Thread.Sync.CriticalSection;
 #define VISERA_MODULE_NAME "Core.OS"
 
 export namespace Visera

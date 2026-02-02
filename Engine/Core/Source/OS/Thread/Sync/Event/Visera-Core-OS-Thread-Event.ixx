@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 #include <condition_variable>
-export module Visera.Core.OS.Thread.Event;
+export module Visera.Core.OS.Thread.Sync.Event;
 #define VISERA_MODULE_NAME "Core.OS"
 
 export namespace Visera

@@ -3,11 +3,8 @@ module;
 #include <thread>
 export module Visera.Core.OS.Thread;
 #define VISERA_MODULE_NAME "Core.OS"
-export import Visera.Core.OS.Thread.CriticalSection;
-export import Visera.Core.OS.Thread.Event;
-export import Visera.Core.OS.Thread.Future;
-export import Visera.Core.OS.Thread.RWLock;
-export import Visera.Core.OS.Thread.SpinLock;
+export import Visera.Core.OS.Thread.Sync;
+export import Visera.Core.OS.Thread.Queue;
 
 export namespace Visera
 {
