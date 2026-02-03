@@ -4,6 +4,7 @@ module;
 export module Visera.Core.Types.Path;
 #define VISERA_MODULE_NAME "Core.Types"
 export import Visera.Core.Types.Text;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {
@@ -39,13 +40,13 @@ export namespace Visera
         FPath& operator=(const FPath& I_Path)     { Data = I_Path.Data;      return *this; }
         FPath& operator=(FPath&& I_Path) noexcept { Data = I_Path.Data;      return *this; }
         FPath& operator=(const FText&   I_Path)   { Data = I_Path.GetData(); return *this; }
-        FPath& operator=(const FString& I_Path)   { Data = I_Path;           return *this; }
+        FPath& operator=(const FString& I_Path)   { Data = I_Path.Data();    return *this; }
         FPath(const FText& I_Path): Data{ I_Path.GetData() } { Data.make_preferred(); }
-        FPath(FStringView     I_Path): Data{ I_Path } { Data.make_preferred(); }
+        FPath(FStringView     I_Path): Data{ I_Path.Data() } { Data.make_preferred(); }
         FPath(FUTF8StringView I_Path): Data{ I_Path } { Data.make_preferred(); }
         FPath(FWideStringView I_Path): Data{ I_Path } { Data.make_preferred(); }
         template <size_t N>
-        FPath(const char (&I_Literal)[N]) : Data(FStringView(I_Literal)) { Data.make_preferred(); }
+        FPath(const char (&I_Literal)[N]) : Data(I_Literal) { Data.make_preferred(); }
 
     private:
         std::filesystem::path Data;

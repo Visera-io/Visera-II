@@ -4,6 +4,7 @@ export module Visera.Core.OS.Time.TimePoint;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.OS.Time.Common;
 import Visera.Core.OS.Time.Duration;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {

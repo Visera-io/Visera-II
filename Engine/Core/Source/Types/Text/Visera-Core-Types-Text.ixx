@@ -5,6 +5,7 @@ module;
 export module Visera.Core.Types.Text;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {
@@ -13,16 +14,16 @@ export namespace Visera
     {
     public:
         [[nodiscard]] static Bool
-        ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String); }
+        ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String.Data(), static_cast<size_t>(I_String.GetSize())); }
 
         [[nodiscard]] const char*
-        GetData()   const { return String.data(); }
+        GetData()   const { return String.Data(); }
         [[nodiscard]] UInt64
-        GetSize() const { return String.size(); }
+        GetSize() const { return String.GetSize(); }
         [[nodiscard]] UInt64
         GetCodepointCount() const noexcept; // 👨‍👩‍👧‍👦 has multiple Codepoints!
         [[nodiscard]] Bool
-        IsEmpty() const { return String.empty(); }
+        IsEmpty() const { return String.IsEmpty(); }
 
     private:
         FString String;
@@ -30,7 +31,7 @@ export namespace Visera
     public:
         //auto ToString() const -> StringView { return String; }
         explicit operator FString()		const	{ return String; }
-        explicit operator const char*()	const	{ return String.data(); }
+        explicit operator const char*()	const	{ return String.Data(); }
 
         // Comparison operators
         [[nodiscard]] Bool
@@ -52,19 +53,19 @@ export namespace Visera
         operator>=(const FText& I_Other) const { return String >= I_Other.String; }
 
         FText&
-        operator+=(const FText& I_Other) { String.append(I_Other.String); return *this; }
+        operator+=(const FText& I_Other) { String.Append(I_Other.String); return *this; }
 
         FText() = default;
         FText(FStringView I_String) : String{I_String} { VISERA_ASSERT(ValidateUTF8(String)); }
         template <size_t N> constexpr
-        FText(const char (&I_Literal)[N]) { String.assign(I_Literal, N - 1); }
+        FText(const char (&I_Literal)[N]) { String.Assign(I_Literal, N - 1); }
         FText(FWideStringView I_Text);
         FText(const FText&)                      = default;
         FText(FText&&)                  noexcept = default;
         FText& operator=(const FText&)           = default;
         FText& operator=(FText&&)       noexcept = default;
 
-        FText(const char C) noexcept { String.assign(1, C); }
+        FText(const char C) noexcept { String.Assign(1, C); }
         template <Concepts::FloatingPoint FloatPointType>
         FText(FloatPointType I_Integer) noexcept;
         template <Concepts::Integral IntegralType>
@@ -78,13 +79,13 @@ export namespace Visera
     {
         if (std::isnan(I_FloatPointValue))
         {
-            String.assign("nan", 3);
+            String.Assign("nan", 3);
             return;
         }
         if (std::isinf(I_FloatPointValue))
         {
-            I_FloatPointValue > 0? String.assign("inf") :
-                                   String.assign("-inf");
+            I_FloatPointValue > 0? String.Assign("inf") :
+                                   String.Assign("-inf");
             return;
         }
 
@@ -107,7 +108,7 @@ export namespace Visera
         const Bool bConverted = Converter.ToShortest(I_FloatPointValue, &Builder);
         VISERA_ASSERT(bConverted);
 
-        String.assign(Buffer, Builder.position());
+        String.Assign(Buffer, Builder.position());
     }
 
     template <Concepts::Integral IntegralType> FText::
@@ -124,13 +125,13 @@ export namespace Visera
         VISERA_ASSERT(Ec == std::errc{}); // buffer size guarantees this
 
         // ASCII digits/sign/dot/exponent are valid UTF-8 by construction.
-        String.assign(Buffer, static_cast<size_t>(Ptr - Buffer));
+        String.Assign(Buffer, static_cast<size_t>(Ptr - Buffer));
     }
 
     template <Concepts::Boolean BooleanType> FText::
     FText(BooleanType I_Boolean) noexcept
     {
-        I_Boolean? String.assign("true") : String.assign("false");
+        I_Boolean? String.Assign("true") : String.Assign("false");
     }
 
     FText::
@@ -139,7 +140,7 @@ export namespace Visera
         const UInt64 WideLength = I_Text.length();
         if (WideLength == 0) 
         {
-            String.clear();
+            String.Clear();
             return;
         }
         const UInt64 UTF8Length = simdutf::utf8_length_from_utf16(
@@ -149,20 +150,20 @@ export namespace Visera
         
         if (UTF8Length == 0) 
         {
-            String.clear();
+            String.Clear();
             return;
         }
 
-        String.resize(UTF8Length);
+        String.Resize(UTF8Length);
         const UInt64 Written = simdutf::convert_utf16_to_utf8(
             reinterpret_cast<const char16_t*>(I_Text.data()),
             WideLength,
-            String.data()
+            String.Data()
         );
 
         if (Written == 0 || Written != UTF8Length)
         {
-            String.clear();
+            String.Clear();
             return;
         }
         // Validate the converted UTF8 string
@@ -173,7 +174,7 @@ export namespace Visera
     UInt64 FText::
     GetCodepointCount() const noexcept
     {
-        return simdutf::count_utf8(String.data(), String.size());
+        return simdutf::count_utf8(String.Data(), static_cast<size_t>(String.GetSize()));
     }
 }
 VISERA_MAKE_FORMATTER(Visera::FText, {}, "{}", I_Formatee.GetData());

@@ -129,6 +129,7 @@ module;
 
 #define VISERA_MODULE_NAME "Core.Math"
 export module Visera.Core.Math.Hash.CityHash;
+import Visera.Core.Types.String;
 
 namespace Google
 {
@@ -744,18 +745,18 @@ export namespace Visera::Math
 
   /*<<City Hash by Google>>*/
   [[nodiscard]] VISERA_CORE_API inline auto
-  CityHash64(FStringView I_StringView)				-> UInt64	{ return Google::CityHash64(I_StringView.data(), I_StringView.size()); }
+  CityHash64(FStringView I_StringView)				-> UInt64	{ return Google::CityHash64(I_StringView.Data(), static_cast<size_t>(I_StringView.GetSize())); }
   [[nodiscard]] VISERA_CORE_API inline auto
-  CityHash64(FStringView I_StringView, UInt64 I_Seed)	-> UInt64	{ return Google::CityHash64WithSeed(I_StringView.data(), I_StringView.size(), I_Seed); }
+  CityHash64(FStringView I_StringView, UInt64 I_Seed)	-> UInt64	{ return Google::CityHash64WithSeed(I_StringView.Data(), static_cast<size_t>(I_StringView.GetSize()), I_Seed); }
   [[nodiscard]] VISERA_CORE_API inline auto
   CityHash64(const char* I_String, UInt64 I_Length)	-> UInt64	{ return Google::CityHash64(I_String, I_Length); }
   [[nodiscard]] VISERA_CORE_API inline auto
   CityHash64(const char* I_String, UInt64 I_Length, UInt64 I_Seed) -> UInt64	{ return Google::CityHash64WithSeed(I_String, I_Length, I_Seed); }
 
   [[nodiscard]] VISERA_CORE_API inline auto
-  CityHash128(FStringView I_StringView)					-> UInt128	{ return Google::CityHash128(I_StringView.data(), I_StringView.size()); }
+  CityHash128(FStringView I_StringView)					-> UInt128	{ return Google::CityHash128(I_StringView.Data(), static_cast<size_t>(I_StringView.GetSize())); }
   [[nodiscard]] VISERA_CORE_API inline auto
-  CityHash128(FStringView I_StringView, UInt128 I_Seed)	-> UInt128	{ return Google::CityHash128WithSeed(I_StringView.data(), I_StringView.size(), I_Seed); }
+  CityHash128(FStringView I_StringView, UInt128 I_Seed)	-> UInt128	{ return Google::CityHash128WithSeed(I_StringView.Data(), static_cast<size_t>(I_StringView.GetSize()), I_Seed); }
   [[nodiscard]] VISERA_CORE_API inline auto
   CityHash128(const char* I_String, UInt64 I_Length)		-> UInt128	{ return Google::CityHash128(I_String, I_Length); }
   [[nodiscard]] VISERA_CORE_API inline auto

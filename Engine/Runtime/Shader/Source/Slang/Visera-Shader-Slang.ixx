@@ -7,6 +7,7 @@ export module Visera.Shader.Slang;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
+import Visera.Core.Types.String;
 import Visera.Global;
 import Visera.Platform;
 
@@ -117,7 +118,7 @@ namespace Visera
     	TArray<const char*> SlangSearchPaths;
 		SlangSearchPaths.Reserve(SearchPaths.GetSize());
 		for (const auto& Path : SearchPaths)
-    	{ SlangSearchPaths.EmplaceBack(Path.data()); }
+    	{ SlangSearchPaths.EmplaceBack(Path.Data()); }
 
     	slang::SessionDesc SessionCreateInfo
 		{
@@ -147,7 +148,7 @@ namespace Visera
 	 	// Create Shader Module
 	 	Slang::ComPtr<slang::IModule> ShaderModule
     	{
-    		Session->Handle->loadModule(I_File.GetUTF8Path().data(),
+    		Session->Handle->loadModule(I_File.GetUTF8Path().Data(),
     		Diagnostics.writeRef())
     	};
 	 	if (Diagnostics)
@@ -160,11 +161,11 @@ namespace Visera
 	 	// Create Shader Program
 	 	Slang::ComPtr<slang::IEntryPoint> ShaderEntryPoint;
 	 	if (ShaderModule->findEntryPointByName(
-	 		I_EntryPoint.data(),
+	 		I_EntryPoint.Data(),
 	 		ShaderEntryPoint.writeRef()) != SLANG_OK)
 	 	{
 	 		LOG_ERROR("Failed to find the EntryPoint({}) from Shader({})!",
-	 		          I_EntryPoint.data(), I_File);
+	 		          I_EntryPoint.Data(), I_File);
 			return;
 	 	}
 
@@ -205,7 +206,7 @@ namespace Visera
 	 		return;
 		}
 
-	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.data());
+	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.Data());
 		// slang::TypeReflection Type;
 		// switch (Type.getKind())
 		// {

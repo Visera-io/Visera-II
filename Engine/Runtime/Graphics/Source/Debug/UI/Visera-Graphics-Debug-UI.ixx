@@ -13,6 +13,7 @@ import Visera.Global.Service;
 import Visera.RHI;
 import Visera.Platform.Window;
 import Visera.Global.Log;
+import Visera.Core.Types.String;
 
 namespace Visera::Graphics
 {
@@ -25,7 +26,7 @@ namespace Visera::Graphics
             Bool Status = False;
             FDebugWindow() = delete;
             VISERA_NOINLINE
-            FDebugWindow(FStringView I_Title) { Status = ImGui::Begin(I_Title.data()); }
+            FDebugWindow(FStringView I_Title) { Status = ImGui::Begin(I_Title.Data()); }
             VISERA_NOINLINE
             ~FDebugWindow() { ImGui::End(); }
             [[nodiscard]] explicit
@@ -34,11 +35,11 @@ namespace Visera::Graphics
         [[nodiscard]] VISERA_NOINLINE FDebugWindow
         Window(FStringView I_Title) const { return FDebugWindow{I_Title};  }
         VISERA_NOINLINE void
-        Text(FStringView I_Text) const { ImGui::TextUnformatted(I_Text.data()); }
+        Text(FStringView I_Text) const { ImGui::TextUnformatted(I_Text.Data()); }
         VISERA_NOINLINE Bool
-        Button(FStringView I_Label) const { return ImGui::Button(I_Label.data()); }
+        Button(FStringView I_Label) const { return ImGui::Button(I_Label.Data()); }
         VISERA_NOINLINE Bool
-        Slider(FStringView I_Label, TMutable<Float> I_Value, Float I_Min, Float I_Max) const { return ImGui::SliderFloat(I_Label.data(), I_Value, I_Min, I_Max); }
+        Slider(FStringView I_Label, TMutable<Float> I_Value, Float I_Min, Float I_Max) const { return ImGui::SliderFloat(I_Label.Data(), I_Value, I_Min, I_Max); }
 #endif
         void inline
         BeginFrame()

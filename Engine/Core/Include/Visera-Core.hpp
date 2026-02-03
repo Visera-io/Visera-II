@@ -114,8 +114,6 @@ namespace Visera
     using UInt64 	    = std::uint64_t;
 	using UInt128		= std::pair<UInt64, UInt64>;
 
-    using FString         = std::string;
-    using FStringView     = std::string_view;
 	using FWideString     = std::wstring;
 	using FWideStringView = std::wstring_view;
 	using FUTF8StringView = std::u8string_view;
@@ -244,10 +242,6 @@ namespace Visera
 
 	constexpr bool operator>=(const UInt128& I_A, const UInt128& I_B)
 	{ return !(I_A < I_B); }
-
-	template<typename... Args> [[nodiscard]] static FString
-	Format(fmt::format_string<Args...> I_Fmt, Args &&... I_Args)
-	{ return fmt::format(I_Fmt, std::forward<Args>(I_Args)...); }
 }
 
 #define VISERA_MAKE_FLAGS(EnumClass)			\

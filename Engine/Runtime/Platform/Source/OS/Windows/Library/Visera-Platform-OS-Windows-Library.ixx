@@ -6,6 +6,7 @@ module;
 export module Visera.Platform.OS.Windows.Library;
 #define VISERA_MODULE_NAME "Platform.OS"
 import Visera.Platform.OS.Interface.Library;
+import Visera.Core.Types.String;
 import Visera.Global.Log;
 
 namespace Visera
@@ -50,10 +51,10 @@ namespace Visera
         LOG_TRACE("Loading Windows library: {}", I_Path);
         
         // Get the native path string
-        const FString NativePath = reinterpret_cast<const char*>(I_Path.GetNativePath().u8string().c_str());
+        const FString UTF8Path = I_Path.GetUTF8Path();
         
         // Convert path to wide string for Windows API
-        int WideLength = MultiByteToWideChar(CP_UTF8, 0, NativePath.c_str(), -1, nullptr, 0);
+        int WideLength = MultiByteToWideChar(CP_UTF8, 0, UTF8Path.Data(), -1, nullptr, 0);
         if (WideLength <= 0)
         {
             DWORD Error = GetLastError();
@@ -62,7 +63,7 @@ namespace Visera
         }
         
         std::vector<wchar_t> WidePath(WideLength);
-        int ConvertResult = MultiByteToWideChar(CP_UTF8, 0, NativePath.c_str(), -1, WidePath.data(), WideLength);
+        int ConvertResult = MultiByteToWideChar(CP_UTF8, 0, UTF8Path.Data(), -1, WidePath.data(), WideLength);
         if (ConvertResult == 0)
         {
             DWORD Error = GetLastError();

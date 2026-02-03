@@ -28,7 +28,7 @@ export namespace Visera
     {
         try
         {
-            Imf::RgbaInputFile File(I_Path.GetUTF8Path().c_str());
+            Imf::RgbaInputFile File(I_Path.GetUTF8Path().Data());
             const Imath::Box2i DW = File.dataWindow();
 
             const Int32 Width  = DW.max.x - DW.min.x + 1;

@@ -6,6 +6,7 @@ module;
 export module Visera.Core.Logger;
 #define VISERA_MODULE_NAME "Core.Logger"
 import Visera.Core.OS.Time;
+import Visera.Core.Types.String;
 
 namespace Visera
 {
@@ -119,7 +120,7 @@ namespace Visera
  			localtime_r(&Time, &LocalTime);
  #endif
  			auto ThreadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
- 			auto Message = Format(I_Fmt, std::forward<Args>(I_Args)...);
+ 			auto Message = FString::Format(I_Fmt, std::forward<Args>(I_Args)...);
 
  			fmt::println(I_Stream, "[{}] [{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}] [T:{}] {}",
  						 I_Level,

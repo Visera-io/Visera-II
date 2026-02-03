@@ -7,6 +7,7 @@ export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
 export import Visera.Core.Types.Path;
+import Visera.Core.Types.String;
 export import Visera.Core.Traits.Flags;
 
 export namespace Visera
@@ -148,9 +149,9 @@ export namespace Visera
     TUniquePtr<FFile> FFileSystem::
     OpenFile(const FPath& I_Path, EIOMode I_Mode)
     {
-        FString UTF8Path = I_Path.GetUTF8Path();
         const char* ModeStr = GetFileModeString(I_Mode);
-        FILE* Handle = std::fopen(UTF8Path.c_str(), ModeStr);
+        const FString PathString = I_Path.GetUTF8Path();
+        FILE* Handle = std::fopen(PathString.Data(), ModeStr);
         if (Handle == nullptr) { return nullptr; }
         return MakeUnique<FFile>(Handle);
     }

@@ -5,6 +5,7 @@ export module Visera.Core.Types.JSON;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
 import Visera.Core.Types.Text;
+import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
 
 //#define VISERA_SAFE_MODE;
@@ -22,47 +23,47 @@ export namespace Visera
         using Json = nlohmann::json;
 
         [[nodiscard]] Bool
-        Contains(FStringView I_Key) const noexcept { return Data.contains(I_Key); }
+        Contains(FStringView I_Key) const noexcept { return Data.contains(I_Key.Data()); }
         void
-        Clear() noexcept { Data = Json{}; LastError.clear(); }
+        Clear() noexcept { Data = Json{}; LastError.Clear(); }
         [[nodiscard]] FString
         Dump(Bool I_bPretty = True) const { return I_bPretty ? Data.dump(4) : Data.dump(); }
         [[nodiscard]] const FString&
         GetLastError() const noexcept { return LastError; }
         void
-        Set(FStringView I_Key, FStringView I_Value) { Data[I_Key] = FString(I_Value); }
+        Set(FStringView I_Key, FStringView I_Value) { Data[I_Key.Data()] = FString(I_Value); }
         void
-        Set(FStringView I_Key, Double I_Value) { Data[I_Key] = I_Value; }
+        Set(FStringView I_Key, Double I_Value) { Data[I_Key.Data()] = I_Value; }
         void
-        Set(FStringView I_Key, Bool I_Value) { Data[I_Key] = static_cast<bool>(I_Value); }
+        Set(FStringView I_Key, Bool I_Value) { Data[I_Key.Data()] = static_cast<bool>(I_Value); }
         // ---- Get (safe) ----
         [[nodiscard]] FString
         GetString(FStringView I_Key, FStringView I_DefaultValue = "") const
         {
-            const auto It = Data.find(I_Key);
+            const auto It = Data.find(I_Key.Data());
             if (It == Data.end() || !It->is_string()) { return FString(I_DefaultValue); }
-            try { return It->get<FString>(); } catch (...) { return FString(I_DefaultValue); }
+            try { return It->get<std::string>(); } catch (...) { return FString(I_DefaultValue); }
         }
 
         [[nodiscard]] TOptional<FString>
         TryGetString(FStringView I_Key) const noexcept
         {
-            const auto It = Data.find(I_Key);
+            const auto It = Data.find(I_Key.Data());
             if (It == Data.end() || !It->is_string()) { return NullOpt; }
-            try { return TOptional<FString>(It->get<FString>()); } catch (...) { return NullOpt; }
+            try { return TOptional<FString>(It->get<std::string>()); } catch (...) { return NullOpt; }
         }
 
         [[nodiscard]] Double
         GetNumber(FStringView I_Key, Double I_DefaultValue = 0.0) const noexcept
         {
-            const auto Opt = TryGetNumber(I_Key);
+            const auto Opt = TryGetNumber(I_Key.Data());
             return Opt.HasValue() ? Opt.GetValue() : I_DefaultValue;
         }
 
         [[nodiscard]] TOptional<Double>
         TryGetNumber(FStringView I_Key) const noexcept
         {
-            const auto It = Data.find(I_Key);
+            const auto It = Data.find(I_Key.Data());
             if (It == Data.end() || !It->is_number()) { return NullOpt; }
             try { return TOptional<Double>(It->get<Double>()); } catch (...) { return NullOpt; }
         }
@@ -70,14 +71,14 @@ export namespace Visera
         [[nodiscard]] Bool
         GetBool(FStringView I_Key, Bool I_DefaultValue = False) const noexcept
         {
-            const auto Opt = TryGetBool(I_Key);
+            const auto Opt = TryGetBool(I_Key.Data());
             return Opt.HasValue() ? Opt.GetValue() : I_DefaultValue;
         }
 
         [[nodiscard]] TOptional<Bool>
         TryGetBool(FStringView I_Key) const noexcept
         {
-            const auto It = Data.find(I_Key);
+            const auto It = Data.find(I_Key.Data());
             if (It == Data.end() || !It->is_boolean()) { return NullOpt; }
             try { return TOptional<Bool>(static_cast<Bool>(It->get<bool>())); } catch (...) { return NullOpt; }
         }
@@ -86,14 +87,14 @@ export namespace Visera
         [[nodiscard]] FJSON
         GetObject(FStringView I_Key) const noexcept
         {
-            const auto Opt = TryGetObject(I_Key);
+            const auto Opt = TryGetObject(I_Key.Data());
             return Opt.HasValue() ? Opt.GetValue() : FJSON{};
         }
 
         [[nodiscard]] TOptional<FJSON>
         TryGetObject(FStringView I_Key) const noexcept
         {
-            const auto It = Data.find(I_Key);
+            const auto It = Data.find(I_Key.Data());
             if (It == Data.end() || !It->is_object()) { return NullOpt; }
             try
             {
@@ -109,7 +110,7 @@ export namespace Visera
         [[nodiscard]] TArray<T>
         GetArray(FStringView I_Key) const noexcept
         {
-            const auto Opt = TryGetArray<T>(I_Key);
+            const auto Opt = TryGetArray<T>(I_Key.Data());
             return Opt.HasValue() ? Opt.GetValue() : TArray<T>{};
         }
 
@@ -117,7 +118,7 @@ export namespace Visera
         [[nodiscard]] TOptional<TArray<T>>
         TryGetArray(FStringView I_Key) const noexcept
         {
-            const auto It = Data.find(I_Key);
+            const auto It = Data.find(I_Key.Data());
             if (It == Data.end() || !It->is_array()) { return NullOpt; }
             try
             {
@@ -130,7 +131,7 @@ export namespace Visera
                     {
                         if (Item.is_string())
                         {
-                            Result.PushBack(Item.get<FString>());
+                            Result.PushBack(Item.get<std::string>());
                         }
                     }
                     else if constexpr (std::is_same_v<T, Double> || std::is_same_v<T, Float>)
@@ -166,17 +167,6 @@ export namespace Visera
             catch (...) { return NullOpt; }
         }
 
-        // ---- Get (view, UNSAFE by design) ----
-        // This returns a view into json's internal string storage; it becomes dangling if Data is modified.
-        [[nodiscard]] Bool
-        TryGetStringView(FStringView I_Key, FStringView* O_Value) const noexcept
-        {
-            CHECK(O_Value != nullptr);
-            const auto It = Data.find(I_Key);
-            if (It == Data.end() || !It->is_string()) { return False; }
-            try { *O_Value = It->get_ref<const FString&>(); return True; } catch (...) { return False; }
-        }
-
         [[nodiscard]] Json&
         GetNative() noexcept { return Data; }
         [[nodiscard]] const Json&
@@ -194,7 +184,7 @@ export namespace Visera
         [[nodiscard]] Bool
         Parse(FStringView I_JSONData) noexcept
         {
-            LastError.clear();
+            LastError.Clear();
             try
             {
                 // nlohmann::json::parse expects iterators to a contiguous char range; data may not be null-terminated.

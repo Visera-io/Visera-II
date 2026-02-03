@@ -10,6 +10,7 @@ import Visera.Audio.Null;
 import Visera.Audio.Wwise;
 //import Visera.Game.AssetHub.Sound;
 import Visera.Core.Types.Map;
+import Visera.Core.Types.String;
 import Visera.Core.OS.Time;
 import Visera.Global;
 
@@ -97,7 +98,7 @@ export namespace Visera
         auto& Token = Playlist[I_Sound->GetName()];
 
         static UInt64 UUID{1};
-        if (AK_Success == AK::SoundEngine::RegisterGameObj(UUID, FName::FetchNameString(I_Sound->GetName()).data()))
+        if (AK_Success == AK::SoundEngine::RegisterGameObj(UUID, FName::FetchNameString(I_Sound->GetName()).Data()))
         {
             LOG_DEBUG("Registered sound {} (token:{}).", I_Sound->GetPath(), UUID);
             Token = UUID++;
@@ -112,7 +113,7 @@ export namespace Visera
     {
         LOG_TRACE("Posting event {}", I_Event);
 
-        auto EventID = AK::SoundEngine::PostEvent(I_Event.data(), I_Token);
+        auto EventID = AK::SoundEngine::PostEvent(I_Event.Data(), I_Token);
 
         if (AK_INVALID_PLAYING_ID == EventID)
         { LOG_ERROR("Failed to post event {}!", I_Event); }

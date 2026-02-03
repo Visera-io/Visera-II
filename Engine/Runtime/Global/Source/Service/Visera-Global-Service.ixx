@@ -8,6 +8,7 @@ export import Visera.Global.Name;
        import Visera.Core.Types.Set;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.Queue;
+       import Visera.Core.Types.String;
        import Visera.Core.Delegate.Unicast;
 
 export namespace Visera
@@ -247,7 +248,7 @@ export namespace Visera
                 FString CycleMsg = "Services involved in cycle: ";
                 for (const FName& Name : CycleServices)
                 {
-                    CycleMsg += Format("\"{}\" ", Name.GetName());
+                    CycleMsg += FString::Format("\"{}\" ", Name.GetName());
                 }
                 LOG_FATAL("{}", CycleMsg);
                 

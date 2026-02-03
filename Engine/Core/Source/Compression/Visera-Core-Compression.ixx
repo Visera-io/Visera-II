@@ -5,6 +5,7 @@ export module Visera.Core.Compression;
 #define VISERA_MODULE_NAME "Core.Compression"
 import Visera.Core.OS.Memory;
 import Visera.Core.Types.Array;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {
@@ -19,8 +20,8 @@ export namespace Visera
     [[nodiscard]] VISERA_CORE_API ECompressionStatue
     Compress(FStringView I_Buffer, TMutable<TArray<FByte>> O_Buffer)
     {
-        const FByte* SourceData = reinterpret_cast<const FByte*>(I_Buffer.data());
-        const UInt32 SourceSize = I_Buffer.size();
+        const FByte* SourceData = reinterpret_cast<const FByte*>(I_Buffer.Data());
+        const UInt32 SourceSize = static_cast<UInt32>(I_Buffer.GetSize());
 
         if (SourceSize == 0) { return ECompressionStatue::Success; }
 

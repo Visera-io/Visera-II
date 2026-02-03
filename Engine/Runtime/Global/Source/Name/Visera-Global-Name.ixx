@@ -3,6 +3,7 @@ module;
 export module Visera.Global.Name;
 #define VISERA_MODULE_NAME "Global.Name"
 import Visera.Global.Name.NamePool;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {

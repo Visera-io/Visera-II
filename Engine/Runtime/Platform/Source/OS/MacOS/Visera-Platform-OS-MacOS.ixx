@@ -8,6 +8,7 @@ export module Visera.Platform.OS.MacOS;
 #define VISERA_MODULE_NAME "Platform.OS"
 import Visera.Platform.OS.Interface;
 import Visera.Platform.OS.MacOS.Library;
+import Visera.Core.Types.String;
 import Visera.Global.Log;
 import Visera.Core.OS.FileSystem;
 
@@ -65,7 +66,7 @@ namespace Visera
     SetEnvironmentVariable(FStringView I_Variable,
                            FStringView I_Value) const
     {
-        if (setenv(I_Variable.data(), I_Value.data(), True) != 0)
+        if (setenv(I_Variable.Data(), I_Value.Data(), True) != 0)
         {
             LOG_ERROR("Failed to set environment variable \"{}\" as \"{}\"!",
                       I_Variable, I_Value);

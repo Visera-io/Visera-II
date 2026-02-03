@@ -10,7 +10,6 @@ export import Visera.Core.Color;
 export import Visera.Core.Image;
 export import Visera.Core.Logger;
 export import Visera.Core.Traits;
-export import Visera.Core.Archive;
 export import Visera.Core.Delegate;
 export import Visera.Core.Compression;
 

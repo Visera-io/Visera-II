@@ -10,6 +10,7 @@ export module Visera.Platform.OS.Windows;
 #define VISERA_MODULE_NAME "Platform.OS"
 import Visera.Platform.OS.Interface;
 import Visera.Platform.OS.Windows.Library;
+import Visera.Core.Types.String;
 import Visera.Global.Log;
 
 namespace Visera
@@ -62,7 +63,7 @@ namespace Visera
     SetEnvironmentVariable(FStringView I_Variable,
                            FStringView I_Value) const
     {
-        if (!SetEnvironmentVariableA(I_Variable.data(), I_Value.data()))
+        if (!SetEnvironmentVariableA(I_Variable.Data(), I_Value.Data()))
         {
             LOG_ERROR("Failed to set environment variable \"{}\" as \"{}\"!",
                       I_Variable, I_Value);

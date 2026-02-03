@@ -17,20 +17,14 @@ macro(link_openexr in_target)
 
         # Configure OpenEXR to find Core's libdeflate via find_package
         if(TARGET libdeflate::libdeflate_static)
-            # Get the build directory of libdeflate where libdeflate-config.cmake is generated
-            get_target_property(_libdeflate_binary_dir libdeflate_static BINARY_DIR)
-            if(_libdeflate_binary_dir)
-                # find_package(libdeflate CONFIG) with libdeflate_DIR set will look for:
-                # - libdeflate_DIR/libdeflate-config.cmake
-                # - libdeflate_DIR/libdeflate/libdeflate-config.cmake
-                # The config file is generated in the build directory by configure_package_config_file
-                # So we set libdeflate_DIR to the build directory where the config file exists
-                set(libdeflate_DIR "${_libdeflate_binary_dir}" CACHE PATH "Path to libdeflate config" FORCE)
+            # Use minimal in-tree config in LibDeflate source dir (no libdeflate-targets.cmake needed).
+            get_target_property(_libdeflate_source_dir libdeflate_static SOURCE_DIR)
+            if(_libdeflate_source_dir AND EXISTS "${_libdeflate_source_dir}/libdeflate-config.cmake")
+                set(libdeflate_DIR "${_libdeflate_source_dir}" CACHE PATH "Path to libdeflate config" FORCE)
                 message(STATUS "Setting libdeflate_DIR to ${libdeflate_DIR} for OpenEXR to find Core's libdeflate")
-                # Don't force internal deflate, let OpenEXR find it via find_package
                 set(OPENEXR_FORCE_INTERNAL_DEFLATE  OFF     CACHE BOOL "" FORCE)
             else()
-                message(WARNING "Could not determine libdeflate build directory, OpenEXR will use internal vendored libdeflate")
+                message(WARNING "libdeflate in-tree config not found, OpenEXR will use internal vendored libdeflate")
                 set(OPENEXR_FORCE_INTERNAL_DEFLATE  ON      CACHE BOOL "" FORCE)
             endif()
         else()

@@ -1,7 +1,8 @@
 module;
 #include <Visera-Platform.hpp>
-export module Visera.Platform.Window.Interface;
 #define VISERA_MODULE_NAME "Platform.Window"
+export module Visera.Platform.Window.Interface;
+export import Visera.Core.Types.String;
 
 export namespace Visera
 {

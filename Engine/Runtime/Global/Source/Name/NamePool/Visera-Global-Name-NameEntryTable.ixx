@@ -62,7 +62,7 @@ export namespace Visera
 	FNameEntryHandle FNameEntryTable::
 	Insert(FStringView I_ParsedName, const FNameHash& I_NameHash)
 	{
-		UInt32 AlignedMemorySize = Memory::Align(Memory::GetDataOffset(&FNameEntry::ANSIName) + I_ParsedName.size(), NameEntryAlignment);
+		UInt32 AlignedMemorySize = Memory::Align(Memory::GetDataOffset(&FNameEntry::ANSIName) + static_cast<UInt32>(I_ParsedName.GetSize()), NameEntryAlignment);
 		VISERA_ASSERT(AlignedMemorySize <= SectionByteSize);
 
 		FNameEntryHandle NameEntryHandle;
@@ -85,8 +85,8 @@ export namespace Visera
 
 		auto& NewNameEntry  = const_cast<FNameEntry&>(LookUp(NameEntryHandle));
 		NewNameEntry.Header.LowerCaseProbeHash = I_NameHash.GetLowerCaseProbeHash();
-		NewNameEntry.Header.Size			   = I_ParsedName.size();
-		Memory::Memcpy(NewNameEntry.ANSIName, I_ParsedName.data(), NewNameEntry.Header.Size);
+		NewNameEntry.Header.Size			   = static_cast<UInt32>(I_ParsedName.GetSize());
+		Memory::Memcpy(NewNameEntry.ANSIName, I_ParsedName.Data(), NewNameEntry.Header.Size);
 
 		return NameEntryHandle;
 	}

@@ -3,6 +3,7 @@ module;
 export module Visera.Global.Name.NamePool:Common;
 #define VISERA_MODULE_NAME "Global.Name"
 import Visera.Core.Math.Hash.CityHash;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {

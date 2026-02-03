@@ -33,7 +33,7 @@ namespace Visera
         [[nodiscard]] FStringView
         GetTitle() const override { return glfwGetWindowTitle(Handle); }
         void
-        SetTitle(FStringView I_Title) override { glfwSetWindowTitle(Handle, I_Title.data()); }
+        SetTitle(FStringView I_Title) override { glfwSetWindowTitle(Handle, I_Title.Data()); }
         void
         SetIcon(const FIconSet& I_IconSet) override;
 

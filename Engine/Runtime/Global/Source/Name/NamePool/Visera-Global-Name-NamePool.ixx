@@ -7,6 +7,7 @@ import :NameTokenTable;
 import :NameEntryTable;
 
 import Visera.Core.Math.Hash.CityHash;
+import Visera.Core.Types.String;
 import Visera.Global.Log;
 
 export namespace Visera
@@ -64,10 +65,10 @@ export namespace Visera
     TPair<UInt32, UInt32> FNamePool::
     Register(FString& I_Name)
     {
-        auto [Number, NameLength] = ParseName(I_Name.data(), I_Name.size());
+        auto [Number, NameLength] = ParseName(I_Name.Data(), static_cast<size_t>(I_Name.GetSize()));
         VISERA_ASSERT(Number >= 0);
-        FStringView PureName{ I_Name.data(), NameLength};
-        return NativeRegister(PureName.data(), Number);
+        FStringView PureName{ I_Name.Data(), NameLength };
+        return NativeRegister(PureName.Data(), Number);
     }
 
     TPair<UInt32, UInt32> FNamePool::

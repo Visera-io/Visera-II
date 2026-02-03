@@ -41,7 +41,12 @@ struct FEngine
 
         LOG_INFO("{}", FText(True));
         LOG_INFO("{}", FText(False));
-
+        FString MyString = "A.B.C";
+        for (auto View : MyString.SplitToViews('.'))
+        {
+            LOG_INFO("{}", View);
+        }
+        LOG_WARN("{}", MyString);
 
         LOG_INFO("Visera Engine Run()");
 

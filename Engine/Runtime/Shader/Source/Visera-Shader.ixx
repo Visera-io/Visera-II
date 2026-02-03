@@ -4,6 +4,7 @@ export module Visera.Shader;
 #define VISERA_MODULE_NAME "Shader"
 import Visera.Core.Types.Array;
 import Visera.Core.Types.Path;
+import Visera.Core.Types.String;
 import Visera.Shader.Slang;
 import Visera.Global;
 
