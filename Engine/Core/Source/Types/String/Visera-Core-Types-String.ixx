@@ -26,6 +26,11 @@ export namespace Visera
         using Reference            = ViewType::reference;
         using ConstReference       = ViewType::const_reference;
         using SizeType             = ViewType::size_type;
+        
+        [[nodiscard]] inline const ViewType&
+        GetStringView() const { return View; }
+        [[nodiscard]] inline ViewType&
+        GetStringView()       { return View; }
 
     private:
         ViewType View;
@@ -158,7 +163,7 @@ export namespace Visera
 
         [[nodiscard]] constexpr SizeType Find(FStringView I_Sv, SizeType I_Pos = 0) const noexcept
         {
-            return View.find(static_cast<ViewType>(I_Sv), I_Pos);
+            return View.find(I_Sv.GetStringView(), I_Pos);
         }
 
         [[nodiscard]] constexpr SizeType Find(char I_Ch, SizeType I_Pos = 0) const noexcept
@@ -178,7 +183,7 @@ export namespace Visera
 
         [[nodiscard]] constexpr SizeType Rfind(FStringView I_Sv, SizeType I_Pos = ViewType::npos) const noexcept
         {
-            return View.rfind(static_cast<ViewType>(I_Sv), I_Pos);
+            return View.rfind(I_Sv.GetStringView(), I_Pos);
         }
 
         [[nodiscard]] constexpr SizeType Rfind(char I_Ch, SizeType I_Pos = ViewType::npos) const noexcept
@@ -188,7 +193,7 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool StartsWith(FStringView I_Sv) const noexcept
         {
-            return View.starts_with(static_cast<ViewType>(I_Sv));
+            return View.starts_with(I_Sv.GetStringView());
         }
 
         [[nodiscard]] constexpr Bool StartsWith(char I_Ch) const noexcept
@@ -198,7 +203,7 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool EndsWith(FStringView I_Sv) const noexcept
         {
-            return View.ends_with(static_cast<ViewType>(I_Sv));
+            return View.ends_with(I_Sv.GetStringView());
         }
 
         [[nodiscard]] constexpr Bool EndsWith(char I_Ch) const noexcept
@@ -208,7 +213,7 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool Contains(FStringView I_Sv) const noexcept
         {
-            return View.contains(static_cast<ViewType>(I_Sv));
+            return View.contains(I_Sv.GetStringView());
         }
 
         [[nodiscard]] constexpr Bool Contains(char I_Ch) const noexcept
@@ -238,64 +243,32 @@ export namespace Visera
         Format(fmt::format_string<Args...> I_Fmt, Args &&... I_Args)
         { return fmt::format(I_Fmt, std::forward<Args>(I_Args)...); }
 
+        [[nodiscard]] inline const StringType&
+        GetString() const { return String; }
+        [[nodiscard]] inline StringType&
+        GetString()       { return String; }
+        [[nodiscard]] inline std::string_view
+        GetStringView() const noexcept { return String; }
+
     private:
         StringType String;
 
     public:
-        // Constructors and Destructor
-        FString() = default;
+        FString()  = default;
         ~FString() = default;
-
-        FString(const StringType& I_Str)
-            : String(I_Str)
-        {
-        }
-
-        FString(StringType&& I_Str) noexcept
-            : String(std::move(I_Str))
-        {
-        }
-
-        FString(const char* I_Str)
-            : String(I_Str ? I_Str : "")
-        {
-        }
-
-        FString(const char* I_Str, SizeType I_Count)
-            : String(I_Str ? I_Str : "", I_Str ? I_Count : 0)
-        {
-        }
-
-        FString(FStringView I_Sv)
-            : String(static_cast<std::string_view>(I_Sv))
-        {
-        }
-
-        FString(std::string_view I_Sv)
-            : String(I_Sv)
-        {
-        }
-
+        FString(const StringType& I_Str) : String(I_Str) {}
+        FString(StringType&& I_Str) noexcept : String(std::move(I_Str)) {}
+        FString(const char* I_Str) : String(I_Str ? I_Str : "") {}
+        FString(const char* I_Str, SizeType I_Count) : String(I_Str ? I_Str : "", I_Str ? I_Count : 0) {}
+        FString(FStringView I_Sv) : String(I_Sv.GetStringView()) { }
+        FString(std::string_view I_Sv) : String(I_Sv) { }
         template<typename InputIt>
-        FString(InputIt I_First, InputIt I_Last)
-            : String(I_First, I_Last)
-        {
-        }
-
-        FString(SizeType I_Count, char I_Ch)
-            : String(I_Count, I_Ch)
-        {
-        }
-
-        FString(std::initializer_list<char> I_Init)
-            : String(I_Init)
-        {
-        }
-
-        FString(const FString& I_Other)
-            : String(I_Other.String)
-        {
-        }
+        FString(InputIt I_First, InputIt I_Last) : String(I_First, I_Last) {}
+        FString(SizeType I_Count, char I_Ch) : String(I_Count, I_Ch) { }
+        FString(std::initializer_list<char> I_Init) : String(I_Init) {}
+        FString(const FString& I_Other) : String(I_Other.String) { }
+        template<Concepts::Byte ByteType>
+        FString(const TArray<ByteType>& I_Bytes) { String.assign(reinterpret_cast<const char*>(I_Bytes.Data()), I_Bytes.GetSize()); }
 
         FString& operator=(const FString& I_Other)
         {
@@ -330,7 +303,7 @@ export namespace Visera
 
         FString& operator=(FStringView I_Sv)
         {
-            String = static_cast<std::string_view>(I_Sv);
+            String = I_Sv.GetStringView();
             return *this;
         }
 
@@ -439,7 +412,7 @@ export namespace Visera
         {
             return String.data();
         }
-        
+
         // Required for std::ranges and range-based for; names fixed by C++ standard.
         [[nodiscard]] Iterator begin()
         {
@@ -533,7 +506,7 @@ export namespace Visera
 
         FString& operator+=(FStringView I_Sv)
         {
-            String += static_cast<std::string_view>(I_Sv);
+            String += I_Sv.GetStringView();
             return *this;
         }
 
@@ -554,7 +527,7 @@ export namespace Visera
 
         FString& Append(FStringView I_Sv)
         {
-            String.append(static_cast<std::string_view>(I_Sv));
+            String.append(I_Sv.GetStringView());
             return *this;
         }
 
@@ -604,7 +577,7 @@ export namespace Visera
 
         FString& Assign(FStringView I_Sv)
         {
-            String.assign(static_cast<std::string_view>(I_Sv));
+            String.assign(I_Sv.GetStringView());
             return *this;
         }
 
@@ -652,7 +625,7 @@ export namespace Visera
 
         FString& Insert(SizeType I_Index, FStringView I_Sv)
         {
-            String.insert(I_Index, static_cast<std::string_view>(I_Sv));
+            String.insert(I_Index, I_Sv.GetStringView());
             return *this;
         }
 
@@ -727,7 +700,7 @@ export namespace Visera
         [[nodiscard]] TArray<FString> Split(FStringView I_Delimiter) const
         {
             TArray<FString> Result;
-            std::string_view Delim = static_cast<std::string_view>(I_Delimiter);
+            std::string_view Delim = I_Delimiter.GetStringView();
             if (Delim.empty())
             {
                 Result.PushBack(*this);
@@ -752,7 +725,7 @@ export namespace Visera
 
         [[nodiscard]] auto Subranges(FStringView I_Delimiter) const
         {
-            return std::ranges::views::split(String, static_cast<std::string_view>(I_Delimiter));
+            return std::ranges::views::split(String, I_Delimiter.GetStringView());
         }
 
         [[nodiscard]] TArray<FStringView>
@@ -795,7 +768,7 @@ export namespace Visera
             TArray<FStringView> Result; Result.Reserve(4);
 
             const std::string_view S = String;
-            const std::string_view D = static_cast<std::string_view>(I_Delimiter);
+            const std::string_view D = I_Delimiter.GetStringView();
 
             if (D.empty())
             {
@@ -832,7 +805,7 @@ export namespace Visera
     };
 
     inline FStringView::FStringView(const FString& I_Str)
-        : View(static_cast<std::string_view>(I_Str))
+        : View(I_Str.GetStringView())
     {
     }
 
@@ -881,44 +854,44 @@ export namespace Visera
 
     [[nodiscard]] inline FString operator+(FStringView I_Lhs, const FString& I_Rhs)
     {
-        FString Result(static_cast<std::string_view>(I_Lhs));
+        FString Result(I_Lhs.GetStringView());
         Result += I_Rhs;
         return Result;
     }
 
     [[nodiscard]] inline Bool operator==(const FString& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) == static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator==(const FString& I_Lhs, const std::string& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) == std::string_view(I_Rhs);
+        return I_Lhs.GetStringView() == std::string_view(I_Rhs);
     }
 
     [[nodiscard]] inline Bool operator==(const std::string& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return std::string_view(I_Lhs) == static_cast<std::string_view>(I_Rhs);
+        return std::string_view(I_Lhs) == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator==(const FString& I_Lhs, const char* I_Rhs)
     {
-        return static_cast<std::string_view>(I_Lhs) == (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() == (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
 
     [[nodiscard]] inline Bool operator==(const char* I_Lhs, const FString& I_Rhs)
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) == static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator==(const FString& I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) == static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator==(FStringView I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) == static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator!=(const FString& I_Lhs, const FString& I_Rhs) noexcept
@@ -958,17 +931,17 @@ export namespace Visera
 
     [[nodiscard]] inline Bool operator==(FStringView I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) == static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator==(FStringView I_Lhs, const char* I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) == (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() == (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
 
     [[nodiscard]] inline Bool operator==(const char* I_Lhs, FStringView I_Rhs) noexcept
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) == static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) == I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator!=(FStringView I_Lhs, FStringView I_Rhs) noexcept
@@ -989,176 +962,176 @@ export namespace Visera
     // Ordering: FString
     [[nodiscard]] inline Bool operator<(const FString& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) < static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() < I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<(const FString& I_Lhs, const std::string& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) < std::string_view(I_Rhs);
+        return I_Lhs.GetStringView() < std::string_view(I_Rhs);
     }
     [[nodiscard]] inline Bool operator<(const std::string& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return std::string_view(I_Lhs) < static_cast<std::string_view>(I_Rhs);
+        return std::string_view(I_Lhs) < I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<(const FString& I_Lhs, const char* I_Rhs)
     {
-        return static_cast<std::string_view>(I_Lhs) < (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() < (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator<(const char* I_Lhs, const FString& I_Rhs)
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) < static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) < I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<(const FString& I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) < static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() < I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<(FStringView I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) < static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() < I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator<=(const FString& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) <= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() <= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<=(const FString& I_Lhs, const std::string& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) <= std::string_view(I_Rhs);
+        return I_Lhs.GetStringView() <= std::string_view(I_Rhs);
     }
     [[nodiscard]] inline Bool operator<=(const std::string& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return std::string_view(I_Lhs) <= static_cast<std::string_view>(I_Rhs);
+        return std::string_view(I_Lhs) <= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<=(const FString& I_Lhs, const char* I_Rhs)
     {
-        return static_cast<std::string_view>(I_Lhs) <= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() <= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator<=(const char* I_Lhs, const FString& I_Rhs)
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) <= static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) <= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<=(const FString& I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) <= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() <= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<=(FStringView I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) <= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() <= I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator>(const FString& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) > static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() > I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>(const FString& I_Lhs, const std::string& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) > std::string_view(I_Rhs);
+        return I_Lhs.GetStringView() > std::string_view(I_Rhs);
     }
     [[nodiscard]] inline Bool operator>(const std::string& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return std::string_view(I_Lhs) > static_cast<std::string_view>(I_Rhs);
+        return std::string_view(I_Lhs) > I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>(const FString& I_Lhs, const char* I_Rhs)
     {
-        return static_cast<std::string_view>(I_Lhs) > (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() > (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator>(const char* I_Lhs, const FString& I_Rhs)
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) > static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) > I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>(const FString& I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) > static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() > I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>(FStringView I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) > static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() > I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator>=(const FString& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) >= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() >= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>=(const FString& I_Lhs, const std::string& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) >= std::string_view(I_Rhs);
+        return I_Lhs.GetStringView() >= std::string_view(I_Rhs);
     }
     [[nodiscard]] inline Bool operator>=(const std::string& I_Lhs, const FString& I_Rhs) noexcept
     {
-        return std::string_view(I_Lhs) >= static_cast<std::string_view>(I_Rhs);
+        return std::string_view(I_Lhs) >= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>=(const FString& I_Lhs, const char* I_Rhs)
     {
-        return static_cast<std::string_view>(I_Lhs) >= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() >= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator>=(const char* I_Lhs, const FString& I_Rhs)
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) >= static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) >= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>=(const FString& I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) >= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() >= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>=(FStringView I_Lhs, const FString& I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) >= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() >= I_Rhs.GetStringView();
     }
 
     // Ordering: FStringView
     [[nodiscard]] inline Bool operator<(FStringView I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) < static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() < I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<(FStringView I_Lhs, const char* I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) < (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() < (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator<(const char* I_Lhs, FStringView I_Rhs) noexcept
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) < static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) < I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator<=(FStringView I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) <= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() <= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator<=(FStringView I_Lhs, const char* I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) <= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() <= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator<=(const char* I_Lhs, FStringView I_Rhs) noexcept
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) <= static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) <= I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator>(FStringView I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) > static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() > I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>(FStringView I_Lhs, const char* I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) > (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() > (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator>(const char* I_Lhs, FStringView I_Rhs) noexcept
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) > static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) > I_Rhs.GetStringView();
     }
 
     [[nodiscard]] inline Bool operator>=(FStringView I_Lhs, FStringView I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) >= static_cast<std::string_view>(I_Rhs);
+        return I_Lhs.GetStringView() >= I_Rhs.GetStringView();
     }
     [[nodiscard]] inline Bool operator>=(FStringView I_Lhs, const char* I_Rhs) noexcept
     {
-        return static_cast<std::string_view>(I_Lhs) >= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+        return I_Lhs.GetStringView() >= (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
     }
     [[nodiscard]] inline Bool operator>=(const char* I_Lhs, FStringView I_Rhs) noexcept
     {
-        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) >= static_cast<std::string_view>(I_Rhs);
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) >= I_Rhs.GetStringView();
     }
 }
 
-VISERA_MAKE_HASH(Visera::FString, return std::hash<std::string>{}(static_cast<std::string>(I_Object)););
-VISERA_MAKE_FORMATTER(Visera::FString, {}, "{}", static_cast<std::string_view>(I_Formatee));
+VISERA_MAKE_HASH(Visera::FString, return std::hash<std::string>{}(I_Object.GetString()););
+VISERA_MAKE_FORMATTER(Visera::FString, {}, "{}", I_Formatee.GetStringView());
 
-VISERA_MAKE_HASH(Visera::FStringView, return std::hash<std::string_view>{}(static_cast<std::string_view>(I_Object)););
-VISERA_MAKE_FORMATTER(Visera::FStringView, {}, "{}", static_cast<std::string_view>(I_Formatee));
+VISERA_MAKE_HASH(Visera::FStringView, return std::hash<std::string_view>{}(I_Object.GetStringView()););
+VISERA_MAKE_FORMATTER(Visera::FStringView, {}, "{}", I_Formatee.GetStringView());

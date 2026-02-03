@@ -4,6 +4,7 @@ export module Visera.RHI.Vulkan.Pipeline.Cache;
 #define VISERA_MODULE_NAME "RHI.Vulkan"
 import Visera.Core.OS.FileSystem;
 import Visera.Core.OS.Memory;
+import Visera.Core.Types.Array;
 import Visera.Global.Log;
 import vulkan_hpp;
 
@@ -33,36 +34,33 @@ namespace Visera
                          const FPath&                    I_Path)
     : Path{ I_Path }
     {
-        if(!FFileSystem::Exists(Path))
+        if (auto Stream = FFileSystem::OpenOStream(Path, EStreamMode::Binary))
         {
-            if (auto File = FFileSystem::OpenOStream(Path, EIOMode::Binary))
-            {
-                LOG_DEBUG("Created a new Vulkan Pipeline Cache file at \"{}\".", Path);
-            }
-            else { LOG_FATAL("Failed to create the Vulkan Pipeline Cache at \"{}\"!", Path); }
+            LOG_DEBUG("Created a new Vulkan Pipeline Cache file at \"{}\".", Path);
         }
+        else { LOG_FATAL("Failed to create the Vulkan Pipeline Cache at \"{}\"!", Path); }
 
         // Read from the file
-        if (auto File = FFileSystem::OpenIStream(Path, EIOMode::Binary))
+        if (auto Stream = FFileSystem::OpenIStream(Path, EStreamMode::Binary))
         {
-            File->seekg(0, std::ios::end);
-            Int64 Size = File->tellg();
-            File->seekg(0, std::ios::beg);
+            Stream->seekg(0, std::ios::end);
+            Int64 Size = Stream->tellg();
+            Stream->seekg(0, std::ios::beg);
 
-            std::vector<char> CacheData(Size);
-            if (Size > 0 && !File->read(CacheData.data(), Size))
+            TArray<Int8> CacheData(Size);
+            if (Size > 0 && !Stream->read(CacheData.Data(), Size))
             {
                 LOG_ERROR("Failed to read Vulkan Pipeline Cache data from \"{}\".", Path);
                 return;
             }
 
-            Bool bExpired = CacheData.size() < sizeof(vk::PipelineCacheHeaderVersionOne);
+            Bool bExpired = CacheData.GetSize() < sizeof(vk::PipelineCacheHeaderVersionOne);
             if (!bExpired)
             {
-                auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.data());
+                auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.Data());
                 auto  GPUProperties = I_GPU.getProperties();
 
-                bExpired = CacheData.empty() ||
+                bExpired = CacheData.IsEmpty() ||
                            CacheHeader->deviceID != GPUProperties.deviceID ||
                            CacheHeader->vendorID != GPUProperties.vendorID ||
                            Memory::Memcmp(CacheHeader->pipelineCacheUUID,
@@ -73,12 +71,12 @@ namespace Visera
             if (bExpired)
             {
                 LOG_DEBUG("Vulkan Pipeline Cache expired!");
-                CacheData.clear();
+                CacheData.Clear();
             }
 
             auto CreateInfo = vk::PipelineCacheCreateInfo()
-                .setInitialDataSize (CacheData.size())
-                .setPInitialData    (CacheData.data())
+                .setInitialDataSize (CacheData.GetSize())
+                .setPInitialData    (CacheData.Data())
             ;
             auto Result = I_Device.createPipelineCache(CreateInfo);
             if (!Result.has_value())
@@ -99,10 +97,10 @@ namespace Visera
             auto CacheData {std::move(*Result)};
             LOG_DEBUG("Caching Vulkan Pipeline Data (bytes:{}) at \"{}\".", CacheData.size(), Path);
 
-            if (auto File = FFileSystem::OpenOStream(Path, EIOMode::Binary))
+            if (auto Stream = FFileSystem::OpenOStream(Path, EStreamMode::Binary))
             {
-                File->write(reinterpret_cast<char*>(CacheData.data()),
-                           static_cast<std::streamsize>(CacheData.size()));
+                Stream->write(reinterpret_cast<char*>(CacheData.data()),
+                              static_cast<std::streamsize>(CacheData.size()));
             }
             else { LOG_ERROR("Failed to open the Vulkan Pipeline Data at \"{}\"!", Path); }
         }

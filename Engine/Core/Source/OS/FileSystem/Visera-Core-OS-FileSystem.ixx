@@ -14,25 +14,32 @@ export namespace Visera
 {
     using SFileSystemError = std::filesystem::filesystem_error;
 
-    enum class EIOMode : Int32
+    enum class EStreamMode : Int32
     {
         None       = 0,
         Binary     = std::ios_base::binary,
-
-        Read       = 1 << 8,
-        Write      = 1 << 9,
-        Append     = 1 << 10,
-        ReadWrite  = 1 << 11,
-        WriteRead  = 1 << 12,
-        AppendRead = 1 << 13,
     };
-    VISERA_MAKE_FLAGS(EIOMode);
+    VISERA_MAKE_FLAGS(EStreamMode);
+
+    enum class EFileMode : Int32
+    {
+        Binary     = 1 << 0,
+        Read       = 1 << 1,
+        Write      = 1 << 2,
+        Append     = 1 << 3,
+        ReadWrite  = 1 << 4,
+        WriteRead  = 1 << 5,
+        AppendRead = 1 << 6,
+    };
+    VISERA_MAKE_FLAGS(EFileMode);
 
     class VISERA_CORE_API FFileSystem
     {
     public:
         [[nodiscard]] FErrorCode static inline
         CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
+        [[nodiscard]] Bool static inline
+        IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(I_Path.GetNativePath()); }
         [[nodiscard]] FErrorCode static inline
         CreateDirectory(const FPath& I_Path);
         [[nodiscard]] FErrorCode static inline
@@ -40,13 +47,11 @@ export namespace Visera
         [[nodiscard]] Bool static inline
         Exists(const FPath& I_Path) { return std::filesystem::exists(I_Path.GetNativePath()); }
         [[nodiscard]] TUniquePtr<std::ifstream> static inline
-        OpenIStream(const FPath& I_Path, EIOMode I_Mode = EIOMode::None);
+        OpenIStream(const FPath& I_Path, EStreamMode I_Mode = EStreamMode::None);
         [[nodiscard]] TUniquePtr<std::ofstream> static inline
-        OpenOStream(const FPath& I_Path, EIOMode I_Mode = EIOMode::None);
-        [[nodiscard]] Bool static inline
-        IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(I_Path.GetNativePath()); }
+        OpenOStream(const FPath& I_Path, EStreamMode I_Mode = EStreamMode::None);
         [[nodiscard]] TUniquePtr<FFile> static inline
-        OpenFile(const FPath& I_Path, EIOMode I_Mode = EIOMode::Read);
+        OpenFile(const FPath& I_Path, EFileMode I_Mode);
 
     public:
         explicit FFileSystem() = default; // Must have a default constructor
@@ -57,7 +62,7 @@ export namespace Visera
 
     private:
         [[nodiscard]] static inline const char*
-        GetFileModeString(EIOMode I_Mode);
+        GetFileModeString(EFileMode I_Mode);
     };
 
     FErrorCode FFileSystem::
@@ -111,43 +116,43 @@ export namespace Visera
     }
 
     TUniquePtr<std::ifstream> FFileSystem::
-    OpenIStream(const FPath& I_Path, EIOMode I_Mode)
+    OpenIStream(const FPath& I_Path, EStreamMode I_Mode)
     {
         auto IStream = MakeUnique<std::ifstream>(I_Path.GetNativePath(), ToUnderlying(I_Mode));
         return IStream->is_open()? std::move(IStream) : nullptr;
     }
 
     TUniquePtr<std::ofstream> FFileSystem::
-    OpenOStream(const FPath& I_Path, EIOMode I_Mode)
+    OpenOStream(const FPath& I_Path, EStreamMode I_Mode)
     {
         auto OStream = MakeUnique<std::ofstream>(I_Path.GetNativePath(), ToUnderlying(I_Mode));
         return OStream->is_open()? std::move(OStream) : nullptr;
     }
 
     inline const char* FFileSystem::
-    GetFileModeString(EIOMode I_Mode)
+    GetFileModeString(EFileMode I_Mode)
     {
-        const Bool bBinary = (I_Mode & EIOMode::Binary) != EIOMode::None;
-        const EIOMode AccessMode = static_cast<EIOMode>(ToUnderlying(I_Mode) & ~ToUnderlying(EIOMode::Binary));
+        const Bool bBinary = (I_Mode & EFileMode::Binary);
+        const EFileMode AccessMode = static_cast<EFileMode>(ToUnderlying(I_Mode) & ~ToUnderlying(EFileMode::Binary));
 
-        if (AccessMode & EIOMode::Read)
+        if (AccessMode & EFileMode::Read)
         { return bBinary ? "rb" : "r"; }
-        else if (AccessMode & EIOMode::Write)
+        else if (AccessMode & EFileMode::Write)
         { return bBinary ? "wb" : "w"; }
-        else if (AccessMode & EIOMode::Append)
+        else if (AccessMode & EFileMode::Append)
         { return bBinary ? "ab" : "a"; }
-        else if (AccessMode & EIOMode::ReadWrite)
+        else if (AccessMode & EFileMode::ReadWrite)
         { return bBinary ? "r+b" : "r+"; }
-        else if (AccessMode & EIOMode::WriteRead)
+        else if (AccessMode & EFileMode::WriteRead)
         { return bBinary ? "w+b" : "w+"; }
-        else if (AccessMode & EIOMode::AppendRead)
+        else if (AccessMode & EFileMode::AppendRead)
         { return bBinary ? "a+b" : "a+"; }
         else
         { return bBinary ? "rb" : "r"; } // Default to read mode
     }
 
     TUniquePtr<FFile> FFileSystem::
-    OpenFile(const FPath& I_Path, EIOMode I_Mode)
+    OpenFile(const FPath& I_Path, EFileMode I_Mode)
     {
         const char* ModeStr = GetFileModeString(I_Mode);
         const FString PathString = I_Path.GetUTF8Path();

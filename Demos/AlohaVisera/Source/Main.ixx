@@ -12,6 +12,7 @@ import Visera.Graphics;
 import Visera.Graphics.Renderer;
 import Visera.AssetHub;
 using namespace Visera;
+import nlohmann.json;
 
 struct FEngine
 {
@@ -39,10 +40,13 @@ struct FEngine
         LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
         LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
 
+        TOptional<Int32> Num = 32;
+        LOG_ERROR("{}", Num.GetValue());
+
         LOG_INFO("{}", FText(True));
         LOG_INFO("{}", FText(False));
         FString MyString = "A.B.C";
-        for (auto View : MyString.SplitToViews('.'))
+        for (auto View : MyString.SplitToViews(".B"))
         {
             LOG_INFO("{}", View);
         }
@@ -52,34 +56,16 @@ struct FEngine
 
         FRHICommandList Commands;
 
-        FJSON Configuration{};
-        auto File = FFileSystem::OpenFile("Assets/App/Configs/config.json", EIOMode::Read);
-        if (File && File->IsOpen())
-        {
-            TArray<FByte> FileData = File->ReadAll();
-            if (!FileData.IsEmpty())
-            {
-                Configuration = FJSON(FileData);
-                LOG_INFO("\n{}", Configuration.Dump());
-            }
-            else
-            {
-                LOG_WARN("Failed to read config.json or file is empty");
-            }
-        }
-        else { LOG_ERROR("Failed to open config.json"); }
+        FJSON Config = FJSON::Load("Assets/App/Configs/config.json").GetValue();
 
-        auto Assets = Configuration.GetObject("Assets");
-        auto StringPaths = Assets.GetArray<FString>("Textures");
-
-        TSharedPtr<FImage> TestImage = AssetHub->LoadImage(FPath{StringPaths[0]});
+        TSharedPtr<FImage> TestImage = AssetHub->LoadImage(FPath(Config.GetString(FJSONPath("Assets.Textures[0]"))));
         FTextureID TexID = Graphics->CreateTexture2D(TestImage);
 
         Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
 
         auto TestTexture = Graphics->GetTexture2D(TexID);
 
-        auto Material = MakeShared<FMaterial>("Assets/App/Material/BasicSprite.vmaterial");
+        auto Material = MakeShared<FMaterial>(FJSON::Load("Assets/App/Material/BasicSprite.vmaterial").GetValue());
         if (Material->IsValid())
         {
             const char* SurfaceName = "Unknown";

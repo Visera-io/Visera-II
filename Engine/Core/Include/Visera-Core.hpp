@@ -54,6 +54,18 @@
 	#define VISERA_FORCEINLINE   inline
 #endif
 
+/* Use before a class data member declaration allow it to be overlapped with other non-static data members or base class subobjects of its class. */
+#if !defined(VISERA_NO_UNIQUE_ADDRESS) && defined(__has_cpp_attribute)
+	#if __has_cpp_attribute(msvc::no_unique_address)
+		#define VISERA_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+	#elif __has_cpp_attribute(no_unique_address)
+		#define VISERA_NO_UNIQUE_ADDRESS [[no_unique_address]]
+	#endif
+#endif
+#ifndef VISERA_NO_UNIQUE_ADDRESS
+	#define VISERA_NO_UNIQUE_ADDRESS
+#endif
+
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 	#define PLATFORM_ASSERT(expression) ((void)(                                                       \
 		(!!(expression)) ||                                                               \
@@ -148,6 +160,11 @@ namespace Visera
 					std::same_as<std::remove_cv_t<T>, char8_t>			||
 					std::same_as<std::remove_cv_t<T>, char16_t>			||
 					std::same_as<std::remove_cv_t<T>, char32_t>;
+
+		template <typename T> concept
+		Byte = std::same_as<std::remove_cv_t<T>, char>				||
+			   std::same_as<std::remove_cv_t<T>, signed char>		||
+			   std::same_as<std::remove_cv_t<T>, unsigned char>;
 
 		template <typename T> concept
 		Boolean = std::same_as<std::remove_cvref_t<T>, Bool>;

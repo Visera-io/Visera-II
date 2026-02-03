@@ -112,7 +112,7 @@ export namespace Visera
     BeginParsing(const FPath& I_Path)
     {
         // Open file
-        File = FFileSystem::OpenFile(I_Path, EIOMode::Read | EIOMode::Binary);
+        File = FFileSystem::OpenFile(I_Path, EFileMode::Read | EFileMode::Binary);
         if (!File || !File->IsOpen())
         {
             LOG_ERROR("Failed to open PNG file: {}", I_Path);
