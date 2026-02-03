@@ -23,6 +23,9 @@ macro(install_visera_core in_target)
     include(install_zlib)
     link_zlib(${in_target})
 
+    include(install_libdeflate)
+    link_libdeflate(${in_target})
+
     include(install_stb)
     link_stb(${in_target})
 

@@ -1,0 +1,21 @@
+if(NOT VISERA_CORE_EXTERNAL_DIR)
+    message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
+endif()
+
+macro(link_libdeflate in_target)
+    message(STATUS "\nLinking LibDeflate (libdeflate::libdeflate_static)")
+
+    if(NOT TARGET libdeflate::libdeflate_static)
+        set(LIBDEFLATE_BUILD_STATIC_LIB      ON  CACHE BOOL "" FORCE)
+        set(LIBDEFLATE_BUILD_SHARED_LIB      OFF CACHE BOOL "" FORCE)
+        set(LIBDEFLATE_BUILD_TESTS           OFF CACHE BOOL "" FORCE)
+        set(LIBDEFLATE_COMPRESSION_SUPPORT   ON  CACHE BOOL "" FORCE)
+        set(LIBDEFLATE_DECOMPRESSION_SUPPORT ON  CACHE BOOL "" FORCE)
+        set(LIBDEFLATE_ZLIB_SUPPORT          ON  CACHE BOOL "" FORCE)
+        set(LIBDEFLATE_GZIP_SUPPORT          OFF CACHE BOOL "" FORCE)
+        add_subdirectory("${VISERA_CORE_EXTERNAL_DIR}/LibDeflate")
+        set_target_properties(libdeflate_static PROPERTIES FOLDER "Visera/Core/External/LibDeflate")
+    endif()
+
+    target_link_libraries(${in_target} PUBLIC libdeflate::libdeflate_static)
+endmacro()

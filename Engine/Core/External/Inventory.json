@@ -62,6 +62,15 @@
         ],
         "URL" : "https://github.com/madler/zlib"
     },
+    "LibDeflate" :
+    {
+        "Version" : "1.25",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/ebiggers/libdeflate"
+    },
     "Ankerl" :
     {
         "Version" : "4.7.0",

@@ -23,7 +23,8 @@
         "Dependencies" :
         [
             "Imath",
-            "OpenJPH"
+            "OpenJPH",
+            "LibDeflate"
         ],
         "URL" : "https://github.com/AcademySoftwareFoundation/openexr"
     }
