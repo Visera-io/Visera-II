@@ -72,10 +72,10 @@ export namespace Visera
 			FJSON Desc{Raw};
 
 			Version = static_cast<UInt8>(Desc.GetNumber("Version", 1));
-			Shader  = Desc.GetText("Shader");
-			BaseColorPath = Desc.GetTextPath("Textures.BaseColor");
+			Shader  = Desc.GetString("Shader");
+			BaseColorPath = Desc.GetString("Textures.BaseColor");
 
-			FString SurfaceStr = Desc.GetText("Surface").GetString();
+			FString SurfaceStr = Desc.GetString("Surface");
 			if      (SurfaceStr == "Opaque")	  { Surface = ESurfaceType::Opaque; }
 			else if (SurfaceStr == "Masked")	  { Surface = ESurfaceType::Masked; }
 			else if (SurfaceStr == "Transparent") { Surface = ESurfaceType::Transparent; }

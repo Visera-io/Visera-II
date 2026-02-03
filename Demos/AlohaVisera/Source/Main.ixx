@@ -39,6 +39,9 @@ struct FEngine
         LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
         LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
 
+        LOG_INFO("{}", FText(True));
+        LOG_INFO("{}", FText(False));
+
 
         LOG_INFO("Visera Engine Run()");
 
@@ -61,9 +64,10 @@ struct FEngine
         }
         else { LOG_ERROR("Failed to open config.json"); }
 
-        auto TexturePaths = Configuration.GetTextArrayPath("Assets.Textures");
+        auto Assets = Configuration.GetObject("Assets");
+        auto StringPaths = Assets.GetArray<FString>("Textures");
 
-        TSharedPtr<FImage> TestImage = AssetHub->LoadImage(TexturePaths[0]);
+        TSharedPtr<FImage> TestImage = AssetHub->LoadImage(FPath{StringPaths[0]});
         FTextureID TexID = Graphics->CreateTexture2D(TestImage);
 
         Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());

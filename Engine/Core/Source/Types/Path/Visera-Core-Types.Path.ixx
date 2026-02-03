@@ -36,8 +36,10 @@ export namespace Visera
         FPath() = default;
         FPath(const FPath& I_Path)      : Data{ I_Path.Data } { Data.make_preferred(); }
         FPath(FPath&& I_Path) noexcept  : Data{ I_Path.Data } { Data.make_preferred(); }
-        FPath& operator=(const FPath& I_Path)     { Data = I_Path.Data; return *this; }
-        FPath& operator=(FPath&& I_Path) noexcept { Data = I_Path.Data; return *this; }
+        FPath& operator=(const FPath& I_Path)     { Data = I_Path.Data;      return *this; }
+        FPath& operator=(FPath&& I_Path) noexcept { Data = I_Path.Data;      return *this; }
+        FPath& operator=(const FText&   I_Path)   { Data = I_Path.GetData(); return *this; }
+        FPath& operator=(const FString& I_Path)   { Data = I_Path;           return *this; }
         FPath(const FText& I_Path): Data{ I_Path.GetData() } { Data.make_preferred(); }
         FPath(FStringView     I_Path): Data{ I_Path } { Data.make_preferred(); }
         FPath(FUTF8StringView I_Path): Data{ I_Path } { Data.make_preferred(); }
