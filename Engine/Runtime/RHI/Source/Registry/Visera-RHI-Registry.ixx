@@ -416,7 +416,7 @@ export namespace Visera
     void FRHIRegistry::
     ClearGarbage()
     {
-        for (auto& Handles : RecycleBinTextures | std::views::values)
+        for (auto& [_, Handles] : RecycleBinTextures)
         {
             for (auto Handle : Handles)
             {
@@ -427,7 +427,7 @@ export namespace Visera
             }
         }
         RecycleBinTextures.Clear();
-        for (auto& Handles : RecycleBinBuffers | std::views::values)
+        for (auto& [_, Handles] : RecycleBinBuffers)
         {
             for (auto Handle : Handles)
             {
@@ -438,7 +438,7 @@ export namespace Visera
             }
         }
         RecycleBinBuffers.Clear();
-        for (auto& Handles : RecycleBinSamplers | std::views::values)
+        for (auto& [_, Handles] : RecycleBinSamplers)
         {
             for (auto Handle : Handles)
             {
@@ -449,7 +449,7 @@ export namespace Visera
             }
         }
         RecycleBinSamplers.Clear();
-        for (auto& Handles : RecycleBinDescriptorSets | std::views::values)
+        for (auto& [_, Handles] : RecycleBinDescriptorSets)
         {
             for (auto Handle : Handles)
             {

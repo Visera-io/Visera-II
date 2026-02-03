@@ -77,14 +77,16 @@ export namespace Visera
 		auto	GetHeader()		const -> const FHeader&  { return Header; }
 		auto	GetANSIName()	const -> FStringView { return FStringView(ANSIName, Header.Size); }
 
-		UInt64	GetSizeWithTerminator()    const { return sizeof(FANSIChar) * (Header.Size + 1); }
-		UInt64	GetSizeWithoutTerminator() const { return sizeof(FANSIChar) * Header.Size; }
+		UInt64	GetSizeWithTerminator()    const { return sizeof(char) * (Header.Size + 1); }
+		UInt64	GetSizeWithoutTerminator() const { return sizeof(char) * Header.Size; }
 
 	private:
 		FHeader	     Header;
-		union {
-		FANSIChar ANSIName[MaxNameByteSize];
-		FWideChar WideName[MaxNameByteSize >> 1]; };
+		union
+		{
+			char ANSIName[MaxNameByteSize];
+			//wchar_t WideName[MaxNameByteSize >> 1];
+		};
 	};
 
 	/* NameEntryTable Handle */

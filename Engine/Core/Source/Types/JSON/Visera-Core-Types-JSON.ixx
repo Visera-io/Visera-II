@@ -331,6 +331,7 @@ export namespace Visera
         FJSON& operator=(Json&& I_NativeJSON) noexcept { Root = std::move(I_NativeJSON); return *this; }
 
         FJSON(FIntrusiveUnsetOptionalState) noexcept : Root(Json::value_t::null) {}
+        [[nodiscard]] friend Bool operator==(const FJSON& I_Lhs, FIntrusiveUnsetOptionalState) noexcept { return I_Lhs.IsNull(); }
 
     private:
         Json Root;
@@ -379,9 +380,6 @@ export namespace Visera
             return Current;
         }
     };
-
-    /** For TOptional<FJSON> intrusive HasValue(); must be exported for link. */
-    [[nodiscard]] VISERA_CORE_API Bool operator==(const FJSON& I_Lhs, FIntrusiveUnsetOptionalState) noexcept { return I_Lhs.IsNull(); }
     static_assert(sizeof(TOptional<FJSON>) == sizeof(FJSON));
 }
 VISERA_MAKE_FORMATTER(Visera::FJSON, {}, "{}", I_Formatee.Dump());

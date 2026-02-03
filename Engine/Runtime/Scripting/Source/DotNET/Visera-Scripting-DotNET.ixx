@@ -13,6 +13,19 @@ import Visera.Scripting.Platform;
 
 namespace Visera
 {
+
+    #if defined(VISERA_ON_WINDOWS_SYSTEM)
+    #define PLATFORM_STRING(I_String) L##I_String
+    using FPlatformChar   = wchar_t;
+    using FPlatformString = FWideString;
+    using FPlatformStringView = FWideStringView;
+    #else
+    #define PLATFORM_STRING(I_String) I_String
+    using FPlatformChar   = char;
+    using FPlatformString = std::string;
+    using FPlatformStringView = std::string_view;
+    #endif
+
     struct VISERA_SCRIPTING_API HostFXR
     {
         // https://github.com/dotnet/runtime/blob/main/docs/design/features/host-error-codes.md

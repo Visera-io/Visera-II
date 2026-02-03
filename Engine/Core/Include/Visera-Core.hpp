@@ -99,7 +99,6 @@
 
 // << PCHs >>
 #include <cassert>
-#include <ranges>
 #include <memory>
 #include <string>
 #include <chrono>
@@ -129,21 +128,6 @@ namespace Visera
 	using FWideString     = std::wstring;
 	using FWideStringView = std::wstring_view;
 	using FUTF8StringView = std::u8string_view;
-
-    using FANSIChar	    = char;
-    using FWideChar     = wchar_t;
-
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-	#define PLATFORM_STRING(I_String) L##I_String
-	using FPlatformChar   = wchar_t;
-	using FPlatformString = FWideString;
-	using FPlatformStringView = FWideStringView;
-#else
-	#define PLATFORM_STRING(I_String) I_String
-	using FPlatformChar   = char;
-	using FPlatformString = FString;
-	using FPlatformStringView = FStringView;
-#endif
 
     constexpr Bool True  = true;
     constexpr Bool False = false;

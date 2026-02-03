@@ -12,7 +12,6 @@ import Visera.Graphics;
 import Visera.Graphics.Renderer;
 import Visera.AssetHub;
 using namespace Visera;
-import nlohmann.json;
 
 struct FEngine
 {
