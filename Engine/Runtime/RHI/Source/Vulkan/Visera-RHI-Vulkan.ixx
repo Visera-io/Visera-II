@@ -21,6 +21,7 @@ export import Visera.RHI.Vulkan.Sync;
        import Visera.RHI.Vulkan.Loader;
        import Visera.RHI.Vulkan.Allocator;
        import Visera.RHI.Vulkan.ShaderModule;
+       import Visera.Core.Algorithm;
        import Visera.Core.Math.Arithmetic;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Set;
@@ -362,7 +363,7 @@ export namespace Visera
             const auto LayerProperties = std::move(*Result);
             for (const auto& Layer : InstanceLayers)
             {
-                if (std::ranges::none_of(LayerProperties,
+                if (Algorithm::NoneOf(LayerProperties,
                     [&Layer](auto const& LayerProperty)
                     { return strcmp(LayerProperty.layerName, Layer) == 0; }))
                 {
@@ -380,7 +381,7 @@ export namespace Visera
             auto ExtensionProperties = std::move(*Result);
             for (const auto& Extension : InstanceExtensions)
             {
-                if (std::ranges::none_of(ExtensionProperties,
+                if (Algorithm::NoneOf(ExtensionProperties,
                     [&Extension](auto const& ExtensionProperty)
                     { return strcmp(ExtensionProperty.extensionName, Extension) == 0; }))
                 {
@@ -463,7 +464,7 @@ export namespace Visera
         auto PhysicalDeviceCandidates = std::move(*Result);
 
         // Sort: Discrete GPU first, then Integrated, then others
-        std::ranges::sort(PhysicalDeviceCandidates,
+        Algorithm::Sort(PhysicalDeviceCandidates,
             [](auto const& A, auto const& B)
             {
                 auto AType = A.getProperties().deviceType;
@@ -482,7 +483,7 @@ export namespace Visera
                 return Rank(AType) < Rank(BType);
             });
 
-        const auto SelectedPhysicalDevice = std::ranges::find_if(
+        const auto SelectedPhysicalDevice = Algorithm::FindIf(
             PhysicalDeviceCandidates, [&](auto const& PhysicalDeviceCandidate)
         {
             auto PhysicalDeviceInfo = PhysicalDeviceCandidate.getProperties();
@@ -537,7 +538,7 @@ export namespace Visera
             auto Extensions = std::move(*Result);
             for (auto const& RequiredExtension : Device.Extensions)
             {
-                auto ExtensionIter = std::ranges::find_if(
+                auto ExtensionIter = Algorithm::FindIf(
                     Extensions,
                     [RequiredExtension](auto const& Extension)
                     {

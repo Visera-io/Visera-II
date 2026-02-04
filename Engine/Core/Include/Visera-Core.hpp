@@ -100,7 +100,6 @@
 // << PCHs >>
 #include <cassert>
 #include <chrono>
-#include <algorithm>
 #include <functional>
 #include <type_traits>
 #include <source_location>

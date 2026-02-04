@@ -5,6 +5,7 @@ module;
 export module Visera.Core.Types.String;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
+import Visera.Core.Algorithm;
 
 export namespace Visera
 {
@@ -681,13 +682,13 @@ export namespace Visera
 
         /**
          * Split this string by delimiter and return parts as TArray<FString>.
-         * Uses std::ranges::views::split. Empty segments are included (e.g. "a,,b" -> ["a","","b"]).
+         * Uses Algorithm::Split. Empty segments are included (e.g. "a,,b" -> ["a","","b"]).
          */
         [[nodiscard]] TArray<FString> Split(char I_Delimiter) const
         {
             TArray<FString> Result;
-            auto SplitView = std::ranges::views::split(String, I_Delimiter);
-            for (auto SubRange : SplitView)
+            auto Split = Algorithm::Split(String, I_Delimiter);
+            for (auto SubRange : Split)
             {
                 Result.PushBack(FString(SubRange.begin(), SubRange.end()));
             }
@@ -706,8 +707,8 @@ export namespace Visera
                 Result.PushBack(*this);
                 return Result;
             }
-            auto SplitView = std::ranges::views::split(String, Delim);
-            for (auto SubRange : SplitView)
+            auto Split = Algorithm::Split(String, Delim);
+            for (auto SubRange : Split)
             {
                 Result.PushBack(FString(SubRange.begin(), SubRange.end()));
             }
@@ -716,16 +717,16 @@ export namespace Visera
 
         /**
          * Split this string by delimiter and return a lazy range of subranges (each is a range of char).
-         * Use with std::ranges or for (auto part : s.SplitView(',')) then construct FString(part.begin(), part.end()).
+         * Use with std::ranges or for (auto part : s.Split(',')) then construct FString(part.begin(), part.end()).
          */
         [[nodiscard]] auto Subranges(char I_Delimiter) const
         {
-            return std::ranges::views::split(String, I_Delimiter);
+            return Algorithm::Split(String, I_Delimiter);
         }
 
         [[nodiscard]] auto Subranges(FStringView I_Delimiter) const
         {
-            return std::ranges::views::split(String, I_Delimiter.GetStringView());
+            return Algorithm::Split(String, I_Delimiter.GetStringView());
         }
 
         [[nodiscard]] TArray<FStringView>
