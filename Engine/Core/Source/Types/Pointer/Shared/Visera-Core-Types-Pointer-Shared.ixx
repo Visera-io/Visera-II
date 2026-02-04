@@ -16,6 +16,8 @@ export namespace Visera
     public:
         /** @return Raw pointer to the managed object, or nullptr. */
         [[nodiscard]] T* Get() const noexcept { return Self.get(); }
+        [[nodiscard]] std::shared_ptr<T>& GetNative() noexcept { return Self; }
+        [[nodiscard]] const std::shared_ptr<T>& GetNative() const noexcept { return Self; }
         /** @return Number of TSharedPtr instances sharing ownership. */
         [[nodiscard]] long GetUseCount() const noexcept { return Self.use_count(); }
         /** Replaces the managed object (drops current ownership). */
@@ -26,6 +28,24 @@ export namespace Visera
         [[nodiscard]] T& operator*() const noexcept { return *Self; }
         [[nodiscard]] T* operator->() const noexcept { return Self.get(); }
         [[nodiscard]] explicit operator bool() const noexcept { return Self != nullptr; }
+
+        [[nodiscard]] friend Bool operator==(const TSharedPtr& I_Lhs, const TSharedPtr& I_Rhs) noexcept
+        { return I_Lhs.Get() == I_Rhs.Get(); }
+
+        [[nodiscard]] friend Bool operator!=(const TSharedPtr& I_Lhs, const TSharedPtr& I_Rhs) noexcept
+        { return !(I_Lhs == I_Rhs); }
+
+        [[nodiscard]] friend Bool operator==(const TSharedPtr& I_Lhs, std::nullptr_t) noexcept
+        { return I_Lhs.Get() == nullptr; }
+
+        [[nodiscard]] friend Bool operator!=(const TSharedPtr& I_Lhs, std::nullptr_t) noexcept
+        { return !(I_Lhs == nullptr); }
+
+        [[nodiscard]] friend Bool operator==(std::nullptr_t, const TSharedPtr& I_Rhs) noexcept
+        { return I_Rhs.Get() == nullptr; }
+
+        [[nodiscard]] friend Bool operator!=(std::nullptr_t, const TSharedPtr& I_Rhs) noexcept
+        { return !(nullptr == I_Rhs); }
 
     private:
         std::shared_ptr<T> Self;
@@ -38,20 +58,20 @@ export namespace Visera
         TSharedPtr(TSharedPtr&&) noexcept = default;
         template<typename U>
         requires std::convertible_to<U*, T*>
-        TSharedPtr(const TSharedPtr<U>& I_Other) noexcept : Self(I_Other.Self) {}
+        TSharedPtr(const TSharedPtr<U>& I_Other) noexcept : Self(I_Other.GetNative()) {}
         template<typename U>
         requires std::convertible_to<U*, T*>
-        TSharedPtr(TSharedPtr<U>&& I_Other) noexcept : Self(std::move(I_Other.Self)) {}
+        TSharedPtr(TSharedPtr<U>&& I_Other) noexcept : Self(std::move(I_Other.GetNative())) {}
         TSharedPtr(std::shared_ptr<T> I_Other) noexcept : Self(std::move(I_Other)) {}
 
         TSharedPtr& operator=(const TSharedPtr&) = default;
         TSharedPtr& operator=(TSharedPtr&&) noexcept = default;
         template<typename U>
         requires std::convertible_to<U*, T*>
-        TSharedPtr& operator=(const TSharedPtr<U>& I_Other) noexcept { Self = I_Other.Self; return *this; }
+        TSharedPtr& operator=(const TSharedPtr<U>& I_Other) noexcept { Self = I_Other.GetNative(); return *this; }
         template<typename U>
         requires std::convertible_to<U*, T*>
-        TSharedPtr& operator=(TSharedPtr<U>&& I_Other) noexcept { Self = std::move(I_Other.Self); return *this; }
+        TSharedPtr& operator=(TSharedPtr<U>&& I_Other) noexcept { Self = std::move(I_Other.GetNative()); return *this; }
         TSharedPtr& operator=(std::nullptr_t) noexcept { Self.reset(); return *this; }
         TSharedPtr& operator=(std::shared_ptr<T> I_Other) noexcept { Self = std::move(I_Other); return *this; }
 

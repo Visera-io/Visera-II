@@ -39,7 +39,7 @@ export namespace Visera
     [[nodiscard]] inline EImageFormat
     DetectImageFormat(const FPath& I_Path)
     {
-        const FPath Extension = I_Path.GetExtension();
+        const FPath   Extension = I_Path.GetExtension();
         const FString ExtStr = Extension.GetUTF8Path();
         
         if (ExtStr == ".png" || ExtStr == ".PNG")

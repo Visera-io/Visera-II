@@ -67,6 +67,11 @@ export namespace Visera
             return Map.find(I_Key);
         }
 
+        auto Find(const Key& I_Key) const
+        {
+            return Map.find(I_Key);
+        }
+
         Value& At(const Key& I_Key)
         {
             return Map.at(I_Key);
@@ -118,6 +123,20 @@ export namespace Visera
         UInt64 Erase(const Key& I_Key)
         {
             return Map.erase(I_Key);
+        }
+
+        template<typename Predicate>
+        UInt64 EraseIf(Predicate&& I_Pred)
+        {
+            UInt64 ErasedCount = 0;
+            for (auto Iter = Map.begin(); Iter != Map.end(); )
+            {
+                if (std::invoke(I_Pred, Iter->first, Iter->second))
+                { Iter = Map.erase(Iter); ++ErasedCount; }
+                else
+                { ++Iter; }
+            }
+            return ErasedCount;
         }
 
         void Swap(TMap& I_Other)

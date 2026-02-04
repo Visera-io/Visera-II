@@ -13,6 +13,8 @@ export namespace Visera
     public:
         /** @return Raw pointer to the owned object, or nullptr. */
         [[nodiscard]] T* Get() const noexcept { return Self.get(); }
+        [[nodiscard]] std::unique_ptr<T, Deleter>& GetNative() noexcept { return Self; }
+        [[nodiscard]] const std::unique_ptr<T, Deleter>& GetNative() const noexcept { return Self; }
         /** Releases ownership and returns the raw pointer. */
         [[nodiscard]] T* Release() noexcept { return Self.release(); }
         /** Replaces the managed object. */
@@ -24,6 +26,24 @@ export namespace Visera
         [[nodiscard]] T* operator->() const noexcept { return Self.get(); }
         [[nodiscard]] explicit operator bool() const noexcept { return Self != nullptr; }
 
+        [[nodiscard]] friend Bool operator==(const TUniquePtr& I_Lhs, const TUniquePtr& I_Rhs) noexcept
+        { return I_Lhs.Get() == I_Rhs.Get(); }
+
+        [[nodiscard]] friend Bool operator!=(const TUniquePtr& I_Lhs, const TUniquePtr& I_Rhs) noexcept
+        { return !(I_Lhs == I_Rhs); }
+
+        [[nodiscard]] friend Bool operator==(const TUniquePtr& I_Lhs, std::nullptr_t) noexcept
+        { return I_Lhs.Get() == nullptr; }
+
+        [[nodiscard]] friend Bool operator!=(const TUniquePtr& I_Lhs, std::nullptr_t) noexcept
+        { return !(I_Lhs == nullptr); }
+
+        [[nodiscard]] friend Bool operator==(std::nullptr_t, const TUniquePtr& I_Rhs) noexcept
+        { return I_Rhs.Get() == nullptr; }
+
+        [[nodiscard]] friend Bool operator!=(std::nullptr_t, const TUniquePtr& I_Rhs) noexcept
+        { return !(nullptr == I_Rhs); }
+
     private:
         std::unique_ptr<T, Deleter> Self;
 
@@ -34,14 +54,14 @@ export namespace Visera
         TUniquePtr(TUniquePtr&&) noexcept = default;
         template<typename U, typename OtherDeleter>
         requires std::convertible_to<U*, T*>
-        TUniquePtr(TUniquePtr<U, OtherDeleter>&& I_Other) noexcept : Self(std::move(I_Other.Self)) {}
+        TUniquePtr(TUniquePtr<U, OtherDeleter>&& I_Other) noexcept : Self(std::move(I_Other.GetNative())) {}
         template<typename OtherDeleter>
         TUniquePtr(std::unique_ptr<T, OtherDeleter>&& I_Other) noexcept : Self(std::move(I_Other)) {}
 
         TUniquePtr& operator=(TUniquePtr&&) noexcept = default;
         template<typename U, typename OtherDeleter>
         requires std::convertible_to<U*, T*>
-        TUniquePtr& operator=(TUniquePtr<U, OtherDeleter>&& I_Other) noexcept { Self = std::move(I_Other.Self); return *this; }
+        TUniquePtr& operator=(TUniquePtr<U, OtherDeleter>&& I_Other) noexcept { Self = std::move(I_Other.GetNative()); return *this; }
         TUniquePtr& operator=(std::nullptr_t) noexcept { Reset(); return *this; }
         template<typename OtherDeleter>
         TUniquePtr& operator=(std::unique_ptr<T, OtherDeleter>&& I_Other) noexcept { Self = std::move(I_Other); return *this; }

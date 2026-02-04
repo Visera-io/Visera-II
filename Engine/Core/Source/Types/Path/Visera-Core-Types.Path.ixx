@@ -3,7 +3,7 @@ module;
 #include <filesystem>
 export module Visera.Core.Types.Path;
 #define VISERA_MODULE_NAME "Core.Types"
-export import Visera.Core.Types.Text;
+import Visera.Core.Types.Text;
 import Visera.Core.Types.String;
 
 export namespace Visera
@@ -24,8 +24,8 @@ export namespace Visera
         [[nodiscard]] inline FPath
         GetExtension() const { return Data.has_extension()? FPath{Data.extension().u8string()} : FPath{}; }
 
-        [[nodiscard]] inline auto
-        GetUTF8Path() const { return FString{reinterpret_cast<const char*>(Data.u8string().c_str())}; }
+        [[nodiscard]] inline FString
+        GetUTF8Path() const { return FText(Data.c_str()).GetString(); }
         [[nodiscard]] inline const auto&
         GetNativePath() const { return Data; }
 
@@ -58,4 +58,4 @@ export namespace Visera
     };
 }
 VISERA_MAKE_HASH(Visera::FPath, return std::hash<std::filesystem::path>{}(I_Object.GetNativePath()););
-VISERA_MAKE_FORMATTER(Visera::FPath, {}, "{}", I_Formatee.GetUTF8Path());
+VISERA_MAKE_FORMATTER(Visera::FPath, {}, "\"{}\"", I_Formatee.GetUTF8Path());

@@ -22,6 +22,11 @@ export namespace Visera
     class FJSON;
     template<> inline constexpr Bool HasIntrusiveUnsetOptionalState<FJSON> = True;
 
+    /** JSON Query Language: compile-time path literal, e.g. json.GetString("config.server.port"_JQL). */
+    [[nodiscard]] constexpr FJSONPath
+    operator""_JQL(const char* I_Query, size_t I_Length) noexcept
+    { return FJSONPath(I_Query, I_Length); }
+
     class VISERA_CORE_API FJSON
     {
         using Json = nlohmann::json;
@@ -49,22 +54,22 @@ export namespace Visera
         [[nodiscard]] constexpr Bool
         IsDiscarded() const noexcept { return Root.is_discarded(); }
         [[nodiscard]] Bool
-        Contains(FStringView I_Key) const noexcept { return Root.contains(I_Key.GetStringView()); }
+        Contains(FStringView I_Key) const noexcept { return Root.contains(I_Key.GetNative()); }
         void
         Clear() noexcept { Root = Json{}; }
         [[nodiscard]] FString
         Dump(Bool I_bPretty = True) const { return I_bPretty ? Root.dump(4) : Root.dump(); }
         void
-        Set(FStringView I_Key, FStringView I_Value) { Root[I_Key.GetStringView()] = FString(I_Value); }
+        Set(FStringView I_Key, FStringView I_Value) { Root[I_Key.GetNative()] = FString(I_Value); }
         void
-        Set(FStringView I_Key, Double I_Value) { Root[I_Key.GetStringView()] = I_Value; }
+        Set(FStringView I_Key, Double I_Value) { Root[I_Key.GetNative()] = I_Value; }
         void
-        Set(FStringView I_Key, Bool I_Value) { Root[I_Key.GetStringView()] = static_cast<bool>(I_Value); }
+        Set(FStringView I_Key, Bool I_Value) { Root[I_Key.GetNative()] = static_cast<bool>(I_Value); }
         // ---- Get (safe) ----
         [[nodiscard]] FString
         GetString(FStringView I_Key, FStringView I_DefaultValue = "") const
         {
-            const auto It = Root.find(I_Key.GetStringView());
+            const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_string()) { return FString(I_DefaultValue); }
             try { return GetStringFromJsonValue(*It); } catch (...) { return FString(I_DefaultValue); }
         }
@@ -72,7 +77,7 @@ export namespace Visera
         [[nodiscard]] TOptional<FString>
         TryGetString(FStringView I_Key) const noexcept
         {
-            const auto It = Root.find(I_Key.GetStringView());
+            const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_string()) { return NullOpt; }
             try { return TOptional<FString>(GetStringFromJsonValue(*It)); } catch (...) { return NullOpt; }
         }
@@ -92,6 +97,35 @@ export namespace Visera
             try { return TOptional<FString>(GetStringFromJsonValue(*Ptr)); } catch (...) { return NullOpt; }
         }
 
+        [[nodiscard]] FPath
+        GetPath(FStringView I_Key, const FPath& I_DefaultValue = "") const
+        {
+            const auto Opt = TryGetPath(I_Key);
+            return Opt.HasValue()? std::move(Opt).GetValue() : I_DefaultValue;
+        }
+
+        [[nodiscard]] TOptional<FPath>
+        TryGetPath(FStringView I_Key) const noexcept
+        {
+            auto Result = TryGetString(I_Key);
+            return Result.HasValue()? TOptional<FPath>(FPath{Result.GetValue()}) : NullOpt;
+        }
+
+        [[nodiscard]] FPath
+        GetPath(const FJSONPath& I_Path, const FPath& I_DefaultValue = "") const
+        {
+            const auto Opt = TryGetPath(I_Path);
+            return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
+        }
+
+        [[nodiscard]] TOptional<FPath>
+        TryGetPath(const FJSONPath& I_Path) const noexcept
+        {
+            const Json* Ptr = FindPath(Root, I_Path);
+            if (!Ptr || !Ptr->is_string()) { return NullOpt; }
+            try { return TOptional<FPath>(FPath{GetStringFromJsonValue(*Ptr)}); } catch (...) { return NullOpt; }
+        }
+
         [[nodiscard]] Double
         GetNumber(FStringView I_Key, Double I_DefaultValue = 0.0) const noexcept
         {
@@ -102,7 +136,7 @@ export namespace Visera
         [[nodiscard]] TOptional<Double>
         TryGetNumber(FStringView I_Key) const noexcept
         {
-            const auto It = Root.find(I_Key.GetStringView());
+            const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_number()) { return NullOpt; }
             try { return TOptional<Double>(It->get<Double>()); } catch (...) { return NullOpt; }
         }
@@ -132,7 +166,7 @@ export namespace Visera
         [[nodiscard]] TOptional<Bool>
         TryGetBool(FStringView I_Key) const noexcept
         {
-            const auto It = Root.find(I_Key.GetStringView());
+            const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_boolean()) { return NullOpt; }
             try { return TOptional<Bool>(static_cast<Bool>(It->get<bool>())); } catch (...) { return NullOpt; }
         }
@@ -163,7 +197,7 @@ export namespace Visera
         [[nodiscard]] TOptional<FJSON>
         TryGetObject(FStringView I_Key) const noexcept
         {
-            const auto It = Root.find(I_Key.GetStringView());
+            const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_object()) { return NullOpt; }
             try
             {
@@ -208,7 +242,7 @@ export namespace Visera
         [[nodiscard]] TOptional<TArray<T>>
         TryGetArray(FStringView I_Key) const noexcept
         {
-            const auto It = Root.find(I_Key.GetStringView());
+            const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_array()) { return NullOpt; }
             try
             {
@@ -358,7 +392,7 @@ export namespace Visera
                     {
                         return nullptr;
                     }
-                    const auto It = Current->find(Token.Key.GetString());
+                    const auto It = Current->find(Token.Key.GetNative());
                     if (It == Current->end())
                     {
                         return nullptr;

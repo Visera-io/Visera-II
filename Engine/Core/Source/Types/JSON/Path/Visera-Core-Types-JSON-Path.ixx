@@ -17,118 +17,190 @@ export namespace Visera
                 Key,
                 Index
             };
-            EType Type;
-            union
-            {
-                FString Key;
-                UInt32  Index;
-            };
+            EType   Type{ EType::Key };
+            FString Key;
+            UInt32  Index{ 0 };
 
             static FToken MakeKey(FString&& I_Key)
             {
-                FToken Token;
-                Token.Type = EType::Key;
-                new (std::addressof(Token.Key)) FString(std::move(I_Key));
-                return Token;
+                FToken T;
+                T.Type  = EType::Key;
+                T.Key   = std::move(I_Key);
+                T.Index = 0;
+                return T;
             }
 
             static FToken MakeIndex(UInt32 I_Index)
             {
-                FToken Token;
-                Token.Type = EType::Index;
-                Token.Index = I_Index;
-                return Token;
-            }
-
-            FToken() : Type(EType::Key), Index(0)
-            {
-
-            }
-
-            FToken(const FToken& I_Other) : Type(I_Other.Type)
-            {
-                if (Type == EType::Key)
-                {
-                    new (std::addressof(Key)) FString(I_Other.Key);
-                }
-                else
-                {
-                    Index = I_Other.Index;
-                }
-            }
-
-            FToken(FToken&& I_Other) noexcept : Type(I_Other.Type)
-            {
-                if (Type == EType::Key)
-                {
-                    new (std::addressof(Key)) FString(std::move(I_Other.Key));
-                }
-                else
-                {
-                    Index = I_Other.Index;
-                }
-            }
-
-            FToken& operator=(const FToken& I_Other)
-            {
-                if (this == std::addressof(I_Other))
-                {
-                    return *this;
-                }
-                if (Type == EType::Key)
-                {
-                    Key.~FString();
-                }
-                Type = I_Other.Type;
-                if (Type == EType::Key)
-                {
-                    new (std::addressof(Key)) FString(I_Other.Key);
-                }
-                else
-                {
-                    Index = I_Other.Index;
-                }
-                return *this;
-            }
-
-            FToken& operator=(FToken&& I_Other) noexcept
-            {
-                if (this == std::addressof(I_Other))
-                {
-                    return *this;
-                }
-                if (Type == EType::Key)
-                {
-                    Key.~FString();
-                }
-                Type = I_Other.Type;
-                if (Type == EType::Key)
-                {
-                    new (std::addressof(Key)) FString(std::move(I_Other.Key));
-                }
-                else
-                {
-                    Index = I_Other.Index;
-                }
-                return *this;
-            }
-
-            ~FToken()
-            {
-                if (Type == EType::Key)
-                {
-                    Key.~FString();
-                }
+                FToken T;
+                T.Type  = EType::Index;
+                //T.Key   = FString();
+                T.Index = I_Index;
+                return T;
             }
         };
 
     public:
-        explicit FJSONPath(FStringView I_Path)
+        /** Constexpr constructor for JQL literals (e.g. "foo.bar[0]"_JQL). Parsing is done lazily on first use. */
+        constexpr explicit FJSONPath(const char* I_Str, UInt32 I_Len) noexcept
+            : PathTag(EPathStorage::Literal)
         {
-            Raw = FString(I_Path);
-            Tokens.Reserve(4);
-            const UInt64 PathLength = Raw.GetSize();
-            const char* PathData = Raw.Data();
+            PathStorage.Literal.Ptr = I_Str ? I_Str : "";
+            PathStorage.Literal.Len = I_Str ? I_Len : 0;
+        }
+
+        explicit FJSONPath(FStringView I_Path)
+            : PathTag(EPathStorage::Owned)
+        {
+            new (std::addressof(PathStorage.Owned)) FString(I_Path);
+        }
+
+        FJSONPath(const FJSONPath& I_Other)
+            : PathTag(I_Other.PathTag)
+            , Tokens(I_Other.Tokens)
+            , bParsed(I_Other.bParsed)
+            , bParseFailed(I_Other.bParseFailed)
+        {
+            if (PathTag == EPathStorage::Owned)
+            {
+                new (std::addressof(PathStorage.Owned)) FString(I_Other.PathStorage.Owned);
+            }
+            else
+            {
+                PathStorage.Literal.Ptr = I_Other.PathStorage.Literal.Ptr;
+                PathStorage.Literal.Len = I_Other.PathStorage.Literal.Len;
+            }
+        }
+
+        FJSONPath(FJSONPath&& I_Other) noexcept
+            : PathTag(I_Other.PathTag)
+            , Tokens(std::move(I_Other.Tokens))
+            , bParsed(I_Other.bParsed)
+            , bParseFailed(I_Other.bParseFailed)
+        {
+            if (PathTag == EPathStorage::Owned)
+            {
+                new (std::addressof(PathStorage.Owned)) FString(std::move(I_Other.PathStorage.Owned));
+            }
+            else
+            {
+                PathStorage.Literal.Ptr = I_Other.PathStorage.Literal.Ptr;
+                PathStorage.Literal.Len = I_Other.PathStorage.Literal.Len;
+            }
+        }
+
+        FJSONPath& operator=(const FJSONPath& I_Other)
+        {
+            if (this == std::addressof(I_Other)) { return *this; }
+            DestroyPathStorage();
+            PathTag     = I_Other.PathTag;
+            Tokens       = I_Other.Tokens;
+            bParsed      = I_Other.bParsed;
+            bParseFailed = I_Other.bParseFailed;
+            if (PathTag == EPathStorage::Owned)
+            {
+                new (std::addressof(PathStorage.Owned)) FString(I_Other.PathStorage.Owned);
+            }
+            else
+            {
+                PathStorage.Literal.Ptr = I_Other.PathStorage.Literal.Ptr;
+                PathStorage.Literal.Len = I_Other.PathStorage.Literal.Len;
+            }
+            return *this;
+        }
+
+        FJSONPath& operator=(FJSONPath&& I_Other) noexcept
+        {
+            if (this == std::addressof(I_Other)) { return *this; }
+            DestroyPathStorage();
+            PathTag     = I_Other.PathTag;
+            Tokens       = std::move(I_Other.Tokens);
+            bParsed      = I_Other.bParsed;
+            bParseFailed = I_Other.bParseFailed;
+            if (PathTag == EPathStorage::Owned)
+            {
+                new (std::addressof(PathStorage.Owned)) FString(std::move(I_Other.PathStorage.Owned));
+            }
+            else
+            {
+                PathStorage.Literal.Ptr = I_Other.PathStorage.Literal.Ptr;
+                PathStorage.Literal.Len = I_Other.PathStorage.Literal.Len;
+            }
+            return *this;
+        }
+
+        ~FJSONPath() { DestroyPathStorage(); }
+
+        /** Tokens for path resolution; only FJSON uses these to resolve against its Json root. */
+        [[nodiscard]] const TArray<FToken>&
+        GetTokens() const noexcept
+        {
+            EnsureParsed();
+            return Tokens;
+        }
+
+        [[nodiscard]] Bool
+        IsValid() const noexcept
+        {
+            EnsureParsed();
+            return !bParseFailed;
+        }
+
+    private:
+        enum class EPathStorage : UInt8 { Literal, Owned };
+
+        struct FLiteralStorage
+        {
+            const char* Ptr;
+            UInt32      Len;
+        };
+        union FPathStorage
+        {
+            FLiteralStorage Literal;
+            FString         Owned;
+            constexpr FPathStorage() noexcept : Literal{ nullptr, 0 } {}
+            ~FPathStorage() {}
+        };
+
+        [[nodiscard]] FStringView
+        GetPathView() const noexcept
+        {
+            if (PathTag == EPathStorage::Owned)
+            {
+                return FStringView(PathStorage.Owned);
+            }
+            const auto& L = PathStorage.Literal;
+            return FStringView(L.Ptr ? L.Ptr : "", L.Ptr ? static_cast<UInt64>(L.Len) : 0);
+        }
+
+        void
+        DestroyPathStorage() noexcept
+        {
+            if (PathTag == EPathStorage::Owned)
+            {
+                PathStorage.Owned.~FString();
+                PathTag = EPathStorage::Literal;
+                new (std::addressof(PathStorage.Literal)) FLiteralStorage{ nullptr, 0 };
+            }
+        }
+
+        void
+        EnsureParsed() const
+        {
+            if (bParsed) { return; }
+            bParsed = True;
+            if (GetPathView().IsEmpty()) { return; }
+            ParseInto(GetPathView(), Tokens, bParseFailed);
+        }
+
+        static void
+        ParseInto(FStringView I_Path, TArray<FToken>& I_OutTokens, Bool& I_OutParseFailed)
+        {
+            I_OutParseFailed = False;
+            I_OutTokens.Clear();
+            I_OutTokens.Reserve(4);
+            const UInt64 PathLength = I_Path.GetSize();
+            const char* PathData = I_Path.Data();
             UInt64 Cursor = 0;
 
             while (Cursor < PathLength)
@@ -145,7 +217,7 @@ export namespace Visera
                 }
                 if (KeyStart < Cursor)
                 {
-                    Tokens.PushBack(
+                    I_OutTokens.PushBack(
                         FToken::MakeKey(FString(FStringView(PathData + KeyStart, static_cast<UInt64>(Cursor - KeyStart)))));
                 }
                 if (Cursor < PathLength && PathData[Cursor] == '[')
@@ -156,22 +228,16 @@ export namespace Visera
                     {
                         if (PathData[Cursor] < '0' || PathData[Cursor] > '9')
                         {
-                            Tokens.Clear();
-                            ParseFailed_ = true;
+                            I_OutTokens.Clear();
+                            I_OutParseFailed = True;
                             return;
                         }
                         ++Cursor;
                     }
-                    if (Cursor == PathLength)
+                    if (Cursor == PathLength || IndexStart == Cursor)
                     {
-                        Tokens.Clear();
-                        ParseFailed_ = true;
-                        return;
-                    }
-                    if (IndexStart == Cursor)
-                    {
-                        Tokens.Clear();
-                        ParseFailed_ = true;
+                        I_OutTokens.Clear();
+                        I_OutParseFailed = True;
                         return;
                     }
                     UInt32 ArrayIndex = 0;
@@ -179,7 +245,7 @@ export namespace Visera
                     {
                         ArrayIndex = ArrayIndex * 10 + static_cast<UInt32>(PathData[DigitPos] - '0');
                     }
-                    Tokens.PushBack(FToken::MakeIndex(ArrayIndex));
+                    I_OutTokens.PushBack(FToken::MakeIndex(ArrayIndex));
                     ++Cursor;
                 }
                 if (Cursor < PathLength && PathData[Cursor] == '.')
@@ -189,19 +255,10 @@ export namespace Visera
             }
         }
 
-        /** Tokens for path resolution; only FJSON uses these to resolve against its Json root. */
-        [[nodiscard]] const TArray<FToken>&
-        GetTokens() const noexcept { return Tokens; }
-
-        [[nodiscard]] Bool
-        IsValid() const noexcept
-        {
-            return !ParseFailed_;
-        }
-
-    private:
-        FString        Raw;
-        TArray<FToken> Tokens;
-        Bool           ParseFailed_{ false };
+        EPathStorage            PathTag;
+        FPathStorage            PathStorage;
+        mutable TArray<FToken>  Tokens;
+        mutable Bool            bParsed      { False };
+        mutable Bool            bParseFailed { False };
     };
 }

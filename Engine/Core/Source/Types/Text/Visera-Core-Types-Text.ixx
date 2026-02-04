@@ -16,6 +16,12 @@ export namespace Visera
         [[nodiscard]] static Bool
         ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String.Data(), static_cast<size_t>(I_String.GetSize())); }
 
+        [[nodiscard]] const FString&
+        GetString()   const &  { return String; }
+        [[nodiscard]] FString
+        GetString()         && { return std::move(String); }
+        [[nodiscard]] FString
+        GetString()   const && { return String; }
         [[nodiscard]] const char*
         GetData()   const { return String.Data(); }
         [[nodiscard]] UInt64

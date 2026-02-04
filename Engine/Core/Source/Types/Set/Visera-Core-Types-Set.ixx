@@ -92,6 +92,20 @@ export namespace Visera
             return Set.erase(InValue);
         }
 
+        template<typename Predicate>
+        UInt64 EraseIf(Predicate&& I_Pred)
+        {
+            UInt64 ErasedCount = 0;
+            for (auto Iter = Set.begin(); Iter != Set.end(); )
+            {
+                if (std::invoke(I_Pred, *Iter))
+                { Iter = Set.erase(Iter); ++ErasedCount; }
+                else
+                { ++Iter; }
+            }
+            return ErasedCount;
+        }
+
         void Swap(TSet& Other)
         {
             Set.swap(Other.Set);
