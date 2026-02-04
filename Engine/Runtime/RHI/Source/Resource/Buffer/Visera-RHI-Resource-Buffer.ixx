@@ -22,7 +22,7 @@ export namespace Visera
     public:
         [[nodiscard]] const FRHIBufferCreateDesc&
         GetInfo() const { return Info; }
-        [[nodiscard]] void
+        void
         Write(const FByte* I_Data, UInt64 I_Size) { Buffer.Write(I_Data, I_Size); }
         [[nodiscard]] auto*
         GetVulkanBuffer() { return &Buffer; }

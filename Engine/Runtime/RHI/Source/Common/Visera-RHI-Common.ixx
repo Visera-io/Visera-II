@@ -38,26 +38,27 @@ export namespace Visera
 
     enum class ERHIDescriptorType : UInt32
     {
+        Undefined,
+
         CombinedImageSampler    = static_cast<UInt32>(vk::DescriptorType::eCombinedImageSampler),
         SampledImage            = static_cast<UInt32>(vk::DescriptorType::eSampledImage),
         Sampler                 = static_cast<UInt32>(vk::DescriptorType::eSampler),
         StorageImage            = static_cast<UInt32>(vk::DescriptorType::eStorageImage),
         UniformBuffer           = static_cast<UInt32>(vk::DescriptorType::eUniformBuffer),
         StorageBuffer           = static_cast<UInt32>(vk::DescriptorType::eStorageBuffer),
-
-        Undefined,
     };
     [[nodiscard]] constexpr vk::DescriptorType
     TypeCast(ERHIDescriptorType I_DescriptorType) { return static_cast<vk::DescriptorType>(I_DescriptorType); }
 
     enum class ERHIShaderStages : UInt32
     {
+        Undefined = 0,
+
         Vertex    = static_cast<UInt32>(vk::ShaderStageFlagBits::eVertex),
         Fragment  = static_cast<UInt32>(vk::ShaderStageFlagBits::eFragment),
         Compute   = static_cast<UInt32>(vk::ShaderStageFlagBits::eCompute),
-        All       = static_cast<UInt32>(vk::ShaderStageFlagBits::eAll),
 
-        Undefined,
+        All       = static_cast<UInt32>(vk::ShaderStageFlagBits::eAll),
     };
     VISERA_MAKE_FLAGS(ERHIShaderStages);
     [[nodiscard]] constexpr vk::ShaderStageFlags
