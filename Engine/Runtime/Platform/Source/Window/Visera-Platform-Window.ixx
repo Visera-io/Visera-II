@@ -76,9 +76,9 @@ namespace Visera
             if (!OnBootstrap.TryBind([this]
             {
 #if !defined(VISERA_OFFSCREEN_MODE)
-                Window = MakeUnique<FGLFWWindow>();
+                Window =new FGLFWWindow();
 #else
-                Window = MakeUnique<FNullWindow>();
+                Window =new FNullWindow();
 #endif
 #if defined (VISERA_ON_WINDOWS_SYSTEM)
                 SetIcon(FIconSet{
@@ -96,12 +96,12 @@ namespace Visera
 
             if (!OnTerminate.TryBind([this]
             {
-                Window.reset();
+                delete Window;
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }
         }
     private:
-        TUniquePtr<IWindow> Window;
+        IWindow* Window;
     };
 }

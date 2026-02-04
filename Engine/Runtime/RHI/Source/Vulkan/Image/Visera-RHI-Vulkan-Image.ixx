@@ -77,11 +77,11 @@ namespace Visera
 
     public:
         FVulkanImage() : IVulkanResource{nullptr, EType::Image} {}
-        FVulkanImage(TUniqueRef<FVulkanAllocator> I_Allocator,
+        FVulkanImage(FVulkanAllocator*            I_Allocator,
                      const vk::ImageCreateInfo&   I_CreateInfo,
                      EVMAMemoryProperty           I_MemoryProperties);
-        FVulkanImage(TUniqueRef<FVulkanAllocator> I_Allocator)
-        : IVulkanResource{I_Allocator.get(), EType::SwapChainImage} {}
+        FVulkanImage(FVulkanAllocator* I_Allocator)
+        : IVulkanResource{I_Allocator, EType::SwapChainImage} {}
         ~FVulkanImage() override;
         FVulkanImage(const FVulkanImage&)            = delete;
         FVulkanImage& operator=(const FVulkanImage&) = delete;
@@ -108,12 +108,12 @@ namespace Visera
     {
     public:
         FVulkanSwapChainImage() = default;
-        FVulkanSwapChainImage(TUniqueRef<FVulkanAllocator> I_Allocator,
-                              const vk::Image&             I_Handle,
-                              vk::ImageType                I_ImageType,
-                              const vk::Extent3D&	       I_Extent,
-                              vk::Format                   I_Format,
-                              vk::ImageUsageFlags          I_Usages)
+        FVulkanSwapChainImage(FVulkanAllocator*   I_Allocator,
+                              const vk::Image&    I_Handle,
+                              vk::ImageType       I_ImageType,
+                              const vk::Extent3D& I_Extent,
+                              vk::Format          I_Format,
+                              vk::ImageUsageFlags I_Usages)
         : FVulkanImage(I_Allocator)
         {
             VISERA_ASSERT(I_Handle != nullptr);
@@ -133,12 +133,12 @@ namespace Visera
     };
 
     FVulkanImageView::
-    FVulkanImageView(FVulkanImage*                    I_Image,
-                     vk::ImageViewType                I_Type,
-                     vk::ImageAspectFlags             I_Aspect,
-                     TClosedInterval<UInt8>           I_MipmapRange,
-                     TClosedInterval<UInt8>           I_ArrayRange,
-                     const vk::ComponentMapping&      I_Swizzle)
+    FVulkanImageView(FVulkanImage*               I_Image,
+                     vk::ImageViewType           I_Type,
+                     vk::ImageAspectFlags        I_Aspect,
+                     TClosedInterval<UInt8>      I_MipmapRange,
+                     TClosedInterval<UInt8>      I_ArrayRange,
+                     const vk::ComponentMapping& I_Swizzle)
     : Image { I_Image }
     {
         VISERA_ASSERT(I_Image != nullptr);
@@ -169,10 +169,10 @@ namespace Visera
     }
 
     FVulkanImage::
-    FVulkanImage(TUniqueRef<FVulkanAllocator> I_Allocator,
+    FVulkanImage(FVulkanAllocator*            I_Allocator,
                  const vk::ImageCreateInfo&   I_CreateInfo,
                  EVMAMemoryProperty           I_MemoryProperties)
-    : IVulkanResource   {I_Allocator.get(), EType::Image},
+    : IVulkanResource   {I_Allocator, EType::Image},
       Info              { I_CreateInfo },
       CurrentLayout     { I_CreateInfo.initialLayout }
     {

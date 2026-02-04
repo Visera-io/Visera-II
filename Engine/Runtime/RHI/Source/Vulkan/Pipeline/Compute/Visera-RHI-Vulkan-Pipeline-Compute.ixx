@@ -27,17 +27,17 @@ namespace Visera
 
     public:
         FVulkanComputePipeline() = delete;
-        FVulkanComputePipeline(const vk::raii::Device&          I_Device,
-                               FVulkanPipelineLayout*           I_PipelineLayout,
-                               FVulkanShaderModule*             I_ComputeShader,
-                               TUniqueRef<FVulkanPipelineCache> I_PipelineCache);
+        FVulkanComputePipeline(const vk::raii::Device& I_Device,
+                               FVulkanPipelineLayout*  I_PipelineLayout,
+                               FVulkanShaderModule*    I_ComputeShader,
+                               FVulkanPipelineCache*   I_PipelineCache);
     };
 
     FVulkanComputePipeline::
-    FVulkanComputePipeline(const vk::raii::Device&          I_Device,
-                           FVulkanPipelineLayout*           I_PipelineLayout,
-                           FVulkanShaderModule*             I_ComputeShader,
-                           TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
+    FVulkanComputePipeline(const vk::raii::Device& I_Device,
+                           FVulkanPipelineLayout*  I_PipelineLayout,
+                           FVulkanShaderModule*    I_ComputeShader,
+                           FVulkanPipelineCache*   I_PipelineCache)
     : Layout        {I_PipelineLayout},
       ComputeShader {I_ComputeShader}
     {

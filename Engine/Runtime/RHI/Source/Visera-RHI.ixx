@@ -51,7 +51,7 @@ export namespace Visera
         Present();
 
         // Low-level API
-        [[nodiscard]] inline const TUniquePtr<FVulkanDriver>&
+        [[nodiscard]] inline const FVulkanDriver*
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
             DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" line:{} \"{}\" accessed the RHI driver.",
@@ -62,8 +62,8 @@ export namespace Visera
         }
 
     private:
-        TUniquePtr<FVulkanDriver>   Driver;
-        TUniquePtr<FRHIRegistry>    Registry;
+        FVulkanDriver* Driver   {nullptr};
+        FRHIRegistry*  Registry {nullptr};
 
         FVulkanCommandPool<EVulkanQueueFamily::Graphics>
         GraphicsCommandPool;
@@ -150,13 +150,13 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                Driver   = MakeUnique<FVulkanDriver>();
+                Driver   = new FVulkanDriver();
                 if (Driver->GetDevice().GraphicsQueueFamilyIndex
                     !=
                     Driver->GetDevice().TransferQueueFamilyIndex)
                 { LOG_WARN("NOT support \"Queue Family Ownership Transfer\"!"); }
 
-                Registry = MakeUnique<FRHIRegistry>(Driver);
+                Registry = new FRHIRegistry(Driver);
 
                 // Command Pools
                 GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>
@@ -186,8 +186,8 @@ export namespace Visera
                 InFlightFrames.Clear();
                 GraphicsCommandPool = {};
                 TransferCommandPool = {};
-                Registry.reset();
-                Driver.reset();
+                delete Registry;
+                delete Driver;
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

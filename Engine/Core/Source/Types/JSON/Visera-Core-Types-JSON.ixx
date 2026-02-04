@@ -36,7 +36,7 @@ export namespace Visera
         [[nodiscard]] static TOptional<FJSON>
         Load(const FPath& I_JSONFile)
         {
-            if (TUniquePtr<std::ifstream> Stream = FFileSystem::OpenIStream(I_JSONFile); Stream)
+            if (auto Stream = FFileSystem::OpenIStream(I_JSONFile); Stream)
             {
                 try   { return TOptional<FJSON>(Json::parse(*Stream)); }
                 catch (...) { return NullOpt; }
@@ -331,7 +331,8 @@ export namespace Visera
         FJSON& operator=(Json&& I_NativeJSON) noexcept { Root = std::move(I_NativeJSON); return *this; }
 
         FJSON(FIntrusiveUnsetOptionalState) noexcept : Root(Json::value_t::null) {}
-        [[nodiscard]] friend Bool operator==(const FJSON& I_Lhs, FIntrusiveUnsetOptionalState) noexcept { return I_Lhs.IsNull(); }
+        [[nodiscard]] VISERA_CORE_API
+        friend Bool operator==(const FJSON& I_Lhs, FIntrusiveUnsetOptionalState) noexcept;
 
     private:
         Json Root;
@@ -381,5 +382,8 @@ export namespace Visera
         }
     };
     static_assert(sizeof(TOptional<FJSON>) == sizeof(FJSON));
+
+    Bool operator==(const FJSON& I_Lhs, FIntrusiveUnsetOptionalState) noexcept
+    { return I_Lhs.IsNull(); }
 }
 VISERA_MAKE_FORMATTER(Visera::FJSON, {}, "{}", I_Formatee.Dump());

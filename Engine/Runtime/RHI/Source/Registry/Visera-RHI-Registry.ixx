@@ -84,8 +84,8 @@ export namespace Visera
         TMap<UInt64, TArray<FRHISamplerHandle>>         RecycleBinSamplers;
         TMap<UInt64, TArray<FRHIDescriptorSetHandle>>   RecycleBinDescriptorSets;
 
-        TUniqueRef<FVulkanDriver> Driver;
-        FVulkanDescriptorPool     DescriptorSetPool;
+        FVulkanDriver*        Driver;
+        FVulkanDescriptorPool DescriptorSetPool;
 
     private:
         static TArray<vk::DescriptorPoolSize>
@@ -134,8 +134,8 @@ export namespace Visera
 
     public:
         FRHIRegistry() = delete;
-        FRHIRegistry(TUniqueRef<FVulkanDriver> I_Driver)
-        : Driver(std::move(I_Driver))
+        FRHIRegistry(FVulkanDriver* I_Driver)
+        : Driver(I_Driver)
         {
             DescriptorSetPool = Driver->CreateDescriptorPool(GetDefaultDescriptorPoolSizes());
         }

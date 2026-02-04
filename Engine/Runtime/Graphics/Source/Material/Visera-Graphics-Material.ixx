@@ -2,11 +2,12 @@ module;
 #include <Visera-Graphics.hpp>
 export module Visera.Graphics.Material;
 #define VISERA_MODULE_NAME "Graphics.Material"
-import Visera.Core.Types.JSON;
-import Visera.Core.Types.Array;
-import Visera.Core.Types.String;
-import Visera.RHI;
-import Visera.Global.Log;
+export import Visera.Core.Types.Pointer;
+	   import Visera.Core.Types.JSON;
+	   import Visera.Core.Types.Array;
+	   import Visera.Core.Types.String;
+	   import Visera.RHI;
+	   import Visera.Global.Log;
 
 export namespace Visera
 {

@@ -7,8 +7,9 @@ export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
 export import Visera.Core.Types.Path;
-import Visera.Core.Types.String;
 export import Visera.Core.Traits.Flags;
+       import Visera.Core.Types.String;
+       import Visera.Core.Types.Pointer.Unique;
 
 export namespace Visera
 {

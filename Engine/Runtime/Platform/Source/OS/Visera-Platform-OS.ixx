@@ -33,7 +33,7 @@ namespace Visera
         GetType() const { return Platform->GetType(); }
 
     private:
-        TUniquePtr<IOS> Platform;
+        IOS* Platform {nullptr};
 
     public:
         FPlatform() : IGlobalService(EName::Platform)
@@ -46,10 +46,11 @@ namespace Visera
             if (!OnBootstrap.TryBind([this]
             {
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-                Platform = MakeUnique<FWindowsPlatform>();
+                Platform = new FWindowsPlatform();
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-                Platform = MakeUnique<FMacOSPlatform>();
+                Platform = new FMacOSPlatform();
 #endif
+                if (!Platform) { return False; }
 
                 if (auto Error = FFileSystem::CreateDirectory(Platform->GetCacheDirectory()); Error)
                 {
@@ -63,6 +64,7 @@ namespace Visera
 
             if (!OnTerminate.TryBind([this]
             {
+                delete Platform;
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

@@ -6,6 +6,7 @@ export import Visera.Platform.OS.Interface.Library;
 export import Visera.Core.Types.Path;
 export import Visera.Core.Types.UUID;
 export import Visera.Core.Types.String;
+export import Visera.Core.Types.Pointer.Shared;
 
 namespace Visera
 {

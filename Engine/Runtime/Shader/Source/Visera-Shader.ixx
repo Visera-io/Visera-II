@@ -27,7 +27,7 @@ export namespace Visera
         }
 
     private:
-        TUniquePtr<FSlangCompiler> Compiler;
+        FSlangCompiler* Compiler;
 
     public:
         FShader() : IGlobalService(EName::Shader)
@@ -39,14 +39,14 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                Compiler = MakeUnique<FSlangCompiler>();
+                Compiler = new FSlangCompiler();
                 return Compiler != nullptr;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
 
             if (!OnTerminate.TryBind([this]
             {
-                Compiler.reset();
+                delete Compiler;
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

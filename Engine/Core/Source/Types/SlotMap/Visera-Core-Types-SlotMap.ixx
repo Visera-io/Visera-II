@@ -4,6 +4,7 @@ export module Visera.Core.Types.SlotMap;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
 import Visera.Core.Types.Handle;
+import Visera.Core.Types.Pointer.Unique;
 import Visera.Core.Math.Arithmetic.Interval;
 
 export namespace Visera
@@ -128,7 +129,7 @@ export namespace Visera
         UInt32 SlotIndex = I_Handle.GetIndex();
         const FSlot& Slot = Slots[SlotIndex];
         // Return raw pointer from TUniquePtr - address is stable even if Data reallocates
-        return Data[Slot.Index].get();
+        return Data[Slot.Index].Get();
     }
 
     template<typename ValueType, Concepts::Handle HandleType>
@@ -140,7 +141,7 @@ export namespace Visera
         UInt32 SlotIndex = I_Handle.GetIndex();
         const FSlot& Slot = Slots[SlotIndex];
         // Return raw pointer from TUniquePtr - address is stable even if Data reallocates
-        return Data[Slot.Index].get();
+        return Data[Slot.Index].Get();
     }
 
     template<typename ValueType, Concepts::Handle HandleType>

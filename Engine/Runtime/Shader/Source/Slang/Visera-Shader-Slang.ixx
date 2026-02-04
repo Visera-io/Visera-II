@@ -33,11 +33,11 @@ namespace Visera
             slang::TargetDesc              Description;
     		Slang::ComPtr<slang::IBlob>    CompiledCode;
         };
-        TUniquePtr<FSession>               Session;
+        FSession* Session {nullptr};
 
     public:
         FSlangCompiler();
-    	~FSlangCompiler() { Session.reset(); slang::shutdown(); }
+    	~FSlangCompiler() { delete Session; slang::shutdown(); }
 
     private:
     	[[nodiscard]] Bool
@@ -106,7 +106,7 @@ namespace Visera
 	CreateSession()
     {
     	LOG_TRACE("Creating a new slang session.");
-    	Session = MakeUnique<FSession>();
+    	Session = new FSession(); VISERA_ASSERT(Session);
 
     	// Create Vulkan Compiler Session
     	Session->Description =

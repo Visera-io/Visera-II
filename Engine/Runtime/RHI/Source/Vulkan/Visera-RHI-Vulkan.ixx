@@ -94,8 +94,6 @@ export namespace Visera
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
     private:
-        TUniquePtr<FVulkanPipelineCache> PipelineCache;
-
         vk::ApplicationInfo              AppInfo;
         vk::raii::Context                Context;
 
@@ -134,8 +132,9 @@ export namespace Visera
             vk::raii::Queue     ComputeQueue   {nullptr};
         }Device;
 
-        TUniquePtr<FVulkanLoader>    Loader;
-        TUniquePtr<FVulkanAllocator> Allocator;
+        FVulkanLoader*        Loader        {nullptr};
+        FVulkanAllocator*     Allocator     {nullptr};
+        FVulkanPipelineCache* PipelineCache {nullptr};
 
 #if !defined(VISERA_OFFSCREEN_MODE)
         struct FSwapChain
@@ -205,7 +204,7 @@ export namespace Visera
             return vk::False; // Always return VK_FALSE
         }
     public:
-        [[nodiscard]] const TUniqueRef<FVulkanPipelineCache>
+        [[nodiscard]] const FVulkanPipelineCache*
         GetPipelineCache() const { return PipelineCache; }
         [[nodiscard]] inline const auto&
         GetInstance() const { return Instance; }
@@ -262,7 +261,7 @@ export namespace Visera
         .setEngineVersion       (vk::makeVersion(1, 0, 0))
         .setApiVersion          (vk::ApiVersion13)
         ;
-        Loader = MakeUnique<FVulkanLoader>();
+        Loader = new FVulkanLoader();
         CreateInstance();
         Loader->Load(Instance);
         CreateDebugMessenger();
@@ -286,13 +285,13 @@ export namespace Visera
         DestroySurface();
         DestroyDebugMessenger();
         DestroyInstance();
-        Loader.reset();
+        delete Loader;
     }
 
     void FVulkanDriver::
     CreateAllocator()
     {
-        Allocator = MakeUnique<FVulkanAllocator>
+        Allocator = new FVulkanAllocator
         (
             AppInfo.apiVersion,
             Instance,
@@ -304,7 +303,7 @@ export namespace Visera
     void FVulkanDriver::
     DestroyAllocator()
     {
-        Allocator.reset();
+        delete Allocator;
     }
 
     void FVulkanDriver::
@@ -346,7 +345,7 @@ export namespace Visera
     void FVulkanDriver::
     DestroyPipelineCache()
     {
-        PipelineCache.reset();
+        delete PipelineCache;
     }
 
     void FVulkanDriver::
@@ -1213,7 +1212,7 @@ export namespace Visera
     CreatePipelineCache()
     {
         auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
-        PipelineCache = MakeUnique<FVulkanPipelineCache>(
+        PipelineCache = new FVulkanPipelineCache(
             GPU.Context,
             Device.Context,
             GPlatform->GetResourceDirectory() / "Cache/VulkanPipelines.cache"

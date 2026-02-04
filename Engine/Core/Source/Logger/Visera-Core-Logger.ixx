@@ -103,8 +103,8 @@ namespace Visera
 		}
 
 	protected:
-		TUniquePtr<spdlog::logger> Backend;
-		ELogLevel Level = ELogLevel::Trace;
+		spdlog::logger* Backend {nullptr};
+		ELogLevel       Level = ELogLevel::Trace;
 
 		template<typename... Args>
 		inline void
@@ -138,15 +138,14 @@ namespace Visera
 	FLogger(ELogLevel I_Level /* = ELogLevel::Trace */)
 	: Level(I_Level)
 	{
-		auto ConsoleSink = MakeShared<spdlog::sinks::stdout_color_sink_mt>();
+		auto ConsoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 
 		// auto RotatingSink = MakeShared<spdlog::sinks::rotating_file_sink_mt>(
 		// 	"/Logs/Engine.log", //VISERA_APP_CACHE_DIR
 		// 	5 * 1024, // N MB per file,
 		// 	1         // keep N backups
 		// );
-		Backend = MakeUnique<spdlog::logger>("System Log",
-			spdlog::sinks_init_list{ ConsoleSink /*, RotatingSink*/ });
+		Backend = new spdlog::logger("Visera Log", spdlog::sinks_init_list{ ConsoleSink /*, RotatingSink*/ });
 
 		Backend->set_pattern("%^[%L] [%Y-%m-%d %H:%M:%S.%e] [T:%t] %v%$");
 		//Backend->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%L] %v%$");
@@ -158,6 +157,6 @@ namespace Visera
 	{
 		Backend->flush();
 		//Do not call drop_all() in your class! spdlog::drop_all();
-		Backend.reset();
+		delete Backend;
 	}
 }

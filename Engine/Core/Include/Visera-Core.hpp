@@ -99,12 +99,9 @@
 
 // << PCHs >>
 #include <cassert>
-#include <memory>
-#include <string>
 #include <chrono>
 #include <algorithm>
 #include <functional>
-#include <string_view>
 #include <type_traits>
 #include <source_location>
 #include <spdlog/fmt/fmt.h>
@@ -200,27 +197,6 @@ namespace Visera
 
 	template<typename Signature>
 	using TFunction = std::function<Signature>;
-
-    template<typename T>
-    using TSharedPtr   = std::shared_ptr<T>;
-    template<typename T, typename... Args> TSharedPtr<T>
-    MakeShared(Args &&...args) { return std::make_shared<T>(std::forward<Args>(args)...); }
-
-	template<typename T>
-	using TSharedRef   = const TSharedPtr<T>&;
-
-    template<typename T>
-	using TWeakPtr	   = std::weak_ptr<T>;
-	template<typename T>
-	using TWeakRef	   = const std::weak_ptr<T>&;
-
-    template<typename T>
-    using TUniquePtr   = std::unique_ptr<T>;
-    template<typename T, typename... Args> TUniquePtr<T>
-    MakeUnique(Args &&...args) { return std::make_unique<T>(std::forward<Args>(args)...); }
-
-	template<typename T>
-	using TUniqueRef   = const TUniquePtr<T>&;
 
 	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)
 	{ return I_A.first == I_B.first && I_A.second == I_B.second; }

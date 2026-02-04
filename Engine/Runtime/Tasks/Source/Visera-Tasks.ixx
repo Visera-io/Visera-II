@@ -5,6 +5,7 @@ export module Visera.Tasks;
 export import Visera.Tasks.Interface;
        import Visera.Tasks.Scheduler;
        import Visera.Global;
+       import Visera.Core.Types.Pointer.Unique;
 
 export namespace Visera
 {
@@ -39,7 +40,7 @@ export namespace Visera
                     Scheduler->WaitForAll();
                 }
                 // Destroy scheduler
-                Scheduler.reset();
+                Scheduler.Reset();
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

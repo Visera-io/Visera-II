@@ -134,8 +134,8 @@ namespace Visera
             ;
         }
 
-        void Create(const vk::raii::Device&          I_Device,
-                    TUniqueRef<FVulkanPipelineCache> I_PipelineCache)
+        void Create(const vk::raii::Device& I_Device,
+                    FVulkanPipelineCache*   I_PipelineCache)
         {
             CurrentRenderingInfo
                 .setLayerCount(1)

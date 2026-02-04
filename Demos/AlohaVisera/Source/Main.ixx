@@ -54,6 +54,10 @@ struct FEngine
         LOG_INFO("Visera Engine Run()");
 
         FRHICommandList Commands;
+        struct Foo
+        {
+            ~Foo() { LOG_INFO("De Foo"); }
+        };
 
         FJSON Config = FJSON::Load("Assets/App/Configs/config.json").GetValue();
 

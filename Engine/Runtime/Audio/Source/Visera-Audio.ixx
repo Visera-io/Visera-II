@@ -42,8 +42,8 @@ export namespace Visera
         //PostEvent(FStringView I_Event, FToken I_Token);
 
     private:
-        TUniquePtr<IAudioEngine> Engine;
-        TMap<FName, FToken>      Playlist;
+        IAudioEngine*       Engine   {nullptr};
+        TMap<FName, FToken> Playlist;
 
     public:
         FAudio() : IGlobalService(EName::Audio)
@@ -55,7 +55,7 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                Engine = MakeUnique<FWwiseAudioEngine>();
+                Engine = new FWwiseAudioEngine();
 
                 DEBUG_ONLY_FIELD
                 (
@@ -85,7 +85,7 @@ export namespace Visera
                     if (AK::SoundEngine::UnregisterGameObj(PID) != AK_Success)
                     { LOG_ERROR("Failed to unregister {} (id:{})!", Name, PID); }
                 }
-                Engine.reset();
+                delete Engine;
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

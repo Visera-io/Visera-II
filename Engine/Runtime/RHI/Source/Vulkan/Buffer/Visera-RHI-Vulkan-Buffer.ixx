@@ -6,6 +6,7 @@ import Visera.RHI.Vulkan.Common;
 import Visera.RHI.Vulkan.Allocator;
 import Visera.Global.Log;
 import Visera.Core.OS.Memory;
+import Visera.Core.Types.Pointer.Unique;
 import vulkan_hpp;
 
 namespace Visera
@@ -26,7 +27,7 @@ namespace Visera
 
     public:
         FVulkanBuffer() : IVulkanResource{nullptr, EType::Buffer} {}
-        FVulkanBuffer(TUniqueRef<FVulkanAllocator> I_Allocator,
+        FVulkanBuffer(FVulkanAllocator*            I_Allocator,
                       const vk::BufferCreateInfo&  I_CreateInfo,
                       EVMAMemoryProperty           I_MemoryProperties);
         ~FVulkanBuffer() override;
@@ -50,10 +51,10 @@ namespace Visera
     };
     
     FVulkanBuffer::
-    FVulkanBuffer(TUniqueRef<FVulkanAllocator> I_Allocator,
+    FVulkanBuffer(FVulkanAllocator*            I_Allocator,
                   const vk::BufferCreateInfo&  I_CreateInfo,
                   EVMAMemoryProperty           I_MemoryProperties)
-    : IVulkanResource {I_Allocator.get(), EType::Buffer},
+    : IVulkanResource {I_Allocator, EType::Buffer},
       Info            {I_CreateInfo}
     {
         Allocate(&Handle, &Info, nullptr, I_MemoryProperties);

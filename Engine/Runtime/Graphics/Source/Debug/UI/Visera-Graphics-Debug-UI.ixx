@@ -15,9 +15,9 @@ import Visera.Platform.Window;
 import Visera.Global.Log;
 import Visera.Core.Types.String;
 
-namespace Visera::Graphics
+export namespace Visera::Graphics
 {
-    export class VISERA_GRAPHICS_API FDebugUI
+    class VISERA_GRAPHICS_API FDebugUI
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
     public:
@@ -58,12 +58,8 @@ namespace Visera::Graphics
 #endif
         }
 
-
-    private:
-        TUniquePtr<FDebugUI> ImGuiContext;
-
     public:
-        FDebugUI(TUniqueRef<FWindow> I_Window)
+        FDebugUI(FWindow* I_Window)
         {
     #if !defined(VISERA_OFFSCREEN_MODE)
             IMGUI_CHECKVERSION();
@@ -100,7 +96,7 @@ namespace Visera::Graphics
             ImGui::StyleColorsDark();
 
             auto GRHI = IGlobalService::Get<FRHI>(EName::RHI);
-            auto& Vulkan = GRHI->GetDriver();
+            auto Vulkan = GRHI->GetDriver();
 
             const VkFormat ColorRTFormat = static_cast<VkFormat>(ERHIFormat::R8G8B8A8_sRGB);
             ImGui_ImplVulkan_InitInfo CreateInfo

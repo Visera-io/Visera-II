@@ -5,7 +5,8 @@ export module Visera.AssetHub.Image.Wrapper;
 export import Visera.AssetHub.Image.Common;
 export import Visera.Core.Image;
 export import Visera.Core.Types.Path;
-import Visera.Core.Types.String;
+export import Visera.Core.Types.Pointer;
+       import Visera.Core.Types.String;
        import Visera.Global.Log;
 
 export namespace Visera
