@@ -410,7 +410,6 @@ VISERA_MAKE_FORMATTER(Visera::ERHIDescriptorType,
         case Visera::ERHIDescriptorType::StorageImage:         DescriptorTypeName = "StorageImage";        break;
         case Visera::ERHIDescriptorType::UniformBuffer:        DescriptorTypeName = "UniformBuffer";       break;
         case Visera::ERHIDescriptorType::StorageBuffer:        DescriptorTypeName = "StorageBuffer";       break;
-        case Visera::ERHIDescriptorType::Undefined:            DescriptorTypeName = "Undefined";           break;
         default: break;
     },
     "{}", DescriptorTypeName
