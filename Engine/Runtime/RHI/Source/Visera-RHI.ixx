@@ -172,8 +172,17 @@ export namespace Visera
                 Get<FWindow>(EName::Window)->OnResized.Subscribe([this]
                 (UInt32 I_NewWidth, UInt32 I_NewHeight)
                 {
-                    LOG_DEBUG("Recreating SwapChain.");
-                    Driver->RecreateSwapChain();
+                    // When the window is minimized, framebuffer size can become 0x0.
+                    // Vulkan forbids creating a swapchain with zero extent, so skip until restored.
+                    if (I_NewWidth == 0 || I_NewHeight == 0)
+                    {
+                        LOG_TRACE("Skip SwapChain recreation while minimized ({}x{}).",
+                                  I_NewWidth, I_NewHeight);
+                        return;
+                    }
+
+                    LOG_DEBUG("Recreating SwapChain ({}x{}).", I_NewWidth, I_NewHeight);
+                    Driver->RecreateSwapChain(I_NewWidth, I_NewHeight);
                     InitializeSwapChain();
                 });
 
@@ -242,8 +251,8 @@ export namespace Visera
         }
         else
         {
-            LOG_ERROR("Failed to begin new frame!");
-            return False;
+            LOG_TRACE("Failed to begin new frame!");
+            return False; // Potential reasons: minimized window ...
         }
 #endif
         CurrentFrame.TransferCalls.Reset();
@@ -433,7 +442,7 @@ export namespace Visera
         FFrame& SubmittedFrame = InFlightFrames[LastSubmittedFrameIndex];
         if (!Driver->Present(&SubmittedFrame.RenderFinishedSemaphore))
         {
-            LOG_ERROR("Failed to present frame {}!", LastSubmittedFrameIndex);
+            LOG_DEBUG("Failed to present frame {}!", LastSubmittedFrameIndex);
         }
     }
 

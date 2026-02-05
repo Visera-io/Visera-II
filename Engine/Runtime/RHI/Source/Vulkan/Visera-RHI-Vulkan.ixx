@@ -220,8 +220,18 @@ export namespace Visera
         [[nodiscard]] inline auto&
         GetSwapChain() { return SwapChain; }
         void
-        RecreateSwapChain()
+        RecreateSwapChain(UInt32 I_Width, UInt32 I_Height)
         {
+            // When minimized, framebuffer size can become 0x0.
+            // Vulkan forbids creating a swapchain with zero extent, so skip until restored.
+            if (I_Width == 0 || I_Height == 0)
+            {
+                LOG_TRACE("Skip SwapChain recreation while minimized ({}x{}).",
+                          I_Width, I_Height);
+                return;
+            }
+            // Used as the base extent when the surface doesn't define currentExtent.
+            SwapChain.Extent = vk::Extent2D{ I_Width, I_Height };
             WaitIdle();
             DestroySwapChain();
             DestroySurface();
@@ -889,6 +899,11 @@ export namespace Visera
             }
             else
             {
+                // Some platforms leave currentExtent undefined; use framebuffer size as the base.
+                if (auto GWindow = IGlobalService::Get<FWindow>(EName::Window))
+                {
+                    SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
+                }
                 Math::Clamp(&SwapChain.Extent.width,
                             SurfaceCapabilities.minImageExtent.width,
                             SurfaceCapabilities.maxImageExtent.width);
@@ -896,6 +911,14 @@ export namespace Visera
                             SurfaceCapabilities.minImageExtent.height,
                             SurfaceCapabilities.maxImageExtent.height);
             }
+        }
+
+        // When minimized, framebuffer size can be 0x0. Vulkan forbids zero swapchain extent.
+        if (SwapChain.Extent.width == 0 || SwapChain.Extent.height == 0)
+        {
+            LOG_TRACE("Skip SwapChain creation while minimized (extent:[{},{}]).",
+                      SwapChain.Extent.width, SwapChain.Extent.height);
+            return;
         }
 
         SwapChain.MinimalImageCount = Math::Max(SurfaceCapabilities.minImageCount,
@@ -977,20 +1000,33 @@ export namespace Visera
     {
 #if !defined(VISERA_OFFSCREEN_MODE)
         VISERA_ASSERT(I_SignalSemaphore != nullptr);
-        auto NextImageAcquireInfo = vk::AcquireNextImageInfoKHR{}
+        // Use dispatcher call to avoid Vulkan-Hpp resultCheck assert on eErrorOutOfDateKHR.
+        const auto AcquireInfo = vk::AcquireNextImageInfoKHR{}
             .setSwapchain   (SwapChain.Context)
             .setTimeout     (Math::UpperBound<UInt64>())
             .setSemaphore   (I_SignalSemaphore->GetHandle())
             .setFence       (nullptr)
             .setDeviceMask  (1)
         ;
-        auto NextImageIndex = Device.Context.acquireNextImage2KHR(NextImageAcquireInfo);
-        if (NextImageIndex.has_value())
+
+        uint32_t NextImageIndex = 0;
+        const auto RawResult = static_cast<vk::Result>(
+            Device.Context.getDispatcher()->vkAcquireNextImage2KHR(
+                static_cast<VkDevice>(*Device.Context),
+                reinterpret_cast<const VkAcquireNextImageInfoKHR*>(&AcquireInfo),
+                &NextImageIndex));
+
+        if (RawResult == vk::Result::eSuccess || RawResult == vk::Result::eSuboptimalKHR)
         {
-            SwapChain.Cursor = *NextImageIndex;
+            SwapChain.Cursor = NextImageIndex;
             return True;
         }
-        LOG_ERROR("Failed to acquire the next Vulkan SwapChain Image!");
+        if (RawResult == vk::Result::eErrorOutOfDateKHR)
+        {
+            LOG_TRACE("AcquireNextImage returned {}.", RawResult);
+            return False;
+        }
+        LOG_ERROR("Failed to acquire the next Vulkan SwapChain Image! VkResult={}", RawResult);
 #else
         LOG_WARN("NOT need to call this in the off-screen mode!");
 #endif
@@ -1011,11 +1047,18 @@ export namespace Visera
             .setPImageIndices       (&SwapChain.Cursor)
             .setPResults            (nullptr) // NOT necessary if using a single swapchain.
         ;
-        const auto Result = Device.GraphicsQueue.presentKHR(PresentInfo);
-        if (Result == vk::Result::eErrorOutOfDateKHR ||
-            Result == vk::Result::eSuboptimalKHR)
+        // Use dispatcher call to avoid Vulkan-Hpp resultCheck assert on eErrorOutOfDateKHR.
+        const auto Result = static_cast<vk::Result>(
+            Device.GraphicsQueue.getDispatcher()->vkQueuePresentKHR(*Device.GraphicsQueue, &(*PresentInfo)));
+
+        if (Result == vk::Result::eErrorOutOfDateKHR)
         {
-            LOG_WARN("Failed to present current swapchain image -- RECREATION!");
+            LOG_TRACE("Present returned {}.", Result);
+            return False;
+        }
+        if (Result != vk::Result::eSuccess && Result != vk::Result::eSuboptimalKHR)
+        {
+            LOG_ERROR("Present failed with VkResult {}", Result);
             return False;
         }
 #else
