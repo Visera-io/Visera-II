@@ -42,6 +42,9 @@ nav:
       - RHI: Fundamentals/RHI.md
   - Development:
       - Coding Standard: Development/CodingStandard.md
+      - Forge:
+          - Overview: Development/Forge/index.md
+          - Regex: Development/Forge/Regex.md
 
 markdown_extensions:
   - admonition

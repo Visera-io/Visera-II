@@ -1,0 +1,29 @@
+{
+  "Abseil" :
+  {
+    "Version" : "LTS 20260107.0",
+    "Dependencies" :
+    [
+
+    ],
+    "URL" : "https://github.com/abseil/abseil-cpp"
+  },
+  "RE2" :
+  {
+    "Version" : "2025-11-05",
+    "Dependencies" :
+    [
+      "Abseil"
+    ],
+    "URL" : "https://github.com/google/re2"
+  },
+  "MSDFGen" :
+  {
+    "Version" : "1.13",
+    "Dependencies" :
+    [
+      "FreeType"
+    ],
+    "URL" : "https://github.com/Chlumsky/msdfgen"
+  }
+}
