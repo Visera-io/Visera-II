@@ -1,5 +1,6 @@
 Agents/
 Build/
+Toolkit/Forge/
 .idea/
 .DS_Store
 cmake-build*/

@@ -8,9 +8,6 @@ macro(install_visera_graphics in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GRAPHICS_SCRIPTS_DIR})
 
-    include(install_bvh)
-    link_bvh(${in_target})
-    
     include(install_freetype)
     link_freetype(${in_target})
 

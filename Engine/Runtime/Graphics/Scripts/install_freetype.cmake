@@ -12,7 +12,6 @@ macro(link_freetype in_target)
         endif()
 
         set(SKIP_INSTALL_ALL TRUE CACHE BOOL "Skip FreeType install rules" FORCE)
-
         set(BUILD_SHARED_LIBS OFF)
         add_subdirectory(${VISERA_GRAPHICS_EXTERNAL_DIR}/FreeType)
         set_target_properties(freetype PROPERTIES FOLDER "Visera/Graphics/External/FreeType")

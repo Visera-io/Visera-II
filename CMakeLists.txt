@@ -14,7 +14,8 @@ project("${VISERA} (${VISERA_VERSION})"
 message(STATUS "${PROJECT_NAME}")
 
 option(VISERA_OFFSCREEN_MODE    "Create a headless application"     OFF)
-option(VISERA_MONOLITHIC_MODE   "Create a single Visera.dll"        OFF)
+option(VISERA_MONOLITHIC_MODE   "Create a single Visera.dll"        ON )
+option(VISERA_BUILD_FORGE       "Build Visera-Forge (toolchain)"    ON )
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard

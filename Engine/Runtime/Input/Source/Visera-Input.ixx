@@ -26,7 +26,9 @@ export namespace Visera
         {
             Dependencies =
             {
+#if !defined(VISERA_OFFSCREEN_MODE)
                 EName::Window,
+#endif
             };
 
             if (!OnBootstrap.TryBind([this]
