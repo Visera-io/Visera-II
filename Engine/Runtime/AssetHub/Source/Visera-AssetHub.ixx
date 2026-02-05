@@ -4,6 +4,7 @@ export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
 export import Visera.Core.Types.Path;
        import Visera.AssetHub.Image;
+       import Visera.Platform.OS;
        import Visera.Global;
 
 export namespace Visera
@@ -15,6 +16,7 @@ export namespace Visera
         LoadImage(const FPath& I_Path);
 
     private:
+        FPlatform* Platform {nullptr};
 
     public:
         FAssetHub() : IGlobalService(EName::AssetHub)
@@ -27,7 +29,8 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                return True;
+                Platform = IGlobalService::Get<FPlatform>(EName::Platform);
+                return Platform;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
 
@@ -48,12 +51,13 @@ export namespace Visera
     TSharedPtr<FImage> FAssetHub::
     LoadImage(const FPath& I_Path)
     {
+        const auto& Path = I_Path; //Platform->GetResourceDirectory() / I_Path;
         // Detect image format from extension
-        const EImageFormat Format = DetectImageFormat(I_Path);
+        const EImageFormat Format = DetectImageFormat(Path);
         
         if (Format == EImageFormat::Invalid)
         {
-            LOG_ERROR("Failed to detect image format for: {}", I_Path);
+            LOG_ERROR("Failed to detect image format for: {}", Path);
             return nullptr;
         }
 
@@ -70,11 +74,11 @@ export namespace Visera
             break;
         
         default:
-            LOG_ERROR("Unsupported image format for: {}", I_Path);
+            LOG_ERROR("Unsupported image format for: {}", Path);
             return nullptr;
         }
 
         // Import image directly (returns TSharedPtr)
-        return Wrapper->Import(I_Path);
+        return Wrapper->Import(Path);
     }
 }

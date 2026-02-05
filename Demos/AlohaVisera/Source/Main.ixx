@@ -121,8 +121,8 @@ struct FEngine
 
         auto TestTexture = Graphics->GetTexture2D(TexID);
 
-        auto Material = MakeShared<FMaterial>(FJSON::Load("Assets/App/Material/BasicSprite.vmaterial").GetValue());
-        if (Material->IsValid())
+        auto Material = MakeShared<FMaterial>(FJSON::Load( "Assets/App/Material/BasicSprite.vmaterial").GetValue());
+        //if (Material->IsValid())
         {
             const char* SurfaceName = "Unknown";
             switch (Material->GetSurface())
@@ -137,7 +137,6 @@ struct FEngine
                      SurfaceName,
                      Material->GetBaseColorPath());
         }
-        else { LOG_WARN("[Material] Load failed or invalid (check Assets/App/Material/BasicSprite.vmaterial)"); }
 
         Material->SetBaseColorHandle(TexID);
 

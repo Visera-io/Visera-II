@@ -365,7 +365,7 @@ export namespace Visera
         FJSON& operator=(Json&& I_NativeJSON) noexcept { Root = std::move(I_NativeJSON); return *this; }
 
         FJSON(FIntrusiveUnsetOptionalState) noexcept : Root(Json::value_t::null) {}
-        [[nodiscard]] VISERA_CORE_API
+        VISERA_CORE_API
         friend Bool operator==(const FJSON& I_Lhs, FIntrusiveUnsetOptionalState) noexcept;
 
     private:
