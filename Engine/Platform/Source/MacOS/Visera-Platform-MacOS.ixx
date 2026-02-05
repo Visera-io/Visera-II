@@ -19,7 +19,7 @@ export namespace Visera
     class VISERA_PLATFORM_API FMacOSPlatform : public IPlatform
     {
     public:
-        [[nodiscard]] virtual TUniquePtr<IPlatformWindow>
+        [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
         LoadLibrary(const FPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
@@ -56,13 +56,9 @@ export namespace Visera
 
         ResourceDirectory  = ExecutableDirectory.GetParent() / FPath{"Resources"};
         FrameworkDirectory = ExecutableDirectory.GetParent() / FPath{"Frameworks"};
-
-        CacheDirectory     = ResourceDirectory / FPath{"Cache"};
-        if (!FFileSystem::Exists(CacheDirectory))
-        { (void)FFileSystem::CreateDirectory(CacheDirectory); }
     }
 
-    [[nodiscard]] virtual TUniquePtr<IPlatformWindow>
+    TUniquePtr<IPlatformWindow> FMacOSPlatform::
     CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const
     {
         return MakeUnique<FMacOSWindow>(I_Title, I_Width, I_Height);
