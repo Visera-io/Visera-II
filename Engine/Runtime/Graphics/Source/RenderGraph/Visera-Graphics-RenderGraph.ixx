@@ -23,9 +23,9 @@ export namespace Visera
         void inline
         Clear() { VISERA_UNIMPLEMENTED_API; }
         [[nodiscard]] Bool inline
-        Compile() { VISERA_UNIMPLEMENTED_API; }
+        Compile() { VISERA_UNIMPLEMENTED_API; return False; }
         [[nodiscard]] Bool  inline
-        CreateFromJSON(const FJSON& I_JSON) { VISERA_UNIMPLEMENTED_API; }
+        CreateFromJSON(const FJSON& I_JSON) { VISERA_UNIMPLEMENTED_API; return False; }
 
     private:
         //TPMRArray<FRGNode>     Nodes;

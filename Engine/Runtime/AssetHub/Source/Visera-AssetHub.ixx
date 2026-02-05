@@ -3,8 +3,9 @@ module;
 export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
 export import Visera.Core.Types.Path;
+       import Visera.Core.Types.Map;
+       import Visera.Core.OS.Thread.Sync;
        import Visera.AssetHub.Image;
-       import Visera.Platform.OS;
        import Visera.Global;
 
 export namespace Visera
@@ -16,21 +17,49 @@ export namespace Visera
         LoadImage(const FPath& I_Path);
 
     private:
-        FPlatform* Platform {nullptr};
+        template<typename T>
+        class TCache
+        {
+        public:
+            [[nodiscard]] TWeakPtr<T>
+            Find(const FName& I_Key) const
+            {
+                FScopeReadLock _{&RWLock};
+                if (auto It = Entries.Find(I_Key); It != Entries.end())
+                { return It->second; }
+                return {};
+            }
+
+            [[nodiscard]] Bool
+            Store(const FName& I_Key, TSharedRef<T> I_Value)
+            {
+                FScopeWriteLock _{&RWLock};
+                auto& Entry = Entries[I_Key];
+                if (Entry.IsExpired())
+                {
+                    Entry = I_Value;
+                    return True;
+                }
+                return False;
+            }
+
+        private:
+            mutable FRWLock          RWLock;
+            TMap<FName, TWeakPtr<T>> Entries;
+        };
+        TCache<FImage> ImageCache;
 
     public:
         FAssetHub() : IGlobalService(EName::AssetHub)
         {
             Dependencies =
             {
-                EName::Platform,
                 EName::Tasks,
             };
 
             if (!OnBootstrap.TryBind([this]
             {
-                Platform = IGlobalService::Get<FPlatform>(EName::Platform);
-                return Platform;
+                return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
 
@@ -51,13 +80,19 @@ export namespace Visera
     TSharedPtr<FImage> FAssetHub::
     LoadImage(const FPath& I_Path)
     {
-        const auto& Path = I_Path; //Platform->GetResourceDirectory() / I_Path;
+        FName PathName = FName{I_Path.GetUTF8Path()};
+        if (auto Cache = ImageCache.Find(PathName); !Cache.IsExpired())
+        {
+            LOG_TRACE("Get {} from cache.", I_Path);
+            return Cache.Lock();
+        }
+
         // Detect image format from extension
-        const EImageFormat Format = DetectImageFormat(Path);
+        const EImageFormat Format = DetectImageFormat(I_Path);
         
         if (Format == EImageFormat::Invalid)
         {
-            LOG_ERROR("Failed to detect image format for: {}", Path);
+            LOG_ERROR("Failed to detect image format for: {}", I_Path);
             return nullptr;
         }
 
@@ -74,11 +109,14 @@ export namespace Visera
             break;
         
         default:
-            LOG_ERROR("Unsupported image format for: {}", Path);
+            LOG_ERROR("Unsupported image format for: {}", I_Path);
             return nullptr;
         }
 
-        // Import image directly (returns TSharedPtr)
-        return Wrapper->Import(Path);
+        auto NewImage = Wrapper->Import(I_Path);
+        if (!ImageCache.Store(PathName, NewImage))
+        { LOG_WARN("Failed to store the {} to image cache!", I_Path); }
+
+        return NewImage;
     }
 }

@@ -52,7 +52,7 @@ namespace Visera
         vk::Result Result = Handle.getDevice().waitForFences(*Handle, vk::True, I_Timeout);
         if (Result != vk::Result::eSuccess)
         {
-            LOG_ERROR("Failed to wait fence (timeout: {}, error: \"{}\")!",
+            LOG_ERROR("Failed to wait fence (timeout: {}, error: {})!",
                       I_Timeout, Result);
             return False;
         }

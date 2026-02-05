@@ -57,7 +57,7 @@ export namespace Visera
     {
         if (!BeginParsing(I_Path))
         {
-            LOG_ERROR("Failed to parse the image \"{}\"!", I_Path);
+            LOG_ERROR("Failed to parse the image {}!", I_Path);
             return nullptr;
         }
 

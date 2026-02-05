@@ -21,7 +21,7 @@ export namespace Visera
         [[nodiscard]] inline TArray<FByte>
         Compile(const FPath& I_Path, FStringView I_EntryPoint)
         {
-            LOG_TRACE("Compiling shader \"{}\" (entry_point:{}).",
+            LOG_TRACE("Compiling shader {} (entry_point:{}).",
                       I_Path, I_EntryPoint);
             return Compiler->Compile(I_Path, I_EntryPoint);
         }
@@ -34,7 +34,7 @@ export namespace Visera
         {
             Dependencies =
             {
-                EName::Platform,
+
             };
 
             if (!OnBootstrap.TryBind([this]

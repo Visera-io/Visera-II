@@ -134,8 +134,10 @@ export namespace Visera
         // Get the buffer size in bytes
         [[nodiscard]] UInt64
         GetSize() const { return Buffer.GetSize(); }
+        /// Clear recorded commands. Does not reset MemoryCache so that Buffer's
+        /// storage (which may come from the arena) is not freed while still in use.
         void
-        Reset() { Buffer.Clear(); MemoryCache.Reset(); CommandCount = 0; }
+        Reset() { Buffer.Clear(); CommandCount = 0; }
 
         // Iterator for range-based for loop
         class VISERA_RHI_API FIterator

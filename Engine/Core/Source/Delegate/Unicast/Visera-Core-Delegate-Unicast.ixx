@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Delegate.Unicast;
 #define VISERA_MODULE_NAME "Core.Delegate"
 import Visera.Core.Traits.Policy;
+import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
@@ -21,13 +22,13 @@ export namespace Visera
         Bind(FCallback I_Callback) { Callback = std::move(I_Callback); }
         void inline
         Unbind() { Callback = nullptr; }
-        std::conditional_t<std::is_void_v<R>, void, std::optional<R>>
+        std::conditional_t<std::is_void_v<R>, void, TOptional<R>>
         Invoke(T_Args... I_Args) const
         {
             if (!Callback)
             {
                 if constexpr (std::is_void_v<R>) return;
-                else return std::nullopt;
+                else return NullOpt;
             }
             if constexpr (std::is_void_v<R>)
             {
@@ -62,7 +63,7 @@ export namespace Visera
             return True;
         }
 
-        std::conditional_t<std::is_void_v<R>, void, std::optional<R>>
+        std::conditional_t<std::is_void_v<R>, void, TOptional<R>>
         Invoke(T_Args... I_Args) const
         {
             if (!Callback)

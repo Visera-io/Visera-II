@@ -7,7 +7,8 @@ import Visera.RHI;
 import Visera.Tasks;
 import Visera.Audio;
 import Visera.Global;
-import Visera.Platform;
+import Visera.Window;
+import Visera.Input;
 import Visera.Graphics;
 import Visera.Graphics.Renderer;
 import Visera.AssetHub;
@@ -15,7 +16,6 @@ using namespace Visera;
 
 struct FEngine
 {
-    FPlatform* Platform;
     FInput*    Input;
     FWindow*   Window;
     FTasks*    Tasks;
@@ -39,6 +39,14 @@ struct FEngine
         LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
         LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
 
+        Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
+        {
+            if (I_Button == FMouse::EButton::Left)
+            {
+                LOG_INFO("Left");
+            }
+        });
+
         TOptional<Int32> Num = 32;
         LOG_ERROR("{}", Num.GetValue());
 
@@ -54,15 +62,13 @@ struct FEngine
         LOG_INFO("Visera Engine Run()");
 
         FRHICommandList Commands;
-        struct Foo
-        {
-            ~Foo() { LOG_INFO("De Foo"); }
-        };
-
         FJSON Config = FJSON::Load("Assets/App/Configs/config.json").GetValue();
 
-        TSharedPtr<FImage> TestImage = AssetHub->LoadImage(FPath(Config.GetString(FJSONPath("Assets.Textures[0]"))));
-        
+        auto TexturePath = Config.GetPath("Assets.Textures[0]"_JQL);
+        TSharedPtr<FImage> TestImage  = AssetHub->LoadImage(TexturePath);
+        TSharedPtr<FImage> TestImage2 = AssetHub->LoadImage(TexturePath);
+        TSharedPtr<FImage> TestImage3 = AssetHub->LoadImage(TexturePath);
+
         // Test LUT: Color inversion using sRGB to Linear conversion
         LOG_INFO("Testing LUT: Inverting colors in image ({}x{})", TestImage->GetWidth(), TestImage->GetHeight());
         {
@@ -117,7 +123,7 @@ struct FEngine
         
         FTextureID TexID = Graphics->CreateTexture2D(TestImage);
 
-        Window->SetSize(TestImage->GetWidth(), TestImage->GetHeight());
+        Window->Resize(TestImage->GetWidth(), TestImage->GetHeight());
 
         auto TestTexture = Graphics->GetTexture2D(TexID);
 
@@ -131,7 +137,7 @@ struct FEngine
             case ESurfaceType::Masked:     SurfaceName = "Masked";      break;
             case ESurfaceType::Transparent: SurfaceName = "Transparent"; break;
             }
-            LOG_INFO("[Material] Version={} Shader=\"{}\" Surface={} BaseColorPath=\"{}\"",
+            LOG_INFO("[Material] Version={} Shader={} Surface={} BaseColorPath={}",
                      Material->GetVersion(),
                      Material->GetShader(),
                      SurfaceName,
@@ -173,7 +179,6 @@ struct FEngine
     FEngine()
     {
         LOG_INFO("Visera Engine");
-        Platform = IGlobalService::Register<FPlatform> (EName::Platform);
         Input    = IGlobalService::Register<FInput>    (EName::Input);
         Window   = IGlobalService::Register<FWindow>   (EName::Window);
         Tasks    = IGlobalService::Register<FTasks>    (EName::Tasks);

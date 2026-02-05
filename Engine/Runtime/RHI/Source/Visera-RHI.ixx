@@ -7,7 +7,7 @@ export import Visera.RHI.Resource;
 export import Visera.RHI.CommandList;
        import Visera.RHI.Vulkan;
        import Visera.RHI.Registry;
-       import Visera.Platform.Window;
+       import Visera.Window;
        import Visera.Core.Types.Array;
        import Visera.Core.Delegate;
        import Visera.Global;
@@ -54,7 +54,7 @@ export namespace Visera
         [[nodiscard]] inline const FVulkanDriver*
         GetDriver(DEBUG_ONLY_FIELD(const std::source_location& I_Location = std::source_location::current()))  const
         {
-            DEBUG_ONLY_FIELD(LOG_WARN("\"{}\" line:{} \"{}\" accessed the RHI driver.",
+            DEBUG_ONLY_FIELD(LOG_WARN("{} line:{} {} accessed the RHI driver.",
                              I_Location.file_name(),
                              I_Location.line(),
                              I_Location.function_name()));
@@ -142,7 +142,6 @@ export namespace Visera
         {
             Dependencies =
             {
-                EName::Platform,
 #if !defined(VISERA_OFFSCREEN_MODE)
                 EName::Window,
 #endif
@@ -168,7 +167,9 @@ export namespace Visera
                     False
                 );
 
-                Get<FWindow>(EName::Window)->OnResizeWindow.Subscribe([this]
+                InitializeSwapChain();
+
+                Get<FWindow>(EName::Window)->OnResized.Subscribe([this]
                 (UInt32 I_NewWidth, UInt32 I_NewHeight)
                 {
                     LOG_DEBUG("Recreating SwapChain.");

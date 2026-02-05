@@ -108,7 +108,7 @@ namespace Visera
 
     private:
         FPath                Root {};
-        TSharedPtr<ILibrary> HostFXR;
+        TSharedPtr<IPlatformLibrary> HostFXR;
 
     public:
         FDotNETScripting()
@@ -167,7 +167,7 @@ namespace Visera
             
             if (Result != HostFXR::Success || !Function )
             {
-                LOG_ERROR("Failed to load the function \"{}\" from \"{}\" (error:{})!",
+                LOG_ERROR("Failed to load the function {} from {} (error:{})!",
                           FText::ToUTF8(I_Name.data()), DLLPath, Result);
             }
         }

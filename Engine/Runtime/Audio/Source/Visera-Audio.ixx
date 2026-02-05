@@ -50,7 +50,7 @@ export namespace Visera
         {
             Dependencies =
             {
-                EName::Platform
+
             };
 
             if (!OnBootstrap.TryBind([this]

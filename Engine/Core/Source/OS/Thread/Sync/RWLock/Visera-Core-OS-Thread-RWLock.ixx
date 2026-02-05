@@ -26,4 +26,50 @@ export namespace Visera
     private:
         mutable std::shared_mutex Self;
     };
+
+    class VISERA_CORE_API FScopeReadLock
+    {
+    public:
+        explicit FScopeReadLock(TMutable<FRWLock> I_RWLock) : RWLock(I_RWLock)
+        {
+            VISERA_ASSERT(RWLock != nullptr);
+            RWLock->StartReading();
+        }
+
+        ~FScopeReadLock()
+        {
+            RWLock->StopReading();
+        }
+
+        FScopeReadLock(const FScopeReadLock&)              = delete;
+        FScopeReadLock& operator=(const FScopeReadLock&)   = delete;
+        FScopeReadLock(FScopeReadLock&&)                   = delete;
+        FScopeReadLock& operator=(FScopeReadLock&&)        = delete;
+
+    private:
+        TMutable<FRWLock> RWLock {nullptr};
+    };
+
+    class VISERA_CORE_API FScopeWriteLock
+    {
+    public:
+        explicit FScopeWriteLock(TMutable<FRWLock> I_RWLock) : RWLock(I_RWLock)
+        {
+            VISERA_ASSERT(RWLock != nullptr);
+            RWLock->StartWriting();
+        }
+
+        ~FScopeWriteLock()
+        {
+            RWLock->StopWriting();
+        }
+
+        FScopeWriteLock(const FScopeWriteLock&)              = delete;
+        FScopeWriteLock& operator=(const FScopeWriteLock&)   = delete;
+        FScopeWriteLock(FScopeWriteLock&&)                   = delete;
+        FScopeWriteLock& operator=(FScopeWriteLock&&)        = delete;
+
+    private:
+        TMutable<FRWLock> RWLock {nullptr};
+    };
 }

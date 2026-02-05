@@ -11,6 +11,7 @@ export import Visera.Core.Image;
 export import Visera.Core.Logger;
 export import Visera.Core.Traits;
 export import Visera.Core.Delegate;
+export import Visera.Core.Algorithm;
 export import Visera.Core.Compression;
 
 export namespace Visera

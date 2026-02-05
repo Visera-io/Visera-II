@@ -58,4 +58,4 @@ export namespace Visera
     };
 }
 VISERA_MAKE_HASH(Visera::FPath, return std::hash<std::filesystem::path>{}(I_Object.GetNativePath()););
-VISERA_MAKE_FORMATTER(Visera::FPath, {}, "\"{}\"", I_Formatee.GetUTF8Path());
+VISERA_MAKE_FORMATTER(Visera::FPath, {}, "{}", I_Formatee.GetUTF8Path());

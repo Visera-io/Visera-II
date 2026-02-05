@@ -86,12 +86,12 @@ export namespace Visera
         }
         catch (const std::exception& Ex)
         {
-            LOG_ERROR("Failed to load EXR \"{}\": {}", I_Path, Ex.what());
+            LOG_ERROR("Failed to load EXR {}: {}", I_Path, Ex.what());
             return nullptr;
         }
         catch (...)
         {
-            LOG_ERROR("Failed to load EXR \"{}\": unknown error", I_Path);
+            LOG_ERROR("Failed to load EXR {}: unknown error", I_Path);
             return nullptr;
         }
     }

@@ -16,8 +16,6 @@ export namespace Visera
     namespace EName
     {
         VISERA_GLOBAL_API inline const auto
-        Platform  = FName{"platform",    0};
-        VISERA_GLOBAL_API inline const auto
         Input     = FName{"input",       0};
         VISERA_GLOBAL_API inline const auto
         Window    = FName{"window",      0};
@@ -72,7 +70,7 @@ export namespace Visera
             {
                 LOG_DEBUG("Bootstrapping {}.", Service->GetDebugName());
                 if (!Service->OnBootstrap.Invoke())
-                { LOG_FATAL("Failed to bootstrap \"{}\"!", Service->GetDebugName()); }
+                { LOG_FATAL("Failed to bootstrap {}!", Service->GetDebugName()); }
                 Service->Status = EStatus::Bootstrapped;
             }
         }
@@ -91,7 +89,7 @@ export namespace Visera
                 IGlobalService* Service = *It;
                 LOG_DEBUG("Terminating {}.", Service->GetDebugName());
                 if (!Service->OnTerminate.Invoke())
-                { LOG_FATAL("Failed to terminate \"{}\"!", Service->GetDebugName()); }
+                { LOG_FATAL("Failed to terminate {}!", Service->GetDebugName()); }
                 Service->Status = EStatus::Terminated;
             }
         }
@@ -136,9 +134,9 @@ export namespace Visera
         virtual ~IGlobalService()
         {
             if (IsPending())
-            { LOG_WARN("Service \"{}\" was NOT bootstrapped!", GetDebugName()); }
+            { LOG_WARN("Service {} was NOT bootstrapped!", GetDebugName()); }
             else if (IsBootstrapped())
-            { LOG_ERROR("Service \"{}\" was NOT terminated!", GetDebugName()); }
+            { LOG_ERROR("Service {} was NOT terminated!", GetDebugName()); }
         }
 
     private:
@@ -152,7 +150,7 @@ export namespace Visera
             if(GetRegistry()->Contains(Name))
             { LOG_FATAL("Global service {} already exists!", Name); }
 
-            LOG_TRACE("Registering service ({}) : \"{}\".", GetRegistry()->GetSize() + 1, Name.GetName());
+            LOG_TRACE("Registering service ({}) : {}.", GetRegistry()->GetSize() + 1, Name.GetName());
             GetRegistry()->Emplace(Name, this);
         }
 
@@ -185,7 +183,7 @@ export namespace Visera
                     }
                     else
                     {
-                        LOG_ERROR("Service \"{}\" depends on unregistered service \"{}\"!",
+                        LOG_ERROR("Service {} depends on unregistered service {}!",
                                   Name.GetName(), DepName.GetName());
                     }
                 }
@@ -248,7 +246,7 @@ export namespace Visera
                 FString CycleMsg = "Services involved in cycle: ";
                 for (const FName& Name : CycleServices)
                 {
-                    CycleMsg += FString::Format("\"{}\" ", Name.GetName());
+                    CycleMsg += FString::Format("{} ", Name.GetName());
                 }
                 LOG_FATAL("{}", CycleMsg);
                 

@@ -28,6 +28,7 @@ export import Visera.RHI.Vulkan.Sync;
        import Visera.Core.Types.Array;
        import Visera.Global;
        import Visera.Platform;
+       import Visera.Window;
        import vulkan_hpp;
 
 export namespace Visera
@@ -242,15 +243,14 @@ export namespace Visera
     FVulkanDriver::
     FVulkanDriver()
     {
-        auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        auto VulkanICDPath = FPath{ GPlatform->GetResourceDirectory() / "Vulkan/MoltenVK_icd.json"}.GetUTF8Path();
-        if (!GPlatform->SetEnvironmentVariable(
+        auto VulkanICDPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan/MoltenVK_icd.json"}.GetUTF8Path();
+        if (!FPlatform::SetEnvironmentVariable(
             "VK_ICD_FILENAMES", VulkanICDPath))
         { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\" as {}!", VulkanICDPath); }
 #if !defined(VISERA_RELEASE_MODE)
-        auto VulkanLayerPath = FPath{ GPlatform->GetResourceDirectory() / "Vulkan"}.GetUTF8Path();
-        if (!GPlatform->SetEnvironmentVariable(
+        auto VulkanLayerPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan"}.GetUTF8Path();
+        if (!FPlatform::SetEnvironmentVariable(
             "VK_LAYER_PATH", VulkanLayerPath))
         { LOG_FATAL("Failed to set \"VK_LAYER_PATH\" as {}!", VulkanLayerPath); }
 #endif
@@ -367,7 +367,7 @@ export namespace Visera
                     [&Layer](auto const& LayerProperty)
                     { return strcmp(LayerProperty.layerName, Layer) == 0; }))
                 {
-                    LOG_FATAL("Required instance layer \"{}\" is not supported!", Layer);
+                    LOG_FATAL("Required instance layer {} is not supported!", Layer);
                 }
             }
         }
@@ -385,7 +385,7 @@ export namespace Visera
                     [&Extension](auto const& ExtensionProperty)
                     { return strcmp(ExtensionProperty.extensionName, Extension) == 0; }))
                 {
-                    LOG_FATAL("Required instance extension \"{}\" is not supported!", Extension);
+                    LOG_FATAL("Required instance extension {} is not supported!", Extension);
                 }
             }
         }
@@ -439,13 +439,12 @@ export namespace Visera
 #if !defined(VISERA_OFFSCREEN_MODE)
         VkSurfaceKHR SurfaceHandle {nullptr};
         auto GWindow = IGlobalService::Get<FWindow>(EName::Window);
-        VISERA_ASSERT(GWindow->GetType() == EWindowType::GLFW);
 
         SwapChain.Extent = vk::Extent2D{ GWindow->GetWidth(), GWindow->GetHeight() };
 
         if(glfwCreateWindowSurface(
             *Instance,
-            static_cast<GLFWwindow*>(GWindow->GetHandle()),
+            static_cast<GLFWwindow*>(GWindow->GetPlatformWindow()->GetHandle()),
             nullptr,
             &SurfaceHandle) != VK_SUCCESS)
         { LOG_FATAL("Failed to create Vulkan Surface!"); }
@@ -1212,11 +1211,10 @@ export namespace Visera
     void FVulkanDriver::
     CreatePipelineCache()
     {
-        auto GPlatform = IGlobalService::Get<FPlatform>(EName::Platform);
         PipelineCache = new FVulkanPipelineCache(
             GPU.Context,
             Device.Context,
-            GPlatform->GetResourceDirectory() / "Cache/VulkanPipelines.cache"
+            FPlatform::GetCacheDirectory() / "VulkanPipelines.cache"
         );
     }
 

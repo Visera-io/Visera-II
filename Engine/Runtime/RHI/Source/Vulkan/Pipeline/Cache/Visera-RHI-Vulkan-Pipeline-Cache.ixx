@@ -36,9 +36,9 @@ namespace Visera
     {
         if (auto Stream = FFileSystem::OpenOStream(Path, EStreamMode::Binary))
         {
-            LOG_DEBUG("Created a new Vulkan Pipeline Cache file at \"{}\".", Path);
+            LOG_DEBUG("Created a new Vulkan Pipeline Cache file at {}.", Path);
         }
-        else { LOG_FATAL("Failed to create the Vulkan Pipeline Cache at \"{}\"!", Path); }
+        else { LOG_FATAL("Failed to create the Vulkan Pipeline Cache at {}!", Path); }
 
         // Read from the file
         if (auto Stream = FFileSystem::OpenIStream(Path, EStreamMode::Binary))
@@ -50,7 +50,7 @@ namespace Visera
             TArray<Int8> CacheData(Size);
             if (Size > 0 && !Stream->read(CacheData.Data(), Size))
             {
-                LOG_ERROR("Failed to read Vulkan Pipeline Cache data from \"{}\".", Path);
+                LOG_ERROR("Failed to read Vulkan Pipeline Cache data from {}.", Path);
                 return;
             }
 
@@ -80,13 +80,13 @@ namespace Visera
             ;
             auto Result = I_Device.createPipelineCache(CreateInfo);
             if (!Result.has_value())
-            { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from \"{}\"!", Path); }
+            { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from {}!", Path); }
             else
             { Handle = std::move(*Result); }
 
-            LOG_DEBUG("Loaded Vulkan Pipeline Cache (bytes:{}) from \"{}\".", Size, Path);
+            LOG_DEBUG("Loaded Vulkan Pipeline Cache (bytes:{}) from {}.", Size, Path);
         }
-        else { LOG_FATAL("Failed to open the Vulkan Pipeline Cache at \"{}\"!", Path); }
+        else { LOG_FATAL("Failed to open the Vulkan Pipeline Cache at {}!", Path); }
     }
 
     FVulkanPipelineCache::
@@ -95,14 +95,14 @@ namespace Visera
         if (auto Result = Handle.getData(); Result.has_value())
         {
             auto CacheData {std::move(*Result)};
-            LOG_DEBUG("Caching Vulkan Pipeline Data (bytes:{}) at \"{}\".", CacheData.size(), Path);
+            LOG_DEBUG("Caching Vulkan Pipeline Data (bytes:{}) at {}.", CacheData.size(), Path);
 
             if (auto Stream = FFileSystem::OpenOStream(Path, EStreamMode::Binary))
             {
                 Stream->write(reinterpret_cast<char*>(CacheData.data()),
                               static_cast<std::streamsize>(CacheData.size()));
             }
-            else { LOG_ERROR("Failed to open the Vulkan Pipeline Data at \"{}\"!", Path); }
+            else { LOG_ERROR("Failed to open the Vulkan Pipeline Data at {}!", Path); }
         }
         else { LOG_ERROR("Failed to get Vulkan Pipeline Cache data, skipped to save the cache!"); }
     }

@@ -11,7 +11,7 @@ export module Visera.Graphics.Debug.UI;
 #define VISERA_MODULE_NAME "Graphics.Debug"
 import Visera.Global.Service;
 import Visera.RHI;
-import Visera.Platform.Window;
+import Visera.Window;
 import Visera.Global.Log;
 import Visera.Core.Types.String;
 
@@ -132,17 +132,12 @@ export namespace Visera::Graphics
                 },
             };
 
-            if (I_Window->GetType() == EWindowType::GLFW)
-            {
-                LOG_TRACE("Initializing Dear ImGUI GLFW backend.");
-                if (!ImGui_ImplGlfw_InitForVulkan(
-                    static_cast<GLFWwindow*>(I_Window->GetHandle()),
-                    True // Install callbacks via ImGUI
-                ))
-                { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
-            }
-            else
-            { LOG_FATAL("Unsupported window type!"); }
+            LOG_TRACE("Initializing Dear ImGUI GLFW backend.");
+            if (!ImGui_ImplGlfw_InitForVulkan(
+                static_cast<GLFWwindow*>(I_Window->GetPlatformWindow()->GetHandle()),
+                True // Install callbacks via ImGUI
+            ))
+            { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
 
             LOG_TRACE("Initializing Dear ImGUI Vulkan backend.");
             if (!ImGui_ImplVulkan_Init(&CreateInfo))

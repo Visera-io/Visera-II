@@ -165,7 +165,7 @@ inline auto system_category() noexcept -> const std::error_category& {
 #ifdef __OSX__
 template <typename S, typename... Args, typename Char = char_t<S>>
 void say(const S& fmt, Args&&... args) {
-  std::system(format("say \"{}\"", format(fmt, args...)).c_str());
+  std::system(format("say {}", format(fmt, args...)).c_str());
 }
 #endif
 
