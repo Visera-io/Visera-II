@@ -2,14 +2,13 @@ module;
 #include <Visera-Forge.hpp>
 #include <Slang/slang.h>
 #include <Slang/slang-com-ptr.h>
-export module Visera.Shader.Slang;
-#define VISERA_MODULE_NAME "Shader.Slang"
+export module Visera.Forge.Shader.Compiler;
+#define VISERA_MODULE_NAME "Forge.Shader"
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
 import Visera.Core.Types.String;
 import Visera.Global;
-import Visera.Platform;
 
 export namespace Visera::Forge
 {
@@ -33,15 +32,15 @@ export namespace Visera::Forge
         TArray<FResource>   Resources;
     };
 
-    class VISERA_FORGE_API FSlangCompiler
+    class FShaderCompiler
     {
     public:
     	[[nodiscard]] inline Bool
     	AddSearchPath(const FPath& I_Path);
-        [[nodiscard]] inline TArray<FByte>
-    	Compile(const FPath& I_Path, FStringView I_EntryPoint);
+    	[[nodiscard]] inline TArray<FByte>
+    	Compile(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory);
         [[nodiscard]] FShaderReflection
-    	ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint);
+    	ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory);
 
     private:
     	Slang::ComPtr<slang::IGlobalSession>
@@ -59,8 +58,8 @@ export namespace Visera::Forge
         FSession* Session {nullptr};
 
     public:
-        FSlangCompiler();
-    	~FSlangCompiler() { delete Session; slang::shutdown(); }
+        FShaderCompiler();
+    	~FShaderCompiler() { delete Session; slang::shutdown(); }
 
     private:
     	[[nodiscard]] Bool
@@ -71,7 +70,7 @@ export namespace Visera::Forge
     	GetErrorMessage(const Slang::ComPtr<slang::IBlob>& I_Diagnostics) const { return static_cast<const char*>(I_Diagnostics->getBufferPointer()); }
     };
 
-	Bool FSlangCompiler::
+	Bool FShaderCompiler::
 	AddSearchPath(const FPath& I_Path)
 	{
 		auto Path = I_Path.GetUTF8Path();
@@ -85,9 +84,19 @@ export namespace Visera::Forge
 		return False;
 	}
 
-    TArray<FByte> FSlangCompiler::
-    Compile(const FPath& I_Path, FStringView I_EntryPoint)
+    TArray<FByte> FShaderCompiler::
+    Compile(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory)
     {
+		const Bool HadPath = SearchPaths.Contains(I_SearchDirectory.GetUTF8Path());
+		if (!HadPath) { (void)AddSearchPath(I_SearchDirectory); }
+
+		if (!Session || !HadPath)
+		{
+			delete Session;
+			Session = nullptr;
+			if (!CreateSession())
+			{ LOG_FATAL("Failed to create the Slang Session!"); }
+		}
 		Process(I_Path.GetFileName(), I_EntryPoint);
 		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
 
@@ -101,29 +110,19 @@ export namespace Visera::Forge
         return ShaderCode;
     }
 
-    FSlangCompiler::
-    FSlangCompiler()
+    FShaderCompiler::
+    FShaderCompiler()
     {
     	if (Context == nullptr)
     	{
     		LOG_DEBUG("Creating a Slang thread global context.");
-
     		if (slang::createGlobalSession(Context.writeRef()) != SLANG_OK)
     		{ LOG_FATAL("Failed to create the Slang Context (a.k.a, Global Session)!"); }
-
-    		if (!AddSearchPath(FPlatform::GetResourceDirectory() / FPath{"Assets/App/Shader"}))
-    		{ VISERA_ASSERT(False && "Failed to add app shader search path!"); }
-    		if (!AddSearchPath(FPlatform::GetResourceDirectory() / FPath{"Assets/Engine/Shader"}))
-    		{ VISERA_ASSERT(False && "Failed to add engine shader search path!"); }
-    		if (!AddSearchPath(FPlatform::GetResourceDirectory() / FPath{"Assets/Studio/Shader"}))
-    		{ VISERA_ASSERT(False && "Failed to add studio shader search path!"); }
     	}
-
-    	if (!CreateSession())
-    	{ LOG_FATAL("Failed to create the Slang Session!"); }
+    	// Session and search paths are set by caller via AddSearchPath + Compile(..., I_SearchDirectory).
     }
 
-	Bool FSlangCompiler::
+	Bool FShaderCompiler::
 	CreateSession()
     {
     	LOG_TRACE("Creating a new slang session.");
@@ -158,7 +157,7 @@ export namespace Visera::Forge
     	return True;
     }
 
-     void FSlangCompiler::
+     void FShaderCompiler::
 	 Process(const FPath& I_File, FStringView  I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);
@@ -216,44 +215,13 @@ export namespace Visera::Forge
 	 		          I_File, GetErrorMessage(Diagnostics));
 	 		return;
 	 	}
-		// slang::TypeReflection Type;
-		// switch (Type.getKind())
-		// {
-		// case slang::TypeReflection::Kind::Resource: // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/09-reflection.html#resources
-		// 	{
-		// 		auto Shape		= Type.getResourceShape();
-		// 		auto Access		= Type.getResourceAccess();
-		// 		auto ResultType = Type.getResourceResultType();
-		// 		UInt32 BaseShape = Shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
-		// 		switch (BaseShape)
-		// 		{
-		// 		case SLANG_TEXTURE_2D: LOG_INFO("Texture2D"); break;
-		// 		case SLANG_TEXTURE_CUBE: LOG_INFO("Cube"); break;
-		// 		default : LOG_WARN("Unsupported slang base shape {}!", BaseShape); break;
-		// 		}
-		// 		break;
-		// 	}
-		// case slang::TypeReflection::Kind::ConstantBuffer:
-		// 	{
-		// 		LOG_INFO("ConstantBuffer");
-		// 		break;
-		// 	}
-		// case slang::TypeReflection::Kind::SamplerState:
-		// 	{
-		// 		LOG_INFO("SamplerState");
-		// 		break;
-		// 	}
-		// default:
-		// 	LOG_WARN("Unsupported slang type reflection {}!", static_cast<UInt32>(Type.getKind()));
-		// }
-
-
 	 }
 
-    FShaderReflection FSlangCompiler::
-    ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint)
+    FShaderReflection FShaderCompiler::
+    ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory)
     {
         FShaderReflection Reflection;
+        (void)I_SearchDirectory; // Session already configured by Compile() before ExtractReflection is called.
         VISERA_ASSERT(Session && Session->ShaderProgram);
 
         Slang::ComPtr<slang::IBlob> Diagnostics;

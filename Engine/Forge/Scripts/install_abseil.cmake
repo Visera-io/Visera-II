@@ -15,9 +15,6 @@ macro(link_abseil in_target)
     endif()
 
     target_link_libraries(${in_target} PRIVATE
-        absl::base
-        absl::strings
-        absl::flags
-        absl::flags_parse)
+        absl::strings)
     target_include_directories(${in_target} PRIVATE "${VISERA_FORGE_EXTERNAL_DIR}/Abseil")
 endmacro()

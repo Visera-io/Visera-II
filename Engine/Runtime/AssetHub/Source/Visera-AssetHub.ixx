@@ -4,8 +4,10 @@ export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
 export import Visera.Core.Types.Path;
        import Visera.Core.Types.Map;
+       import Visera.Core.Types.Optional;
        import Visera.Core.OS.Thread.Sync;
        import Visera.AssetHub.Image;
+       import Visera.AssetHub.Shader;
        import Visera.Global;
 
 export namespace Visera
@@ -15,6 +17,9 @@ export namespace Visera
     public:
         [[nodiscard]] TSharedPtr<FImage>
         LoadImage(const FPath& I_Path);
+        /** Load .vshader from file. Requires AssetHub (and dependencies) to be registered. */
+        [[nodiscard]] TOptional<FShader>
+        LoadShader(const FPath& I_Path);
 
     private:
         template<typename T>
@@ -118,5 +123,22 @@ export namespace Visera
         { LOG_WARN("Failed to store the {} to image cache!", I_Path); }
 
         return NewImage;
+    }
+
+    TOptional<FShader> FAssetHub::
+    LoadShader(const FPath& I_Path)
+    {
+        TArray<FByte> SPIRVChunk, ReflectionChunk;
+        if (!ReadShaderChunks(I_Path, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
+        { return NullOpt; }
+        FShaderReflection Refl;
+        if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
+        { return NullOpt; }
+        if (Refl.EntryPoints.IsEmpty())
+        { return NullOpt; }
+        FShader Shader;
+        Shader.SPIRV = std::move(SPIRVChunk);
+        Shader.Reflection = std::move(Refl);
+        return TOptional<FShader>(std::move(Shader));
     }
 }

@@ -1,0 +1,198 @@
+module;
+#include <Visera-Forge.hpp>
+export module Visera.Forge.Shader.Validator;
+#define VISERA_MODULE_NAME "Forge.Shader"
+import Visera.Core.Types.Path;
+import Visera.Core.Types.Array;
+import Visera.Core.Types.String;
+import Visera.Core.Types.JSON;
+import Visera.Core.OS.FileSystem;
+import Visera.AssetHub.Shader;
+import Visera.RHI.Common;
+import Visera.Global.Log;
+
+export namespace Visera::Forge
+{
+    /** Shader enum <-> string conversion (Forge only, avoids cross-DLL). */
+    [[nodiscard]] inline const char* ShaderStageToString(ERHIShaderStages E)
+    { switch (E) { case ERHIShaderStages::Vertex: return "Vertex"; case ERHIShaderStages::Fragment: return "Fragment"; case ERHIShaderStages::Compute: return "Compute"; case ERHIShaderStages::All: return "All"; default: return "Vertex"; } }
+    [[nodiscard]] inline const char* ShaderTypeToString(ERHIResourceType E)
+    { switch (E) { case ERHIResourceType::Texture: return "Texture2D"; case ERHIResourceType::Sampler: return "SamplerState"; case ERHIResourceType::Buffer: return "ConstantBuffer"; default: return "Texture2D"; } }
+    [[nodiscard]] inline const char* ShaderAccessToString(ERHIResourceAccess E)
+    { switch (E) { case ERHIResourceAccess::Write: return "Write"; case ERHIResourceAccess::ReadWrite: return "ReadWrite"; default: return "Read"; } }
+    [[nodiscard]] inline const char* ShaderResourceStageToString(ERHIShaderStages E)
+    { switch (E) { case ERHIShaderStages::Vertex: return "Vertex"; case ERHIShaderStages::Fragment: return "Fragment"; case ERHIShaderStages::Compute: return "Compute"; default: return "All"; } }
+    [[nodiscard]] inline ERHIShaderStages StageFromString(FStringView S)
+    { if (S == "Vertex") return ERHIShaderStages::Vertex; if (S == "Fragment") return ERHIShaderStages::Fragment; if (S == "Compute") return ERHIShaderStages::Compute; return ERHIShaderStages::Vertex; }
+    [[nodiscard]] inline ERHIResourceType TypeFromString(FStringView S)
+    { if (S == "Texture2D" || S == "TextureCube" || S == "Texture3D" || S == "Texture1D") return ERHIResourceType::Texture; if (S == "SamplerState") return ERHIResourceType::Sampler; if (S == "ConstantBuffer" || S == "TextureBuffer" || S == "StructuredBuffer" || S == "ByteAddressBuffer") return ERHIResourceType::Buffer; return ERHIResourceType::Texture; }
+    [[nodiscard]] inline ERHIResourceAccess AccessFromString(FStringView S)
+    { if (S == "Write") return ERHIResourceAccess::Write; if (S == "ReadWrite") return ERHIResourceAccess::ReadWrite; return ERHIResourceAccess::Read; }
+    [[nodiscard]] inline UInt8 ResourceStageFromString(FStringView S)
+    { if (S == "Vertex") return 1; if (S == "Fragment") return 2; if (S == "Compute") return 3; return 0; }
+    [[nodiscard]] inline ERHIShaderStages ResourceStageFromU8(UInt8 E)
+    { if (E == 1) return ERHIShaderStages::Vertex; if (E == 2) return ERHIShaderStages::Fragment; if (E == 3) return ERHIShaderStages::Compute; return ERHIShaderStages::All; }
+    [[nodiscard]] inline UInt8 ResourceStageToU8(ERHIShaderStages E)
+    { switch (E) { case ERHIShaderStages::Vertex: return 1; case ERHIShaderStages::Fragment: return 2; case ERHIShaderStages::Compute: return 3; default: return 0; } }
+
+    TArray<FByte> SerializeReflection(const FShaderReflection& I_Reflection)
+    {
+        TArray<FByte> Out;
+        TArray<FString> NameTable;
+        auto NameIndex = [&NameTable](const FString& N) -> UInt32 {
+            for (UInt64 i = 0; i < NameTable.GetSize(); ++i) if (NameTable[i] == N) return static_cast<UInt32>(i);
+            NameTable.PushBack(N);
+            return static_cast<UInt32>(NameTable.GetSize() - 1);
+        };
+        for (const auto& EP : I_Reflection.EntryPoints) (void)NameIndex(EP.Name);
+        for (const auto& R : I_Reflection.Resources) (void)NameIndex(R.Name);
+        FShader::WriteU32(Out, static_cast<UInt32>(NameTable.GetSize()));
+        for (const auto& N : NameTable)
+        {
+            const UInt32 Len = static_cast<UInt32>(N.GetSize());
+            FShader::WriteU32(Out, Len);
+            FShader::WriteBytes(Out, N.Data(), Len);
+        }
+        FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.EntryPoints.GetSize()));
+        for (const auto& EP : I_Reflection.EntryPoints)
+        {
+            FShader::WriteU32(Out, NameIndex(EP.Name));
+            FShader::WriteU32(Out, static_cast<UInt32>(EP.Stage));
+        }
+        FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.Resources.GetSize()));
+        for (const auto& R : I_Reflection.Resources)
+        {
+            FShader::WriteU32(Out, NameIndex(R.Name));
+            FShader::WriteU8(Out, static_cast<UInt8>(R.Type));
+            FShader::WriteU32(Out, R.Binding);
+            FShader::WriteU32(Out, R.Set);
+            FShader::WriteU8(Out, static_cast<UInt8>(R.Access));
+            FShader::WriteU8(Out, ResourceStageToU8(R.Stage));
+        }
+        return Out;
+    }
+
+    /** Write .vshader file from loaded/compiled shader. */
+    [[nodiscard]] inline Bool Save(const FShader& I_Shader, const FPath& I_OutputPath)
+    {
+        const TArray<FByte> ReflChunk = SerializeReflection(I_Shader.Reflection);
+        const UInt32 SpirvSize = static_cast<UInt32>(I_Shader.SPIRV.GetSize());
+        const UInt32 ReflSize = static_cast<UInt32>(ReflChunk.GetSize());
+        const UInt32 Chunk0Offset = FShader::ShaderFileHeaderTotal;
+        const UInt32 Chunk1Offset = Chunk0Offset + SpirvSize;
+        TArray<FByte> Header;
+        Header.Reserve(FShader::ShaderFileHeaderTotal);
+        FShader::WriteU32(Header, FShader::ShaderMagic);
+        FShader::WriteU32(Header, FShader::ShaderVersion);
+        FShader::WriteU32(Header, FShader::ShaderChunkCount);
+        FShader::WriteU32(Header, FShader::ShaderChunkTypeSPIRV);
+        FShader::WriteU32(Header, Chunk0Offset);
+        FShader::WriteU32(Header, SpirvSize);
+        FShader::WriteU32(Header, FShader::ShaderChunkTypeReflection);
+        FShader::WriteU32(Header, Chunk1Offset);
+        FShader::WriteU32(Header, ReflSize);
+        if (auto File = FFileSystem::OpenFile(I_OutputPath, EFileMode::Write | EFileMode::Binary); File && File->IsOpen())
+        {
+            const UInt64 HeaderSize = Header.GetSize();
+            if (File->Write(Header.Data(), 1, HeaderSize) != HeaderSize) return False;
+            const UInt64 SpirvSize = I_Shader.SPIRV.GetSize();
+            if (File->Write(I_Shader.SPIRV.Data(), 1, SpirvSize) != SpirvSize) return False;
+            const UInt64 ReflSize = ReflChunk.GetSize();
+            if (File->Write(ReflChunk.Data(), 1, ReflSize) != ReflSize) return False;
+            return True;
+        }
+        return False;
+    }
+
+    struct FShaderValidationResult
+    {
+        Bool Ok = True;
+        TArray<FString> Errors;
+
+        void AddError(FStringView I_Message) { Ok = False; Errors.PushBack(FString(I_Message)); }
+    };
+
+    /** Returns True if I_Str is non-empty and first character is A–Z (PascalCase). */
+    [[nodiscard]] inline Bool IsPascalCase(FStringView I_Str) noexcept
+    {
+        if (I_Str.IsEmpty()) { return False; }
+        const char C = I_Str[0];
+        return C >= 'A' && C <= 'Z';
+    }
+
+    /**
+     * Validate a binary .vshader asset: header/chunks, PascalCase for all Names in Reflection chunk.
+     * Path must be to the .vshader file (single binary with Header + ChunkTable + SPIRV + Reflection).
+     * When I_OutputMeta is true (default), writes .vshader.meta with reflection as JSON for development inspection.
+     */
+    [[nodiscard]] inline FShaderValidationResult Validate(const FPath& I_VshaderPath, Bool I_OutputMeta = True)
+    {
+        FShaderValidationResult Result;
+
+        if (!FFileSystem::Exists(I_VshaderPath))
+        { Result.AddError("File does not exist."); return Result; }
+        if (FFileSystem::IsDirectory(I_VshaderPath))
+        { Result.AddError("Path is a directory, expected .vshader file."); return Result; }
+
+        TArray<FByte> SPIRVChunk, ReflectionChunk;
+        if (!ReadShaderChunks(I_VshaderPath, SPIRVChunk, ReflectionChunk))
+        { Result.AddError("Invalid .vshader binary (bad header or chunk table)."); return Result; }
+        if (SPIRVChunk.IsEmpty())
+        { Result.AddError("SPIR-V chunk is missing or empty."); return Result; }
+
+        FShaderReflection Refl;
+        if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
+        { Result.AddError("Reflection chunk missing or failed to deserialize."); return Result; }
+
+        for (const auto& EP : Refl.EntryPoints)
+        {
+            if (EP.Name.IsEmpty())
+            { Result.AddError("EntryPoints entry has empty Name."); }
+            else if (!IsPascalCase(EP.Name))
+            { Result.AddError("EntryPoints[\"" + EP.Name + "\"] must be PascalCase."); }
+        }
+        for (const auto& R : Refl.Resources)
+        {
+            if (R.Name.IsEmpty())
+            { Result.AddError("Resources entry has empty Name."); }
+            else if (!IsPascalCase(R.Name))
+            { Result.AddError("Resources[\"" + R.Name + "\"] must be PascalCase."); }
+        }
+
+        if (I_OutputMeta)
+        {
+            FJSON JSON;
+            FJSON ReflectionObj;
+            TArray<FJSON> EntryPointsArray;
+            for (const auto& EP : Refl.EntryPoints)
+            {
+                FJSON EPObj;
+                EPObj.Set("Name", EP.Name);
+                EPObj.Set("Stage", FStringView(ShaderStageToString(EP.Stage)));
+                EntryPointsArray.PushBack(std::move(EPObj));
+            }
+            ReflectionObj.Set("EntryPoints", EntryPointsArray);
+            TArray<FJSON> ResourcesArray;
+            for (const auto& R : Refl.Resources)
+            {
+                FJSON ResObj;
+                ResObj.Set("Name", R.Name);
+                ResObj.Set("Type", FStringView(ShaderTypeToString(R.Type)));
+                ResObj.Set("Binding", static_cast<Int64>(R.Binding));
+                if (R.Set != 0) ResObj.Set("Set", static_cast<Int64>(R.Set));
+                if (R.Access != ERHIResourceAccess::Read) ResObj.Set("Access", FStringView(ShaderAccessToString(R.Access)));
+                if (R.Stage != ERHIShaderStages::All) ResObj.Set("Stage", FStringView(ShaderResourceStageToString(R.Stage)));
+                ResourcesArray.PushBack(std::move(ResObj));
+            }
+            ReflectionObj.Set("Resources", ResourcesArray);
+            JSON.Set("Reflection", ReflectionObj);
+            FString MetaFileName = I_VshaderPath.GetFileName().GetUTF8Path();
+            MetaFileName += ".meta";
+            const FPath MetaPath = I_VshaderPath.GetParent() / FPath(MetaFileName);
+            if (auto Stream = FFileSystem::OpenOStream(MetaPath); Stream)
+            { *Stream << JSON.Dump(True).GetNative(); }
+        }
+
+        return Result;
+    }
+}

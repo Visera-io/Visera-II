@@ -64,6 +64,8 @@ export namespace Visera
         void
         Set(FStringView I_Key, Double I_Value) { Root[I_Key.GetNative()] = I_Value; }
         void
+        Set(FStringView I_Key, Int64 I_Value) { Root[I_Key.GetNative()] = static_cast<std::int64_t>(I_Value); }
+        void
         Set(FStringView I_Key, Bool I_Value) { Root[I_Key.GetNative()] = static_cast<bool>(I_Value); }
         void
         Set(FStringView I_Key, const FJSON& I_Value) { Root[I_Key.GetNative()] = I_Value.Root; }

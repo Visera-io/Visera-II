@@ -55,6 +55,11 @@ else()
     endif()
     target_link_libraries(${VISERA_ASSETHUB} PRIVATE Visera::Global)
 
+    if(NOT TARGET Visera::RHI)
+        message(FATAL_ERROR "Visera-RHI is not installed! AssetHub.Shader requires RHI.Common.")
+    endif()
+    target_link_libraries(${VISERA_ASSETHUB} PRIVATE Visera::RHI)
+
     install_visera_assethub(${VISERA_ASSETHUB})
     set_target_properties(${VISERA_ASSETHUB} PROPERTIES FOLDER "Visera/AssetHub")
 endif()

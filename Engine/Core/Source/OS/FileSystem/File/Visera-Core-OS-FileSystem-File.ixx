@@ -14,6 +14,9 @@ export namespace Visera
         IsOpen() const { return Handle != nullptr; }
         [[nodiscard]] UInt64
         Read(void* I_Buffer, UInt64 I_Size, UInt64 I_Count = 1);
+        /** Write I_Count elements of I_Size bytes each. Returns number of elements written (same as fwrite). */
+        [[nodiscard]] UInt64
+        Write(const void* I_Data, UInt64 I_Size, UInt64 I_Count = 1);
         [[nodiscard]] TArray<FByte>
         ReadAll();
         [[nodiscard]] Bool
@@ -77,6 +80,14 @@ export namespace Visera
         if (Handle == nullptr || I_Buffer == nullptr)
         { return 0; }
         return fread(I_Buffer, I_Size, I_Count, Handle);
+    }
+
+    UInt64 FFile::
+    Write(const void* I_Data, UInt64 I_Size, UInt64 I_Count)
+    {
+        if (Handle == nullptr || I_Data == nullptr)
+        { return 0; }
+        return std::fwrite(I_Data, I_Size, I_Count, Handle);
     }
 
     TArray<FByte> FFile::

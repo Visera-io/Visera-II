@@ -1,3 +1,7 @@
+#Visera
+*.vshader
+*.vshader.meta
+
 Agents/
 Build/
 Toolkit/Forge/

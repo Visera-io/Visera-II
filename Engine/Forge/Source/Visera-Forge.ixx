@@ -6,12 +6,16 @@ import Visera.Global;
 import Visera.Tasks;
 import Visera.AssetHub;
 import Visera.Platform;
+import Visera.AssetHub.Shader;
+import Visera.RHI.Common;
+import Visera.Forge.Shader.Compiler;
+import Visera.Forge.Shader.Validator;
 import Visera.Core.Types.String;
+import Visera.Core.Types.Optional;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Array;
 import Visera.Core.OS.FileSystem;
 import Visera.Forge.Utils.Wildcard;
-import Visera.Shader;
 
 namespace Visera::Forge
 {
@@ -36,41 +40,56 @@ namespace Visera::Forge
             return Results;
         }
 
-        // Compile shader from slang file
+        // Compile shader from slang file -> FShader, then save
         [[nodiscard]] Bool
         CompileShader(const FPath& I_SourcePath)
         {
             LOG_INFO("Compiling shader: {}", I_SourcePath);
 
-            // Try common entry points
-            const TArray<FStringView> EntryPoints = {"vertMain", "fragMain", "main", "vertex", "fragment"};
+            const TArray<FStringView> EntryPoints = {"VertMain", "FragMain", "main"};
+            const FPath ShaderDirectory = I_SourcePath.GetParent();
+            FShaderCompiler Compiler;
 
             for (const auto& EntryPoint : EntryPoints)
             {
-                if (auto Shader = FShader::Compile(I_SourcePath, EntryPoint); Shader.HasValue())
-                {
-                    // Generate output path: replace .slang with .vshader
-                    FPath OutputPath = I_SourcePath;
-                    FString OutputName = OutputPath.GetFileName().GetUTF8Path();
-                    const auto DotPos = OutputName.FindLast(".");
-                    if (DotPos != FString::NPos)
-                    {
-                        OutputName = OutputName.SubString(0, DotPos);
-                    }
-                    OutputName.Append(".vshader");
-                    OutputPath = OutputPath.GetParent() / FPath(OutputName);
+                auto SPIRV = Compiler.Compile(I_SourcePath, EntryPoint, ShaderDirectory);
+                if (SPIRV.IsEmpty()) continue;
+                auto Refl = Compiler.ExtractReflection(I_SourcePath, EntryPoint, ShaderDirectory);
+                if (Refl.EntryPoints.IsEmpty()) continue;
 
-                    if (Shader.GetValue().Save(OutputPath))
-                    {
-                        LOG_INFO("Successfully compiled and saved: {}", OutputPath);
-                        return True;
-                    }
-                    else
-                    {
-                        LOG_ERROR("Failed to save shader: {}", OutputPath);
-                        return False;
-                    }
+                FShader Shader;
+                Shader.SPIRV = std::move(SPIRV);
+                Shader.Reflection.EntryPoints.Reserve(Refl.EntryPoints.GetSize());
+                for (const auto& EP : Refl.EntryPoints)
+                { Shader.Reflection.EntryPoints.PushBack({ EP.Name, StageFromString(EP.Stage) }); }
+                Shader.Reflection.Resources.Reserve(Refl.Resources.GetSize());
+                for (const auto& R : Refl.Resources)
+                {
+                    Shader.Reflection.Resources.PushBack({
+                        R.Name,
+                        TypeFromString(R.Type),
+                        R.Binding,
+                        R.Set,
+                        AccessFromString(R.Access),
+                        ResourceStageFromU8(ResourceStageFromString(R.Stage))
+                    });
                 }
+
+                FPath OutputPath = I_SourcePath;
+                FString OutputName = OutputPath.GetFileName().GetUTF8Path();
+                const auto DotPos = OutputName.FindLast(".");
+                if (DotPos != FString::NPos)
+                { OutputName = OutputName.SubString(0, DotPos); }
+                OutputName.Append(".vshader");
+                OutputPath = OutputPath.GetParent() / FPath(OutputName);
+
+                if (Save(Shader, OutputPath))
+                {
+                    LOG_INFO("Successfully compiled and saved: {}", OutputPath);
+                    return True;
+                }
+                LOG_ERROR("Failed to save shader: {}", OutputPath);
+                return False;
             }
 
             LOG_ERROR("Failed to compile shader: {} (no valid entry point found)", I_SourcePath);
@@ -82,9 +101,11 @@ namespace Visera::Forge
     {
         if (I_Argc < 2)
         {
-            LOG_INFO("Visera-Forge - Shader compilation tool");
-            LOG_INFO("Usage: Visera-Forge Shader \"<pattern>\"");
-            LOG_INFO("Example: Visera-Forge Shader \"*.slang\"");
+            LOG_INFO("Visera-Forge - Shader compilation and validation");
+            LOG_INFO("  Shader \"<directory>\" \"<pattern>\"  - Compile .slang to .vshader + .spv");
+            LOG_INFO("  Validate \"<directory>\" \"<pattern>\" - Validate .vshader binary (PascalCase names)");
+            LOG_INFO("Example: Visera-Forge Shader \".\\Engine\\Shaders\" \"*.slang\"");
+            LOG_INFO("Example: Visera-Forge Validate \".\\Engine\\Shaders\" \"*.vshader\"");
             return 0;
         }
 
@@ -100,37 +121,27 @@ namespace Visera::Forge
 
         if (Command == "Shader")
         {
-            if (I_Argc < 3)
+            if (I_Argc < 4)
             {
-                LOG_ERROR("Shader command requires a pattern argument");
-                LOG_INFO("Usage: Visera-Forge Shader \"<pattern>\"");
-                LOG_INFO("Example: Visera-Forge Shader \"*.slang\"");
+                LOG_ERROR("Shader command requires directory and pattern (both provided by caller)");
+                LOG_INFO("Usage: Visera-Forge Shader \"<directory>\" \"<pattern>\"");
+                LOG_INFO("Example: Visera-Forge Shader \".\\Engine\\Shaders\" \"*.slang\"");
+                return 1;
+            }
+            (void)IGlobalService::Register<FTasks>(EName::Tasks);
+            (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
+
+            const FPath SearchDir = FPath{I_Argv[2]};
+            const FStringView Pattern = I_Argv[3];
+            LOG_INFO("Searching for shader files in {} matching pattern: {}", SearchDir, Pattern);
+
+            if (!FFileSystem::Exists(SearchDir) || !FFileSystem::IsDirectory(SearchDir))
+            {
+                LOG_ERROR("Directory does not exist or is not a directory: {}", SearchDir);
                 return 1;
             }
 
-            const FStringView Pattern = I_Argv[2];
-            LOG_INFO("Searching for shader files matching pattern: {}", Pattern);
-
-            // Search in common shader directories
-            const FPath ResourceDir = FPlatform::GetResourceDirectory();
-            const TArray<FPath> SearchDirs = {
-                ResourceDir / FPath{"Assets/App/Shader"},
-                ResourceDir / FPath{"Assets/Engine/Shader"},
-                ResourceDir / FPath{"Assets/Studio/Shader"},
-            };
-
-            TArray<FPath> MatchedFiles;
-            for (const auto& SearchDir : SearchDirs)
-            {
-                if (FFileSystem::Exists(SearchDir) && FFileSystem::IsDirectory(SearchDir))
-                {
-                    auto Files = FindMatchingFiles(SearchDir, Pattern);
-                    for (auto& File : Files)
-                    {
-                        MatchedFiles.PushBack(std::move(File));
-                    }
-                }
-            }
+            TArray<FPath> MatchedFiles = FindMatchingFiles(SearchDir, Pattern);
 
             if (MatchedFiles.IsEmpty())
             {
@@ -156,6 +167,55 @@ namespace Visera::Forge
             }
 
             LOG_INFO("Compilation complete: {} succeeded, {} failed", SuccessCount, FailCount);
+            return FailCount > 0 ? 1 : 0;
+        }
+
+        if (Command == "Validate")
+        {
+            if (I_Argc < 4)
+            {
+                LOG_ERROR("Validate requires directory and pattern (provided by caller)");
+                LOG_INFO("Usage: Visera-Forge Validate \"<directory>\" \"<pattern>\" [no-meta]");
+                LOG_INFO("Example: Visera-Forge Validate \".\\Engine\\Shaders\" \"*.vshader\"");
+                LOG_INFO("  no-meta: skip writing .vshader.meta (reflection JSON); default is to write.");
+                return 1;
+            }
+            (void)IGlobalService::Register<FTasks>(EName::Tasks);
+            (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
+            const FPath SearchDir = FPath{I_Argv[2]};
+            const FStringView Pattern = I_Argv[3];
+            const Bool OutputMeta = (I_Argc < 5 || (FStringView{I_Argv[4]} != "no-meta" && FStringView{I_Argv[4]} != "0"));
+            LOG_INFO("Validating shader files in {} matching pattern: {} (output .meta: {})", SearchDir, Pattern, OutputMeta);
+            if (!FFileSystem::Exists(SearchDir) || !FFileSystem::IsDirectory(SearchDir))
+            {
+                LOG_ERROR("Directory does not exist or is not a directory: {}", SearchDir);
+                return 1;
+            }
+            TArray<FPath> MatchedFiles = FindMatchingFiles(SearchDir, Pattern);
+            if (MatchedFiles.IsEmpty())
+            {
+                LOG_WARN("No files found matching pattern: {}", Pattern);
+                return 1;
+            }
+            UInt32 PassCount = 0;
+            UInt32 FailCount = 0;
+            for (const auto& FilePath : MatchedFiles)
+            {
+                auto Result = Validate(FilePath, OutputMeta);
+                if (Result.Ok)
+                {
+                    LOG_INFO("OK: {}", FilePath);
+                    ++PassCount;
+                }
+                else
+                {
+                    LOG_WARN("FAIL: {}", FilePath);
+                    for (const auto& Err : Result.Errors)
+                    { LOG_WARN("  - {}", Err); }
+                    ++FailCount;
+                }
+            }
+            LOG_INFO("Validation complete: {} passed, {} failed", PassCount, FailCount);
             return FailCount > 0 ? 1 : 0;
         }
 

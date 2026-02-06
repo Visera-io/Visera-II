@@ -233,6 +233,14 @@ export namespace Visera
     [[nodiscard]] constexpr vk::BufferUsageFlags
     TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits>(I_BufferUsage); }
 
+    /** Shader resource access for reflection (e.g. read-only vs read-write image). */
+    enum class ERHIResourceAccess : UInt8
+    {
+        Read     = 0,
+        Write    = 1,
+        ReadWrite = 2,
+    };
+
     enum class ERHIResourceType : UInt8
     {
         Unknown = 0,

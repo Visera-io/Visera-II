@@ -69,10 +69,46 @@ export namespace Visera
         ~TUniquePtr() = default;
     };
 
+    /** Non-owning reference to an object held by TUniquePtr. Supports polymorphism: can be constructed from TUniquePtr<Derived> when returning TUniqueRef<Base>. */
     template<typename T>
-    using TUniqueRef   = const TUniquePtr<T>&;
+    class VISERA_CORE_API TUniqueRef
+    {
+    public:
+        TUniqueRef() noexcept : Ptr(nullptr) {}
+        TUniqueRef(const TUniquePtr<T>& I_Ptr) noexcept : Ptr(I_Ptr.Get()) {}
+        template<typename U, typename Deleter>
+        requires std::convertible_to<U*, T*>
+        TUniqueRef(const TUniquePtr<U, Deleter>& I_Ptr) noexcept : Ptr(I_Ptr.Get()) {}
+
+        [[nodiscard]] T* Get() const noexcept { return Ptr; }
+        [[nodiscard]] T& operator*()  const noexcept { return *Ptr; }
+        [[nodiscard]] T* operator->() const noexcept { return Ptr; }
+        [[nodiscard]] explicit operator bool() const noexcept { return Ptr != nullptr; }
+
+        [[nodiscard]] friend Bool operator==(const TUniqueRef& I_Lhs, const TUniqueRef& I_Rhs) noexcept
+        { return I_Lhs.Ptr == I_Rhs.Ptr; }
+        [[nodiscard]] friend Bool operator!=(const TUniqueRef& I_Lhs, const TUniqueRef& I_Rhs) noexcept
+        { return !(I_Lhs == I_Rhs); }
+        [[nodiscard]] friend Bool operator==(const TUniqueRef& I_Lhs, std::nullptr_t) noexcept
+        { return I_Lhs.Ptr == nullptr; }
+        [[nodiscard]] friend Bool operator!=(const TUniqueRef& I_Lhs, std::nullptr_t) noexcept
+        { return !(I_Lhs == nullptr); }
+        [[nodiscard]] friend Bool operator==(std::nullptr_t, const TUniqueRef& I_Rhs) noexcept
+        { return I_Rhs.Ptr == nullptr; }
+        [[nodiscard]] friend Bool operator!=(std::nullptr_t, const TUniqueRef& I_Rhs) noexcept
+        { return !(nullptr == I_Rhs); }
+
+    private:
+        T* Ptr;
+    };
 
     template<typename T, typename... Args>
     [[nodiscard]] TUniquePtr<T> MakeUnique(Args&&... I_Args)
     { return TUniquePtr<T>(std::make_unique<T>(std::forward<Args>(I_Args)...)); }
+
+    /** Creates TUniquePtr<Base> from Derived; use when storing a base pointer for polymorphic TUniqueRef<Base> return. */
+    template<typename Base, typename Derived, typename... Args>
+    requires std::convertible_to<Derived*, Base*>
+    [[nodiscard]] TUniquePtr<Base> MakeUniqueAsBase(Args&&... I_Args)
+    { return TUniquePtr<Base>(std::make_unique<Derived>(std::forward<Args>(I_Args)...)); }
 }
