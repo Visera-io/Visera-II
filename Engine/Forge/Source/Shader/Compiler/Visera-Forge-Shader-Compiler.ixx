@@ -25,11 +25,19 @@ export namespace Visera::Forge
             FString Type; // "Texture2D", "SamplerState", etc.
             UInt32  Binding;
             UInt32  Set = 0;
+            UInt32  ArrayCount = 1;
             FString Access = "Read";
-            FString Stage = "All";
+            TArray<FString> Stages;
+        };
+        struct FPushConstant
+        {
+            FString Name;
+            UInt32  Size = 0;
+            TArray<FString> Stages;
         };
         TArray<FEntryPoint> EntryPoints;
         TArray<FResource>   Resources;
+        TArray<FPushConstant> PushConstants;
     };
 
     class FShaderCompiler
@@ -184,8 +192,8 @@ export namespace Visera::Forge
 	 		I_EntryPoint.Data(),
 	 		ShaderEntryPoint.writeRef()) != SLANG_OK)
 	 	{
-	 		LOG_ERROR("Failed to find the EntryPoint({}) from Shader({})!",
-	 		          I_EntryPoint.Data(), I_File);
+	 		// Not an error: caller may try multiple names (e.g. VertMain, FragMain, main).
+	 		LOG_DEBUG("EntryPoint({}) not found in Shader({}), skipping.", I_EntryPoint.Data(), I_File);
 			return;
 	 	}
 
@@ -249,47 +257,101 @@ export namespace Visera::Forge
             case SLANG_STAGE_VERTEX: EP.Stage = "Vertex"; break;
             case SLANG_STAGE_FRAGMENT: EP.Stage = "Fragment"; break;
             case SLANG_STAGE_COMPUTE: EP.Stage = "Compute"; break;
-            case SLANG_STAGE_GEOMETRY: EP.Stage = "Geometry"; break;
-            case SLANG_STAGE_HULL: EP.Stage = "TessellationControl"; break;
-            case SLANG_STAGE_DOMAIN: EP.Stage = "TessellationEvaluation"; break;
-            default: continue; // Skip unsupported stages
+            case SLANG_STAGE_GEOMETRY:
+            case SLANG_STAGE_HULL:
+            case SLANG_STAGE_DOMAIN:
+            default: continue; // Skip unsupported stages (Geometry/Tessellation removed for now)
             }
 
             Reflection.EntryPoints.PushBack(std::move(EP));
         }
 
-        // Extract Resources (global parameters)
-        const auto ParamCount = ShaderLayout->getParameterCount();
-        for (unsigned i = 0; i < ParamCount; ++i)
+        auto AddStage = [](TArray<FString>& IO_Stages, FStringView I_Stage)
         {
-            auto* VarLayout = ShaderLayout->getParameterByIndex(i);
-            if (!VarLayout) continue;
+            if (I_Stage.IsEmpty()) return;
+            for (const auto& S : IO_Stages) { if (S == I_Stage) return; }
+            IO_Stages.PushBack(FString(I_Stage));
+        };
 
+        auto ArrayUnwrap = [](slang::TypeReflection* I_Type, UInt32& O_ArrayCount) -> slang::TypeReflection*
+        {
+            O_ArrayCount = 1;
+            auto* T = I_Type;
+            while (T && T->isArray())
+            {
+                const size_t N = T->getElementCount();
+                if (N != 0) O_ArrayCount *= static_cast<UInt32>(N);
+                T = T->getElementType();
+            }
+            return T;
+        };
+
+        auto FindOrAddResource = [&Reflection](const FShaderReflection::FResource& I_Res) -> FShaderReflection::FResource&
+        {
+            for (auto& R : Reflection.Resources)
+            {
+                if (R.Set == I_Res.Set && R.Binding == I_Res.Binding) return R;
+            }
+            Reflection.Resources.PushBack(I_Res);
+            return Reflection.Resources.Back();
+        };
+
+        auto FindOrAddPushConstant = [&Reflection](FStringView I_Name, UInt32 I_Size) -> FShaderReflection::FPushConstant&
+        {
+            for (auto& PC : Reflection.PushConstants)
+            {
+                if (PC.Name == I_Name) return PC;
+            }
+            FShaderReflection::FPushConstant PC;
+            PC.Name = FString(I_Name);
+            PC.Size = I_Size;
+            Reflection.PushConstants.PushBack(std::move(PC));
+            return Reflection.PushConstants.Back();
+        };
+
+        auto ExtractResourceLike = [&](slang::VariableLayoutReflection* VarLayout, FStringView I_StageForUsage)
+        {
+            if (!VarLayout) return;
             auto* Var = VarLayout->getVariable();
-            if (!Var) continue;
-
+            if (!Var) return;
             auto* Type = Var->getType();
-            if (!Type) continue;
+            if (!Type) return;
 
-            const auto TypeKind = Type->getKind();
+            // Push-constant blocks: reported as a distinct parameter category.
+            if (VarLayout->getCategory() == slang::ParameterCategory::PushConstantBuffer)
+            {
+                const char* Name = Var->getName();
+                const FStringView PCName = (Name && Name[0] != '\0') ? FStringView(Name) : FStringView("PushConstants");
+                const UInt32 Size = static_cast<UInt32>(VarLayout->getTypeLayout()->getSize(slang::ParameterCategory::PushConstantBuffer));
+                auto& PC = FindOrAddPushConstant(PCName, Size);
+                AddStage(PC.Stages, I_StageForUsage);
+                return;
+            }
+
+            UInt32 ArrayCount = 1;
+            auto* BaseType = ArrayUnwrap(Type, ArrayCount);
+            if (!BaseType) return;
+
+            const auto TypeKind = BaseType->getKind();
             if (TypeKind != slang::TypeReflection::Kind::Resource &&
                 TypeKind != slang::TypeReflection::Kind::SamplerState &&
                 TypeKind != slang::TypeReflection::Kind::ConstantBuffer &&
                 TypeKind != slang::TypeReflection::Kind::TextureBuffer &&
                 TypeKind != slang::TypeReflection::Kind::ShaderStorageBuffer)
-            { continue; }
+            { return; }
 
             FShaderReflection::FResource Res;
             Res.Name = FString(Var->getName());
             Res.Binding = VarLayout->getBindingIndex();
             Res.Set = static_cast<UInt32>(VarLayout->getBindingSpace());
+            Res.ArrayCount = ArrayCount == 0 ? 1u : ArrayCount;
 
             // Determine resource type
             switch (TypeKind)
             {
             case slang::TypeReflection::Kind::Resource:
                 {
-                    const auto Shape = Type->getResourceShape();
+                    const auto Shape = BaseType->getResourceShape();
                     const auto BaseShape = Shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
                     switch (BaseShape)
                     {
@@ -297,11 +359,11 @@ export namespace Visera::Forge
                     case SLANG_TEXTURE_CUBE: Res.Type = "TextureCube"; break;
                     case SLANG_TEXTURE_3D: Res.Type = "Texture3D"; break;
                     case SLANG_TEXTURE_1D: Res.Type = "Texture1D"; break;
-                    default: continue; // Skip unsupported texture types
+                    default: return; // Skip unsupported texture types
                     }
 
                     // Determine access mode
-                    const auto Access = Type->getResourceAccess();
+                    const auto Access = BaseType->getResourceAccess();
                     switch (Access)
                     {
                     case SLANG_RESOURCE_ACCESS_READ: Res.Access = "Read"; break;
@@ -328,10 +390,79 @@ export namespace Visera::Forge
                 Res.Access = "ReadWrite";
                 break;
             default:
-                continue; // Skip unsupported types
+                return;
             }
 
-            Reflection.Resources.PushBack(std::move(Res));
+            auto& R = FindOrAddResource(Res);
+            // Keep first-seen Name/Type/Access/ArrayCount, but always add stages.
+            AddStage(R.Stages, I_StageForUsage);
+        };
+
+        // Extract Resources + PushConstants (global parameters) — used for basic shape info (no stage usage here).
+        const auto ParamCount = ShaderLayout->getParameterCount();
+        for (unsigned i = 0; i < ParamCount; ++i)
+        {
+            ExtractResourceLike(ShaderLayout->getParameterByIndex(i), "");
+        }
+
+        // Refine stage usage: for each entry point, record which resources/PCs are used by that stage.
+        for (SlangUInt epi = 0; epi < EntryPointCount; ++epi)
+        {
+            auto* EntryPointRef = ShaderLayout->getEntryPointByIndex(epi);
+            if (!EntryPointRef) continue;
+            FStringView StageName = "All";
+            switch (EntryPointRef->getStage())
+            {
+            case SLANG_STAGE_VERTEX: StageName = "Vertex"; break;
+            case SLANG_STAGE_FRAGMENT: StageName = "Fragment"; break;
+            case SLANG_STAGE_COMPUTE: StageName = "Compute"; break;
+            case SLANG_STAGE_GEOMETRY:
+            case SLANG_STAGE_HULL:
+            case SLANG_STAGE_DOMAIN:
+            default: continue; // Skip unsupported stages (Geometry/Tessellation removed for now)
+            }
+
+            // Prefer binding-range walk for accurate stage usage + descriptor array count.
+            if (auto* TL = EntryPointRef->getTypeLayout())
+            {
+                const SlangInt RC = TL->getBindingRangeCount();
+                for (SlangInt ri = 0; ri < RC; ++ri)
+                {
+                    const auto BT = TL->getBindingRangeType(ri);
+                    // Push constants are handled via ExtractResourceLike (category), skip here.
+                    if (BT == slang::BindingType::PushConstant) continue;
+
+                    const UInt32 Set = static_cast<UInt32>(TL->getBindingRangeDescriptorSetIndex(ri));
+                    const UInt32 Binding = static_cast<UInt32>(TL->getDescriptorSetDescriptorRangeIndexOffset(Set, ri));
+                    const UInt32 Count = static_cast<UInt32>(TL->getBindingRangeBindingCount(ri));
+
+                    for (auto& R : Reflection.Resources)
+                    {
+                        if (R.Set == Set && R.Binding == Binding)
+                        {
+                            AddStage(R.Stages, StageName);
+                            if (Count > R.ArrayCount) R.ArrayCount = Count;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const unsigned EPC = EntryPointRef->getParameterCount();
+            for (unsigned pi = 0; pi < EPC; ++pi)
+            {
+                ExtractResourceLike(EntryPointRef->getParameterByIndex(pi), StageName);
+            }
+        }
+
+        // Ensure every resource has at least one stage (fallback to All).
+        for (auto& R : Reflection.Resources)
+        {
+            if (R.Stages.IsEmpty()) { R.Stages.PushBack("All"); }
+        }
+        for (auto& PC : Reflection.PushConstants)
+        {
+            if (PC.Stages.IsEmpty()) { PC.Stages.PushBack("All"); }
         }
 
         return Reflection;

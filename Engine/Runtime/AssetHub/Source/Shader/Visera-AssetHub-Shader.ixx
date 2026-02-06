@@ -21,14 +21,23 @@ export namespace Visera
         struct FResource
         {
             FString            Name;
-            ERHIResourceType   Type   = ERHIResourceType::Texture;
+            UInt32             Set;
             UInt32             Binding;
-            UInt32             Set    = 0;
+            UInt32             ArrayCount = 1;
+            ERHIResourceType   Type   = ERHIResourceType::Texture;
             ERHIResourceAccess Access = ERHIResourceAccess::Read;
-            ERHIShaderStages   Stage  = ERHIShaderStages::All; // which stage(s) use this resource
+            ERHIShaderStages   Stages  = ERHIShaderStages::All; // which stage(s) use this resource (bitmask)
+        };
+        struct FPushConstant
+        {
+            /** Size in bytes of the push-constant block. */
+            UInt32           Size = 0;
+            /** Which stage(s) access this push-constant block. */
+            ERHIShaderStages Stages = ERHIShaderStages::All;
         };
         TArray<FEntryPoint> EntryPoints;
         TArray<FResource>   Resources;
+        TArray<FPushConstant> PushConstants;
     };
 
     /** .vshader binary format: constants and encode/decode helpers. Single source of truth for Validator and runtime read. */
@@ -36,7 +45,7 @@ export namespace Visera
     {
     public:
         static constexpr UInt32 ShaderMagic = 0x52485356u; // "VSHR" little-endian
-        static constexpr UInt32 ShaderVersion = 1u;
+        static constexpr UInt32 ShaderVersion = 3u;
         static constexpr UInt32 ShaderChunkTypeSPIRV = 0u;
         static constexpr UInt32 ShaderChunkTypeReflection = 1u;
         static constexpr UInt32 HeaderSize = 4u + 4u + 4u;
@@ -79,8 +88,9 @@ export namespace Visera
 
     /** Read SPIR-V and Reflection chunks from a .vshader binary file. */
     [[nodiscard]] inline Bool
-    ReadShaderChunks(const FPath& I_Path, TArray<FByte>& O_SPIRV, TArray<FByte>& O_ReflectionChunk)
+    ReadShaderChunks(const FPath& I_Path, UInt32& O_ShaderVersion, TArray<FByte>& O_SPIRV, TArray<FByte>& O_ReflectionChunk)
     {
+        O_ShaderVersion = 0;
         O_SPIRV.Clear();
         O_ReflectionChunk.Clear();
         if (auto File = FFileSystem::OpenFile(I_Path, EFileMode::Read | EFileMode::Binary); File && File->IsOpen())
@@ -89,7 +99,9 @@ export namespace Visera
             if (All.GetSize() < FShader::ShaderFileHeaderTotal) return False;
             const FByte* p = All.Data();
             if (FShader::ReadU32(p) != FShader::ShaderMagic) return False;
-            if (FShader::ReadU32(p) != FShader::ShaderVersion) return False;
+            const UInt32 Version = FShader::ReadU32(p);
+            if (Version < 1u || Version > FShader::ShaderVersion) return False;
+            O_ShaderVersion = Version;
             const UInt32 ChunkCountRead = FShader::ReadU32(p);
             if (ChunkCountRead != FShader::ShaderChunkCount) return False;
             UInt32 SpirvOffset = 0, SpirvSize = 0, ReflOffset = 0, ReflSize = 0;
@@ -113,7 +125,7 @@ export namespace Visera
 
     /** Deserialize reflection chunk bytes into O_Reflection. */
     [[nodiscard]] inline Bool
-    DeserializeShaderReflection(FStringView I_ChunkBytes, FShaderReflection& O_Reflection)
+    DeserializeShaderReflection(UInt32 I_ShaderVersion, FStringView I_ChunkBytes, FShaderReflection& O_Reflection)
     {
         if (I_ChunkBytes.GetSize() < 4) return False;
         const FByte* p = reinterpret_cast<const FByte*>(I_ChunkBytes.Data());
@@ -149,22 +161,70 @@ export namespace Visera
         const UInt32 NumRes = FShader::ReadU32(p);
         for (UInt32 i = 0; i < NumRes; ++i)
         {
-            if (p + 15 > end) return False;
-            const UInt32 NameIdx = FShader::ReadU32(p);
-            const auto Type = static_cast<ERHIResourceType>(FShader::ReadU8(p));
-            const UInt32 Binding = FShader::ReadU32(p);
-            const UInt32 Set = FShader::ReadU32(p);
-            const auto Access = static_cast<ERHIResourceAccess>(FShader::ReadU8(p));
-            const ERHIShaderStages RStage = FShader::ResourceStageFromU8(FShader::ReadU8(p));
-            if (NameIdx >= NameTable.GetSize()) return False;
             FShaderReflection::FResource R;
-            R.Name = NameTable[NameIdx];
-            R.Type = Type;
-            R.Binding = Binding;
-            R.Set = Set;
-            R.Access = Access;
-            R.Stage = RStage;
+            if (I_ShaderVersion < 3u)
+            {
+                if (p + 15 > end) return False;
+                const UInt32 NameIdx = FShader::ReadU32(p);
+                const auto Type = static_cast<ERHIResourceType>(FShader::ReadU8(p));
+                const UInt32 Binding = FShader::ReadU32(p);
+                const UInt32 Set = FShader::ReadU32(p);
+                const auto Access = static_cast<ERHIResourceAccess>(FShader::ReadU8(p));
+                const ERHIShaderStages Stages = FShader::ResourceStageFromU8(FShader::ReadU8(p));
+                if (NameIdx >= NameTable.GetSize()) return False;
+                R.Name = NameTable[NameIdx];
+                R.Type = Type;
+                R.Binding = Binding;
+                R.Set = Set;
+                R.ArrayCount = 1;
+                R.Access = Access;
+                R.Stages = Stages;
+            }
+            else
+            {
+                if (p + 22 > end) return False;
+                const UInt32 NameIdx = FShader::ReadU32(p);
+                const auto Type = static_cast<ERHIResourceType>(FShader::ReadU8(p));
+                const UInt32 Set = FShader::ReadU32(p);
+                const UInt32 Binding = FShader::ReadU32(p);
+                const UInt32 ArrayCount = FShader::ReadU32(p);
+                const auto Access = static_cast<ERHIResourceAccess>(FShader::ReadU8(p));
+                const auto Stages = static_cast<ERHIShaderStages>(FShader::ReadU32(p));
+                if (NameIdx >= NameTable.GetSize()) return False;
+                R.Name = NameTable[NameIdx];
+                R.Type = Type;
+                R.Binding = Binding;
+                R.Set = Set;
+                R.ArrayCount = ArrayCount == 0 ? 1u : ArrayCount;
+                R.Access = Access;
+                R.Stages = Stages;
+            }
             O_Reflection.Resources.PushBack(std::move(R));
+        }
+
+        // v2+: optional push-constant blocks (count + entries).
+        // Keep it optional so older chunks (v1) still deserialize.
+        if (I_ShaderVersion >= 2u && p < end)
+        {
+            if (p + 4 > end) return False;
+            const UInt32 NumPC = FShader::ReadU32(p);
+            for (UInt32 i = 0; i < NumPC; ++i)
+            {
+                FShaderReflection::FPushConstant PC;
+                if (I_ShaderVersion < 3u)
+                {
+                    if (p + 5 > end) return False;
+                    PC.Size = FShader::ReadU32(p);
+                    PC.Stages = FShader::ResourceStageFromU8(FShader::ReadU8(p));
+                }
+                else
+                {
+                    if (p + 8 > end) return False;
+                    PC.Size = FShader::ReadU32(p);
+                    PC.Stages = static_cast<ERHIShaderStages>(FShader::ReadU32(p));
+                }
+                O_Reflection.PushConstants.PushBack(std::move(PC));
+            }
         }
         return True;
     }

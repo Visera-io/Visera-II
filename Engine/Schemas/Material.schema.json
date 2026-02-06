@@ -1,55 +1,55 @@
 {
-    "$schema":  "http://json-schema.org/draft-07/schema#",
-    "$id":      "visera://schemas/Material.schema.json",
-    "title":    "Visera Material (Minimal)",
-    "type":     "object",
-    "additionalProperties": false,
-    "required": ["Version", "Shader", "Surface", "Textures"],
-
-    "properties":
-    {
-        "Version":
-        {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Visera material asset format version."
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "visera://schemas/Material.schema.json",
+  "title": "Visera Material",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["Version", "Shader", "Surface", "Textures"],
+  "properties": {
+    "Version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Visera material asset format version."
+    },
+    "Name": {
+      "type": "string",
+      "description": "Optional display name."
+    },
+    "Shader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Vert", "Frag"],
+      "description": "Vertex and fragment shader .vshader assets. Use filename only (e.g. Sprite.VertMain.vshader); AssetHub resolves via VFS.",
+      "properties": {
+        "Vert": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Vertex shader .vshader filename (e.g. Sprite.VertMain.vshader)."
         },
-
-        "Name":
-        {
-            "type": "string",
-            "description": "Optional display name."
-        },
-
-        "Shader":
-        {
-            "type": "string",
-            "minLength": 1,
-            "description": "Shader identifier or path."
-        },
-
-        "Surface":
-        {
-            "type": "string",
-            "enum": ["Opaque", "Masked", "Transparent"],
-            "description": "High-level surface type."
-        },
-
-        "Textures":
-        {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["BaseColor"],
-            "properties":
-            {
-                "BaseColor":
-                {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Base color texture asset path/id."
-                }
-            },
-            "description": "Texture bindings by semantic name."
+        "Frag": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fragment shader .vshader filename (e.g. Sprite.FragMain.vshader)."
         }
+      }
+    },
+    "Surface": {
+      "type": "string",
+      "enum": ["Opaque", "Masked", "Transparent"],
+      "description": "High-level surface type."
+    },
+    "Textures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["BaseColor"],
+      "description": "Texture bindings by semantic name. Paths/ids resolved by AssetHub (VFS).",
+      "properties": {
+        "BaseColor": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base color texture asset path/id."
+        }
+      }
     }
+  }
 }

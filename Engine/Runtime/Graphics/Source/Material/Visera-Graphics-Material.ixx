@@ -25,17 +25,6 @@ export namespace Visera
 	class VISERA_GRAPHICS_API FMaterial
 	{
 	public:
-		[[nodiscard]] UInt8
-		GetVersion() const noexcept { return Version; }
-		[[nodiscard]] const FString&
-		GetShader() const noexcept { return Shader; }
-		[[nodiscard]] ESurfaceType
-		GetSurface() const noexcept { return Surface; }
-		[[nodiscard]] const FString&
-		GetBaseColorPath() const noexcept { return BaseColorPath; }
-		[[nodiscard]] FRHITextureHandle
-		GetBaseColorHandle() const noexcept { return BaseColorHandle; }
-
 		void
 		SetBaseColorHandle(FRHITextureHandle I_Handle) noexcept { BaseColorHandle = I_Handle; }
 

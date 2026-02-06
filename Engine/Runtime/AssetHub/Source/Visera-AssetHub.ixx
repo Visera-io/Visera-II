@@ -129,10 +129,11 @@ export namespace Visera
     LoadShader(const FPath& I_Path)
     {
         TArray<FByte> SPIRVChunk, ReflectionChunk;
-        if (!ReadShaderChunks(I_Path, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
+        UInt32 Version = 0;
+        if (!ReadShaderChunks(I_Path, Version, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
         { return NullOpt; }
         FShaderReflection Refl;
-        if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
+        if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(Version, FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
         { return NullOpt; }
         if (Refl.EntryPoints.IsEmpty())
         { return NullOpt; }

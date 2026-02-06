@@ -46,10 +46,11 @@ namespace Visera::Forge
         {
             LOG_INFO("Compiling shader: {}", I_SourcePath);
 
-            const TArray<FStringView> EntryPoints = {"VertMain", "FragMain", "main"};
+            const TArray<FStringView> EntryPoints = {"VertMain", "FragMain"};
             const FPath ShaderDirectory = I_SourcePath.GetParent();
             FShaderCompiler Compiler;
 
+            UInt32 SuccessCount = 0;
             for (const auto& EntryPoint : EntryPoints)
             {
                 auto SPIRV = Compiler.Compile(I_SourcePath, EntryPoint, ShaderDirectory);
@@ -65,13 +66,30 @@ namespace Visera::Forge
                 Shader.Reflection.Resources.Reserve(Refl.Resources.GetSize());
                 for (const auto& R : Refl.Resources)
                 {
+                    ERHIShaderStages StagesMask = ERHIShaderStages::Undefined;
+                    for (const auto& S : R.Stages) { StagesMask |= StageFromString(S); }
+                    if (StagesMask == ERHIShaderStages::Undefined) { StagesMask = ERHIShaderStages::All; }
+
                     Shader.Reflection.Resources.PushBack({
                         R.Name,
-                        TypeFromString(R.Type),
-                        R.Binding,
                         R.Set,
+                        R.Binding,
+                        R.ArrayCount,
+                        TypeFromString(R.Type),
                         AccessFromString(R.Access),
-                        ResourceStageFromU8(ResourceStageFromString(R.Stage))
+                        StagesMask
+                    });
+                }
+                Shader.Reflection.PushConstants.Reserve(Refl.PushConstants.GetSize());
+                for (const auto& PC : Refl.PushConstants)
+                {
+                    ERHIShaderStages StagesMask = ERHIShaderStages::Undefined;
+                    for (const auto& S : PC.Stages) { StagesMask |= StageFromString(S); }
+                    if (StagesMask == ERHIShaderStages::Undefined) { StagesMask = ERHIShaderStages::All; }
+
+                    Shader.Reflection.PushConstants.PushBack({
+                        PC.Size,
+                        StagesMask
                     });
                 }
 
@@ -80,20 +98,28 @@ namespace Visera::Forge
                 const auto DotPos = OutputName.FindLast(".");
                 if (DotPos != FString::NPos)
                 { OutputName = OutputName.SubString(0, DotPos); }
+                // Emit one .vshader per entry point (Vulkan has stage-specific SPIR-V).
+                OutputName.Append(".");
+                OutputName.Append(EntryPoint);
                 OutputName.Append(".vshader");
                 OutputPath = OutputPath.GetParent() / FPath(OutputName);
 
                 if (Save(Shader, OutputPath))
                 {
                     LOG_INFO("Successfully compiled and saved: {}", OutputPath);
-                    return True;
+                    ++SuccessCount;
+                    continue;
                 }
                 LOG_ERROR("Failed to save shader: {}", OutputPath);
                 return False;
             }
 
-            LOG_ERROR("Failed to compile shader: {} (no valid entry point found)", I_SourcePath);
-            return False;
+            if (SuccessCount == 0)
+            {
+                LOG_ERROR("Failed to compile shader: {} (no valid entry point found)", I_SourcePath);
+                return False;
+            }
+            return True;
         }
     }
 

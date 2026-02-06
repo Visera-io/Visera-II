@@ -5,7 +5,6 @@ export module Visera.Forge.Shader.Validator;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Array;
 import Visera.Core.Types.String;
-import Visera.Core.Types.JSON;
 import Visera.Core.OS.FileSystem;
 import Visera.AssetHub.Shader;
 import Visera.RHI.Common;
@@ -15,15 +14,30 @@ export namespace Visera::Forge
 {
     /** Shader enum <-> string conversion (Forge only, avoids cross-DLL). */
     [[nodiscard]] inline const char* ShaderStageToString(ERHIShaderStages E)
-    { switch (E) { case ERHIShaderStages::Vertex: return "Vertex"; case ERHIShaderStages::Fragment: return "Fragment"; case ERHIShaderStages::Compute: return "Compute"; case ERHIShaderStages::All: return "All"; default: return "Vertex"; } }
+    {
+        switch (E)
+        {
+        case ERHIShaderStages::Vertex: return "Vertex";
+        case ERHIShaderStages::Fragment: return "Fragment";
+        case ERHIShaderStages::Compute: return "Compute";
+        case ERHIShaderStages::All: return "All";
+        default: return "Undefined";
+        }
+    }
     [[nodiscard]] inline const char* ShaderTypeToString(ERHIResourceType E)
     { switch (E) { case ERHIResourceType::Texture: return "Texture2D"; case ERHIResourceType::Sampler: return "SamplerState"; case ERHIResourceType::Buffer: return "ConstantBuffer"; default: return "Texture2D"; } }
     [[nodiscard]] inline const char* ShaderAccessToString(ERHIResourceAccess E)
     { switch (E) { case ERHIResourceAccess::Write: return "Write"; case ERHIResourceAccess::ReadWrite: return "ReadWrite"; default: return "Read"; } }
     [[nodiscard]] inline const char* ShaderResourceStageToString(ERHIShaderStages E)
-    { switch (E) { case ERHIShaderStages::Vertex: return "Vertex"; case ERHIShaderStages::Fragment: return "Fragment"; case ERHIShaderStages::Compute: return "Compute"; default: return "All"; } }
+    { return ShaderStageToString(E); }
     [[nodiscard]] inline ERHIShaderStages StageFromString(FStringView S)
-    { if (S == "Vertex") return ERHIShaderStages::Vertex; if (S == "Fragment") return ERHIShaderStages::Fragment; if (S == "Compute") return ERHIShaderStages::Compute; return ERHIShaderStages::Vertex; }
+    {
+        if (S == "Vertex") return ERHIShaderStages::Vertex;
+        if (S == "Fragment") return ERHIShaderStages::Fragment;
+        if (S == "Compute") return ERHIShaderStages::Compute;
+        if (S == "All") return ERHIShaderStages::All;
+        return ERHIShaderStages::Undefined;
+    }
     [[nodiscard]] inline ERHIResourceType TypeFromString(FStringView S)
     { if (S == "Texture2D" || S == "TextureCube" || S == "Texture3D" || S == "Texture1D") return ERHIResourceType::Texture; if (S == "SamplerState") return ERHIResourceType::Sampler; if (S == "ConstantBuffer" || S == "TextureBuffer" || S == "StructuredBuffer" || S == "ByteAddressBuffer") return ERHIResourceType::Buffer; return ERHIResourceType::Texture; }
     [[nodiscard]] inline ERHIResourceAccess AccessFromString(FStringView S)
@@ -46,6 +60,7 @@ export namespace Visera::Forge
         };
         for (const auto& EP : I_Reflection.EntryPoints) (void)NameIndex(EP.Name);
         for (const auto& R : I_Reflection.Resources) (void)NameIndex(R.Name);
+        // PushConstants currently have no name in runtime reflection, so nothing added to NameTable here.
         FShader::WriteU32(Out, static_cast<UInt32>(NameTable.GetSize()));
         for (const auto& N : NameTable)
         {
@@ -64,10 +79,18 @@ export namespace Visera::Forge
         {
             FShader::WriteU32(Out, NameIndex(R.Name));
             FShader::WriteU8(Out, static_cast<UInt8>(R.Type));
-            FShader::WriteU32(Out, R.Binding);
             FShader::WriteU32(Out, R.Set);
+            FShader::WriteU32(Out, R.Binding);
+            FShader::WriteU32(Out, R.ArrayCount);
             FShader::WriteU8(Out, static_cast<UInt8>(R.Access));
-            FShader::WriteU8(Out, ResourceStageToU8(R.Stage));
+            FShader::WriteU32(Out, static_cast<UInt32>(R.Stages));
+        }
+        // ShaderVersion >= 2: push-constant blocks
+        FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.PushConstants.GetSize()));
+        for (const auto& PC : I_Reflection.PushConstants)
+        {
+            FShader::WriteU32(Out, PC.Size);
+            FShader::WriteU32(Out, static_cast<UInt32>(PC.Stages));
         }
         return Out;
     }
@@ -135,13 +158,14 @@ export namespace Visera::Forge
         { Result.AddError("Path is a directory, expected .vshader file."); return Result; }
 
         TArray<FByte> SPIRVChunk, ReflectionChunk;
-        if (!ReadShaderChunks(I_VshaderPath, SPIRVChunk, ReflectionChunk))
+        UInt32 Version = 0;
+        if (!ReadShaderChunks(I_VshaderPath, Version, SPIRVChunk, ReflectionChunk))
         { Result.AddError("Invalid .vshader binary (bad header or chunk table)."); return Result; }
         if (SPIRVChunk.IsEmpty())
         { Result.AddError("SPIR-V chunk is missing or empty."); return Result; }
 
         FShaderReflection Refl;
-        if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
+        if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(Version, FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
         { Result.AddError("Reflection chunk missing or failed to deserialize."); return Result; }
 
         for (const auto& EP : Refl.EntryPoints)
@@ -161,36 +185,109 @@ export namespace Visera::Forge
 
         if (I_OutputMeta)
         {
-            FJSON JSON;
-            FJSON ReflectionObj;
-            TArray<FJSON> EntryPointsArray;
-            for (const auto& EP : Refl.EntryPoints)
+            // NOTE: Visera::FJSON is backed by nlohmann::json (std::map), which sorts object keys.
+            // For human inspection, we want stable custom key order, so we emit JSON manually.
+            auto EscapeJSONString = [](FStringView S) -> FString
             {
-                FJSON EPObj;
-                EPObj.Set("Name", EP.Name);
-                EPObj.Set("Stage", FStringView(ShaderStageToString(EP.Stage)));
-                EntryPointsArray.PushBack(std::move(EPObj));
-            }
-            ReflectionObj.Set("EntryPoints", EntryPointsArray);
-            TArray<FJSON> ResourcesArray;
-            for (const auto& R : Refl.Resources)
+                FString Out;
+                for (UInt64 i = 0; i < S.GetSize(); ++i)
+                {
+                    const char C = S[static_cast<FStringView::SizeType>(i)];
+                    switch (C)
+                    {
+                    case '\\\\': Out.Append("\\\\"); Out.Append("\\\\"); break;
+                    case '\"':  Out.Append("\\\\"); Out.Append("\""); break;
+                    case '\n':  Out.Append("\\\\n"); break;
+                    case '\r':  Out.Append("\\\\r"); break;
+                    case '\t':  Out.Append("\\\\t"); break;
+                    default:    Out.Append(C); break;
+                    }
+                }
+                return Out;
+            };
+
+            auto Indent = [](Int32 N) -> FString { return FString(static_cast<UInt64>(N), ' '); };
+
+            auto AppendStagesArray = [&](FString& IO, Int32 IndentSpaces, ERHIShaderStages Mask)
             {
-                FJSON ResObj;
-                ResObj.Set("Name", R.Name);
-                ResObj.Set("Type", FStringView(ShaderTypeToString(R.Type)));
-                ResObj.Set("Binding", static_cast<Int64>(R.Binding));
-                if (R.Set != 0) ResObj.Set("Set", static_cast<Int64>(R.Set));
-                if (R.Access != ERHIResourceAccess::Read) ResObj.Set("Access", FStringView(ShaderAccessToString(R.Access)));
-                if (R.Stage != ERHIShaderStages::All) ResObj.Set("Stage", FStringView(ShaderResourceStageToString(R.Stage)));
-                ResourcesArray.PushBack(std::move(ResObj));
+                IO.Append(Indent(IndentSpaces)).Append("\"Stages\": [");
+                Bool First = True;
+                auto Add = [&](const char* S)
+                {
+                    if (!First) IO.Append(", ");
+                    IO.Append("\"").Append(S).Append("\"");
+                    First = False;
+                };
+                const UInt32 V = static_cast<UInt32>(Mask);
+                if (V & static_cast<UInt32>(ERHIShaderStages::Vertex)) Add("Vertex");
+                if (V & static_cast<UInt32>(ERHIShaderStages::Fragment)) Add("Fragment");
+                if (V & static_cast<UInt32>(ERHIShaderStages::Compute)) Add("Compute");
+                if (First) Add("All");
+                IO.Append("]");
+            };
+
+            FString Meta;
+            Meta.Append("{\n");
+            Meta.Append(Indent(4)).Append("\"Reflection\": {\n");
+
+            // EntryPoints
+            Meta.Append(Indent(8)).Append("\"EntryPoints\": [\n");
+            for (UInt64 i = 0; i < Refl.EntryPoints.GetSize(); ++i)
+            {
+                const auto& EP = Refl.EntryPoints[i];
+                Meta.Append(Indent(12)).Append("{\n");
+                Meta.Append(Indent(16)).Append("\"Name\": \"").Append(EscapeJSONString(EP.Name)).Append("\",\n");
+                Meta.Append(Indent(16)).Append("\"Stage\": \"").Append(ShaderStageToString(EP.Stage)).Append("\"\n");
+                Meta.Append(Indent(12)).Append("}");
+                Meta.Append(i + 1 < Refl.EntryPoints.GetSize() ? ",\n" : "\n");
             }
-            ReflectionObj.Set("Resources", ResourcesArray);
-            JSON.Set("Reflection", ReflectionObj);
+            Meta.Append(Indent(8)).Append("],\n");
+
+            // PushConstants
+            Meta.Append(Indent(8)).Append("\"PushConstants\": [\n");
+            for (UInt64 i = 0; i < Refl.PushConstants.GetSize(); ++i)
+            {
+                const auto& PC = Refl.PushConstants[i];
+                Meta.Append(Indent(12)).Append("{\n");
+                Meta.Append(Indent(16)).Append(FString::Format("\"Size\": {}", static_cast<UInt64>(PC.Size))).Append(",\n");
+                AppendStagesArray(Meta, 16, PC.Stages);
+                Meta.Append("\n");
+                Meta.Append(Indent(12)).Append("}");
+                Meta.Append(i + 1 < Refl.PushConstants.GetSize() ? ",\n" : "\n");
+            }
+            Meta.Append(Indent(8)).Append("],\n");
+
+            // Resources
+            Meta.Append(Indent(8)).Append("\"Resources\": [\n");
+            for (UInt64 i = 0; i < Refl.Resources.GetSize(); ++i)
+            {
+                const auto& R = Refl.Resources[i];
+                Meta.Append(Indent(12)).Append("{\n");
+                Meta.Append(Indent(16)).Append(FString::Format("\"Set\": {},\n", static_cast<UInt64>(R.Set)));
+                Meta.Append(Indent(16)).Append(FString::Format("\"Binding\": {},\n", static_cast<UInt64>(R.Binding)));
+                Meta.Append(Indent(16)).Append(FString::Format("\"ArrayCount\": {},\n", static_cast<UInt64>(R.ArrayCount)));
+                Meta.Append(Indent(16)).Append("\"Name\": \"").Append(EscapeJSONString(R.Name)).Append("\",\n");
+                Meta.Append(Indent(16)).Append("\"Type\": \"").Append(ShaderTypeToString(R.Type)).Append("\",\n");
+                AppendStagesArray(Meta, 16, R.Stages);
+                if (R.Access != ERHIResourceAccess::Read)
+                {
+                    Meta.Append(",\n");
+                    Meta.Append(Indent(16)).Append("\"Access\": \"").Append(ShaderAccessToString(R.Access)).Append("\"");
+                }
+                Meta.Append("\n");
+                Meta.Append(Indent(12)).Append("}");
+                Meta.Append(i + 1 < Refl.Resources.GetSize() ? ",\n" : "\n");
+            }
+            Meta.Append(Indent(8)).Append("]\n");
+
+            Meta.Append(Indent(4)).Append("}\n");
+            Meta.Append("}\n");
+
             FString MetaFileName = I_VshaderPath.GetFileName().GetUTF8Path();
             MetaFileName += ".meta";
             const FPath MetaPath = I_VshaderPath.GetParent() / FPath(MetaFileName);
             if (auto Stream = FFileSystem::OpenOStream(MetaPath); Stream)
-            { *Stream << JSON.Dump(True).GetNative(); }
+            { *Stream << Meta.GetNative(); }
         }
 
         return Result;

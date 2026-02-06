@@ -1,10 +1,12 @@
 {
-  "Version" : 1,
-  "Name"    : "BasicSprite",
-  "Shader"  : "Sprite.slang",
-  "Surface" : "Transparent",
-  "Textures":
-  {
+  "Version": 1,
+  "Name": "BasicSprite",
+  "Shader": {
+    "Vert": "Sprite.VertMain.vshader",
+    "Frag": "Sprite.FragMain.vshader"
+  },
+  "Surface": "Transparent",
+  "Textures": {
     "BaseColor": "Fairy.png"
   }
 }
