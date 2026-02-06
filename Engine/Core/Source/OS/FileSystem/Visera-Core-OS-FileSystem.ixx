@@ -7,6 +7,7 @@ export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
 export import Visera.Core.Types.Path;
+export import Visera.Core.Types.Array;
 export import Visera.Core.Traits.Flags;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer.Unique;
@@ -53,6 +54,8 @@ export namespace Visera
         OpenOStream(const FPath& I_Path, EStreamMode I_Mode = EStreamMode::None);
         [[nodiscard]] TUniquePtr<FFile> static inline
         OpenFile(const FPath& I_Path, EFileMode I_Mode);
+        [[nodiscard]] static TArray<FPath>
+        EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive = False);
 
     public:
         explicit FFileSystem() = default; // Must have a default constructor
@@ -160,5 +163,50 @@ export namespace Visera
         FILE* Handle = std::fopen(PathString.Data(), ModeStr);
         if (Handle == nullptr) { return nullptr; }
         return MakeUnique<FFile>(Handle);
+    }
+
+    TArray<FPath> FFileSystem::
+    EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive)
+    {
+        TArray<FPath> Results;
+        FErrorCode ErrorCode;
+
+        if (!std::filesystem::exists(I_Directory.GetNativePath(), ErrorCode) ||
+            !std::filesystem::is_directory(I_Directory.GetNativePath(), ErrorCode))
+        {
+            return Results;
+        }
+
+        try
+        {
+            if (I_bRecursive)
+            {
+                for (const auto& Entry : std::filesystem::recursive_directory_iterator(
+                         I_Directory.GetNativePath(), ErrorCode))
+                {
+                    if (Entry.is_regular_file(ErrorCode))
+                    {
+                        Results.PushBack(FPath(Entry.path().u8string()));
+                    }
+                }
+            }
+            else
+            {
+                for (const auto& Entry : std::filesystem::directory_iterator(
+                         I_Directory.GetNativePath(), ErrorCode))
+                {
+                    if (Entry.is_regular_file(ErrorCode))
+                    {
+                        Results.PushBack(FPath(Entry.path().u8string()));
+                    }
+                }
+            }
+        }
+        catch (const std::filesystem::filesystem_error&)
+        {
+            // Error already handled by ErrorCode
+        }
+
+        return Results;
     }
 }

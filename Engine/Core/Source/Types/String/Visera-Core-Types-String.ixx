@@ -27,6 +27,8 @@ export namespace Visera
         using Reference            = ViewType::reference;
         using ConstReference       = ViewType::const_reference;
         using SizeType             = ViewType::size_type;
+
+        static constexpr SizeType NPos = ViewType::npos;
         
         [[nodiscard]] inline const ViewType&
         GetNative() const { return View; }
@@ -162,6 +164,11 @@ export namespace Visera
             return FStringView(View.substr(I_Pos, I_Count));
         }
 
+        [[nodiscard]] constexpr FStringView SubString(SizeType I_Pos = 0, SizeType I_Count = ViewType::npos) const noexcept
+        {
+            return Substr(I_Pos, I_Count);
+        }
+
         [[nodiscard]] constexpr SizeType Find(FStringView I_Sv, SizeType I_Pos = 0) const noexcept
         {
             return View.find(I_Sv.GetNative(), I_Pos);
@@ -190,6 +197,21 @@ export namespace Visera
         [[nodiscard]] constexpr SizeType Rfind(char I_Ch, SizeType I_Pos = ViewType::npos) const noexcept
         {
             return View.rfind(I_Ch, I_Pos);
+        }
+
+        [[nodiscard]] constexpr SizeType FindLast(FStringView I_Sv, SizeType I_Pos = ViewType::npos) const noexcept
+        {
+            return Rfind(I_Sv, I_Pos);
+        }
+
+        [[nodiscard]] constexpr SizeType FindLast(char I_Ch, SizeType I_Pos = ViewType::npos) const noexcept
+        {
+            return Rfind(I_Ch, I_Pos);
+        }
+
+        [[nodiscard]] constexpr SizeType FindLast(const char* I_Str, SizeType I_Pos = ViewType::npos) const noexcept
+        {
+            return View.rfind(I_Str ? I_Str : "", I_Pos);
         }
 
         [[nodiscard]] constexpr Bool StartsWith(FStringView I_Sv) const noexcept
@@ -239,6 +261,8 @@ export namespace Visera
         using Reference             = StringType::reference;
         using ConstReference        = StringType::const_reference;
         using SizeType              = StringType::size_type;
+
+        static constexpr SizeType NPos = StringType::npos;
 
         template<typename... Args> [[nodiscard]] static FString
         Format(fmt::format_string<Args...> I_Fmt, Args &&... I_Args)
@@ -497,7 +521,7 @@ export namespace Visera
             return *this;
         }
 
-        FString& operator+=(char I_Ch)
+        FString& operator+=(const char I_Ch)
         {
             String += I_Ch;
             return *this;
@@ -527,6 +551,12 @@ export namespace Visera
         FString& Append(FStringView I_Sv)
         {
             String.append(I_Sv.GetNative());
+            return *this;
+        }
+
+        FString& Append(const char I_Ch)
+        {
+            String.append(1, I_Ch);
             return *this;
         }
 
@@ -674,6 +704,68 @@ export namespace Visera
         void Resize(SizeType I_Count, char I_Ch)
         {
             String.resize(I_Count, I_Ch);
+        }
+
+        // --- String search operations ---
+
+        [[nodiscard]] SizeType Find(FStringView I_Sv, SizeType I_Pos = 0) const noexcept
+        {
+            return String.find(I_Sv.GetNative(), I_Pos);
+        }
+
+        [[nodiscard]] SizeType Find(char I_Ch, SizeType I_Pos = 0) const noexcept
+        {
+            return String.find(I_Ch, I_Pos);
+        }
+
+        [[nodiscard]] SizeType Find(const char* I_Str, SizeType I_Pos, SizeType I_Count) const noexcept
+        {
+            return String.find(I_Str ? I_Str : "", I_Pos, I_Count);
+        }
+
+        [[nodiscard]] SizeType Find(const char* I_Str, SizeType I_Pos = 0) const noexcept
+        {
+            return String.find(I_Str ? I_Str : "", I_Pos);
+        }
+
+        [[nodiscard]] SizeType Rfind(FStringView I_Sv, SizeType I_Pos = StringType::npos) const noexcept
+        {
+            return String.rfind(I_Sv.GetNative(), I_Pos);
+        }
+
+        [[nodiscard]] SizeType Rfind(char I_Ch, SizeType I_Pos = StringType::npos) const noexcept
+        {
+            return String.rfind(I_Ch, I_Pos);
+        }
+
+        [[nodiscard]] SizeType Rfind(const char* I_Str, SizeType I_Pos = StringType::npos) const noexcept
+        {
+            return String.rfind(I_Str ? I_Str : "", I_Pos);
+        }
+
+        [[nodiscard]] SizeType FindLast(FStringView I_Sv, SizeType I_Pos = StringType::npos) const noexcept
+        {
+            return Rfind(I_Sv, I_Pos);
+        }
+
+        [[nodiscard]] SizeType FindLast(char I_Ch, SizeType I_Pos = StringType::npos) const noexcept
+        {
+            return Rfind(I_Ch, I_Pos);
+        }
+
+        [[nodiscard]] SizeType FindLast(const char* I_Str, SizeType I_Pos = StringType::npos) const noexcept
+        {
+            return Rfind(I_Str, I_Pos);
+        }
+
+        [[nodiscard]] FString Substr(SizeType I_Pos = 0, SizeType I_Count = StringType::npos) const
+        {
+            return FString(String.substr(I_Pos, I_Count));
+        }
+
+        [[nodiscard]] FString SubString(SizeType I_Pos = 0, SizeType I_Count = StringType::npos) const
+        {
+            return Substr(I_Pos, I_Count);
         }
 
         // --- std::ranges support: Split by delimiter ---

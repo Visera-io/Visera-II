@@ -28,8 +28,6 @@ export namespace Visera
         VISERA_GLOBAL_API inline const auto
         Audio     = FName{"audio",       0};
         VISERA_GLOBAL_API inline const auto
-        Shader    = FName{"shader",      0};
-        VISERA_GLOBAL_API inline const auto
         Physics2D = FName{"physics2d",   0};
         VISERA_GLOBAL_API inline const auto
         AssetHub  = FName{"assethub",    0};

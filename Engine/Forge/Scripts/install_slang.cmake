@@ -1,14 +1,14 @@
-if(NOT VISERA_SHADER_EXTERNAL_DIR)
-    message(FATAL_ERROR "please include 'install.cmake' before installing any package!")
+if(NOT VISERA_FORGE_EXTERNAL_DIR)
+    message(FATAL_ERROR "Please include 'install.cmake' before installing any package!")
 endif()
 
 macro(link_slang in_target)
-    message(STATUS "\nLinking Slang (Slang)")
+    message(STATUS "Linking Slang (Slang)")
 
     if(NOT TARGET Slang)
-        add_subdirectory(${VISERA_SHADER_EXTERNAL_DIR}/Slang)
+        add_subdirectory(${VISERA_FORGE_EXTERNAL_DIR}/Slang)
         target_sources(Slang PRIVATE ${SLANG_DLL_PATH})
-        set_target_properties(Slang PROPERTIES FOLDER "${VISERA_SHADER}/External/Slang")
+        set_target_properties(Slang PROPERTIES FOLDER "Visera/Forge/External/Slang")
     endif()
 
     target_link_libraries(${in_target} PUBLIC Slang)

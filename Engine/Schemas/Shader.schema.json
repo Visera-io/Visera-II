@@ -1,0 +1,120 @@
+{
+    "$schema":  "http://json-schema.org/draft-07/schema#",
+    "$id":      "visera://schemas/Shader.schema.json",
+    "title":    "Visera Shader (Minimal)",
+    "type":     "object",
+    "additionalProperties": false,
+    "required": ["Version", "SPIRV", "Reflection"],
+
+    "properties":
+    {
+        "Version":
+        {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Visera shader asset format version."
+        },
+
+        "Name":
+        {
+            "type": "string",
+            "description": "Optional display name."
+        },
+
+        "SPIRV":
+        {
+            "type": "string",
+            "minLength": 1,
+            "description": "Base64-encoded SPIR-V bytecode compiled from Slang shader."
+        },
+
+        "Reflection":
+        {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["EntryPoints", "Resources"],
+            "properties":
+            {
+                "EntryPoints":
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "items":
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["Name", "Stage"],
+                        "properties":
+                        {
+                            "Name":
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Entry point name (e.g., 'vertMain', 'fragMain')."
+                            },
+                            "Stage":
+                            {
+                                "type": "string",
+                                "enum": ["Vertex", "Fragment", "Compute", "Geometry", "TessellationControl", "TessellationEvaluation"],
+                                "description": "Shader stage."
+                            }
+                        }
+                    },
+                    "description": "Shader entry points."
+                },
+
+                "Resources":
+                {
+                    "type": "array",
+                    "items":
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["Name", "Type", "Binding"],
+                        "properties":
+                        {
+                            "Name":
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Resource name as declared in shader."
+                            },
+                            "Type":
+                            {
+                                "type": "string",
+                                "enum": ["Texture2D", "TextureCube", "Texture3D", "Texture1D", "SamplerState", "ConstantBuffer", "StructuredBuffer", "ByteAddressBuffer"],
+                                "description": "Resource type."
+                            },
+                            "Binding":
+                            {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Descriptor set binding index."
+                            },
+                            "Set":
+                            {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Descriptor set index (default: 0)."
+                            },
+                            "Access":
+                            {
+                                "type": "string",
+                                "enum": ["Read", "Write", "ReadWrite"],
+                                "description": "Resource access mode (default: Read)."
+                            },
+                            "Stage":
+                            {
+                                "type": "string",
+                                "enum": ["Vertex", "Fragment", "Compute", "Geometry", "TessellationControl", "TessellationEvaluation", "All"],
+                                "description": "Shader stage(s) where resource is used (default: All)."
+                            }
+                        }
+                    },
+                    "description": "Shader resources (textures, samplers, buffers, etc.) for Sprite2D and other renderers."
+                }
+            },
+            "description": "Shader reflection information extracted from Slang compilation."
+        }
+    }
+}

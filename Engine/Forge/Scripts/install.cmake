@@ -17,6 +17,9 @@ macro(install_visera_forge in_target)
     include(install_msdfgen)
     link_msdfgen(${in_target})
 
+    include(install_slang)
+    link_slang(${in_target})
+
     file(GLOB_RECURSE VISERA_FORGE_MODULES "${VISERA_FORGE_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}

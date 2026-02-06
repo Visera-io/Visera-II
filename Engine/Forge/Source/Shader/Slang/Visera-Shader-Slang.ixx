@@ -1,5 +1,5 @@
 module;
-#include <Visera-Shader.hpp>
+#include <Visera-Forge.hpp>
 #include <Slang/slang.h>
 #include <Slang/slang-com-ptr.h>
 export module Visera.Shader.Slang;
@@ -11,15 +11,37 @@ import Visera.Core.Types.String;
 import Visera.Global;
 import Visera.Platform;
 
-namespace Visera
+export namespace Visera::Forge
 {
-    export class VISERA_SHADER_API FSlangCompiler
+    struct FShaderReflection
+    {
+        struct FEntryPoint
+        {
+            FString Name;
+            FString Stage; // "Vertex", "Fragment", etc.
+        };
+        struct FResource
+        {
+            FString Name;
+            FString Type; // "Texture2D", "SamplerState", etc.
+            UInt32  Binding;
+            UInt32  Set = 0;
+            FString Access = "Read";
+            FString Stage = "All";
+        };
+        TArray<FEntryPoint> EntryPoints;
+        TArray<FResource>   Resources;
+    };
+
+    class VISERA_FORGE_API FSlangCompiler
     {
     public:
     	[[nodiscard]] inline Bool
     	AddSearchPath(const FPath& I_Path);
         [[nodiscard]] inline TArray<FByte>
     	Compile(const FPath& I_Path, FStringView I_EntryPoint);
+        [[nodiscard]] FShaderReflection
+    	ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint);
 
     private:
     	Slang::ComPtr<slang::IGlobalSession>
@@ -32,6 +54,7 @@ namespace Visera
             Slang::ComPtr<slang::ISession> Handle;
             slang::TargetDesc              Description;
     		Slang::ComPtr<slang::IBlob>    CompiledCode;
+            Slang::ComPtr<slang::IComponentType> ShaderProgram;
         };
         FSession* Session {nullptr};
 
@@ -173,10 +196,9 @@ namespace Visera
 	 		ShaderEntryPoint.get(),
 	 	};
 
-	 	Slang::ComPtr<slang::IComponentType> ShaderProgram {nullptr};
 	 	if (Session->Handle->createCompositeComponentType(
 	 		ShaderComponents, 2,
-	 		ShaderProgram.writeRef(),
+	 		Session->ShaderProgram.writeRef(),
 	 		Diagnostics.writeRef()) != SLANG_OK)
 	 	{
 	 		LOG_ERROR("Failed to create the Shader({}): {}!",
@@ -184,7 +206,7 @@ namespace Visera
 	 		return;
 	 	}
 
-	 	if (ShaderProgram->getEntryPointCode(
+	 	if (Session->ShaderProgram->getEntryPointCode(
 	 		0,
 	 		0,
 	 		Session->CompiledCode.writeRef(),
@@ -194,17 +216,6 @@ namespace Visera
 	 		          I_File, GetErrorMessage(Diagnostics));
 	 		return;
 	 	}
-
-	 	// Reflect Shader
-	 	slang::ProgramLayout* ShaderLayout = ShaderProgram->getLayout(0, Diagnostics.writeRef());
-	 	if (Diagnostics)
-		{
-	 		LOG_ERROR("Failed to get reflection info from Shader({}): {}!",
-	 			      I_File, GetErrorMessage(Diagnostics));
-	 		return;
-		}
-
-	 	auto* EntryPointRef = ShaderLayout->findEntryPointByName(I_EntryPoint.Data());
 		// slang::TypeReflection Type;
 		// switch (Type.getKind())
 		// {
@@ -237,11 +248,124 @@ namespace Visera
 		// }
 
 
-	 	// switch (EntryPointRef->getStage())
-	 	// {
-	 	// 	case SLANG_STAGE_VERTEX:	ShaderType = FRHIShader::EStage::Vertex;   break;
-	 	// 	case SLANG_STAGE_FRAGMENT:	ShaderType = FRHIShader::EStage::Fragment; break;
-	 	// 	default: LOG_ERROR("Unsupported Shader Stage!");
-	 	// }
 	 }
+
+    FShaderReflection FSlangCompiler::
+    ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint)
+    {
+        FShaderReflection Reflection;
+        VISERA_ASSERT(Session && Session->ShaderProgram);
+
+        Slang::ComPtr<slang::IBlob> Diagnostics;
+        slang::ProgramLayout* ShaderLayout = Session->ShaderProgram->getLayout(0, Diagnostics.writeRef());
+        if (Diagnostics || !ShaderLayout)
+        {
+            LOG_ERROR("Failed to get reflection info from Shader({})!", I_Path);
+            return Reflection;
+        }
+
+        // Extract EntryPoints
+        const auto EntryPointCount = ShaderLayout->getEntryPointCount();
+        for (SlangUInt i = 0; i < EntryPointCount; ++i)
+        {
+            auto* EntryPointRef = ShaderLayout->getEntryPointByIndex(i);
+            if (!EntryPointRef) continue;
+
+            FShaderReflection::FEntryPoint EP;
+            EP.Name = FString(EntryPointRef->getName());
+
+            // Convert Slang stage to string
+            const auto Stage = EntryPointRef->getStage();
+            switch (Stage)
+            {
+            case SLANG_STAGE_VERTEX: EP.Stage = "Vertex"; break;
+            case SLANG_STAGE_FRAGMENT: EP.Stage = "Fragment"; break;
+            case SLANG_STAGE_COMPUTE: EP.Stage = "Compute"; break;
+            case SLANG_STAGE_GEOMETRY: EP.Stage = "Geometry"; break;
+            case SLANG_STAGE_HULL: EP.Stage = "TessellationControl"; break;
+            case SLANG_STAGE_DOMAIN: EP.Stage = "TessellationEvaluation"; break;
+            default: continue; // Skip unsupported stages
+            }
+
+            Reflection.EntryPoints.PushBack(std::move(EP));
+        }
+
+        // Extract Resources (global parameters)
+        const auto ParamCount = ShaderLayout->getParameterCount();
+        for (unsigned i = 0; i < ParamCount; ++i)
+        {
+            auto* VarLayout = ShaderLayout->getParameterByIndex(i);
+            if (!VarLayout) continue;
+
+            auto* Var = VarLayout->getVariable();
+            if (!Var) continue;
+
+            auto* Type = Var->getType();
+            if (!Type) continue;
+
+            const auto TypeKind = Type->getKind();
+            if (TypeKind != slang::TypeReflection::Kind::Resource &&
+                TypeKind != slang::TypeReflection::Kind::SamplerState &&
+                TypeKind != slang::TypeReflection::Kind::ConstantBuffer &&
+                TypeKind != slang::TypeReflection::Kind::TextureBuffer &&
+                TypeKind != slang::TypeReflection::Kind::ShaderStorageBuffer)
+            { continue; }
+
+            FShaderReflection::FResource Res;
+            Res.Name = FString(Var->getName());
+            Res.Binding = VarLayout->getBindingIndex();
+            Res.Set = static_cast<UInt32>(VarLayout->getBindingSpace());
+
+            // Determine resource type
+            switch (TypeKind)
+            {
+            case slang::TypeReflection::Kind::Resource:
+                {
+                    const auto Shape = Type->getResourceShape();
+                    const auto BaseShape = Shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
+                    switch (BaseShape)
+                    {
+                    case SLANG_TEXTURE_2D: Res.Type = "Texture2D"; break;
+                    case SLANG_TEXTURE_CUBE: Res.Type = "TextureCube"; break;
+                    case SLANG_TEXTURE_3D: Res.Type = "Texture3D"; break;
+                    case SLANG_TEXTURE_1D: Res.Type = "Texture1D"; break;
+                    default: continue; // Skip unsupported texture types
+                    }
+
+                    // Determine access mode
+                    const auto Access = Type->getResourceAccess();
+                    switch (Access)
+                    {
+                    case SLANG_RESOURCE_ACCESS_READ: Res.Access = "Read"; break;
+                    case SLANG_RESOURCE_ACCESS_WRITE: Res.Access = "Write"; break;
+                    case SLANG_RESOURCE_ACCESS_READ_WRITE: Res.Access = "ReadWrite"; break;
+                    default: Res.Access = "Read"; break;
+                    }
+                }
+                break;
+            case slang::TypeReflection::Kind::SamplerState:
+                Res.Type = "SamplerState";
+                Res.Access = "Read";
+                break;
+            case slang::TypeReflection::Kind::ConstantBuffer:
+                Res.Type = "ConstantBuffer";
+                Res.Access = "Read";
+                break;
+            case slang::TypeReflection::Kind::TextureBuffer:
+                Res.Type = "TextureBuffer";
+                Res.Access = "Read";
+                break;
+            case slang::TypeReflection::Kind::ShaderStorageBuffer:
+                Res.Type = "StructuredBuffer";
+                Res.Access = "ReadWrite";
+                break;
+            default:
+                continue; // Skip unsupported types
+            }
+
+            Reflection.Resources.PushBack(std::move(Res));
+        }
+
+        return Reflection;
+    }
 }

@@ -65,6 +65,16 @@ export namespace Visera
         Set(FStringView I_Key, Double I_Value) { Root[I_Key.GetNative()] = I_Value; }
         void
         Set(FStringView I_Key, Bool I_Value) { Root[I_Key.GetNative()] = static_cast<bool>(I_Value); }
+        void
+        Set(FStringView I_Key, const FJSON& I_Value) { Root[I_Key.GetNative()] = I_Value.Root; }
+        void
+        Set(FStringView I_Key, const TArray<FJSON>& I_Array)
+        {
+            Json Array = Json::array();
+            for (const auto& Item : I_Array)
+            { Array.push_back(Item.Root); }
+            Root[I_Key.GetNative()] = Array;
+        }
         // ---- Get (safe) ----
         [[nodiscard]] FString
         GetString(FStringView I_Key, FStringView I_DefaultValue = "") const
@@ -280,6 +290,15 @@ export namespace Visera
                             Result.PushBack(static_cast<Bool>(Item.get<bool>()));
                         }
                     }
+                    else if constexpr (std::is_same_v<T, FJSON>)
+                    {
+                        if (Item.is_object() || Item.is_array())
+                        {
+                            FJSON JsonItem;
+                            JsonItem.Root = Item;
+                            Result.PushBack(std::move(JsonItem));
+                        }
+                    }
                     else
                     {
                         // Generic case: try to get the value directly
@@ -339,6 +358,15 @@ export namespace Visera
                         if (Item.is_boolean())
                         {
                             Result.PushBack(static_cast<Bool>(Item.get<bool>()));
+                        }
+                    }
+                    else if constexpr (std::is_same_v<T, FJSON>)
+                    {
+                        if (Item.is_object() || Item.is_array())
+                        {
+                            FJSON JsonItem;
+                            JsonItem.Root = Item;
+                            Result.PushBack(std::move(JsonItem));
                         }
                     }
                     else

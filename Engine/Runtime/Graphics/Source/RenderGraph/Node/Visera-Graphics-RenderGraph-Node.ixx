@@ -2,7 +2,6 @@ module;
 #include <Visera-Graphics.hpp>
 export module Visera.Graphics.RenderGraph.Node;
 #define VISERA_MODULE_NAME "Graphics.RenderGraph"
-import Visera.Shader;
 import Visera.Global.Name;
 import Visera.Core.Delegate.Unicast;
 import Visera.Core.Types.Array;

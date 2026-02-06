@@ -25,5 +25,14 @@
       "FreeType"
     ],
     "URL" : "https://github.com/Chlumsky/msdfgen"
+  },
+  "Slang" :
+  {
+    "Version" : "2025.19.1",
+    "Dependencies" :
+    [
+
+    ],
+    "URL" : "https://github.com/shader-slang/slang"
   }
 }
