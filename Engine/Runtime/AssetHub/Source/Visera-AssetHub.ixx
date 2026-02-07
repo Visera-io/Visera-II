@@ -4,6 +4,8 @@ export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
 export import Visera.Core.Types.Path;
        import Visera.Core.Types.Map;
+       import Visera.Core.Types.Array;
+       import Visera.Core.Types.String;
        import Visera.Core.OS.Thread.Sync;
        import Visera.AssetHub.Image;
        import Visera.AssetHub.Shader;

@@ -148,7 +148,7 @@ export namespace Visera
         return simdutf::count_utf8(String.Data(), static_cast<size_t>(String.GetSize()));
     }
 
-    Bool FText::
+    consteval Bool FText::
     ValidateUTF8(const char* I_Literal, size_t I_Size)
     {
         size_t i = 0;

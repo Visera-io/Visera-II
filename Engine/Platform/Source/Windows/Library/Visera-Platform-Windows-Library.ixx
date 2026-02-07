@@ -4,6 +4,7 @@ module;
 export module Visera.Platform.Windows.Library;
 #define VISERA_MODULE_NAME "Platform.Windows"
 import Visera.Platform.Interface.Library;
+import Visera.Core.Types.Path;
 import Visera.Core.Types.String;
 import Visera.Global.Log;
 
@@ -55,7 +56,7 @@ namespace Visera
         if (WideLength <= 0)
         {
             DWORD Error = GetLastError();
-            LOG_ERROR("Failed to convert path to wide string for library {} -- Windows Error Code: {}", I_Path, Error);
+                    LOG_ERROR("Failed to convert path to wide string for library {} -- Windows Error Code: {}", I_Path, Error);
             return;
         }
         
@@ -64,7 +65,7 @@ namespace Visera
         if (ConvertResult == 0)
         {
             DWORD Error = GetLastError();
-            LOG_ERROR("Failed to convert path to wide string for library {} -- Windows Error Code: {}", I_Path, Error);
+                    LOG_ERROR("Failed to convert path to wide string for library {} -- Windows Error Code: {}", I_Path, Error);
             return;
         }
         

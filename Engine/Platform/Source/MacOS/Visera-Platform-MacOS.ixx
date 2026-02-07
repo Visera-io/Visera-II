@@ -17,7 +17,7 @@ import Visera.Global.Log;
 export namespace Visera
 {
 #if defined(VISERA_ON_APPLE_SYSTEM)
-    export class VISERA_PLATFORM_API FMacOSPath : public IPlatformPath
+    class VISERA_PLATFORM_API FMacOSPath : public IPlatformPath
     {
     public:
         explicit FMacOSPath(const FPath& I_Path) : Native(I_Path.GetString().GetNative())
@@ -38,7 +38,7 @@ export namespace Visera
         [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(static_cast<const FMacOSPath&>(I_Path).ToPath()); }
+        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path.ToPath()); }
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetExecutableDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
@@ -63,18 +63,18 @@ export namespace Visera
         uint32_t PathLength = sizeof(Path);
         if (_NSGetExecutablePath(Path, &PathLength) != 0)
         { LOG_FATAL("Failed to get executable path!"); }
-        const FPath ExePath(FString(Path));
+        const FPath ExePath(Path);
         if (auto Parent = ExePath.GetParent(); Parent.HasValue())
-            return MakeUnique<FMacOSPath>(Parent->GetValue().GetString().GetNative());
+        { return MakeUnique<FMacOSPath>(Parent.GetValue().GetString().GetNative()); }
         return nullptr;
     }
 
     TUniquePtr<IPlatformPath> FMacOSPlatform::GetResourceDirectory() const
     {
-        if (TUniquePtr<IPlatformPath> Exec = GetExecutableDirectory(); Exec)
+        if (auto Exec = GetExecutableDirectory(); Exec)
         {
-            const FPath ExecDir = Exec->ToPath();
-            return MakeUnique<FMacOSPath>((ExecDir / FPath{"Resources"}).GetString().GetNative());
+            const FPath AppBundleDir = Exec->ToPath().GetParent().GetValue();
+            return MakeUnique<FMacOSPath>((AppBundleDir / FPath{"Resources"}).GetString().GetNative());
         }
         return nullptr;
     }
@@ -83,8 +83,8 @@ export namespace Visera
     {
         if (TUniquePtr<IPlatformPath> Exec = GetExecutableDirectory(); Exec)
         {
-            const FPath ExecDir = Exec->ToPath();
-            return MakeUnique<FMacOSPath>((ExecDir / FPath{"Frameworks"}).GetString().GetNative());
+            const FPath AppBundleDir = Exec->ToPath().GetParent().GetValue();
+            return MakeUnique<FMacOSPath>((AppBundleDir / FPath{"Frameworks"}).GetString().GetNative());
         }
         return nullptr;
     }

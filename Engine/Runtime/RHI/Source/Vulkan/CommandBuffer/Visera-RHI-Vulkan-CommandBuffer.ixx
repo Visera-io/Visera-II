@@ -319,7 +319,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        Handle.reset();
+        (void)Handle.reset();
 
         Status = EStatus::Idle;
     }
@@ -363,7 +363,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        auto Result = Handle.reset();
+        (void)Handle.reset();
 
         Status = EStatus::Idle;
     }
@@ -510,7 +510,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        auto Result = Handle.reset();
+        (void)Handle.reset();
 
         Status = EStatus::Idle;
     }
@@ -807,7 +807,7 @@ export namespace Visera
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
 
-        auto Result = Handle.reset();
+        (void)Handle.reset();
 
         Status = EStatus::Idle;
     }

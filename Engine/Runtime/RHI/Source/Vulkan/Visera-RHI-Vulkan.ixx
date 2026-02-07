@@ -254,15 +254,15 @@ export namespace Visera
     FVulkanDriver()
     {
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        auto VulkanICDPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan/MoltenVK_icd.json"}.GetString();
+        FPath VulkanICDPath = FPlatform::GetResourceDirectory() / FPath{"Vulkan/MoltenVK_icd.json"};
         if (!FPlatform::SetEnvironmentVariable(
-            "VK_ICD_FILENAMES", VulkanICDPath))
-        { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\" as {}!", VulkanICDPath); }
+            "VK_ICD_FILENAMES", VulkanICDPath.GetString()))
+        { LOG_FATAL("Failed to set VK_ICD_FILENAMES as {}!", VulkanICDPath); }
 #if !defined(VISERA_RELEASE_MODE)
-        auto VulkanLayerPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan"}.GetString();
+        FPath VulkanLayerPath = FPlatform::GetResourceDirectory() / FPath{"Vulkan"};
         if (!FPlatform::SetEnvironmentVariable(
-            "VK_LAYER_PATH", VulkanLayerPath))
-        { LOG_FATAL("Failed to set \"VK_LAYER_PATH\" as {}!", VulkanLayerPath); }
+            "VK_LAYER_PATH", VulkanLayerPath.GetString()))
+        { LOG_FATAL("Failed to set VK_LAYER_PATH as {}!", VulkanLayerPath); }
 #endif
 #endif
         AppInfo = vk::ApplicationInfo{}

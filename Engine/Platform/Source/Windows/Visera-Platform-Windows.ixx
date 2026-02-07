@@ -61,7 +61,7 @@ namespace Visera
         [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(static_cast<const FWindowsPath&>(I_Path).ToPath()); }
+        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path.ToPath()); }
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetExecutableDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>

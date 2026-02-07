@@ -4,6 +4,7 @@ module;
 export module Visera.Platform.MacOS.Library;
 #define VISERA_MODULE_NAME "Platform.MacOS"
 import Visera.Platform.Interface.Library;
+import Visera.Core.Types.Path;
 import Visera.Global.Log;
 
 namespace Visera
@@ -38,13 +39,13 @@ namespace Visera
     FMacOSLibrary(const FPath& I_Path)
     : IPlatformLibrary{I_Path}
     {
-        LOG_TRACE("Loading MacOS library {}", Path.GetNative().c_str());
+        LOG_TRACE("Loading MacOS library {}", I_Path.GetNative().c_str());
 
-        Handle = dlopen(I_Path.GetNative().c_str(), RTLD_NOW | RTLD_GLOBAL);
+        Handle = dlopen(I_Path.GetString().Data(), RTLD_NOW | RTLD_GLOBAL);
         if (!Handle)
         {
             const char* Error = dlerror();
-            LOG_ERROR("Failed to load the library {} -- {}!", Path, Error);
+            LOG_ERROR("Failed to load the library {} -- {}!", I_Path, Error);
         }
     }
 
