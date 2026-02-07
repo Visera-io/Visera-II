@@ -5,7 +5,6 @@ endif()
 if(NOT VISERA_GRAPHICS_SCRIPTS_DIR)
     message(FATAL_ERROR "Visera-Graphics must be processed before Forge (MSDFGen needs FreeType). Ensure add_subdirectory(Runtime) before add_subdirectory(Forge).")
 endif()
-include(${VISERA_GRAPHICS_SCRIPTS_DIR}/install_freetype.cmake)
 
 macro(link_msdfgen in_target)
     message(STATUS "Linking MSDFGen (msdfgen::msdfgen-core)")

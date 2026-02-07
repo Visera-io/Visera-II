@@ -6,6 +6,7 @@ export module Visera.AssetHub.Image.EXR;
 #define VISERA_MODULE_NAME "AssetHub.Image"
 export import Visera.AssetHub.Image.Common;
        import Visera.AssetHub.Image.Wrapper;
+       import Visera.Core.Types.Half;
        import Visera.Global.Log;
 
 export namespace Visera
@@ -16,7 +17,8 @@ export namespace Visera
         [[nodiscard]] TSharedPtr<FImage>
         Import(const FPath& I_Path) override;
 
-    private:
+        [[nodiscard]] Bool
+        Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path) override;
 
     public:
         FEXRImageWrapper() = default;
@@ -64,7 +66,7 @@ export namespace Visera
             }
 
             // Copy as RGBA half-floats (16-bit) into FImage buffer.
-            // OpenEXR stores Imath::half components; we store raw half bits.
+            // OpenEXR stores half components; we store raw half bits.
             FByte* Out = Image->AccessData();
             auto*  OutU16 = reinterpret_cast<UInt16*>(Out);
 
@@ -93,6 +95,98 @@ export namespace Visera
         {
             LOG_ERROR("Failed to load EXR {}: unknown error", I_Path);
             return nullptr;
+        }
+    }
+
+    Bool FEXRImageWrapper::
+    Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path)
+    {
+        // Only check format compatibility, not image validity (validity checked in FAssetHub::SaveImage)
+        const EPixelFormat Format = I_Image->GetPixelFormat();
+        const UInt32 Width = I_Image->GetWidth();
+        const UInt32 Height = I_Image->GetHeight();
+
+        // EXR supports float formats (16-bit half or 32-bit float)
+        // Determine if we should use half-float or full float
+        Bool UseHalfFloat = True;
+        switch (Format)
+        {
+        case EPixelFormat::RGBA16_Float:
+            UseHalfFloat = True;
+            break;
+        case EPixelFormat::RGBA32_Float:
+            UseHalfFloat = False;
+            break;
+        default:
+            LOG_ERROR("Unsupported pixel format for EXR export: {} (only RGBA16_Float and RGBA32_Float are supported)", 
+                     static_cast<Int32>(Format));
+            return False;
+        }
+
+        try
+        {
+            // Prepare pixel data
+            Imf::Array2D<Imf::Rgba> Pixels;
+            Pixels.resizeErase(Height, Width);
+
+            const FByte* ImageData = I_Image->GetData();
+            const UInt32 RowPitch = I_Image->GetRowPitchBytes();
+
+            if (UseHalfFloat)
+            {
+                // RGBA16_Float: read as UInt16 and convert to half using FHalf
+                for (UInt32 Y = 0; Y < Height; ++Y)
+                {
+                    const UInt16* RowData = reinterpret_cast<const UInt16*>(ImageData + Y * RowPitch);
+                    for (UInt32 X = 0; X < Width; ++X)
+                    {
+                        const UInt32 Index = X * 4;
+                        Pixels[Y][X].r = FHalf::FromBits(RowData[Index + 0]).Value;
+                        Pixels[Y][X].g = FHalf::FromBits(RowData[Index + 1]).Value;
+                        Pixels[Y][X].b = FHalf::FromBits(RowData[Index + 2]).Value;
+                        Pixels[Y][X].a = FHalf::FromBits(RowData[Index + 3]).Value;
+                    }
+                }
+            }
+            else
+            {
+                // RGBA32_Float: read as Float and convert to half using FHalf
+                for (UInt32 Y = 0; Y < Height; ++Y)
+                {
+                    const Float* RowData = reinterpret_cast<const Float*>(ImageData + Y * RowPitch);
+                    for (UInt32 X = 0; X < Width; ++X)
+                    {
+                        const UInt32 Index = X * 4;
+                        Pixels[Y][X].r = FHalf(RowData[Index + 0]).Value;
+                        Pixels[Y][X].g = FHalf(RowData[Index + 1]).Value;
+                        Pixels[Y][X].b = FHalf(RowData[Index + 2]).Value;
+                        Pixels[Y][X].a = FHalf(RowData[Index + 3]).Value;
+                    }
+                }
+            }
+
+            // Create EXR file
+            Imf::RgbaOutputFile File(
+                I_Path.GetUTF8Path().Data(),
+                Width, Height,
+                Imf::WRITE_RGBA
+            );
+
+            // Set frame buffer and write pixels
+            File.setFrameBuffer(&Pixels[0][0], 1, Width);
+            File.writePixels(Height);
+
+            return True;
+        }
+        catch (const std::exception& Ex)
+        {
+            LOG_ERROR("Failed to save EXR {}: {}", I_Path, Ex.what());
+            return False;
+        }
+        catch (...)
+        {
+            LOG_ERROR("Failed to save EXR {}: unknown error", I_Path);
+            return False;
         }
     }
 }

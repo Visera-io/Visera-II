@@ -10,28 +10,87 @@ import Visera.AssetHub.Shader;
 import Visera.RHI.Common;
 import Visera.Forge.Shader.Compiler;
 import Visera.Forge.Shader.Validator;
+import Visera.Forge.Baking.Font;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Array;
+import Visera.Core.Types.Pointer;
 import Visera.Core.OS.FileSystem;
+import Visera.Core.Algorithm.Ranges;
+import Visera.Core.Math.Arithmetic.Operation;
+import Visera.Core.Image;
 import Visera.Forge.Utils.Wildcard;
 
 namespace Visera::Forge
 {
     namespace
     {
-        // Find files matching pattern recursively
+        // Find files matching pattern in a path (path can contain wildcards)
         [[nodiscard]] TArray<FPath>
-        FindMatchingFiles(const FPath& I_RootDir, FStringView I_Pattern)
+        FindMatchingFiles(const FPath& I_PathWithPattern)
         {
             TArray<FPath> Results;
+            
+            // Extract directory and pattern from path
+            FPath SearchDir = I_PathWithPattern;
+            FString Pattern;
+            
+            // Check if path contains wildcard characters
+            const FString PathStr = I_PathWithPattern.GetUTF8Path();
+            const Bool HasWildcard = Algorithm::FindIf(PathStr, [](char Ch) { return Ch == '*' || Ch == '?'; }) != PathStr.end();
+            
+            if (HasWildcard)
+            {
+                // Find the last directory separator before the wildcard
+                const auto LastSlash = PathStr.FindLast('/');
+                const auto LastBackslash = PathStr.FindLast('\\');
+                const auto LastSep = (LastSlash == FString::NPos) ? LastBackslash : 
+                                    ((LastBackslash == FString::NPos) ? LastSlash :
+                                    (LastSlash > LastBackslash ? LastSlash : LastBackslash));
+                
+                if (LastSep != FString::NPos)
+                {
+                    SearchDir = FPath(PathStr.SubString(0, LastSep + 1));
+                    Pattern = PathStr.SubString(LastSep + 1);
+                }
+                else
+                {
+                    // No directory separator, search current directory
+                    SearchDir = FPath(".");
+                    Pattern = PathStr;
+                }
+            }
+            else
+            {
+                // No wildcard, treat as exact file path
+                if (FFileSystem::Exists(I_PathWithPattern) && !FFileSystem::IsDirectory(I_PathWithPattern))
+                {
+                    Results.PushBack(I_PathWithPattern);
+                    return Results;
+                }
+                // If it's a directory, search all files in it
+                if (FFileSystem::IsDirectory(I_PathWithPattern))
+                {
+                    SearchDir = I_PathWithPattern;
+                    Pattern = "*";
+                }
+                else
+                {
+                    return Results; // File doesn't exist
+                }
+            }
 
-            auto AllFiles = FFileSystem::EnumerateFiles(I_RootDir, True);
+            if (!FFileSystem::Exists(SearchDir) || !FFileSystem::IsDirectory(SearchDir))
+            {
+                return Results;
+            }
+
+            auto AllFiles = FFileSystem::EnumerateFiles(SearchDir, True);
             for (const auto& FilePath : AllFiles)
             {
                 const FString FileName = FilePath.GetFileName().GetUTF8Path();
-                if (WildcardMatch(FileName, I_Pattern))
+                if (WildcardMatch(FileName, Pattern))
                 {
                     Results.PushBack(FilePath);
                 }
@@ -127,11 +186,14 @@ namespace Visera::Forge
     {
         if (I_Argc < 2)
         {
-            LOG_INFO("Visera-Forge - Shader compilation and validation");
-            LOG_INFO("  Shader \"<directory>\" \"<pattern>\"  - Compile .slang to .vshader + .spv");
-            LOG_INFO("  Validate \"<directory>\" \"<pattern>\" - Validate .vshader binary (PascalCase names)");
-            LOG_INFO("Example: Visera-Forge Shader \".\\Engine\\Shaders\" \"*.slang\"");
-            LOG_INFO("Example: Visera-Forge Validate \".\\Engine\\Shaders\" \"*.vshader\"");
+            LOG_INFO("Visera-Forge - Asset baking and compilation tools");
+            LOG_INFO("  Font \"<font_path>\" <width> <height> [size] [range] - Bake MSDF font atlas");
+            LOG_INFO("  Shader \"<path_with_pattern>\"  - Compile .slang to .vshader + .spv");
+            LOG_INFO("  Validate \"<path_with_pattern>\" [no-meta] - Validate .vshader binary");
+            LOG_INFO("Examples:");
+            LOG_INFO("  Visera-Forge Font \"./Fonts/Roboto.ttf\" 1024 1024");
+            LOG_INFO("  Visera-Forge Shader \"./Engine/Shaders/*.slang\"");
+            LOG_INFO("  Visera-Forge Validate \"./Engine/Shaders/*.vshader\"");
             return 0;
         }
 
@@ -139,39 +201,180 @@ namespace Visera::Forge
 
         if (Command == "Font")
         {
-            LOG_INFO("Baking Font (WIP)");
+            if (I_Argc < 5)
+            {
+                LOG_ERROR("Font command requires font path, atlas width, and atlas height");
+                LOG_INFO("Usage: Visera-Forge Font \"<font_path>\" <width> <height> [font_size] [range] [format]");
+                LOG_INFO("");
+                LOG_INFO("Examples:");
+                LOG_INFO("  # Generate EXR format (default, float precision):");
+                LOG_INFO("  Visera-Forge Font \"./Fonts/Roboto.ttf\" 1024 1024 32 2.0 exr");
+                LOG_INFO("");
+                LOG_INFO("  # Generate PNG format (8-bit, smaller file size):");
+                LOG_INFO("  Visera-Forge Font \"./Fonts/Roboto.ttf\" 1024 1024 32 2.0 png");
+                LOG_INFO("");
+                LOG_INFO("Parameters:");
+                LOG_INFO("  font_path  - Path to the font file (.ttf, .otf, etc.)");
+                LOG_INFO("  width      - Atlas texture width in pixels");
+                LOG_INFO("  height     - Atlas texture height in pixels");
+                LOG_INFO("  font_size  - Font size in pixels (default: 32)");
+                LOG_INFO("  range      - MSDF distance field range (default: 2.0)");
+                LOG_INFO("  format     - Output format: 'exr' (default) or 'png'");
+                return 1;
+            }
+            
             (void)IGlobalService::Register<FTasks>(EName::Tasks);
             (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
+            
+            const FPath FontPath = FPath{I_Argv[2]};
+            const UInt32 AtlasWidth = static_cast<UInt32>(std::strtoul(I_Argv[3], nullptr, 10));
+            const UInt32 AtlasHeight = static_cast<UInt32>(std::strtoul(I_Argv[4], nullptr, 10));
+            const Float FontSize = (I_Argc > 5) ? static_cast<Float>(std::strtod(I_Argv[5], nullptr)) : 32.0f;
+            const Float Range = (I_Argc > 6) ? static_cast<Float>(std::strtod(I_Argv[6], nullptr)) : 2.0f;
+            const FStringView FormatStr = (I_Argc > 7) ? FStringView{I_Argv[7]} : FStringView{"exr"};
+            const Bool UsePNG = (FormatStr == "png" || FormatStr == "PNG");
+            
+            if (!FFileSystem::Exists(FontPath))
+            {
+                LOG_ERROR("Font file does not exist: {}", FontPath);
+                return 1;
+            }
+            
+            LOG_INFO("Baking font atlas: {}", FontPath);
+            LOG_INFO("  Atlas size: {}x{}", AtlasWidth, AtlasHeight);
+            LOG_INFO("  Font size: {}", FontSize);
+            LOG_INFO("  Range: {}", Range);
+            
+            // Load font
+            auto AssetHub = IGlobalService::Get<FAssetHub>(EName::AssetHub);
+            if (!AssetHub)
+            {
+                LOG_ERROR("Failed to get AssetHub service!");
+                return 1;
+            }
+            
+            auto Font = AssetHub->LoadFont(FontPath, 0);
+            if (!Font || !Font->IsLoaded())
+            {
+                LOG_ERROR("Failed to load font: {}", FontPath);
+                return 1;
+            }
+            
+            // Configure atlas generation
+            FMSDFAtlasConfig Config;
+            Config.FontSize = FontSize;
+            Config.AtlasWidth = AtlasWidth;
+            Config.AtlasHeight = AtlasHeight;
+            Config.Range = Range;
+            Config.Scale = 1.0f;
+            Config.BorderPx = 2;
+            // Default to ASCII printable characters (32-126)
+            Config.CharacterSet.Resize(95);
+            for (UInt32 i = 0; i < 95; ++i)
+            {
+                Config.CharacterSet[i] = 32 + i;
+            }
+            
+            // Bake atlas
+            FFontBaker Baker;
+            auto ResultOpt = Baker.BakeAtlas(Font, Config);
+            if (!ResultOpt.HasValue())
+            {
+                LOG_ERROR("Failed to bake font atlas!");
+                return 1;
+            }
+            
+            const FMSDFAtlasResult& Result = ResultOpt.GetValue();
+            LOG_INFO("Successfully baked atlas with {} glyphs", Result.GlyphEntries.GetSize());
+            
+            // Save atlas image
+            FPath OutputPath = FontPath;
+            FString OutputName = OutputPath.GetFileName().GetUTF8Path();
+            const auto DotPos = OutputName.FindLast(".");
+            if (DotPos != FString::NPos)
+            { OutputName = OutputName.SubString(0, DotPos); }
+            
+            // Convert to PNG if requested (convert RGBA32_Float to RGBA8_UNorm)
+            TSharedPtr<const FImage> ImageToSave = Result.AtlasImage;
+            if (UsePNG)
+            {
+                OutputName.Append(".msdf.png");
+                // Convert float image to 8-bit UNorm for PNG
+                // MSDF values are typically in range [-Range, Range], we need to map to [0, 1]
+                auto PNGImage = MakeShared<FImage>(FImage::FCreateInfo
+                {
+                    .Width = Result.AtlasImage->GetWidth(),
+                    .Height = Result.AtlasImage->GetHeight(),
+                    .Depth = 1,
+                    .PixelFormat = EPixelFormat::RGBA8_UNorm,
+                    .ColorSpace = EColorSpace::Linear,
+                });
+                
+                const Float* SrcData = reinterpret_cast<const Float*>(Result.AtlasImage->GetData());
+                UInt8* DstData = PNGImage->AccessData();
+                const UInt64 PixelCount = static_cast<UInt64>(PNGImage->GetWidth()) * PNGImage->GetHeight();
+                
+                // Map MSDF from [-Range, Range] to [0, 1] for RGB channels, keep alpha as-is
+                const Float InvRange = 1.0f / (Range * 2.0f);
+                for (UInt64 i = 0; i < PixelCount; ++i)
+                {
+                    const Float R = SrcData[i * 4 + 0];
+                    const Float G = SrcData[i * 4 + 1];
+                    const Float B = SrcData[i * 4 + 2];
+                    const Float A = SrcData[i * 4 + 3];
+                    
+                    // Clamp and map to [0, 1]
+                    DstData[i * 4 + 0] = static_cast<UInt8>(Math::Clamp((R + Range) * InvRange, 0.0f, 1.0f) * 255.0f);
+                    DstData[i * 4 + 1] = static_cast<UInt8>(Math::Clamp((G + Range) * InvRange, 0.0f, 1.0f) * 255.0f);
+                    DstData[i * 4 + 2] = static_cast<UInt8>(Math::Clamp((B + Range) * InvRange, 0.0f, 1.0f) * 255.0f);
+                    DstData[i * 4 + 3] = static_cast<UInt8>(Math::Clamp(A, 0.0f, 1.0f) * 255.0f);
+                }
+                
+                ImageToSave = PNGImage;
+            }
+            else
+            {
+                OutputName.Append(".msdf.exr");
+            }
+            
+            OutputPath = OutputPath.GetParent() / FPath(OutputName);
+            
+            LOG_INFO("Saving atlas image to: {}", OutputPath);
+            LOG_INFO("  Image size: {}x{}", ImageToSave->GetWidth(), ImageToSave->GetHeight());
+            LOG_INFO("  Format: {}", static_cast<Int32>(ImageToSave->GetPixelFormat()));
+            
+            // Save image using AssetHub
+            if (!AssetHub->SaveImage(ImageToSave, OutputPath))
+            {
+                LOG_ERROR("Failed to save atlas image to: {}", OutputPath);
+                return 1;
+            }
+            
+            LOG_INFO("Successfully saved MSDF font atlas to: {}", OutputPath);
+            
             return 0;
         }
 
         if (Command == "Shader")
         {
-            if (I_Argc < 4)
+            if (I_Argc < 3)
             {
-                LOG_ERROR("Shader command requires directory and pattern (both provided by caller)");
-                LOG_INFO("Usage: Visera-Forge Shader \"<directory>\" \"<pattern>\"");
-                LOG_INFO("Example: Visera-Forge Shader \".\\Engine\\Shaders\" \"*.slang\"");
+                LOG_ERROR("Shader command requires path with optional wildcard pattern");
+                LOG_INFO("Usage: Visera-Forge Shader \"<path_with_pattern>\"");
+                LOG_INFO("Example: Visera-Forge Shader \"./Engine/Shaders/*.slang\"");
                 return 1;
             }
             (void)IGlobalService::Register<FTasks>(EName::Tasks);
             (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
 
-            const FPath SearchDir = FPath{I_Argv[2]};
-            const FStringView Pattern = I_Argv[3];
-            LOG_INFO("Searching for shader files in {} matching pattern: {}", SearchDir, Pattern);
+            const FPath PathWithPattern = FPath{I_Argv[2]};
+            LOG_INFO("Searching for shader files matching: {}", PathWithPattern);
 
-            if (!FFileSystem::Exists(SearchDir) || !FFileSystem::IsDirectory(SearchDir))
-            {
-                LOG_ERROR("Directory does not exist or is not a directory: {}", SearchDir);
-                return 1;
-            }
-
-            TArray<FPath> MatchedFiles = FindMatchingFiles(SearchDir, Pattern);
+            TArray<FPath> MatchedFiles = FindMatchingFiles(PathWithPattern);
 
             if (MatchedFiles.IsEmpty())
             {
-                LOG_WARN("No shader files found matching pattern: {}", Pattern);
+                LOG_WARN("No shader files found matching: {}", PathWithPattern);
                 return 1;
             }
 
@@ -198,29 +401,23 @@ namespace Visera::Forge
 
         if (Command == "Validate")
         {
-            if (I_Argc < 4)
+            if (I_Argc < 3)
             {
-                LOG_ERROR("Validate requires directory and pattern (provided by caller)");
-                LOG_INFO("Usage: Visera-Forge Validate \"<directory>\" \"<pattern>\" [no-meta]");
-                LOG_INFO("Example: Visera-Forge Validate \".\\Engine\\Shaders\" \"*.vshader\"");
+                LOG_ERROR("Validate requires path with optional wildcard pattern");
+                LOG_INFO("Usage: Visera-Forge Validate \"<path_with_pattern>\" [no-meta]");
+                LOG_INFO("Example: Visera-Forge Validate \"./Engine/Shaders/*.vshader\"");
                 LOG_INFO("  no-meta: skip writing .vshader.meta (reflection JSON); default is to write.");
                 return 1;
             }
             (void)IGlobalService::Register<FTasks>(EName::Tasks);
             (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
-            const FPath SearchDir = FPath{I_Argv[2]};
-            const FStringView Pattern = I_Argv[3];
-            const Bool OutputMeta = (I_Argc < 5 || (FStringView{I_Argv[4]} != "no-meta" && FStringView{I_Argv[4]} != "0"));
-            LOG_INFO("Validating shader files in {} matching pattern: {} (output .meta: {})", SearchDir, Pattern, OutputMeta);
-            if (!FFileSystem::Exists(SearchDir) || !FFileSystem::IsDirectory(SearchDir))
-            {
-                LOG_ERROR("Directory does not exist or is not a directory: {}", SearchDir);
-                return 1;
-            }
-            TArray<FPath> MatchedFiles = FindMatchingFiles(SearchDir, Pattern);
+            const FPath PathWithPattern = FPath{I_Argv[2]};
+            const Bool OutputMeta = (I_Argc < 4 || (FStringView{I_Argv[3]} != "no-meta" && FStringView{I_Argv[3]} != "0"));
+            LOG_INFO("Validating shader files matching: {} (output .meta: {})", PathWithPattern, OutputMeta);
+            TArray<FPath> MatchedFiles = FindMatchingFiles(PathWithPattern);
             if (MatchedFiles.IsEmpty())
             {
-                LOG_WARN("No files found matching pattern: {}", Pattern);
+                LOG_WARN("No files found matching: {}", PathWithPattern);
                 return 1;
             }
             UInt32 PassCount = 0;

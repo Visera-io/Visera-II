@@ -12,7 +12,7 @@ export import Visera.Core.Types.Pointer;
 export namespace Visera
 {
     /**
-     * Interface for image format loaders.
+     * Interface for image format loaders and exporters.
      * Each image format (PNG, JPEG, etc.) should implement this interface.
      * Internal use only, not exposed to users.
      */
@@ -26,6 +26,15 @@ export namespace Visera
          */
         [[nodiscard]] virtual TSharedPtr<FImage>
         Import(const FPath& I_Path) = 0;
+
+        /**
+         * Exports an FImage to a file path.
+         * @param I_Image The image to export
+         * @param I_Path The path to save the image file
+         * @return True if successful, false otherwise
+         */
+        [[nodiscard]] virtual Bool
+        Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path) = 0;
 
     public:
         virtual ~IImageWrapper() = default;

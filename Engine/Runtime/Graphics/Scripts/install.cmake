@@ -8,9 +8,6 @@ macro(install_visera_graphics in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GRAPHICS_SCRIPTS_DIR})
 
-    include(install_freetype)
-    link_freetype(${in_target})
-
     if(NOT VISERA_OFFSCREEN_MODE)
     include(install_imgui)
     link_imgui(${in_target})

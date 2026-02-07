@@ -45,6 +45,10 @@ export namespace Visera
 		IsNearlyEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
     	template<Concepts::FloatingPoint T> constexpr T
 		Round(T I_Value) { return std::round(I_Value); }
+    	template<Concepts::FloatingPoint T> constexpr T
+		Ceil(T I_Value) { return std::ceil(I_Value); }
+    	template<Concepts::FloatingPoint T> constexpr T
+		Floor(T I_Value) { return std::floor(I_Value); }
 
     	// More Precise (runtime) A * B + C. Falls back during constant-evaluation.
     	template <Concepts::FloatingPoint T> [[nodiscard]] constexpr T

@@ -128,21 +128,6 @@ struct FEngine
         auto TestTexture = Graphics->GetTexture2D(TexID);
 
         auto Material = MakeShared<FMaterial>(FJSON::Load( "Assets/App/Material/BasicSprite.vmaterial").GetValue());
-        //if (Material->IsValid())
-        {
-            const char* SurfaceName = "Unknown";
-            switch (Material->GetSurface())
-            {
-            case ESurfaceType::Opaque:      SurfaceName = "Opaque";      break;
-            case ESurfaceType::Masked:     SurfaceName = "Masked";      break;
-            case ESurfaceType::Transparent: SurfaceName = "Transparent"; break;
-            }
-            LOG_INFO("[Material] Version={} Shader={} Surface={} BaseColorPath={}",
-                     Material->GetVersion(),
-                     Material->GetShader(),
-                     SurfaceName,
-                     Material->GetBaseColorPath());
-        }
 
         Material->SetBaseColorHandle(TexID);
 

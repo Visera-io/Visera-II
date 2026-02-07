@@ -21,6 +21,9 @@ export namespace Visera
         [[nodiscard]] TSharedPtr<FImage>
         Import(const FPath& I_Path) override;
 
+        [[nodiscard]] Bool
+        Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path) override;
+
     private:
         TUniquePtr<FFile> File;
         png_structp PNGHandle = nullptr;
@@ -298,5 +301,119 @@ export namespace Visera
             PNGHandle = nullptr;
             PNGInfo   = nullptr;
         }
+    }
+
+    Bool FPNGImageWrapper::
+    Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path)
+    {
+        // Only check format compatibility, not image validity (validity checked in FAssetHub::SaveImage)
+        const EPixelFormat Format = I_Image->GetPixelFormat();
+        const UInt32 Width = I_Image->GetWidth();
+        const UInt32 Height = I_Image->GetHeight();
+
+        // PNG only supports 8-bit and 16-bit formats
+        // Convert to RGBA8 or RGBA16 based on format
+        Int32 BitDepth = 8;
+        Int32 ColorType = PNG_COLOR_TYPE_RGBA;
+        UInt32 BytesPerChannel = 1;
+
+        switch (Format)
+        {
+        case EPixelFormat::R8_UNorm:
+            ColorType = PNG_COLOR_TYPE_GRAY;
+            break;
+        case EPixelFormat::RG8_UNorm:
+            ColorType = PNG_COLOR_TYPE_GRAY_ALPHA;
+            break;
+        case EPixelFormat::RGB8_UNorm:
+            ColorType = PNG_COLOR_TYPE_RGB;
+            break;
+        case EPixelFormat::RGBA8_UNorm:
+            ColorType = PNG_COLOR_TYPE_RGBA;
+            break;
+        case EPixelFormat::R16_UNorm:
+            BitDepth = 16;
+            BytesPerChannel = 2;
+            ColorType = PNG_COLOR_TYPE_GRAY;
+            break;
+        case EPixelFormat::RG16_UNorm:
+            BitDepth = 16;
+            BytesPerChannel = 2;
+            ColorType = PNG_COLOR_TYPE_GRAY_ALPHA;
+            break;
+        case EPixelFormat::RGB16_UNorm:
+            BitDepth = 16;
+            BytesPerChannel = 2;
+            ColorType = PNG_COLOR_TYPE_RGB;
+            break;
+        case EPixelFormat::RGBA16_UNorm:
+            BitDepth = 16;
+            BytesPerChannel = 2;
+            ColorType = PNG_COLOR_TYPE_RGBA;
+            break;
+        default:
+            LOG_ERROR("Unsupported pixel format for PNG export: {}", static_cast<Int32>(Format));
+            return False;
+        }
+
+        // Open file for writing
+        auto File = FFileSystem::OpenFile(I_Path, EFileMode::Write | EFileMode::Binary);
+        if (!File || !File->IsOpen())
+        {
+            LOG_ERROR("Failed to open PNG file for writing: {}", I_Path);
+            return False;
+        }
+
+        // Create PNG write structures
+        png_structp PNGWrite = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+        if (!PNGWrite)
+        {
+            LOG_ERROR("Failed to create PNG write structure: {}", I_Path);
+            return False;
+        }
+
+        png_infop PNGInfoWrite = png_create_info_struct(PNGWrite);
+        if (!PNGInfoWrite)
+        {
+            LOG_ERROR("Failed to create PNG info structure: {}", I_Path);
+            png_destroy_write_struct(&PNGWrite, nullptr);
+            return False;
+        }
+
+        // Set error handling
+        if (setjmp(png_jmpbuf(PNGWrite)))
+        {
+            LOG_ERROR("Error during PNG writing: {}", I_Path);
+            png_destroy_write_struct(&PNGWrite, &PNGInfoWrite);
+            return False;
+        }
+
+        // Initialize I/O
+        png_init_io(PNGWrite, File->GetHandle());
+
+        // Set image header
+        png_set_IHDR(PNGWrite, PNGInfoWrite, Width, Height, BitDepth, ColorType,
+                     PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+        // Write header
+        png_write_info(PNGWrite, PNGInfoWrite);
+
+        // Get image data
+        const FByte* ImageData = I_Image->GetData();
+        const UInt32 RowPitch = I_Image->GetRowPitchBytes();
+
+        // Write image rows
+        for (UInt32 Row = 0; Row < Height; ++Row)
+        {
+            png_write_row(PNGWrite, const_cast<FByte*>(ImageData + Row * RowPitch));
+        }
+
+        // Write end
+        png_write_end(PNGWrite, PNGInfoWrite);
+
+        // Cleanup
+        png_destroy_write_struct(&PNGWrite, &PNGInfoWrite);
+
+        return True;
     }
 }

@@ -17,6 +17,9 @@ macro(install_visera_assethub in_target)
     include(install_openexr)
     link_openexr(${in_target})
 
+    include(install_freetype)
+    link_freetype(${in_target})
+
     file(GLOB_RECURSE VISERA_ASSETHUB_MODULES "${VISERA_ASSETHUB_SOURCE_DIR}/*.ixx")
 
     target_include_directories(${in_target}
