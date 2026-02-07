@@ -341,7 +341,7 @@ namespace Visera::Forge
             
             LOG_INFO("Saving atlas image to: {}", OutputPath);
             LOG_INFO("  Image size: {}x{}", ImageToSave->GetWidth(), ImageToSave->GetHeight());
-            LOG_INFO("  Format: {}", static_cast<Int32>(ImageToSave->GetPixelFormat()));
+            LOG_INFO("  Format: {}", ImageToSave->GetPixelFormat());
             
             // Save image using AssetHub
             if (!AssetHub->SaveImage(ImageToSave, OutputPath))

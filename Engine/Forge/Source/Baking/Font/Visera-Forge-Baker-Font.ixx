@@ -3,7 +3,6 @@ module;
 #include <msdfgen.h>
 export module Visera.Forge.Baking.Font;
 #define VISERA_MODULE_NAME "Forge.Baking"
-import Visera.AssetHub;
 import Visera.AssetHub.Font;
 import Visera.AssetHub.Font.FreeType;
 import Visera.Core.Image;

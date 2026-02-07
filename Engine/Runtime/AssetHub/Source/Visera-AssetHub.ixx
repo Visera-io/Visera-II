@@ -26,7 +26,7 @@ export namespace Visera
         /** Load .vshader from file. Requires AssetHub (and dependencies) to be registered. */
         [[nodiscard]] TOptional<FShader>
         LoadShader(const FPath& I_Path);
-        /** Load font face from file. Returns a FreeType face wrapper for rendering and MSDF generation. */
+        /** Load font face from file. */
         [[nodiscard]] TSharedPtr<FFont>
         LoadFont(const FPath& I_Path, Int32 I_FaceIndex = 0);
 

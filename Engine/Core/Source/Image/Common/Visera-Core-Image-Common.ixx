@@ -1,6 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#include <stb_image_resize2.h>
 export module Visera.Core.Image.Common;
 #define VISERA_MODULE_NAME "Core.Image"
 
@@ -55,3 +54,42 @@ export namespace Visera
         Invalid,
     };
 }
+
+VISERA_MAKE_FORMATTER(Visera::EColorSpace,
+    const char* ColorSpaceName = "Unknown";
+    switch (I_Formatee)
+    {
+        case Visera::EColorSpace::Linear: ColorSpaceName = "Linear"; break;
+        case Visera::EColorSpace::sRGB:   ColorSpaceName = "sRGB";   break;
+        default: break;
+    },
+    "{}", ColorSpaceName
+);
+
+VISERA_MAKE_FORMATTER(Visera::EPixelFormat,
+    const char* FormatName = "Invalid";
+    switch (I_Formatee)
+    {
+        case Visera::EPixelFormat::R8_UNorm:        FormatName = "R8_UNorm";        break;
+        case Visera::EPixelFormat::RG8_UNorm:       FormatName = "RG8_UNorm";       break;
+        case Visera::EPixelFormat::RGB8_UNorm:      FormatName = "RGB8_UNorm";      break;
+        case Visera::EPixelFormat::RGBA8_UNorm:     FormatName = "RGBA8_UNorm";     break;
+        case Visera::EPixelFormat::BGRA8_UNorm:     FormatName = "BGRA8_UNorm";     break;
+        case Visera::EPixelFormat::R16_UNorm:       FormatName = "R16_UNorm";       break;
+        case Visera::EPixelFormat::RG16_UNorm:      FormatName = "RG16_UNorm";      break;
+        case Visera::EPixelFormat::RGB16_UNorm:     FormatName = "RGB16_UNorm";     break;
+        case Visera::EPixelFormat::RGBA16_UNorm:    FormatName = "RGBA16_UNorm";    break;
+        case Visera::EPixelFormat::R16_Float:       FormatName = "R16_Float";       break;
+        case Visera::EPixelFormat::RG16_Float:      FormatName = "RG16_Float";      break;
+        case Visera::EPixelFormat::RGB16_Float:     FormatName = "RGB16_Float";     break;
+        case Visera::EPixelFormat::RGBA16_Float:    FormatName = "RGBA16_Float";    break;
+        case Visera::EPixelFormat::R32_Float:       FormatName = "R32_Float";       break;
+        case Visera::EPixelFormat::RG32_Float:      FormatName = "RG32_Float";      break;
+        case Visera::EPixelFormat::RGB32_Float:     FormatName = "RGB32_Float";     break;
+        case Visera::EPixelFormat::RGBA32_Float:    FormatName = "RGBA32_Float";    break;
+        case Visera::EPixelFormat::RGBE8_HDR:       FormatName = "RGBE8_HDR";       break;
+        case Visera::EPixelFormat::Invalid:         FormatName = "Invalid";         break;
+        default: break;
+    },
+    "{}", FormatName
+);
