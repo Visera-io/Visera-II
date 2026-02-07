@@ -37,7 +37,7 @@ namespace Visera::Forge
             FString Pattern;
             
             // Check if path contains wildcard characters
-            const FString PathStr = I_PathWithPattern.GetUTF8Path();
+            const FString PathStr = I_PathWithPattern.GetString();
             const Bool HasWildcard = Algorithm::FindIf(PathStr, [](char Ch) { return Ch == '*' || Ch == '?'; }) != PathStr.end();
             
             if (HasWildcard)
@@ -89,8 +89,7 @@ namespace Visera::Forge
             auto AllFiles = FFileSystem::EnumerateFiles(SearchDir, True);
             for (const auto& FilePath : AllFiles)
             {
-                const FString FileName = FilePath.GetFileName().GetUTF8Path();
-                if (WildcardMatch(FileName, Pattern))
+                if (auto FileNameOpt = FilePath.GetFileName(); FileNameOpt.HasValue() && WildcardMatch(*FileNameOpt, Pattern))
                 {
                     Results.PushBack(FilePath);
                 }
@@ -106,7 +105,7 @@ namespace Visera::Forge
             LOG_INFO("Compiling shader: {}", I_SourcePath);
 
             const TArray<FStringView> EntryPoints = {"VertMain", "FragMain"};
-            const FPath ShaderDirectory = I_SourcePath.GetParent();
+            const FPath ShaderDirectory = *I_SourcePath.GetParent();
             FShaderCompiler Compiler;
 
             UInt32 SuccessCount = 0;
@@ -153,7 +152,7 @@ namespace Visera::Forge
                 }
 
                 FPath OutputPath = I_SourcePath;
-                FString OutputName = OutputPath.GetFileName().GetUTF8Path();
+                FString OutputName(*OutputPath.GetFileName());
                 const auto DotPos = OutputName.FindLast(".");
                 if (DotPos != FString::NPos)
                 { OutputName = OutputName.SubString(0, DotPos); }
@@ -161,7 +160,7 @@ namespace Visera::Forge
                 OutputName.Append(".");
                 OutputName.Append(EntryPoint);
                 OutputName.Append(".vshader");
-                OutputPath = OutputPath.GetParent() / FPath(OutputName);
+                OutputPath = *OutputPath.GetParent() / FPath(OutputName);
 
                 if (Save(Shader, OutputPath))
                 {
@@ -289,7 +288,7 @@ namespace Visera::Forge
             
             // Save atlas image
             FPath OutputPath = FontPath;
-            FString OutputName = OutputPath.GetFileName().GetUTF8Path();
+            FString OutputName(*OutputPath.GetFileName());
             const auto DotPos = OutputName.FindLast(".");
             if (DotPos != FString::NPos)
             { OutputName = OutputName.SubString(0, DotPos); }
@@ -337,7 +336,7 @@ namespace Visera::Forge
                 OutputName.Append(".msdf.exr");
             }
             
-            OutputPath = OutputPath.GetParent() / FPath(OutputName);
+            OutputPath = *OutputPath.GetParent() / FPath(OutputName);
             
             LOG_INFO("Saving atlas image to: {}", OutputPath);
             LOG_INFO("  Image size: {}x{}", ImageToSave->GetWidth(), ImageToSave->GetHeight());

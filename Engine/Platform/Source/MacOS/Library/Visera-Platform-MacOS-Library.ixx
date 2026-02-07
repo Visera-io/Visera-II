@@ -38,9 +38,9 @@ namespace Visera
     FMacOSLibrary(const FPath& I_Path)
     : IPlatformLibrary{I_Path}
     {
-        LOG_TRACE("Loading MacOS library {}", Path.GetNativePath().c_str());
+        LOG_TRACE("Loading MacOS library {}", Path.GetNative().c_str());
 
-        Handle = dlopen(I_Path.GetNativePath().c_str(), RTLD_NOW | RTLD_GLOBAL);
+        Handle = dlopen(I_Path.GetNative().c_str(), RTLD_NOW | RTLD_GLOBAL);
         if (!Handle)
         {
             const char* Error = dlerror();

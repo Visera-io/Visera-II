@@ -5,11 +5,16 @@ module;
 export module Visera.Core.Types.String;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Array;
+import Visera.Core.Types.Optional;
 import Visera.Core.Algorithm;
 
 export namespace Visera
 {
     class FString;
+    template<> inline constexpr Bool HasIntrusiveUnsetOptionalState<FString> = True;
+
+    class FStringView;
+    template<> inline constexpr Bool HasIntrusiveUnsetOptionalState<FStringView> = True;
 
     /**
      * Wrapper around std::string_view that satisfies std::ranges::range.
@@ -40,6 +45,7 @@ export namespace Visera
 
     public:
         constexpr FStringView() noexcept = default;
+        constexpr FStringView(FIntrusiveUnsetOptionalState) noexcept {}
         constexpr ~FStringView() = default;
 
         constexpr FStringView(const ViewType& I_View) noexcept
@@ -90,7 +96,7 @@ export namespace Visera
 
         [[nodiscard]] constexpr UInt64 GetSize() const noexcept
         {
-            return static_cast<UInt64>(View.size());
+            return View.size();
         }
 
         [[nodiscard]] constexpr const char* Data() const noexcept
@@ -233,7 +239,13 @@ export namespace Visera
         {
             return View.contains(I_Ch);
         }
+
+        VISERA_CORE_API
+        friend Bool operator==(const FStringView& I_Lhs, FIntrusiveUnsetOptionalState) noexcept;
     };
+
+    inline Bool operator==(const FStringView& I_Lhs, FIntrusiveUnsetOptionalState) noexcept
+    { return I_Lhs.IsEmpty(); }
 
     /**
      * Wrapper around std::string that satisfies std::ranges::range and provides
@@ -268,6 +280,7 @@ export namespace Visera
 
     public:
         FString()  = default;
+        FString(FIntrusiveUnsetOptionalState) noexcept {}
         ~FString() = default;
         FString(const StringType& I_Str) : String(I_Str) {}
         FString(StringType&& I_Str) noexcept : String(std::move(I_Str)) {}
@@ -868,7 +881,15 @@ export namespace Visera
         }
         [[nodiscard]] TArray<FStringView>
         SplitToViews(FStringView I_Delimiter) const && = delete;
+
+        VISERA_CORE_API
+        friend Bool operator==(const FString& I_Lhs, FIntrusiveUnsetOptionalState) noexcept;
     };
+
+    inline Bool operator==(const FString& I_Lhs, FIntrusiveUnsetOptionalState) noexcept
+    { return I_Lhs.IsEmpty(); }
+    static_assert(sizeof(TOptional<FString>) == sizeof(FString));
+    static_assert(sizeof(TOptional<FStringView>) == sizeof(FStringView));
 
     inline FStringView::FStringView(const FString& I_Str)
         : View(I_Str.GetNative())

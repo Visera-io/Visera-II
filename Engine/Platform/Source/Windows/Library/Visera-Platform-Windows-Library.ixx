@@ -48,7 +48,7 @@ namespace Visera
         LOG_TRACE("Loading Windows library: {}", I_Path);
         
         // Get the native path string
-        const FString UTF8Path = I_Path.GetUTF8Path();
+        const FString UTF8Path = I_Path.GetString();
         
         // Convert path to wide string for Windows API
         int WideLength = MultiByteToWideChar(CP_UTF8, 0, UTF8Path.Data(), -1, nullptr, 0);

@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 #include <fstream>
 #include <filesystem>
-#include <cstdio>
+#include <system_error>
 export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
@@ -14,7 +14,26 @@ export import Visera.Core.Traits.Flags;
 
 export namespace Visera
 {
-    using SFileSystemError = std::filesystem::filesystem_error;
+    enum class EIOError : UInt8
+    {
+        None             = 0,
+        NotFound         = 1,
+        PermissionDenied  = 2,
+        Other            = 3,
+    };
+
+    [[nodiscard]] inline EIOError ToEIOError(const std::error_code& I_Ec) noexcept
+    {
+        if (!I_Ec) return EIOError::None;
+        if (I_Ec == std::errc::no_such_file_or_directory) return EIOError::NotFound;
+        if (I_Ec == std::errc::permission_denied) return EIOError::PermissionDenied;
+        return EIOError::Other;
+    }
+
+    inline std::filesystem::path ToFilesystemPath(const FPath& I_Path) noexcept
+    {
+        return std::filesystem::path(I_Path.GetString().GetNative());
+    }
 
     enum class EStreamMode : Int32
     {
@@ -38,16 +57,16 @@ export namespace Visera
     class VISERA_CORE_API FFileSystem
     {
     public:
-        [[nodiscard]] FErrorCode static inline
+        [[nodiscard]] EIOError static inline
         CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
         [[nodiscard]] Bool static inline
-        IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(I_Path.GetNativePath()); }
-        [[nodiscard]] FErrorCode static inline
+        IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(ToFilesystemPath(I_Path)); }
+        [[nodiscard]] EIOError static inline
         CreateDirectory(const FPath& I_Path);
-        [[nodiscard]] FErrorCode static inline
+        [[nodiscard]] EIOError static inline
         DeleteDirectory(const FPath& I_Path, Bool I_bForce = False);
         [[nodiscard]] Bool static inline
-        Exists(const FPath& I_Path) { return std::filesystem::exists(I_Path.GetNativePath()); }
+        Exists(const FPath& I_Path) { return std::filesystem::exists(ToFilesystemPath(I_Path)); }
         [[nodiscard]] TUniquePtr<std::ifstream> static inline
         OpenIStream(const FPath& I_Path, EStreamMode I_Mode = EStreamMode::None);
         [[nodiscard]] TUniquePtr<std::ofstream> static inline
@@ -69,68 +88,64 @@ export namespace Visera
         GetFileModeString(EFileMode I_Mode);
     };
 
-    FErrorCode FFileSystem::
+    EIOError FFileSystem::
     CreateDirectory(const FPath& I_Path)
     {
-        FErrorCode ErrorCode;
-        if (!std::filesystem::exists(I_Path.GetNativePath(), ErrorCode))
+        const auto Path = ToFilesystemPath(I_Path);
+        std::error_code Ec;
+        if (!std::filesystem::exists(Path, Ec))
         {
-            std::filesystem::create_directories(I_Path.GetNativePath(), ErrorCode);
+            std::filesystem::create_directories(Path, Ec);
         }
-        return ErrorCode;
+        return ToEIOError(Ec);
     }
 
-    FErrorCode FFileSystem::
+    EIOError FFileSystem::
     DeleteDirectory(const FPath& I_Path, Bool I_bForce/* = False*/)
     {
-        FErrorCode ErrorCode;
-
-        if (std::filesystem::exists(I_Path.GetNativePath(), ErrorCode)      &&
-            std::filesystem::is_directory(I_Path.GetNativePath(), ErrorCode))
+        const auto Path = ToFilesystemPath(I_Path);
+        std::error_code Ec;
+        if (std::filesystem::exists(Path, Ec) && std::filesystem::is_directory(Path, Ec))
         {
             if (I_bForce)
-            { std::filesystem::remove_all(I_Path.GetNativePath(), ErrorCode); }
+            { std::filesystem::remove_all(Path, Ec); }
             else
             {
-                if (std::filesystem::is_empty(I_Path.GetNativePath(), ErrorCode))
-                { std::filesystem::remove(I_Path.GetNativePath(), ErrorCode); }
+                if (std::filesystem::is_empty(Path, Ec))
+                { std::filesystem::remove(Path, Ec); }
             }
         }
-        return ErrorCode;
+        return ToEIOError(Ec);
     }
 
-    FErrorCode FFileSystem::
+    EIOError FFileSystem::
     CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath)
     {
-        FErrorCode ErrorCode;
-
-        // I_TargetPath should exist (the file/directory to link to)
-        if (!std::filesystem::exists(I_TargetPath.GetNativePath(), ErrorCode))
-        { return ErrorCode; }
-
-        // I_SourcePath should not exist (the symlink to be created)
-        if (std::filesystem::exists(I_SourcePath.GetNativePath(), ErrorCode))
-        { return ErrorCode; }
-
-        // create_symlink(target, link_path) - create a symlink at link_path pointing to target
-        std::filesystem::create_symlink(I_TargetPath.GetNativePath(),
-                                        I_SourcePath.GetNativePath(),
-                                        ErrorCode);
-        return ErrorCode;
+        const auto SourcePath = ToFilesystemPath(I_SourcePath);
+        const auto TargetPath = ToFilesystemPath(I_TargetPath);
+        std::error_code Ec;
+        if (!std::filesystem::exists(TargetPath, Ec))
+        { return ToEIOError(Ec); }
+        if (std::filesystem::exists(SourcePath, Ec))
+        { return ToEIOError(Ec); }
+        std::filesystem::create_symlink(TargetPath, SourcePath, Ec);
+        return ToEIOError(Ec);
     }
 
     TUniquePtr<std::ifstream> FFileSystem::
     OpenIStream(const FPath& I_Path, EStreamMode I_Mode)
     {
-        auto IStream = MakeUnique<std::ifstream>(I_Path.GetNativePath(), ToUnderlying(I_Mode));
-        return IStream->is_open()? std::move(IStream) : nullptr;
+        const auto Path = ToFilesystemPath(I_Path);
+        auto IStream = MakeUnique<std::ifstream>(Path, ToUnderlying(I_Mode));
+        return IStream->is_open() ? std::move(IStream) : nullptr;
     }
 
     TUniquePtr<std::ofstream> FFileSystem::
     OpenOStream(const FPath& I_Path, EStreamMode I_Mode)
     {
-        auto OStream = MakeUnique<std::ofstream>(I_Path.GetNativePath(), ToUnderlying(I_Mode));
-        return OStream->is_open()? std::move(OStream) : nullptr;
+        const auto Path = ToFilesystemPath(I_Path);
+        auto OStream = MakeUnique<std::ofstream>(Path, ToUnderlying(I_Mode));
+        return OStream->is_open() ? std::move(OStream) : nullptr;
     }
 
     inline const char* FFileSystem::
@@ -159,8 +174,9 @@ export namespace Visera
     OpenFile(const FPath& I_Path, EFileMode I_Mode)
     {
         const char* ModeStr = GetFileModeString(I_Mode);
-        const FString PathString = I_Path.GetUTF8Path();
-        FILE* Handle = std::fopen(PathString.Data(), ModeStr);
+        const auto Path = ToFilesystemPath(I_Path);
+        const std::string PathString = Path.generic_string();
+        FILE* Handle = std::fopen(PathString.c_str(), ModeStr);
         if (Handle == nullptr) { return nullptr; }
         return MakeUnique<FFile>(Handle);
     }
@@ -169,43 +185,32 @@ export namespace Visera
     EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive)
     {
         TArray<FPath> Results;
-        FErrorCode ErrorCode;
-
-        if (!std::filesystem::exists(I_Directory.GetNativePath(), ErrorCode) ||
-            !std::filesystem::is_directory(I_Directory.GetNativePath(), ErrorCode))
-        {
-            return Results;
-        }
+        const auto DirPath = ToFilesystemPath(I_Directory);
+        std::error_code Ec;
+        if (!std::filesystem::exists(DirPath, Ec) || !std::filesystem::is_directory(DirPath, Ec))
+        { return Results; }
 
         try
         {
             if (I_bRecursive)
             {
-                for (const auto& Entry : std::filesystem::recursive_directory_iterator(
-                         I_Directory.GetNativePath(), ErrorCode))
+                for (const auto& Entry : std::filesystem::recursive_directory_iterator(DirPath, Ec))
                 {
-                    if (Entry.is_regular_file(ErrorCode))
-                    {
-                        Results.PushBack(FPath(Entry.path().u8string()));
-                    }
+                    if (Entry.is_regular_file(Ec))
+                    { Results.PushBack(FPath(Entry.path().u8string())); }
                 }
             }
             else
             {
-                for (const auto& Entry : std::filesystem::directory_iterator(
-                         I_Directory.GetNativePath(), ErrorCode))
+                for (const auto& Entry : std::filesystem::directory_iterator(DirPath, Ec))
                 {
-                    if (Entry.is_regular_file(ErrorCode))
-                    {
-                        Results.PushBack(FPath(Entry.path().u8string()));
-                    }
+                    if (Entry.is_regular_file(Ec))
+                    { Results.PushBack(FPath(Entry.path().u8string())); }
                 }
             }
         }
         catch (const std::filesystem::filesystem_error&)
-        {
-            // Error already handled by ErrorCode
-        }
+        { }
 
         return Results;
     }

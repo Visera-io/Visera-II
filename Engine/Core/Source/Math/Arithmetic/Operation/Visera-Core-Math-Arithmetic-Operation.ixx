@@ -29,18 +29,18 @@ export namespace Visera
 		UpperBound() { return std::numeric_limits<NumT>::max(); }
     	template<Concepts::Arithmetical NumT> [[nodiscard]] constexpr NumT
 		LowerBound() { return std::numeric_limits<NumT>::min(); }
-    	template <Concepts::FloatingPoint T> [[nodiscard]] Bool
+    	template <Concepts::FloatingPoint T> [[nodiscard]] constexpr Bool
 		IsNaN(T I_Num) { return std::isnan(I_Num); }
-    	template <Concepts::Integral T> [[nodiscard]] Bool
+    	template <Concepts::Integral T> [[nodiscard]] constexpr Bool
 		IsNaN(T I_Num) { return False; }
-    	template <Concepts::FloatingPoint T> [[nodiscard]] Bool
+    	template <Concepts::FloatingPoint T> [[nodiscard]] constexpr Bool
 		IsInfinite(T I_Num) { return std::isinf(I_Num); }
-    	template <Concepts::Integral T> [[nodiscard]] Bool
+    	template <Concepts::Integral T> [[nodiscard]] constexpr Bool
 		IsInfinite(T I_Num) { return False; }
-    	template <Concepts::FloatingPoint T> [[nodiscard]] Bool
+    	template <Concepts::FloatingPoint T> [[nodiscard]] constexpr Bool
 		IsFinite(T I_Num) { return std::isfinite(I_Num); }
-    	template <Concepts::Integral T> [[nodiscard]] Bool
-		IsFinite(T I_Num) { return true; }
+    	template <Concepts::Integral T> [[nodiscard]] constexpr Bool
+		IsFinite(T I_Num) { return True; }
     	template<Concepts::FloatingPoint NumT> [[nodiscard]] constexpr Bool
 		IsNearlyEqual(NumT I_NumA, NumT I_NumB) { return Abs(I_NumA - I_NumB) <= Epsilon<NumT>(); }
     	template<Concepts::FloatingPoint T> constexpr T
@@ -73,16 +73,16 @@ export namespace Visera
 			return I_Value;
 		}
 
-    	template<Concepts::Arithmetical NumT, Concepts::Integral IntT> [[nodiscard]] Double
+		// Fast exponentiation (binary exponentiation). Constexpr for use at compile time and runtime.
+		template<Concepts::Arithmetical NumT, Concepts::Integral IntT> [[nodiscard]] constexpr Double
 		Pow(NumT I_Base, IntT I_Exp)
-    	{
+		{
 			if (I_Exp < 0)
 			{
-				// For integer types, negative exponents would truncate to 0, so we use double
 				if constexpr (std::is_integral_v<NumT>)
-				{ return static_cast<NumT>(1.0 / Pow(static_cast<Double>(I_Base), -I_Exp)); }
+				{ return 1.0 / Pow(static_cast<Double>(I_Base), static_cast<IntT>(-I_Exp)); }
 				else
-				{ return static_cast<NumT>(1.0 / Pow(I_Base, -I_Exp)); }
+				{ return static_cast<Double>(1.0 / Pow(I_Base, -I_Exp)); }
 			}
 
 			Double Result = 1.0;

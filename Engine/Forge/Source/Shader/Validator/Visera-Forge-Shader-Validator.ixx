@@ -283,9 +283,9 @@ export namespace Visera::Forge
             Meta.Append(Indent(4)).Append("}\n");
             Meta.Append("}\n");
 
-            FString MetaFileName = I_VshaderPath.GetFileName().GetUTF8Path();
+            FString MetaFileName(*I_VshaderPath.GetFileName());
             MetaFileName += ".meta";
-            const FPath MetaPath = I_VshaderPath.GetParent() / FPath(MetaFileName);
+            const FPath MetaPath = *I_VshaderPath.GetParent() / FPath(MetaFileName);
             if (auto Stream = FFileSystem::OpenOStream(MetaPath); Stream)
             { *Stream << Meta.GetNative(); }
         }

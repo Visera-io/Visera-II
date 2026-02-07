@@ -158,7 +158,7 @@ namespace Visera
         if (!Function)
         {
             auto Result = LoadAssemblyAndGetFunctionPointer(
-                DLLPath.GetNativePath().c_str(), // [WARN]: Use .dll instead of .dylib on MacOS!
+                DLLPath.GetNative().c_str(), // [WARN]: Use .dll instead of .dylib on MacOS!
                 PLATFORM_STRING("App, Visera-App"),
                 I_Name.data(),
                 nullptr,
@@ -205,10 +205,10 @@ namespace Visera
 
         auto HostFXRInitInfo = hostfxr_initialize_parameters
         {
-            .dotnet_root = I_DotNETScriptingRoot.GetNativePath().c_str(),
+            .dotnet_root = I_DotNETScriptingRoot.GetNative().c_str(),
         };
         if (HostFXR::InitializeForScriptingConfig(
-            ScriptingConfigPath.GetNativePath().c_str(),
+            ScriptingConfigPath.GetNative().c_str(),
             &HostFXRInitInfo,
             &Context) != HostFXR::Success || !Context)
         {
@@ -241,12 +241,12 @@ namespace Visera
         TArray<const char_t*> Argv(I_Args.size());
         for (UInt8 Idx = 0; Idx < Args.size(); Idx++)
         {
-            Argv[Idx] = Args[Idx].GetNativePath().c_str();
+            Argv[Idx] = Args[Idx].GetNative().c_str();
         };
 
         auto HostFXRInitInfo = hostfxr_initialize_parameters
         {
-            .dotnet_root = I_DotNETScriptingRoot.GetNativePath().c_str(),
+            .dotnet_root = I_DotNETScriptingRoot.GetNative().c_str(),
         };
 
         auto Status = HostFXR::InitializeForDotNETCommandLine(

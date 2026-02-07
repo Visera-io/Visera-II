@@ -30,7 +30,7 @@ export namespace Visera
     {
         try
         {
-            Imf::RgbaInputFile File(I_Path.GetUTF8Path().Data());
+            Imf::RgbaInputFile File(I_Path.GetString().Data());
             const Imath::Box2i DW = File.dataWindow();
 
             const Int32 Width  = DW.max.x - DW.min.x + 1;
@@ -167,7 +167,7 @@ export namespace Visera
 
             // Create EXR file
             Imf::RgbaOutputFile File(
-                I_Path.GetUTF8Path().Data(),
+                I_Path.GetString().Data(),
                 Width, Height,
                 Imf::WRITE_RGBA
             );

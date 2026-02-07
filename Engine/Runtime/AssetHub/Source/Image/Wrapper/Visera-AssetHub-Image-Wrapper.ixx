@@ -48,22 +48,23 @@ export namespace Visera
     [[nodiscard]] inline EImageFormat
     DetectImageFormat(const FPath& I_Path)
     {
-        const FPath   Extension = I_Path.GetExtension();
-        const FString ExtStr = Extension.GetUTF8Path();
-        
-        if (ExtStr == ".png" || ExtStr == ".PNG")
-        { return EImageFormat::PNG; }
+        if (auto R = I_Path.GetExtension(); R.HasValue())
+        {
+            const FStringView Extension = *R;
 
-        if (ExtStr == ".exr" || ExtStr == ".EXR")
-        { return EImageFormat::EXR; }
+            if (Extension == ".png" || Extension == ".PNG")
+            { return EImageFormat::PNG; }
 
-        // OpenJPH supports JPEG2000 / HTJ2K codestreams (J2K/J2C/JPH).
-        if (ExtStr == ".jp2" || ExtStr == ".JP2" ||
-            ExtStr == ".j2k" || ExtStr == ".J2K" ||
-            ExtStr == ".j2c" || ExtStr == ".J2C" ||
-            ExtStr == ".jph" || ExtStr == ".JPH")
-        { return EImageFormat::JPEG2000; }
+            if (Extension == ".exr" || Extension == ".EXR")
+            { return EImageFormat::EXR; }
 
+            // OpenJPH supports JPEG2000 / HTJ2K codestreams (J2K/J2C/JPH).
+            if (Extension == ".jp2" || Extension == ".JP2" ||
+                Extension == ".j2k" || Extension == ".J2K" ||
+                Extension == ".j2c" || Extension == ".J2C" ||
+                Extension == ".jph" || Extension == ".JPH")
+            { return EImageFormat::JPEG2000; }
+        }
         return EImageFormat::Invalid;
     }
 }

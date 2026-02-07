@@ -268,7 +268,7 @@ export namespace Visera
 			return NullOpt;
 		}
 
-		const Error LoadError = FT_New_Face(Library, I_Path.GetUTF8Path().Data(), I_FaceIndex, &I_OutFace);
+		const Error LoadError = FT_New_Face(Library, I_Path.GetString().Data(), I_FaceIndex, &I_OutFace);
 		if (LoadError != ErrOk)
 		{
 			LOG_ERROR("Failed to load font face from file {}: {}", I_Path, LoadError);

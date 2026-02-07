@@ -62,7 +62,7 @@ struct FEngine
         LOG_INFO("Visera Engine Run()");
 
         FRHICommandList Commands;
-        FJSON Config = FJSON::Load("Assets/App/Configs/config.json").GetValue();
+        FJSON Config = FJSON::Load(FPath{"Assets/App/Configs/config.json"}).GetValue();
 
         auto TexturePath = Config.GetPath("Assets.Textures[0]"_JQL);
         TSharedPtr<FImage> TestImage  = AssetHub->LoadImage(TexturePath);
@@ -127,7 +127,7 @@ struct FEngine
 
         auto TestTexture = Graphics->GetTexture2D(TexID);
 
-        auto Material = MakeShared<FMaterial>(FJSON::Load( "Assets/App/Material/BasicSprite.vmaterial").GetValue());
+        auto Material = MakeShared<FMaterial>(FJSON::Load(FPath{"Assets/App/Material/BasicSprite.vmaterial"}).GetValue());
 
         Material->SetBaseColorHandle(TexID);
 

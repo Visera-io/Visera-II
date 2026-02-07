@@ -9,6 +9,7 @@ export module Visera.Platform.MacOS;
 import Visera.Platform.Interface;
 import Visera.Platform.MacOS.Window;
 import Visera.Platform.MacOS.Library;
+import Visera.Core.Types.Path;
 import Visera.Core.Types.String;
 import Visera.Core.OS.FileSystem;
 import Visera.Global.Log;
@@ -16,46 +17,76 @@ import Visera.Global.Log;
 export namespace Visera
 {
 #if defined(VISERA_ON_APPLE_SYSTEM)
+    export class VISERA_PLATFORM_API FMacOSPath : public IPlatformPath
+    {
+    public:
+        explicit FMacOSPath(const FPath& I_Path) : Native(I_Path.GetString().GetNative())
+        {
+            VISERA_ASSERT(I_Path.IsNormalized());
+        }
+        explicit FMacOSPath(std::string_view I_Native) : Native(I_Native) {}
+        [[nodiscard]] operator std::string_view() const noexcept { return Native; }
+        [[nodiscard]] FPath ToPath() const override { return FPath(FString(*this)); }
+
+    private:
+        std::string Native;
+    };
+
     class VISERA_PLATFORM_API FMacOSPlatform : public IPlatform
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const FPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
-        [[nodiscard]] const FPath&
-        GetExecutableDirectory() const override { return ExecutableDirectory; }
-        [[nodiscard]] const FPath&
-        GetResourceDirectory() const override { return ResourceDirectory; }
-        [[nodiscard]] const FPath&
-        GetFrameworkDirectory() const override { return FrameworkDirectory; }
+        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(static_cast<const FMacOSPath&>(I_Path).ToPath()); }
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetExecutableDirectory() const override;
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetResourceDirectory() const override;
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetFrameworkDirectory() const override;
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
-    private:
-        FPath ExecutableDirectory;
-        FPath ResourceDirectory;
-        FPath FrameworkDirectory;
 
     public:
         FMacOSPlatform();
         ~FMacOSPlatform() override = default;
     };
 
-    FMacOSPlatform::
-    FMacOSPlatform() : IPlatform{EPlatform::MacOS}
+    FMacOSPlatform::FMacOSPlatform() : IPlatform{EPlatform::MacOS} {}
+
+    TUniquePtr<IPlatformPath> FMacOSPlatform::GetExecutableDirectory() const
     {
         char Path[PATH_MAX];
         uint32_t PathLength = sizeof(Path);
-        if (_NSGetExecutablePath(Path, &PathLength) == 0/*Success(0)*/)
-        {
-            ExecutableDirectory = FPath{Path}.GetParent();
-        }
-        else { LOG_FATAL("Failed to get executable path!"); }
+        if (_NSGetExecutablePath(Path, &PathLength) != 0)
+        { LOG_FATAL("Failed to get executable path!"); }
+        const FPath ExePath(FString(Path));
+        if (auto Parent = ExePath.GetParent(); Parent.HasValue())
+            return MakeUnique<FMacOSPath>(Parent->GetValue().GetString().GetNative());
+        return nullptr;
+    }
 
-        ResourceDirectory  = ExecutableDirectory.GetParent() / FPath{"Resources"};
-        FrameworkDirectory = ExecutableDirectory.GetParent() / FPath{"Frameworks"};
+    TUniquePtr<IPlatformPath> FMacOSPlatform::GetResourceDirectory() const
+    {
+        if (TUniquePtr<IPlatformPath> Exec = GetExecutableDirectory(); Exec)
+        {
+            const FPath ExecDir = Exec->ToPath();
+            return MakeUnique<FMacOSPath>((ExecDir / FPath{"Resources"}).GetString().GetNative());
+        }
+        return nullptr;
+    }
+
+    TUniquePtr<IPlatformPath> FMacOSPlatform::GetFrameworkDirectory() const
+    {
+        if (TUniquePtr<IPlatformPath> Exec = GetExecutableDirectory(); Exec)
+        {
+            const FPath ExecDir = Exec->ToPath();
+            return MakeUnique<FMacOSPath>((ExecDir / FPath{"Frameworks"}).GetString().GetNative());
+        }
+        return nullptr;
     }
 
     TUniquePtr<IPlatformWindow> FMacOSPlatform::

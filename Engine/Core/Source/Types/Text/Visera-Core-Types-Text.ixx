@@ -13,8 +13,10 @@ export namespace Visera
     class VISERA_CORE_API FText
     {
     public:
-        [[nodiscard]] static Bool
-        ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String.Data(), static_cast<size_t>(I_String.GetSize())); }
+        [[nodiscard]] static constexpr Bool
+        ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String.GetNative()); }
+        [[nodiscard]] static consteval Bool
+        ValidateUTF8(const char* I_Literal, size_t I_Size);
 
         [[nodiscard]] const FString&
         GetString()   const &  { return String; }
@@ -62,10 +64,9 @@ export namespace Visera
         operator+=(const FText& I_Other) { String.Append(I_Other.String); return *this; }
 
         FText() = default;
-        FText(FStringView I_String) : String{I_String} { VISERA_ASSERT(ValidateUTF8(String)); }
+        FText(FStringView I_String) : String{I_String} { VISERA_ASSERT(simdutf::validate_utf8(String.Data(), String.GetSize())); }
         template <size_t N> constexpr
         FText(const char (&I_Literal)[N]) { String.Assign(I_Literal, N - 1); }
-        FText(FWideStringView I_Text);
         FText(const FText&)                      = default;
         FText(FText&&)                  noexcept = default;
         FText& operator=(const FText&)           = default;
@@ -140,47 +141,56 @@ export namespace Visera
         I_Boolean? String.Assign("true") : String.Assign("false");
     }
 
-    FText::
-    FText(FWideStringView I_Text)
-    {
-        const UInt64 WideLength = I_Text.length();
-        if (WideLength == 0) 
-        {
-            String.Clear();
-            return;
-        }
-        const UInt64 UTF8Length = simdutf::utf8_length_from_utf16(
-            reinterpret_cast<const char16_t*>(I_Text.data()),
-            WideLength
-        );
-        
-        if (UTF8Length == 0) 
-        {
-            String.Clear();
-            return;
-        }
-
-        String.Resize(UTF8Length);
-        const UInt64 Written = simdutf::convert_utf16_to_utf8(
-            reinterpret_cast<const char16_t*>(I_Text.data()),
-            WideLength,
-            String.Data()
-        );
-
-        if (Written == 0 || Written != UTF8Length)
-        {
-            String.Clear();
-            return;
-        }
-        // Validate the converted UTF8 string
-        VISERA_ASSERT(ValidateUTF8(String));
-    }
-
     // 👨‍👩‍👧‍👦 has multiple Codepoints!
     UInt64 FText::
     GetCodepointCount() const noexcept
     {
         return simdutf::count_utf8(String.Data(), static_cast<size_t>(String.GetSize()));
     }
+
+    Bool FText::
+    ValidateUTF8(const char* I_Literal, size_t I_Size)
+    {
+        size_t i = 0;
+        while (i < I_Size)
+        {
+            unsigned char c = (unsigned char)I_Literal[i];
+            if (c <= 0x7F) { ++i; continue; }
+
+            auto cont = [&](int k) {
+                if (i + (size_t)k >= I_Size) return false;
+                for (int j = 1; j <= k; ++j)
+                    if (((unsigned char)I_Literal[i + j] & 0xC0) != 0x80) return false;
+                return true;
+            };
+
+            if ((c & 0xE0) == 0xC0)
+            {
+                if (c < 0xC2) return false;
+                if (!cont(1)) return false;
+                i += 2;
+            }
+            else if ((c & 0xF0) == 0xE0)
+            {
+                if (!cont(2)) return false;
+                unsigned char c1 = (unsigned char)I_Literal[i + 1];
+                if (c == 0xE0 && c1 < 0xA0) return false;
+                if (c == 0xED && c1 >= 0xA0) return false;
+                i += 3;
+            }
+            else if ((c & 0xF8) == 0xF0)
+            {
+                if (c > 0xF4) return false;
+                if (!cont(3)) return false;
+                unsigned char c1 = (unsigned char)I_Literal[i + 1];
+                if (c == 0xF0 && c1 < 0x90) return false;
+                if (c == 0xF4 && c1 > 0x8F) return false;
+                i += 4;
+            }
+            else return false;
+        }
+        return true;
+    }
+
 }
 VISERA_MAKE_FORMATTER(Visera::FText, {}, "{}", I_Formatee.GetData());

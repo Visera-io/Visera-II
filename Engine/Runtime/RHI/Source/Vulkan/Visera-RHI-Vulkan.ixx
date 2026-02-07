@@ -254,12 +254,12 @@ export namespace Visera
     FVulkanDriver()
     {
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        auto VulkanICDPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan/MoltenVK_icd.json"}.GetUTF8Path();
+        auto VulkanICDPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan/MoltenVK_icd.json"}.GetString();
         if (!FPlatform::SetEnvironmentVariable(
             "VK_ICD_FILENAMES", VulkanICDPath))
         { LOG_FATAL("Failed to set \"VK_ICD_FILENAMES\" as {}!", VulkanICDPath); }
 #if !defined(VISERA_RELEASE_MODE)
-        auto VulkanLayerPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan"}.GetUTF8Path();
+        auto VulkanLayerPath = FPath{ FPlatform::GetResourceDirectory() / "Vulkan"}.GetString();
         if (!FPlatform::SetEnvironmentVariable(
             "VK_LAYER_PATH", VulkanLayerPath))
         { LOG_FATAL("Failed to set \"VK_LAYER_PATH\" as {}!", VulkanLayerPath); }
@@ -1257,7 +1257,7 @@ export namespace Visera
         PipelineCache = new FVulkanPipelineCache(
             GPU.Context,
             Device.Context,
-            FPlatform::GetCacheDirectory() / "VulkanPipelines.cache"
+            FPlatform::GetCacheDirectory() / FPath{"VulkanPipelines.cache"}
         );
     }
 

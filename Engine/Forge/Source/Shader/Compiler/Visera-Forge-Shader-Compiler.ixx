@@ -73,7 +73,7 @@ export namespace Visera::Forge
     	[[nodiscard]] Bool
     	CreateSession();
     	void inline
-    	Process(const FPath&  I_File, FStringView   I_EntryPoint);
+    	Process(FStringView I_File, FStringView I_EntryPoint);
     	[[nodiscard]] inline const char*
     	GetErrorMessage(const Slang::ComPtr<slang::IBlob>& I_Diagnostics) const { return static_cast<const char*>(I_Diagnostics->getBufferPointer()); }
     };
@@ -81,7 +81,7 @@ export namespace Visera::Forge
 	Bool FShaderCompiler::
 	AddSearchPath(const FPath& I_Path)
 	{
-		auto Path = I_Path.GetUTF8Path();
+		auto Path = I_Path.GetString();
 		if (!SearchPaths.Contains(Path))
 		{
 			SearchPaths.Emplace(std::move(Path));
@@ -95,7 +95,7 @@ export namespace Visera::Forge
     TArray<FByte> FShaderCompiler::
     Compile(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory)
     {
-		const Bool HadPath = SearchPaths.Contains(I_SearchDirectory.GetUTF8Path());
+		const Bool HadPath = SearchPaths.Contains(I_SearchDirectory.GetString());
 		if (!HadPath) { (void)AddSearchPath(I_SearchDirectory); }
 
 		if (!Session || !HadPath)
@@ -105,7 +105,7 @@ export namespace Visera::Forge
 			if (!CreateSession())
 			{ LOG_FATAL("Failed to create the Slang Session!"); }
 		}
-		Process(I_Path.GetFileName(), I_EntryPoint);
+		Process(*I_Path.GetFileName(), I_EntryPoint);
 		const FByte* Buffer = static_cast<const FByte*>(Session->CompiledCode->getBufferPointer());
 
 		auto ShaderCode = TArray<FByte>(
@@ -166,7 +166,7 @@ export namespace Visera::Forge
     }
 
      void FShaderCompiler::
-	 Process(const FPath& I_File, FStringView  I_EntryPoint)
+	 Process(FStringView I_File, FStringView I_EntryPoint)
 	 {
     	VISERA_ASSERT(Context && Session);
 
@@ -176,7 +176,7 @@ export namespace Visera::Forge
 	 	// Create Shader Module
 	 	Slang::ComPtr<slang::IModule> ShaderModule
     	{
-    		Session->Handle->loadModule(I_File.GetUTF8Path().Data(),
+    		Session->Handle->loadModule(I_File.Data(),
     		Diagnostics.writeRef())
     	};
 	 	if (Diagnostics)
@@ -240,38 +240,44 @@ export namespace Visera::Forge
             return Reflection;
         }
 
-        // Extract EntryPoints
+        // Resolve current entry point only (this .vshader is built for a single entry point).
+        slang::EntryPointLayout* CurrentEP = nullptr;
         const auto EntryPointCount = ShaderLayout->getEntryPointCount();
         for (SlangUInt i = 0; i < EntryPointCount; ++i)
         {
-            auto* EntryPointRef = ShaderLayout->getEntryPointByIndex(i);
-            if (!EntryPointRef) continue;
-
-            FShaderReflection::FEntryPoint EP;
-            EP.Name = FString(EntryPointRef->getName());
-
-            // Convert Slang stage to string
-            const auto Stage = EntryPointRef->getStage();
-            switch (Stage)
+            auto* EP = ShaderLayout->getEntryPointByIndex(i);
+            if (EP && FStringView(EP->getName()) == I_EntryPoint)
             {
-            case SLANG_STAGE_VERTEX: EP.Stage = "Vertex"; break;
-            case SLANG_STAGE_FRAGMENT: EP.Stage = "Fragment"; break;
-            case SLANG_STAGE_COMPUTE: EP.Stage = "Compute"; break;
-            case SLANG_STAGE_GEOMETRY:
-            case SLANG_STAGE_HULL:
-            case SLANG_STAGE_DOMAIN:
-            default: continue; // Skip unsupported stages (Geometry/Tessellation removed for now)
+                CurrentEP = EP;
+                break;
             }
+        }
+        if (!CurrentEP && EntryPointCount > 0)
+            CurrentEP = ShaderLayout->getEntryPointByIndex(0);
 
-            Reflection.EntryPoints.PushBack(std::move(EP));
+        if (!CurrentEP)
+        {
+            LOG_ERROR("No entry point found for Shader({}).", I_Path);
+            return Reflection;
         }
 
-        auto AddStage = [](TArray<FString>& IO_Stages, FStringView I_Stage)
+        // Single entry point stage (no union, no All fallback).
+        FStringView StageName;
+        switch (CurrentEP->getStage())
         {
-            if (I_Stage.IsEmpty()) return;
-            for (const auto& S : IO_Stages) { if (S == I_Stage) return; }
-            IO_Stages.PushBack(FString(I_Stage));
-        };
+        case SLANG_STAGE_VERTEX:   StageName = "Vertex";   break;
+        case SLANG_STAGE_FRAGMENT: StageName = "Fragment"; break;
+        case SLANG_STAGE_COMPUTE:  StageName = "Compute";  break;
+        case SLANG_STAGE_GEOMETRY:
+        case SLANG_STAGE_HULL:
+        case SLANG_STAGE_DOMAIN:
+        default:
+            LOG_ERROR("Unsupported stage for entry point {} in Shader({}).", I_EntryPoint, I_Path);
+            return Reflection;
+        }
+
+        // EntryPoints[0] only.
+        Reflection.EntryPoints.PushBack({ FString(CurrentEP->getName()), FString(StageName) });
 
         auto ArrayUnwrap = [](slang::TypeReflection* I_Type, UInt32& O_ArrayCount) -> slang::TypeReflection*
         {
@@ -286,30 +292,7 @@ export namespace Visera::Forge
             return T;
         };
 
-        auto FindOrAddResource = [&Reflection](const FShaderReflection::FResource& I_Res) -> FShaderReflection::FResource&
-        {
-            for (auto& R : Reflection.Resources)
-            {
-                if (R.Set == I_Res.Set && R.Binding == I_Res.Binding) return R;
-            }
-            Reflection.Resources.PushBack(I_Res);
-            return Reflection.Resources.Back();
-        };
-
-        auto FindOrAddPushConstant = [&Reflection](FStringView I_Name, UInt32 I_Size) -> FShaderReflection::FPushConstant&
-        {
-            for (auto& PC : Reflection.PushConstants)
-            {
-                if (PC.Name == I_Name) return PC;
-            }
-            FShaderReflection::FPushConstant PC;
-            PC.Name = FString(I_Name);
-            PC.Size = I_Size;
-            Reflection.PushConstants.PushBack(std::move(PC));
-            return Reflection.PushConstants.Back();
-        };
-
-        auto ExtractResourceLike = [&](slang::VariableLayoutReflection* VarLayout, FStringView I_StageForUsage)
+        auto ExtractResourceLike = [&](slang::VariableLayoutReflection* VarLayout)
         {
             if (!VarLayout) return;
             auto* Var = VarLayout->getVariable();
@@ -317,14 +300,16 @@ export namespace Visera::Forge
             auto* Type = Var->getType();
             if (!Type) return;
 
-            // Push-constant blocks: reported as a distinct parameter category.
             if (VarLayout->getCategory() == slang::ParameterCategory::PushConstantBuffer)
             {
                 const char* Name = Var->getName();
                 const FStringView PCName = (Name && Name[0] != '\0') ? FStringView(Name) : FStringView("PushConstants");
                 const UInt32 Size = static_cast<UInt32>(VarLayout->getTypeLayout()->getSize(slang::ParameterCategory::PushConstantBuffer));
-                auto& PC = FindOrAddPushConstant(PCName, Size);
-                AddStage(PC.Stages, I_StageForUsage);
+                FShaderReflection::FPushConstant PC;
+                PC.Name = FString(PCName);
+                PC.Size = Size;
+                PC.Stages.PushBack(FString(StageName));
+                Reflection.PushConstants.PushBack(std::move(PC));
                 return;
             }
 
@@ -345,8 +330,8 @@ export namespace Visera::Forge
             Res.Binding = VarLayout->getBindingIndex();
             Res.Set = static_cast<UInt32>(VarLayout->getBindingSpace());
             Res.ArrayCount = ArrayCount == 0 ? 1u : ArrayCount;
+            Res.Stages.PushBack(FString(StageName));
 
-            // Determine resource type
             switch (TypeKind)
             {
             case slang::TypeReflection::Kind::Resource:
@@ -359,10 +344,8 @@ export namespace Visera::Forge
                     case SLANG_TEXTURE_CUBE: Res.Type = "TextureCube"; break;
                     case SLANG_TEXTURE_3D: Res.Type = "Texture3D"; break;
                     case SLANG_TEXTURE_1D: Res.Type = "Texture1D"; break;
-                    default: return; // Skip unsupported texture types
+                    default: return;
                     }
-
-                    // Determine access mode
                     const auto Access = BaseType->getResourceAccess();
                     switch (Access)
                     {
@@ -393,76 +376,14 @@ export namespace Visera::Forge
                 return;
             }
 
-            auto& R = FindOrAddResource(Res);
-            // Keep first-seen Name/Type/Access/ArrayCount, but always add stages.
-            AddStage(R.Stages, I_StageForUsage);
+            Reflection.Resources.PushBack(std::move(Res));
         };
 
-        // Extract Resources + PushConstants (global parameters) — used for basic shape info (no stage usage here).
+        // Only current entry point's parameters (program layout has one entry point when built for one).
         const auto ParamCount = ShaderLayout->getParameterCount();
         for (unsigned i = 0; i < ParamCount; ++i)
         {
-            ExtractResourceLike(ShaderLayout->getParameterByIndex(i), "");
-        }
-
-        // Refine stage usage: for each entry point, record which resources/PCs are used by that stage.
-        for (SlangUInt epi = 0; epi < EntryPointCount; ++epi)
-        {
-            auto* EntryPointRef = ShaderLayout->getEntryPointByIndex(epi);
-            if (!EntryPointRef) continue;
-            FStringView StageName = "All";
-            switch (EntryPointRef->getStage())
-            {
-            case SLANG_STAGE_VERTEX: StageName = "Vertex"; break;
-            case SLANG_STAGE_FRAGMENT: StageName = "Fragment"; break;
-            case SLANG_STAGE_COMPUTE: StageName = "Compute"; break;
-            case SLANG_STAGE_GEOMETRY:
-            case SLANG_STAGE_HULL:
-            case SLANG_STAGE_DOMAIN:
-            default: continue; // Skip unsupported stages (Geometry/Tessellation removed for now)
-            }
-
-            // Prefer binding-range walk for accurate stage usage + descriptor array count.
-            if (auto* TL = EntryPointRef->getTypeLayout())
-            {
-                const SlangInt RC = TL->getBindingRangeCount();
-                for (SlangInt ri = 0; ri < RC; ++ri)
-                {
-                    const auto BT = TL->getBindingRangeType(ri);
-                    // Push constants are handled via ExtractResourceLike (category), skip here.
-                    if (BT == slang::BindingType::PushConstant) continue;
-
-                    const UInt32 Set = static_cast<UInt32>(TL->getBindingRangeDescriptorSetIndex(ri));
-                    const UInt32 Binding = static_cast<UInt32>(TL->getDescriptorSetDescriptorRangeIndexOffset(Set, ri));
-                    const UInt32 Count = static_cast<UInt32>(TL->getBindingRangeBindingCount(ri));
-
-                    for (auto& R : Reflection.Resources)
-                    {
-                        if (R.Set == Set && R.Binding == Binding)
-                        {
-                            AddStage(R.Stages, StageName);
-                            if (Count > R.ArrayCount) R.ArrayCount = Count;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            const unsigned EPC = EntryPointRef->getParameterCount();
-            for (unsigned pi = 0; pi < EPC; ++pi)
-            {
-                ExtractResourceLike(EntryPointRef->getParameterByIndex(pi), StageName);
-            }
-        }
-
-        // Ensure every resource has at least one stage (fallback to All).
-        for (auto& R : Reflection.Resources)
-        {
-            if (R.Stages.IsEmpty()) { R.Stages.PushBack("All"); }
-        }
-        for (auto& PC : Reflection.PushConstants)
-        {
-            if (PC.Stages.IsEmpty()) { PC.Stages.PushBack("All"); }
+            ExtractResourceLike(ShaderLayout->getParameterByIndex(i));
         }
 
         return Reflection;

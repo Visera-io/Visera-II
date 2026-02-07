@@ -3,7 +3,9 @@ module;
 export module Visera.Platform.Interface;
 #define VISERA_MODULE_NAME "Platform"
 export import Visera.Platform.Interface.Library;
+export import Visera.Platform.Interface.Path;
 export import Visera.Platform.Interface.Window;
+import Visera.Core.Types.Pointer.Unique;
 
 export namespace Visera
 {
@@ -21,12 +23,12 @@ export namespace Visera
         [[nodiscard]] virtual TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const = 0;
         [[nodiscard]] virtual TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const FPath& I_Path) const = 0;
-        [[nodiscard]] virtual const FPath&
+        LoadLibrary(const IPlatformPath& I_Path) const = 0;
+        [[nodiscard]] virtual TUniquePtr<IPlatformPath>
         GetExecutableDirectory() const = 0;
-        [[nodiscard]] virtual const FPath&
+        [[nodiscard]] virtual TUniquePtr<IPlatformPath>
         GetResourceDirectory() const = 0;
-        [[nodiscard]] virtual const FPath&
+        [[nodiscard]] virtual TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const = 0;
         [[nodiscard]] virtual Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const = 0;

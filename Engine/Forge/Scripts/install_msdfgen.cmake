@@ -2,21 +2,21 @@ if(NOT VISERA_FORGE_EXTERNAL_DIR)
     message(FATAL_ERROR "Please include 'install.cmake' before installing any package!")
 endif()
 
-if(NOT VISERA_GRAPHICS_SCRIPTS_DIR)
-    message(FATAL_ERROR "Visera-Graphics must be processed before Forge (MSDFGen needs FreeType). Ensure add_subdirectory(Runtime) before add_subdirectory(Forge).")
-endif()
-
 macro(link_msdfgen in_target)
-    message(STATUS "Linking MSDFGen (msdfgen::msdfgen-core)")
-    if(NOT TARGET msdfgen::msdfgen-core)
-        set(MSDFGEN_CORE_ONLY        ON  CACHE BOOL "" FORCE)
-        set(MSDFGEN_BUILD_STANDALONE OFF CACHE BOOL "" FORCE)
-        set(MSDFGEN_USE_VCPKG        OFF CACHE BOOL "" FORCE)
-        set(MSDFGEN_USE_CPP11        OFF CACHE BOOL "" FORCE)
-        set(MSDFGEN_USE_SKIA         OFF CACHE BOOL "" FORCE)
-        add_subdirectory("${VISERA_FORGE_EXTERNAL_DIR}/MSDFGen")
-        set_target_properties(msdfgen-core PROPERTIES FOLDER "Visera/Forge/External/MSDFGen")
+    message(STATUS "Linking MSDFGen (MSDFGen)")
+
+    if(NOT TARGET MSDFGen)
+        file(GLOB MSDFGEN_CORE_SOURCES "${VISERA_FORGE_EXTERNAL_DIR}/MSDFGen/core/*.cpp")
+        add_library(MSDFGen STATIC
+            "${VISERA_FORGE_EXTERNAL_DIR}/MSDFGen/msdfgen.h"
+            ${MSDFGEN_CORE_SOURCES}
+        )
+
+        target_include_directories(MSDFGen PUBLIC "${VISERA_FORGE_EXTERNAL_DIR}/MSDFGen")
+        target_compile_definitions(MSDFGen PUBLIC MSDFGEN_PUBLIC=)
+
+        set_target_properties(MSDFGen PROPERTIES FOLDER "Visera/Forge/External/MSDFGen")
     endif()
 
-    target_link_libraries(${in_target} PRIVATE msdfgen::msdfgen-core)
+    target_link_libraries(${in_target} PRIVATE MSDFGen)
 endmacro()

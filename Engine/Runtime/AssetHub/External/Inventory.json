@@ -1,4 +1,13 @@
 {
+    "FreeType" :
+    {
+        "Version" : "2.14.1",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://freetype.org"
+    },
     "LibPNG" :
     {
         "Version" : "1.6.50",

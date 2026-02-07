@@ -14,6 +14,7 @@ import Visera.Audio.Interface;
 import Visera.Audio.Wwise.IO;
 import Visera.Core.Types.Text;
 import Visera.Global.Log;
+import Visera.Platform;
 
 namespace Visera
 {
@@ -113,10 +114,10 @@ namespace Visera
                     switch (I_ErrorLevel)
                     {
                     case AK::Monitor::ErrorLevel::ErrorLevel_Message:
-                        LOG_DEBUG("Wwise: {}", FText(I_ErrorMessage));
+                        LOG_DEBUG("Wwise: {}", FPlatformPath(I_ErrorMessage).ToPath());
                         break;
                     case AK::Monitor::ErrorLevel::ErrorLevel_Error:
-                        LOG_ERROR("Wwise: {} (error: {}).", FText(I_ErrorMessage), Int32(I_ErrorCode));
+                        LOG_ERROR("Wwise: {} (error: {}).", FPlatformPath(I_ErrorMessage).ToPath(), Int32(I_ErrorCode));
                         break;
                     default: LOG_FATAL("Wwise:Unknown Message!");
                     }

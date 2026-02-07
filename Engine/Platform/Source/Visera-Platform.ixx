@@ -9,32 +9,39 @@ import Visera.Platform.MacOS;
 #endif
 import Visera.Platform.Interface;
 import Visera.Core.OS.FileSystem;
+import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
     using FPlatformWindow  = IPlatformWindow;
     using FPlatformLibrary = IPlatformLibrary;
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+    using FPlatformPath = FWindowsPath;
+#elif defined(VISERA_ON_APPLE_SYSTEM)
+    using FPlatformPath = FMacOSPath;
+#endif
 
     class VISERA_PLATFORM_API FPlatform
     {
     public:
         [[nodiscard]] static inline TUniquePtr<FPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) { return Get()->CreateWindow(I_Title, I_Width, I_Height); }
+        [[nodiscard]] static inline FPlatformPath
+        MakePlatformPath(const FPath& I_Path) { return FPlatformPath(I_Path); }
         [[nodiscard]] static inline TSharedPtr<FPlatformLibrary>
-        LoadLibrary(const FPath& I_Path) { return Get()->LoadLibrary(I_Path); }
-        [[nodiscard]] static inline const FPath&
-        GetExecutableDirectory() { return Get()->GetExecutableDirectory(); }
-        [[nodiscard]] static inline const FPath&
-        GetResourceDirectory() { return Get()->GetResourceDirectory(); }
-        [[nodiscard]] static inline const FPath&
-        GetFrameworkDirectory() { return Get()->GetFrameworkDirectory(); }
-        [[nodiscard]] static inline const FPath&
+        LoadLibrary(const FPath& I_Path) { return Get()->LoadLibrary(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static const FPath&
+        GetExecutableDirectory();
+        [[nodiscard]] static const FPath&
+        GetResourceDirectory();
+        [[nodiscard]] static const FPath&
+        GetFrameworkDirectory();
+        [[nodiscard]] static const FPath&
         GetCacheDirectory();
         [[nodiscard]] static inline Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) { return Get()->SetEnvironmentVariable(I_Variable, I_Value); }
         [[nodiscard]] static inline FUUID
         GenerateUUID() { return Get()->GenerateUUID(); }
-
         [[nodiscard]] static inline EPlatform
         GetType() { return Get()->GetType(); }
 
@@ -53,15 +60,57 @@ export namespace Visera
         }
     };
 
-    const FPath& FPlatform::
-    GetCacheDirectory()
+    const FPath& FPlatform::GetExecutableDirectory()
     {
-        static FPath CacheDirectory = Get()->GetResourceDirectory() / "Cache";
-        if (!FFileSystem::Exists(CacheDirectory))
+        static TOptional<FPath> Cache;
+        if (!Cache.HasValue())
         {
-            const auto Error = FFileSystem::CreateDirectory(CacheDirectory);
-            VISERA_ASSERT(!Error);
+            if (TUniquePtr<IPlatformPath> P = Get()->GetExecutableDirectory(); P)
+                Cache = P->ToPath();
+            else
+                Cache = FPath("");
         }
-        return CacheDirectory;
+        return Cache.GetValue();
+    }
+
+    const FPath& FPlatform::GetResourceDirectory()
+    {
+        static TOptional<FPath> Cache;
+        if (!Cache.HasValue())
+        {
+            if (TUniquePtr<IPlatformPath> P = Get()->GetResourceDirectory(); P)
+                Cache = P->ToPath();
+            else
+                Cache = FPath("");
+        }
+        return Cache.GetValue();
+    }
+
+    const FPath& FPlatform::GetFrameworkDirectory()
+    {
+        static TOptional<FPath> Cache;
+        if (!Cache.HasValue())
+        {
+            if (TUniquePtr<IPlatformPath> P = Get()->GetFrameworkDirectory(); P)
+                Cache = P->ToPath();
+            else
+                Cache = FPath("");
+        }
+        return Cache.GetValue();
+    }
+
+    const FPath& FPlatform::GetCacheDirectory()
+    {
+        static TOptional<FPath> Cache;
+        if (!Cache.HasValue())
+        {
+            Cache = GetResourceDirectory() / FPath{"Cache"};
+            if (!FFileSystem::Exists(Cache.GetValue()))
+            {
+                const auto Error = FFileSystem::CreateDirectory(Cache.GetValue());
+                VISERA_ASSERT(Error == EIOError::None);
+            }
+        }
+        return Cache.GetValue();
     }
 }

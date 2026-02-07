@@ -110,7 +110,7 @@ export namespace Visera
         }
 
         [[nodiscard]] FPath
-        GetPath(FStringView I_Key, const FPath& I_DefaultValue = "") const
+        GetPath(FStringView I_Key, const FPath& I_DefaultValue = FPath{""}) const
         {
             const auto Opt = TryGetPath(I_Key);
             return Opt.HasValue()? std::move(Opt).GetValue() : I_DefaultValue;
@@ -124,7 +124,7 @@ export namespace Visera
         }
 
         [[nodiscard]] FPath
-        GetPath(const FJSONPath& I_Path, const FPath& I_DefaultValue = "") const
+        GetPath(const FJSONPath& I_Path, const FPath& I_DefaultValue = FPath{""}) const
         {
             const auto Opt = TryGetPath(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;

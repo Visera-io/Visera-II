@@ -4,9 +4,6 @@ export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
 export import Visera.Core.Types.Path;
        import Visera.Core.Types.Map;
-       import Visera.Core.Types.Array;
-       import Visera.Core.Types.String;
-       import Visera.Core.Types.Optional;
        import Visera.Core.OS.Thread.Sync;
        import Visera.AssetHub.Image;
        import Visera.AssetHub.Shader;
@@ -24,7 +21,7 @@ export namespace Visera
         [[nodiscard]] Bool
         SaveImage(TSharedPtr<const FImage> I_Image, const FPath& I_Path);
         /** Load .vshader from file. Requires AssetHub (and dependencies) to be registered. */
-        [[nodiscard]] TOptional<FShader>
+        [[nodiscard]] TSharedPtr<FShader>
         LoadShader(const FPath& I_Path);
         /** Load font face from file. */
         [[nodiscard]] TSharedPtr<FFont>
@@ -61,8 +58,9 @@ export namespace Visera
             mutable FRWLock          RWLock;
             TMap<FName, TWeakPtr<T>> Entries;
         };
-        TCache<FImage> ImageCache;
-        TCache<FFont> FontCache;
+        TCache<FImage>  ImageCache;
+        TCache<FFont>   FontCache;
+        TCache<FShader> ShaderCache;
 
     public:
         FAssetHub() : IGlobalService(EName::AssetHub)
@@ -95,7 +93,7 @@ export namespace Visera
     TSharedPtr<FImage> FAssetHub::
     LoadImage(const FPath& I_Path)
     {
-        FName PathName = FName{I_Path.GetUTF8Path()};
+        FName PathName = FName{I_Path.GetString()};
         if (auto Cache = ImageCache.Find(PathName); !Cache.IsExpired())
         {
             LOG_TRACE("Get {} from cache.", I_Path);
@@ -147,7 +145,7 @@ export namespace Visera
 
         if (I_Image->GetWidth() == 0 || I_Image->GetHeight() == 0)
         {
-            LOG_ERROR("Image has invalid dimensions ({}x{}) for saving: {}", 
+            LOG_ERROR("Image has invalid dimensions ({}x{}) for saving: {}",
                      I_Image->GetWidth(), I_Image->GetHeight(), I_Path);
             return False;
         }
@@ -162,9 +160,9 @@ export namespace Visera
         // EXR for float formats, PNG for integer formats
         const EPixelFormat PixelFormat = I_Image->GetPixelFormat();
         const Bool IsFloatFormat = I_Image->IsFloatFormat();
-        
+
         EImageFormat TargetFormat = EImageFormat::Invalid;
-        
+
         if (IsFloatFormat)
         {
             // Float formats -> EXR
@@ -180,7 +178,7 @@ export namespace Visera
         const EImageFormat ExtensionFormat = DetectImageFormat(I_Path);
         if (ExtensionFormat != TargetFormat)
         {
-            LOG_WARN("File extension does not match image format. Image format: {}, Extension format: {}. Using image format.", 
+            LOG_WARN("File extension does not match image format. Image format: {}, Extension format: {}. Using image format.",
                     static_cast<Int32>(TargetFormat), static_cast<Int32>(ExtensionFormat));
         }
 
@@ -195,9 +193,9 @@ export namespace Visera
         case EImageFormat::EXR:
             Wrapper = MakeUnique<FEXRImageWrapper>();
             break;
-        
+
         default:
-            LOG_ERROR("Unsupported pixel format for saving: {} (format: {})", 
+            LOG_ERROR("Unsupported pixel format for saving: {} (format: {})",
                      I_Path, static_cast<Int32>(PixelFormat));
             return False;
         }
@@ -205,22 +203,31 @@ export namespace Visera
         return Wrapper->Export(I_Image, I_Path);
     }
 
-    TOptional<FShader> FAssetHub::
+    TSharedPtr<FShader> FAssetHub::
     LoadShader(const FPath& I_Path)
     {
+        FName PathName = FName{I_Path.GetString()};
+        if (auto Cache = ShaderCache.Find(PathName); !Cache.IsExpired())
+        {
+            LOG_TRACE("Get {} from shader cache.", I_Path);
+            return Cache.Lock();
+        }
+
         TArray<FByte> SPIRVChunk, ReflectionChunk;
         UInt32 Version = 0;
         if (!ReadShaderChunks(I_Path, Version, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
-        { return NullOpt; }
+        { return nullptr; }
         FShaderReflection Refl;
         if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(Version, FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
-        { return NullOpt; }
+        { return nullptr; }
         if (Refl.EntryPoints.IsEmpty())
-        { return NullOpt; }
-        FShader Shader;
-        Shader.SPIRV = std::move(SPIRVChunk);
-        Shader.Reflection = std::move(Refl);
-        return TOptional<FShader>(std::move(Shader));
+        { return nullptr; }
+        auto NewShader = MakeShared<FShader>();
+        NewShader->SPIRV = std::move(SPIRVChunk);
+        NewShader->Reflection = std::move(Refl);
+        if (!ShaderCache.Store(PathName, NewShader))
+        { LOG_WARN("Failed to store {} to shader cache!", I_Path); }
+        return NewShader;
     }
 
     /**
@@ -234,7 +241,7 @@ export namespace Visera
     LoadFont(const FPath& I_Path, Int32 I_FaceIndex)
     {
         // Create cache key from path and face index
-        const FString CacheKeyStr = FString::Format("{}_{}", I_Path.GetUTF8Path(), I_FaceIndex);
+        const FString CacheKeyStr = FString::Format("{}_{}", I_Path.GetString(), I_FaceIndex);
         const FName CacheKey{CacheKeyStr};
 
         if (auto Cache = FontCache.Find(CacheKey); !Cache.IsExpired())

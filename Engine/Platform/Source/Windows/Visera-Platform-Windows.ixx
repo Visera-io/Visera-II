@@ -10,50 +10,101 @@ export module Visera.Platform.Windows;
 import Visera.Platform.Interface;
 import Visera.Platform.Windows.Window;
 import Visera.Platform.Windows.Library;
+import Visera.Core.Types.Path;
 import Visera.Core.Types.String;
-import Visera.Global.Log;
 
 namespace Visera
 {
+    export class VISERA_PLATFORM_API FWindowsPath : public IPlatformPath
+    {
+    public:
+        explicit FWindowsPath(const FPath& I_Path);
+        explicit FWindowsPath(std::wstring_view I_Native) : Native(I_Native) {}
+        [[nodiscard]] operator std::wstring_view() const noexcept { return Native; }
+        [[nodiscard]] FPath ToPath() const override;
+
+    private:
+        std::wstring Native;
+    };
+
+    FWindowsPath::FWindowsPath(const FPath& I_Path)
+    {
+        VISERA_ASSERT(I_Path.IsNormalized());
+        const std::string_view Utf8 = I_Path.GetString().GetNative();
+        if (Utf8.empty()) return;
+        const int WideLength = MultiByteToWideChar(CP_UTF8, 0, Utf8.data(), static_cast<int>(Utf8.size()), nullptr, 0);
+        if (WideLength <= 0) return;
+        Native.resize(static_cast<size_t>(WideLength));
+        MultiByteToWideChar(CP_UTF8, 0, Utf8.data(), static_cast<int>(Utf8.size()), Native.data(), WideLength);
+        for (wchar_t& Ch : Native)
+            if (Ch == L'/') Ch = L'\\';
+    }
+
+    FPath FWindowsPath::ToPath() const
+    {
+        const std::wstring_view Wide = *this;
+        if (Wide.empty()) return FPath(FString());
+        const int Utf8Length = WideCharToMultiByte(CP_UTF8, 0, Wide.data(), static_cast<int>(Wide.size()), nullptr, 0, nullptr, nullptr);
+        if (Utf8Length <= 0) return FPath(FString());
+        std::string Utf8(static_cast<size_t>(Utf8Length), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, Wide.data(), static_cast<int>(Wide.size()), Utf8.data(), Utf8Length, nullptr, nullptr);
+        for (char& Ch : Utf8)
+            if (Ch == '\\') Ch = '/';
+        FPath Path(FString(std::move(Utf8)));
+        Path.Normalize();
+        return Path;
+    }
+
     export class VISERA_PLATFORM_API FWindowsPlatform : public IPlatform
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const FPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
-        [[nodiscard]] const FPath&
-        GetExecutableDirectory() const override { return ExecutableDirectory; }
-        [[nodiscard]] const FPath&
-        GetResourceDirectory() const override { return ExecutableDirectory; }
-        [[nodiscard]] const FPath&
-        GetFrameworkDirectory() const override { return ExecutableDirectory; }
+        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(static_cast<const FWindowsPath&>(I_Path).ToPath()); }
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetExecutableDirectory() const override;
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetResourceDirectory() const override;
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetFrameworkDirectory() const override;
         [[nodiscard]] Bool
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
-
-    private:
-        FPath ExecutableDirectory;
-        FPath CacheDirectory;
 
     public:
         FWindowsPlatform();
         ~FWindowsPlatform() override = default;
     };
 
-    FWindowsPlatform::
-    FWindowsPlatform()
+    FWindowsPlatform::FWindowsPlatform()
     : IPlatform{EPlatform::Windows}
     {
-        SetConsoleOutputCP(65001); // Set console output code page to UTF-8
-        SetConsoleCP(65001);       // Also set input code page to UTF-8 for consistency
+        SetConsoleOutputCP(65001);
+        SetConsoleCP(65001);
+    }
 
+    TUniquePtr<IPlatformPath> FWindowsPlatform::GetExecutableDirectory() const
+    {
         std::wstring Buffer(MAX_PATH, L'\0');
         DWORD Size = GetModuleFileNameW(nullptr, Buffer.data(), static_cast<DWORD>(Buffer.size()));
         Buffer.resize(Size);
+        if (Size == 0) return nullptr;
+        const std::wstring_view View(Buffer);
+        const size_t LastSlash = View.find_last_of(L"\\/");
+        if (LastSlash == std::wstring_view::npos) return MakeUnique<FWindowsPath>(View);
+        return MakeUnique<FWindowsPath>(View.substr(0, LastSlash));
+    }
 
-        ExecutableDirectory = FPath{Buffer}.GetParent();
+    TUniquePtr<IPlatformPath> FWindowsPlatform::GetResourceDirectory() const
+    {
+        return GetExecutableDirectory();
+    }
+
+    TUniquePtr<IPlatformPath> FWindowsPlatform::GetFrameworkDirectory() const
+    {
+        return GetExecutableDirectory();
     }
 
     TUniquePtr<IPlatformWindow> FWindowsPlatform::
@@ -66,15 +117,7 @@ namespace Visera
     SetEnvironmentVariable(FStringView I_Variable,
                            FStringView I_Value) const
     {
-        if (!SetEnvironmentVariableA(I_Variable.Data(), I_Value.Data()))
-        {
-            LOG_ERROR("Failed to set environment variable {} as {}!",
-                      I_Variable, I_Value);
-            return False;
-        }
-        LOG_DEBUG("Set environment variable {} as {}.",
-                  I_Variable, I_Value);
-        return True;
+        return SetEnvironmentVariableA(I_Variable.Data(), I_Value.Data());
     }
 
     /**

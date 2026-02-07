@@ -121,14 +121,8 @@ namespace Visera
     using UInt64 	    = std::uint64_t;
 	using UInt128		= std::pair<UInt64, UInt64>;
 
-	using FWideString     = std::wstring;
-	using FWideStringView = std::wstring_view;
-	using FUTF8StringView = std::u8string_view;
-
     constexpr Bool True  = true;
     constexpr Bool False = false;
-
-	using FErrorCode = std::error_code;
 
 	namespace Concepts
 	{
@@ -192,7 +186,6 @@ namespace Visera
 
     template <typename... Args>
 	using TTuple    = std::tuple<Args...>;
-
 
 	template<typename Signature>
 	using TFunction = std::function<Signature>;
