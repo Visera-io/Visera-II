@@ -625,11 +625,12 @@ VISERA_MAKE_FORMATTER(Visera::ERHIBufferUsage,
         const char* Name = "Unknown";
         switch (I_Formatee)
         {
-        case Visera::ERHIResourceType::Texture:           Name = "Texture";           break;
-        case Visera::ERHIResourceType::Sampler:           Name = "Sampler";           break;
-        case Visera::ERHIResourceType::Buffer:            Name = "Buffer";            break;
+        case Visera::ERHIResourceType::Texture:             Name = "Texture";           break;
+        case Visera::ERHIResourceType::Sampler:             Name = "Sampler";           break;
+        case Visera::ERHIResourceType::Buffer:              Name = "Buffer";            break;
         case Visera::ERHIResourceType::DescriptorSet:       Name = "DescriptorSet";       break;
         case Visera::ERHIResourceType::DescriptorSetLayout: Name = "DescriptorSetLayout"; break;
+        default: break;
         }, "{}", Name);
 VISERA_MAKE_HASH(Visera::FRHIResourceHandle, { return I_Object.GetValue(); })
 VISERA_MAKE_FORMATTER(Visera::FRHIResourceHandle, {},

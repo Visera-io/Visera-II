@@ -215,7 +215,7 @@ namespace Visera
 
 #define VISERA_MAKE_FLAGS(EnumClass)			\
 	static_assert(std::is_enum_v<EnumClass>);	\
-	template<> struct Visera::TEnableBitMaskOperators<EnumClass> : std::true_type {}
+	template<> struct TEnableBitMaskOperators<EnumClass> : std::true_type {}
 
 #define VISERA_MAKE_FORMATTER(Type, BODY, FormatString, ...)               \
 	template <>                                                            \
