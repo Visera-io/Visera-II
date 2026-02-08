@@ -4,6 +4,7 @@ export module Visera.Core.Types.JSON;
 #define VISERA_MODULE_NAME "Core.Types"
 export import :Path;
        import Visera.Core.Types.Path;
+       import Visera.Core.Types.Text;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Optional;

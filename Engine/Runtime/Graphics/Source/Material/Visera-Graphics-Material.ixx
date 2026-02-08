@@ -25,9 +25,6 @@ export namespace Visera
 	class VISERA_GRAPHICS_API FMaterial
 	{
 	public:
-		void
-		SetBaseColorHandle(FRHITextureHandle I_Handle) noexcept { BaseColorHandle = I_Handle; }
-
 		[[nodiscard]] Bool
 		IsValid() const noexcept { return !Shader.IsEmpty() && !BaseColorPath.IsEmpty(); }
 
@@ -36,7 +33,6 @@ export namespace Visera
 		FString           Shader          {};
 		ESurfaceType      Surface         {ESurfaceType::Opaque};
 		FString           BaseColorPath   {};
-		FRHITextureHandle BaseColorHandle {};
 
 	public:
 		FMaterial() = default;

@@ -13,41 +13,60 @@ import Visera.Global.Log;
 export namespace Visera::Forge
 {
     /** Shader enum <-> string conversion (Forge only, avoids cross-DLL). */
-    [[nodiscard]] inline const char* ShaderStageToString(ERHIShaderStages E)
+    [[nodiscard]] inline const char* ShaderStageToString(ERHIShaderStage E)
     {
         switch (E)
         {
-        case ERHIShaderStages::Vertex: return "Vertex";
-        case ERHIShaderStages::Fragment: return "Fragment";
-        case ERHIShaderStages::Compute: return "Compute";
-        case ERHIShaderStages::All: return "All";
+        case ERHIShaderStage::Vertex: return "Vertex";
+        case ERHIShaderStage::Fragment: return "Fragment";
+        case ERHIShaderStage::Compute: return "Compute";
+        case ERHIShaderStage::All: return "All";
         default: return "Undefined";
         }
     }
-    [[nodiscard]] inline const char* ShaderTypeToString(ERHIResourceType E)
-    { switch (E) { case ERHIResourceType::Texture: return "Texture2D"; case ERHIResourceType::Sampler: return "SamplerState"; case ERHIResourceType::Buffer: return "ConstantBuffer"; default: return "Texture2D"; } }
+    [[nodiscard]] inline const char* ShaderTypeToString(ERHIDescriptorType E)
+    {
+        switch (E)
+        {
+        case ERHIDescriptorType::CombinedImageSampler: return "CombinedImageSampler";
+        case ERHIDescriptorType::SampledImage:         return "SampledImage";
+        case ERHIDescriptorType::Sampler:              return "Sampler";
+        case ERHIDescriptorType::StorageImage:         return "StorageImage";
+        case ERHIDescriptorType::UniformBuffer:        return "UniformBuffer";
+        case ERHIDescriptorType::StorageBuffer:        return "StorageBuffer";
+        default: return "Undefined";
+        }
+    }
     [[nodiscard]] inline const char* ShaderAccessToString(ERHIResourceAccess E)
     { switch (E) { case ERHIResourceAccess::Write: return "Write"; case ERHIResourceAccess::ReadWrite: return "ReadWrite"; default: return "Read"; } }
-    [[nodiscard]] inline const char* ShaderResourceStageToString(ERHIShaderStages E)
+    [[nodiscard]] inline const char* ShaderResourceStageToString(ERHIShaderStage E)
     { return ShaderStageToString(E); }
-    [[nodiscard]] inline ERHIShaderStages StageFromString(FStringView S)
+    [[nodiscard]] inline ERHIShaderStage StageFromString(FStringView S)
     {
-        if (S == "Vertex") return ERHIShaderStages::Vertex;
-        if (S == "Fragment") return ERHIShaderStages::Fragment;
-        if (S == "Compute") return ERHIShaderStages::Compute;
-        if (S == "All") return ERHIShaderStages::All;
-        return ERHIShaderStages::Undefined;
+        if (S == "Vertex") return ERHIShaderStage::Vertex;
+        if (S == "Fragment") return ERHIShaderStage::Fragment;
+        if (S == "Compute") return ERHIShaderStage::Compute;
+        if (S == "All") return ERHIShaderStage::All;
+        return ERHIShaderStage::Undefined;
     }
-    [[nodiscard]] inline ERHIResourceType TypeFromString(FStringView S)
-    { if (S == "Texture2D" || S == "TextureCube" || S == "Texture3D" || S == "Texture1D") return ERHIResourceType::Texture; if (S == "SamplerState") return ERHIResourceType::Sampler; if (S == "ConstantBuffer" || S == "TextureBuffer" || S == "StructuredBuffer" || S == "ByteAddressBuffer") return ERHIResourceType::Buffer; return ERHIResourceType::Texture; }
+    [[nodiscard]] inline ERHIDescriptorType TypeFromString(FStringView S)
+    {
+        if (S == "Texture2D" || S == "TextureCube" || S == "Texture3D" || S == "Texture1D") return ERHIDescriptorType::SampledImage;
+        if (S == "SamplerState") return ERHIDescriptorType::Sampler;
+        if (S == "ConstantBuffer" || S == "TextureBuffer") return ERHIDescriptorType::UniformBuffer;
+        if (S == "StructuredBuffer" || S == "ByteAddressBuffer") return ERHIDescriptorType::StorageBuffer;
+        if (S == "StorageImage" || S == "RWTexture2D" || S == "RWTexture3D" || S == "RWTextureCube") return ERHIDescriptorType::StorageImage;
+        if (S == "CombinedImageSampler") return ERHIDescriptorType::CombinedImageSampler;
+        return ERHIDescriptorType::SampledImage;
+    }
     [[nodiscard]] inline ERHIResourceAccess AccessFromString(FStringView S)
     { if (S == "Write") return ERHIResourceAccess::Write; if (S == "ReadWrite") return ERHIResourceAccess::ReadWrite; return ERHIResourceAccess::Read; }
     [[nodiscard]] inline UInt8 ResourceStageFromString(FStringView S)
     { if (S == "Vertex") return 1; if (S == "Fragment") return 2; if (S == "Compute") return 3; return 0; }
-    [[nodiscard]] inline ERHIShaderStages ResourceStageFromU8(UInt8 E)
-    { if (E == 1) return ERHIShaderStages::Vertex; if (E == 2) return ERHIShaderStages::Fragment; if (E == 3) return ERHIShaderStages::Compute; return ERHIShaderStages::All; }
-    [[nodiscard]] inline UInt8 ResourceStageToU8(ERHIShaderStages E)
-    { switch (E) { case ERHIShaderStages::Vertex: return 1; case ERHIShaderStages::Fragment: return 2; case ERHIShaderStages::Compute: return 3; default: return 0; } }
+    [[nodiscard]] inline ERHIShaderStage ResourceStageFromU8(UInt8 E)
+    { if (E == 1) return ERHIShaderStage::Vertex; if (E == 2) return ERHIShaderStage::Fragment; if (E == 3) return ERHIShaderStage::Compute; return ERHIShaderStage::All; }
+    [[nodiscard]] inline UInt8 ResourceStageToU8(ERHIShaderStage E)
+    { switch (E) { case ERHIShaderStage::Vertex: return 1; case ERHIShaderStage::Fragment: return 2; case ERHIShaderStage::Compute: return 3; default: return 0; } }
 
     struct FShaderValidationResult
     {
@@ -86,7 +105,7 @@ export namespace Visera::Forge
         if (SPIRVChunk.IsEmpty())
         { Result.AddError("SPIR-V chunk is missing or empty."); return Result; }
 
-        FShaderReflection Refl;
+        FRHIShaderLayout Refl;
         if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(Version, FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
         { Result.AddError("Reflection chunk missing or failed to deserialize."); return Result; }
 
@@ -130,7 +149,7 @@ export namespace Visera::Forge
 
             auto Indent = [](Int32 N) -> FString { return FString(static_cast<UInt64>(N), ' '); };
 
-            auto AppendStagesArray = [&](FString& IO, Int32 IndentSpaces, ERHIShaderStages Mask)
+            auto AppendStagesArray = [&](FString& IO, Int32 IndentSpaces, ERHIShaderStage Mask)
             {
                 IO.Append(Indent(IndentSpaces)).Append("\"Stages\": [");
                 Bool First = True;
@@ -141,9 +160,9 @@ export namespace Visera::Forge
                     First = False;
                 };
                 const UInt32 V = static_cast<UInt32>(Mask);
-                if (V & static_cast<UInt32>(ERHIShaderStages::Vertex)) Add("Vertex");
-                if (V & static_cast<UInt32>(ERHIShaderStages::Fragment)) Add("Fragment");
-                if (V & static_cast<UInt32>(ERHIShaderStages::Compute)) Add("Compute");
+                if (V & static_cast<UInt32>(ERHIShaderStage::Vertex)) Add("Vertex");
+                if (V & static_cast<UInt32>(ERHIShaderStage::Fragment)) Add("Fragment");
+                if (V & static_cast<UInt32>(ERHIShaderStage::Compute)) Add("Compute");
                 if (First) Add("All");
                 IO.Append("]");
             };

@@ -3,8 +3,8 @@ module;
 export module Visera.RHI.Common;
 #define VISERA_MODULE_NAME "RHI.Common"
 export import Visera.Core.Traits.Flags;
-       import Visera.Core.Math.Arithmetic.Interval;
-       import Visera.Core.Types.Handle;
+       import Visera.Core.Types.Array;
+       import Visera.Core.Types.String;
        import Visera.Core.Color.Linear;
        import Visera.Global.Log;
        import vulkan_hpp;
@@ -36,7 +36,7 @@ export namespace Visera
     [[nodiscard]] constexpr vk::Format
     TypeCast(ERHIFormat I_Format) { return static_cast<vk::Format>(I_Format); }
 
-    enum class ERHIDescriptorType : UInt32
+    enum class ERHIDescriptorType : UInt8 //[NOTE]: Some descriptor types are omitted.
     {
         Undefined,
 
@@ -50,7 +50,7 @@ export namespace Visera
     [[nodiscard]] constexpr vk::DescriptorType
     TypeCast(ERHIDescriptorType I_DescriptorType) { return static_cast<vk::DescriptorType>(I_DescriptorType); }
 
-    enum class ERHIShaderStages : UInt32
+    enum class ERHIShaderStage : UInt32
     {
         Undefined = 0,
 
@@ -60,9 +60,9 @@ export namespace Visera
 
         All       = static_cast<UInt32>(vk::ShaderStageFlagBits::eAll),
     };
-    VISERA_MAKE_FLAGS(ERHIShaderStages);
+    VISERA_MAKE_FLAGS(ERHIShaderStage);
     [[nodiscard]] constexpr vk::ShaderStageFlags
-    TypeCast(ERHIShaderStages I_ShaderStages) { return static_cast<vk::ShaderStageFlagBits>(I_ShaderStages); }
+    TypeCast(ERHIShaderStage I_ShaderStages) { return static_cast<vk::ShaderStageFlagBits>(I_ShaderStages); }
 
     enum class ERHISamplerType : UInt8
     {
@@ -79,6 +79,14 @@ export namespace Visera
     };
     [[nodiscard]] constexpr vk::Filter
     TypeCast(ERHIFilter I_Filter) { return static_cast<vk::Filter>(I_Filter); }
+
+    enum class ERHIVertexInputRate : UInt8
+    {
+        Vertex   = static_cast<UInt8>(vk::VertexInputRate::eVertex),
+        Instance = static_cast<UInt8>(vk::VertexInputRate::eInstance),
+    };
+    [[nodiscard]] constexpr vk::VertexInputRate
+    TypeCast(ERHIVertexInputRate I_VertexInputRate) { return static_cast<vk::VertexInputRate>(I_VertexInputRate); }
 
     enum class ERHISamplerAddressMode : UInt8
     {
@@ -160,6 +168,14 @@ export namespace Visera
     [[nodiscard]] constexpr vk::CullModeFlags
     TypeCast(ERHICullMode I_CullMode) { return static_cast<vk::CullModeFlagBits>(I_CullMode); }
 
+    enum class ERHIFrontFace : UInt8
+    {
+        Clockwise        = static_cast<UInt8>(vk::FrontFace::eClockwise),
+        CounterClockwise = static_cast<UInt8>(vk::FrontFace::eCounterClockwise),
+    };
+    [[nodiscard]] constexpr vk::FrontFace
+    TypeCast(ERHIFrontFace I_FrontFace) { return static_cast<vk::FrontFace>(I_FrontFace); }
+
     enum class ERHISamplingRate : UInt8
     {
         X1 = static_cast<UInt8>(vk::SampleCountFlagBits::e1),
@@ -229,6 +245,7 @@ export namespace Visera
         TransferSrc     = static_cast<UInt32>(vk::BufferUsageFlagBits::eTransferSrc),
         TransferDst     = static_cast<UInt32>(vk::BufferUsageFlagBits::eTransferDst),
     };
+
     VISERA_MAKE_FLAGS(ERHIBufferUsage);
     [[nodiscard]] constexpr vk::BufferUsageFlags
     TypeCast(ERHIBufferUsage I_BufferUsage) { return static_cast<vk::BufferUsageFlagBits>(I_BufferUsage); }
@@ -236,20 +253,11 @@ export namespace Visera
     /** Shader resource access for reflection (e.g. read-only vs read-write image). */
     enum class ERHIResourceAccess : UInt8
     {
-        Read     = 0,
-        Write    = 1,
-        ReadWrite = 2,
+        Read      = 1 << 0,
+        Write     = 1 << 1,
+        ReadWrite = Read | Write,
     };
-
-    enum class ERHIResourceType : UInt8
-    {
-        Unknown = 0,
-        Texture,
-        Sampler,
-        Buffer,
-        DescriptorSet,
-        DescriptorSetLayout, // Internal cache only; not exposed to users
-    };
+    VISERA_MAKE_FLAGS(ERHIResourceAccess);
 
     struct FRHIExtent3D
     {
@@ -291,97 +299,33 @@ export namespace Visera
     [[nodiscard]] constexpr vk::Rect2D
     TypeCast(const FRHIScissor& I_Scissor) { return vk::Rect2D{ TypeCast(I_Scissor.Offset), TypeCast(I_Scissor.Extent)}; }
 
-    class VISERA_RHI_API FRHIResourceHandle : public FHandle
+    struct FRHIShaderLayout
     {
-    public:
-        enum : UInt32 // Embedded in the Generation(High32)
+        struct FEntryPoint
         {
-            GENERATION_MASK    = (1U << 28) - 1U,  //[0~27]    : 28Bits
-            TYPE_MASK          = (0b111) << 28,    //[28~30]   :  3Bits
-            WRITABLE_MASK      = (1U << 31),       //[31]      :  1Bit
+            FString            Name;
+            ERHIShaderStage    Stage = ERHIShaderStage::Vertex;
         };
-        static constexpr TClosedInterval<UInt32>
-        GetGenerationRange() { return {1U, GENERATION_MASK}; }
-
-        [[nodiscard]] constexpr UInt32
-        GetIndex()      const { return static_cast<UInt32>(Value & 0xFFFFFFFFULL); }
-        [[nodiscard]] constexpr UInt32
-        GetGeneration() const { return static_cast<UInt32>(Value >> 32) & GENERATION_MASK; }
-        [[nodiscard]] constexpr ERHIResourceType
-        GetType() const { return static_cast<ERHIResourceType>((FHandle::GetGeneration() & TYPE_MASK) >> 28); }
-        [[nodiscard]] constexpr Bool
-        IsWritable() const { return ((Value >> 32) & WRITABLE_MASK) != 0; }
-
-    public:
-        FRHIResourceHandle() = default;
-        FRHIResourceHandle(UInt32 I_Generation, UInt32 I_Index,
-            ERHIResourceType I_Type      = ERHIResourceType::Unknown,
-            Bool             I_bWritable = False)
+        struct FResource
         {
-            const UInt32 GenerationBits = (I_Generation & GENERATION_MASK);
-            const UInt32 TypeBits       = (static_cast<UInt32>(I_Type) & 0b111U) << 28;
-            const UInt32 WritableBit    = I_bWritable ? WRITABLE_MASK : 0U;
-
-            Value = (static_cast<UInt64>(WritableBit | TypeBits | GenerationBits) << 32) | I_Index;
-        }
-    };
-    static_assert(Concepts::Handle<FRHIResourceHandle>);
-
-    struct VISERA_RHI_API FRHITextureHandle : FRHIResourceHandle
-    {
-        FRHITextureHandle() = default;
-        FRHITextureHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
-        FRHITextureHandle(UInt32 I_Generation, UInt32 I_Index)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Texture, False) {}
-        FRHITextureHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Texture, I_bWritable) {}
-    };
-
-    struct VISERA_RHI_API FRHIBufferHandle : FRHIResourceHandle
-    {
-        FRHIBufferHandle() = default;
-        FRHIBufferHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
-        FRHIBufferHandle(UInt32 I_Generation, UInt32 I_Index)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Buffer, False) {}
-        FRHIBufferHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Buffer, I_bWritable) {}
-    };
-
-    struct VISERA_RHI_API FRHISamplerHandle : FRHIResourceHandle
-    {
-        FRHISamplerHandle() = default;
-        FRHISamplerHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
-        FRHISamplerHandle(UInt32 I_Generation, UInt32 I_Index)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Sampler, False) {}
-        FRHISamplerHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::Sampler, I_bWritable) {}
-    };
-
-    struct VISERA_RHI_API FRHIRenderPassHandle : FRHIResourceHandle
-    {
-        FRHIRenderPassHandle() = default;
-        FRHIRenderPassHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
-    };
-
-    /** Internal use only: index into Registry's DescriptorSetLayout cache. Users create layout + DSet via FRHIDescriptorSetCreateDesc only. */
-    struct VISERA_RHI_API FRHIDescriptorSetLayoutHandle : FRHIResourceHandle
-    {
-        FRHIDescriptorSetLayoutHandle() = default;
-        FRHIDescriptorSetLayoutHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
-        FRHIDescriptorSetLayoutHandle(UInt32 I_Generation, UInt32 I_Index)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSetLayout, False) {}
-        FRHIDescriptorSetLayoutHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSetLayout, I_bWritable) {}
-    };
-
-    struct VISERA_RHI_API FRHIDescriptorSetHandle : FRHIResourceHandle
-    {
-        FRHIDescriptorSetHandle() = default;
-        FRHIDescriptorSetHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
-        FRHIDescriptorSetHandle(UInt32 I_Generation, UInt32 I_Index)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSet, False) {}
-        FRHIDescriptorSetHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
-        : FRHIResourceHandle(I_Generation, I_Index, ERHIResourceType::DescriptorSet, I_bWritable) {}
+            FString            Name;
+            UInt32             Set;
+            UInt32             Binding;
+            UInt32             ArrayCount = 1;
+            ERHIDescriptorType Type   = ERHIDescriptorType::Undefined;
+            ERHIResourceAccess Access = ERHIResourceAccess::Read;
+            ERHIShaderStage    Stages = ERHIShaderStage::All; // which stage(s) use this resource (bitmask)
+        };
+        struct FPushConstant
+        {
+            /** Size in bytes of the push-constant block. */
+            UInt32           Size = 0;
+            /** Which stage(s) access this push-constant block. */
+            ERHIShaderStage Stages = ERHIShaderStage::All;
+        };
+        TArray<FEntryPoint>   EntryPoints;
+        TArray<FResource>     Resources;
+        TArray<FPushConstant> PushConstants;
     };
 
     using FRHIClearColor = FLinearColor;
@@ -423,22 +367,22 @@ VISERA_MAKE_FORMATTER(Visera::ERHIDescriptorType,
     "{}", DescriptorTypeName
 );
 
-VISERA_MAKE_FORMATTER(Visera::ERHIShaderStages,
+VISERA_MAKE_FORMATTER(Visera::ERHIShaderStage,
     const char* StageName = "Undefined";
     switch (I_Formatee)
     {
-        case Visera::ERHIShaderStages::Vertex:    StageName = "Vertex";   break;
-        case Visera::ERHIShaderStages::Fragment:  StageName = "Fragment"; break;
-        case Visera::ERHIShaderStages::Compute:   StageName = "Compute";  break;
-        case Visera::ERHIShaderStages::All:       StageName = "All";      break;
-        case Visera::ERHIShaderStages::Undefined: StageName = "Undefined"; break;
+        case Visera::ERHIShaderStage::Vertex:    StageName = "Vertex";   break;
+        case Visera::ERHIShaderStage::Fragment:  StageName = "Fragment"; break;
+        case Visera::ERHIShaderStage::Compute:   StageName = "Compute";  break;
+        case Visera::ERHIShaderStage::All:       StageName = "All";      break;
+        case Visera::ERHIShaderStage::Undefined: StageName = "Undefined"; break;
         default: break;
     },
     "{}", StageName
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHISamplerType,
-    const char* SamplerTypeName = "Unknown";
+    const char* SamplerTypeName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHISamplerType::Linear:   SamplerTypeName = "Linear";   break;
@@ -449,7 +393,7 @@ VISERA_MAKE_FORMATTER(Visera::ERHISamplerType,
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHIFilter,
-    const char* FilterName = "Unknown";
+    const char* FilterName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHIFilter::Nearest: FilterName = "Nearest"; break;
@@ -460,7 +404,7 @@ VISERA_MAKE_FORMATTER(Visera::ERHIFilter,
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHISamplerAddressMode,
-    const char* AddressModeName = "Unknown";
+    const char* AddressModeName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHISamplerAddressMode::Repeat:             AddressModeName = "Repeat";            break;
@@ -474,7 +418,7 @@ VISERA_MAKE_FORMATTER(Visera::ERHISamplerAddressMode,
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHIImageViewType,
-    const char* ImageViewTypeName = "Unknown";
+    const char* ImageViewTypeName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHIImageViewType::Image1D:      ImageViewTypeName = "Image1D";      break;
@@ -517,7 +461,7 @@ VISERA_MAKE_FORMATTER(Visera::ERHIImageType,
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHIAttachmentLoadOp,
-    const char* LoadOpName = "Unknown";
+    const char* LoadOpName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHIAttachmentLoadOp::Load:      LoadOpName = "Load";     break;
@@ -555,8 +499,19 @@ VISERA_MAKE_FORMATTER(Visera::ERHIPolygonMode,
     "{}", PolygonModeName
 );
 
+VISERA_MAKE_FORMATTER(Visera::ERHIVertexInputRate,
+    const char* VertexInputRateName = "Undefined";
+    switch (I_Formatee)
+    {
+        case Visera::ERHIVertexInputRate::Vertex:   VertexInputRateName = "Vertex";   break;
+        case Visera::ERHIVertexInputRate::Instance: VertexInputRateName = "Instance"; break;
+        default: break;
+    },
+    "{}", VertexInputRateName
+);
+
 VISERA_MAKE_FORMATTER(Visera::ERHICullMode,
-    const char* CullModeName = "Unknown";
+    const char* CullModeName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHICullMode::None:     CullModeName = "None";     break;
@@ -569,7 +524,7 @@ VISERA_MAKE_FORMATTER(Visera::ERHICullMode,
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHISamplingRate,
-    const char* SamplingRateName = "Unknown";
+    const char* SamplingRateName = "None";
     switch (I_Formatee)
     {
         case Visera::ERHISamplingRate::X1: SamplingRateName = "X1"; break;
@@ -579,6 +534,17 @@ VISERA_MAKE_FORMATTER(Visera::ERHISamplingRate,
         default: break;
     },
     "{}", SamplingRateName
+);
+
+VISERA_MAKE_FORMATTER(Visera::ERHIFrontFace,
+    const char* FrontFaceName = "None";
+    switch (I_Formatee)
+    {
+        case Visera::ERHIFrontFace::Clockwise:        FrontFaceName = "Clockwise";        break;
+        case Visera::ERHIFrontFace::CounterClockwise: FrontFaceName = "CounterClockwise"; break;
+        default: break;
+    },
+    "{}", FrontFaceName
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHIBlendOp,
@@ -621,36 +587,4 @@ VISERA_MAKE_FORMATTER(Visera::ERHIBufferUsage,
         default: break;
     },
     "{}", BufferUsageName
-    );VISERA_MAKE_FORMATTER(Visera::ERHIResourceType,
-        const char* Name = "Unknown";
-        switch (I_Formatee)
-        {
-        case Visera::ERHIResourceType::Texture:             Name = "Texture";           break;
-        case Visera::ERHIResourceType::Sampler:             Name = "Sampler";           break;
-        case Visera::ERHIResourceType::Buffer:              Name = "Buffer";            break;
-        case Visera::ERHIResourceType::DescriptorSet:       Name = "DescriptorSet";       break;
-        case Visera::ERHIResourceType::DescriptorSetLayout: Name = "DescriptorSetLayout"; break;
-        default: break;
-        }, "{}", Name);
-VISERA_MAKE_HASH(Visera::FRHIResourceHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIResourceHandle, {},
-    "Type:{}, Writable:{}, Gen:{}, Idx:{}",
-    I_Formatee.GetType(),
-    I_Formatee.IsWritable(),
-    I_Formatee.GetGeneration(),
-    I_Formatee.GetIndex());
-
-VISERA_MAKE_HASH(Visera::FRHITextureHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHITextureHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
-
-VISERA_MAKE_HASH(Visera::FRHIBufferHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIBufferHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
-
-VISERA_MAKE_HASH(Visera::FRHISamplerHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHISamplerHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
-
-VISERA_MAKE_HASH(Visera::FRHIDescriptorSetLayoutHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetLayoutHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
-
-VISERA_MAKE_HASH(Visera::FRHIDescriptorSetHandle, { return I_Object.GetValue(); })
-VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
+);

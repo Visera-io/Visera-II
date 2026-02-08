@@ -12,40 +12,12 @@ import Visera.RHI.Common;
 
 export namespace Visera
 {
-    /** Runtime reflection from a .vshader file. Uses RHI enums for efficiency (no string parsing in render path). */
-    struct FShaderReflection
-    {
-        struct FEntryPoint
-        {
-            FString           Name;
-            ERHIShaderStages  Stage = ERHIShaderStages::Vertex;
-        };
-        struct FResource
-        {
-            FString            Name;
-            UInt32             Set;
-            UInt32             Binding;
-            UInt32             ArrayCount = 1;
-            ERHIResourceType   Type   = ERHIResourceType::Texture;
-            ERHIResourceAccess Access = ERHIResourceAccess::Read;
-            ERHIShaderStages   Stages  = ERHIShaderStages::All; // which stage(s) use this resource (bitmask)
-        };
-        struct FPushConstant
-        {
-            /** Size in bytes of the push-constant block. */
-            UInt32           Size = 0;
-            /** Which stage(s) access this push-constant block. */
-            ERHIShaderStages Stages = ERHIShaderStages::All;
-        };
-        TArray<FEntryPoint> EntryPoints;
-        TArray<FResource>   Resources;
-        TArray<FPushConstant> PushConstants;
-    };
-
     /** Pure shader data: SPIR-V bytes + reflection. Use FShader::Read/Write for .vshader format; save via FAssetHub::SaveShader. */
     class VISERA_ASSETHUB_API FShader
     {
     public:
+        using FLayout = FRHIShaderLayout;
+
         static constexpr UInt32 ShaderMagic = 0x52485356u; // "VSHR" little-endian
         static constexpr UInt32 ShaderVersion = 3u;
         static constexpr UInt32 ShaderChunkTypeSPIRV = 0u;
@@ -66,8 +38,8 @@ export namespace Visera
         static UInt8
         ReadU8(const FByte*& I_Ptr) { return static_cast<UInt8>(*I_Ptr++); }
         /** Binary layout: resource stage 0=All, 1=Vertex, 2=Fragment, 3=Compute. Used by Deserialize only. */
-        static ERHIShaderStages
-        ResourceStageFromU8(UInt8 E) { if (E == 1) return ERHIShaderStages::Vertex; if (E == 2) return ERHIShaderStages::Fragment; if (E == 3) return ERHIShaderStages::Compute; return ERHIShaderStages::All; }
+        static ERHIShaderStage
+        ResourceStageFromU8(UInt8 E) { if (E == 1) return ERHIShaderStage::Vertex; if (E == 2) return ERHIShaderStage::Fragment; if (E == 3) return ERHIShaderStage::Compute; return ERHIShaderStage::All; }
 
         static void
         WriteU32(TArray<FByte>& O_Out, UInt32 V)
@@ -87,24 +59,24 @@ export namespace Visera
 
         [[nodiscard]] const TArray<FByte>&
         GetSPIRV() const { return SPIRV; }
-        [[nodiscard]] const FShaderReflection&
+        [[nodiscard]] const FRHIShaderLayout&
         GetReflection() const { return Reflection; }
         [[nodiscard]] UInt64
         GetSizeInBytes() const { return SPIRV.GetSize(); }
 
     private:
-        TArray<FByte> SPIRV;
-        FShaderReflection Reflection;
+        TArray<FByte>    SPIRV;
+        FRHIShaderLayout Reflection;
 
     public:
         FShader() = default;
-        FShader(TArray<FByte> I_SPIRV, FShaderReflection I_Reflection)
+        FShader(TArray<FByte> I_SPIRV, FRHIShaderLayout I_Reflection)
             : SPIRV{std::move(I_SPIRV)}, Reflection{std::move(I_Reflection)} {}
     };
 
     /** Serialize reflection to .vshader reflection chunk format. */
     [[nodiscard]] TArray<FByte>
-    SerializeReflection(const FShaderReflection& I_Reflection);
+    SerializeReflection(const FRHIShaderLayout& I_Reflection);
 
     /** Write FShader to .vshader file. Use FAssetHub::SaveShader or this directly. */
     [[nodiscard]] Bool
@@ -116,7 +88,7 @@ export namespace Visera
     public:
         [[nodiscard]] const TArray<FByte>&
         GetSPIRV() const { return Data.GetSPIRV(); }
-        [[nodiscard]] const FShaderReflection&
+        [[nodiscard]] const FRHIShaderLayout&
         GetReflection() const { return Data.GetReflection(); }
         [[nodiscard]] const FShader&
         GetShader() const { return Data; }
@@ -170,7 +142,7 @@ export namespace Visera
 
     /** Deserialize reflection chunk bytes into O_Reflection. */
     [[nodiscard]] inline Bool
-    DeserializeShaderReflection(UInt32 I_ShaderVersion, FStringView I_ChunkBytes, FShaderReflection& O_Reflection)
+    DeserializeShaderReflection(UInt32 I_ShaderVersion, FStringView I_ChunkBytes, FRHIShaderLayout& O_Reflection)
     {
         if (I_ChunkBytes.GetSize() < 4) return False;
         const FByte* p = reinterpret_cast<const FByte*>(I_ChunkBytes.Data());
@@ -194,9 +166,9 @@ export namespace Visera
         {
             if (p + 8 > end) return False;
             const UInt32 NameIdx = FShader::ReadU32(p);
-            const auto Stage = static_cast<ERHIShaderStages>(FShader::ReadU32(p));
+            const auto Stage = static_cast<ERHIShaderStage>(FShader::ReadU32(p));
             if (NameIdx >= NameTable.GetSize()) return False;
-            FShaderReflection::FEntryPoint EP;
+            FRHIShaderLayout::FEntryPoint EP;
             EP.Name = NameTable[NameIdx];
             EP.Stage = Stage;
             O_Reflection.EntryPoints.PushBack(std::move(EP));
@@ -206,16 +178,16 @@ export namespace Visera
         const UInt32 NumRes = FShader::ReadU32(p);
         for (UInt32 i = 0; i < NumRes; ++i)
         {
-            FShaderReflection::FResource R;
+            FRHIShaderLayout::FResource R;
             if (I_ShaderVersion < 3u)
             {
                 if (p + 15 > end) return False;
                 const UInt32 NameIdx = FShader::ReadU32(p);
-                const auto Type = static_cast<ERHIResourceType>(FShader::ReadU8(p));
+                const auto Type = static_cast<ERHIDescriptorType>(FShader::ReadU8(p));
                 const UInt32 Binding = FShader::ReadU32(p);
                 const UInt32 Set = FShader::ReadU32(p);
                 const auto Access = static_cast<ERHIResourceAccess>(FShader::ReadU8(p));
-                const ERHIShaderStages Stages = FShader::ResourceStageFromU8(FShader::ReadU8(p));
+                const ERHIShaderStage Stages = FShader::ResourceStageFromU8(FShader::ReadU8(p));
                 if (NameIdx >= NameTable.GetSize()) return False;
                 R.Name = NameTable[NameIdx];
                 R.Type = Type;
@@ -229,12 +201,12 @@ export namespace Visera
             {
                 if (p + 22 > end) return False;
                 const UInt32 NameIdx = FShader::ReadU32(p);
-                const auto Type = static_cast<ERHIResourceType>(FShader::ReadU8(p));
+                const auto Type = static_cast<ERHIDescriptorType>(FShader::ReadU8(p));
                 const UInt32 Set = FShader::ReadU32(p);
                 const UInt32 Binding = FShader::ReadU32(p);
                 const UInt32 ArrayCount = FShader::ReadU32(p);
                 const auto Access = static_cast<ERHIResourceAccess>(FShader::ReadU8(p));
-                const auto Stages = static_cast<ERHIShaderStages>(FShader::ReadU32(p));
+                const auto Stages = static_cast<ERHIShaderStage>(FShader::ReadU32(p));
                 if (NameIdx >= NameTable.GetSize()) return False;
                 R.Name = NameTable[NameIdx];
                 R.Type = Type;
@@ -253,7 +225,7 @@ export namespace Visera
             const UInt32 NumPC = FShader::ReadU32(p);
             for (UInt32 i = 0; i < NumPC; ++i)
             {
-                FShaderReflection::FPushConstant PC;
+                FRHIShaderLayout::FPushConstant PC;
                 if (I_ShaderVersion < 3u)
                 {
                     if (p + 5 > end) return False;
@@ -264,7 +236,7 @@ export namespace Visera
                 {
                     if (p + 8 > end) return False;
                     PC.Size = FShader::ReadU32(p);
-                    PC.Stages = static_cast<ERHIShaderStages>(FShader::ReadU32(p));
+                    PC.Stages = static_cast<ERHIShaderStage>(FShader::ReadU32(p));
                 }
                 O_Reflection.PushConstants.PushBack(std::move(PC));
             }
@@ -274,7 +246,7 @@ export namespace Visera
 
     // --- SerializeReflection & WriteShaderToFile implementation ---
     TArray<FByte>
-    SerializeReflection(const FShaderReflection& I_Reflection)
+    SerializeReflection(const FRHIShaderLayout& I_Reflection)
     {
         TArray<FByte> Out;
         TArray<FString> NameTable;

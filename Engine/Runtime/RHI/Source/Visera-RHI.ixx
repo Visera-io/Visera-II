@@ -26,21 +26,6 @@ export namespace Visera
         TMulticastDelegate<>
         OnEndFrame;
 
-        [[nodiscard]] FRHITextureHandle
-        CreateTexture(FRHITextureCreateDesc&& I_TextureDesc);
-        void
-        DestroyTexture(FRHITextureHandle I_TextureHandle, Bool I_bTransient = False);
-        [[nodiscard]] FRHIBufferHandle
-        CreateBuffer(FRHIBufferCreateDesc&& I_BufferDesc,
-                     const FByte*           I_InitialData       = nullptr,
-                     UInt64                 I_InitialDataSize   = 0);
-        void
-        DestroyBuffer(FRHIBufferHandle I_BufferHandle, Bool I_bTransient = False);
-        [[nodiscard]] FRHISamplerHandle
-        CreateSampler(FRHISamplerCreateDesc&& I_SamplerDesc);
-        void
-        DestroySampler(FRHISamplerHandle I_SamplerHandle, Bool I_bTransient = False);
-
         [[nodiscard]] Bool
         BeginFrame();
         void
@@ -72,7 +57,7 @@ export namespace Visera
 
         struct FFrame
         {
-            FVulkanFence      Fence;
+            FVulkanFence      SubmitFence;
 #if !defined(VISERA_OFFSCREEN_MODE)
             FVulkanSemaphore  SwapChainReadySemaphore;
 #endif
@@ -93,7 +78,7 @@ export namespace Visera
             InFlightFrames.Resize(Driver->GetSwapChain().Images.GetSize());
             for (auto& Frame : InFlightFrames)
             {
-                Frame.Fence = Driver->CreateFence(True);
+                Frame.SubmitFence = Driver->CreateFence(True);
 
                 Frame.SwapChainReadySemaphore = Driver->CreateSemaphore();
 
@@ -126,7 +111,7 @@ export namespace Visera
             InFlightFrames.Resize(1);
             for (auto& Frame : InFlightFrames)
             {
-                Frame.Fence = Driver->CreateFence(True);
+                Frame.SubmitFence = Driver->CreateFence(True);
 
                 Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
                 Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
@@ -237,13 +222,13 @@ export namespace Visera
     {
         FFrame& CurrentFrame = InFlightFrames[FrameIndex];
 
-        if (!CurrentFrame.Fence.Wait()) { return False; }
+        if (!CurrentFrame.SubmitFence.Wait()) { return False; }
 
         Registry->CollectGarbage(FrameIndex);
 #if !defined(VISERA_OFFSCREEN_MODE)
         if (Driver->WaitNextFrame(&CurrentFrame.SwapChainReadySemaphore))
         {
-            if (!CurrentFrame.Fence.Reset())
+            if (!CurrentFrame.SubmitFence.Reset())
             {
                 LOG_ERROR("Failed to reset the Fence!");
                 return False;
@@ -285,7 +270,7 @@ export namespace Visera
         Driver->Submit(&CurrentFrame.DrawCalls,
         &CurrentFrame.TransferFinishedSemaphore,
         &CurrentFrame.RenderFinishedSemaphore,
-        &CurrentFrame.Fence);
+        &CurrentFrame.SubmitFence);
 
         Registry->ClearGarbage();
 
@@ -444,53 +429,6 @@ export namespace Visera
         {
             LOG_DEBUG("Failed to present frame {}!", LastSubmittedFrameIndex);
         }
-    }
-
-    FRHITextureHandle FRHI::
-    CreateTexture(FRHITextureCreateDesc&& I_TextureDesc)
-    {
-        return Registry->Register(std::move(I_TextureDesc));
-    }
-
-    void FRHI::
-    DestroyTexture(FRHITextureHandle I_TextureHandle, Bool I_bTransient)
-    {
-        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
-        Registry->Unregister(I_TextureHandle, RetiredFrame);
-    }
-
-    FRHIBufferHandle FRHI::
-    CreateBuffer(FRHIBufferCreateDesc&& I_BufferDesc,
-                const FByte*            I_InitialData,
-                UInt64                  I_InitialDataSize)
-    {
-        FRHIBufferHandle Handle = Registry->Register(std::move(I_BufferDesc));
-        if (I_InitialData)
-        {
-            auto* Buffer = Registry->Get(Handle);
-            Buffer->Write(I_InitialData, I_InitialDataSize);
-        }
-        return Handle;
-    }
-
-    void FRHI::
-    DestroyBuffer(FRHIBufferHandle I_BufferHandle, Bool I_bTransient)
-    {
-        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
-        Registry->Unregister(I_BufferHandle, RetiredFrame);
-    }
-
-    FRHISamplerHandle FRHI::
-    CreateSampler(FRHISamplerCreateDesc&& I_SamplerDesc)
-    {
-        return Registry->Register(std::move(I_SamplerDesc));
-    }
-
-    void FRHI::
-    DestroySampler(FRHISamplerHandle I_SamplerHandle, Bool I_bTransient)
-    {
-        UInt8 RetiredFrame = (FrameIndex + I_bTransient) % InFlightFrames.GetSize();
-        Registry->Unregister(I_SamplerHandle, RetiredFrame);
     }
 
     void FRHI::

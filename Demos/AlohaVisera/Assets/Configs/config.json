@@ -1,4 +1,9 @@
 {
+  "Window":
+  {
+    "Width" : 512,
+    "Height": 512
+  },
   "Assets":
   {
     "Textures": [

@@ -12,7 +12,7 @@ import Visera.Global;
 
 export namespace Visera::Forge
 {
-    struct FShaderReflection
+    struct FRHIShaderLayout
     {
         struct FEntryPoint
         {
@@ -47,7 +47,7 @@ export namespace Visera::Forge
     	AddSearchPath(const FPath& I_Path);
     	[[nodiscard]] inline TArray<FByte>
     	Compile(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory);
-        [[nodiscard]] FShaderReflection
+        [[nodiscard]] FRHIShaderLayout
     	ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory);
 
     private:
@@ -225,10 +225,10 @@ export namespace Visera::Forge
 	 	}
 	 }
 
-    FShaderReflection FShaderCompiler::
+    FRHIShaderLayout FShaderCompiler::
     ExtractReflection(const FPath& I_Path, FStringView I_EntryPoint, const FPath& I_SearchDirectory)
     {
-        FShaderReflection Reflection;
+        FRHIShaderLayout Reflection;
         (void)I_SearchDirectory; // Session already configured by Compile() before ExtractReflection is called.
         VISERA_ASSERT(Session && Session->ShaderProgram);
 
@@ -305,7 +305,7 @@ export namespace Visera::Forge
                 const char* Name = Var->getName();
                 const FStringView PCName = (Name && Name[0] != '\0') ? FStringView(Name) : FStringView("PushConstants");
                 const UInt32 Size = static_cast<UInt32>(VarLayout->getTypeLayout()->getSize(slang::ParameterCategory::PushConstantBuffer));
-                FShaderReflection::FPushConstant PC;
+                FRHIShaderLayout::FPushConstant PC;
                 PC.Name = FString(PCName);
                 PC.Size = Size;
                 PC.Stages.PushBack(FString(StageName));
@@ -325,7 +325,7 @@ export namespace Visera::Forge
                 TypeKind != slang::TypeReflection::Kind::ShaderStorageBuffer)
             { return; }
 
-            FShaderReflection::FResource Res;
+            FRHIShaderLayout::FResource Res;
             Res.Name = FString(Var->getName());
             Res.Binding = VarLayout->getBindingIndex();
             Res.Set = static_cast<UInt32>(VarLayout->getBindingSpace());

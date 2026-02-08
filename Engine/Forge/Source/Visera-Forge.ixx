@@ -114,17 +114,17 @@ namespace Visera::Forge
             auto ReflSlang = Compiler.ExtractReflection(I_SourcePath, EntryPoint, ShaderDirectory);
             if (ReflSlang.EntryPoints.IsEmpty()) continue;
 
-            // Build runtime reflection (Visera::FShaderReflection) for .vshader; RHI enums, not strings
-            Visera::FShaderReflection Refl;
+            // Build runtime reflection (Visera::FRHIShaderLayout) for .vshader; RHI enums, not strings
+            Visera::FRHIShaderLayout Refl;
             Refl.EntryPoints.Reserve(ReflSlang.EntryPoints.GetSize());
             for (const auto& EP : ReflSlang.EntryPoints)
             { Refl.EntryPoints.PushBack({ EP.Name, StageFromString(EP.Stage) }); }
             Refl.Resources.Reserve(ReflSlang.Resources.GetSize());
             for (const auto& R : ReflSlang.Resources)
             {
-                ERHIShaderStages StagesMask = ERHIShaderStages::Undefined;
+                ERHIShaderStage StagesMask = ERHIShaderStage::Undefined;
                 for (const auto& S : R.Stages) { StagesMask |= StageFromString(S); }
-                if (StagesMask == ERHIShaderStages::Undefined) { StagesMask = ERHIShaderStages::All; }
+                if (StagesMask == ERHIShaderStage::Undefined) { StagesMask = ERHIShaderStage::All; }
                 Refl.Resources.PushBack({
                     R.Name,
                     R.Set,
@@ -138,9 +138,9 @@ namespace Visera::Forge
             Refl.PushConstants.Reserve(ReflSlang.PushConstants.GetSize());
             for (const auto& PC : ReflSlang.PushConstants)
             {
-                ERHIShaderStages StagesMask = ERHIShaderStages::Undefined;
+                ERHIShaderStage StagesMask = ERHIShaderStage::Undefined;
                 for (const auto& S : PC.Stages) { StagesMask |= StageFromString(S); }
-                if (StagesMask == ERHIShaderStages::Undefined) { StagesMask = ERHIShaderStages::All; }
+                if (StagesMask == ERHIShaderStage::Undefined) { StagesMask = ERHIShaderStage::All; }
                 Refl.PushConstants.PushBack({ PC.Size, StagesMask });
             }
 

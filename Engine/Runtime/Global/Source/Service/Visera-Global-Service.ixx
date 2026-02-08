@@ -4,11 +4,15 @@ export module Visera.Global.Service;
 #define VISERA_MODULE_NAME "Global.Service"
 export import Visera.Global.Log;
 export import Visera.Global.Name;
+       import Visera.Platform;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Set;
+       import Visera.Core.Types.JSON;
+       import Visera.Core.Types.Path;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.Queue;
        import Visera.Core.Types.String;
+       import Visera.Core.OS.FileSystem;
        import Visera.Core.Delegate.Unicast;
 
 export namespace Visera
@@ -56,6 +60,20 @@ export namespace Visera
         static void
         Bootstrap()
         {
+            if (auto ConfigFile = FJSON::Load(FPlatform::GetResourceDirectory() / FPath{"Engine/Runtime.config.json"}); ConfigFile.HasValue())
+            {
+                auto ConfigJSON = std::move(ConfigFile).GetValue();
+                LOG_DEBUG("Runtime config: {}", ConfigJSON.Dump());
+                if (auto WindowConfig = ConfigJSON.GetObject("Window"); !WindowConfig.IsNull())
+                {
+                    Config.Window.Title  = WindowConfig.GetString("Title", Config.Window.Title);
+                    Config.Window.Width  = WindowConfig.GetNumber("Width", Config.Window.Width);
+                    Config.Window.Height = WindowConfig.GetNumber("Height", Config.Window.Height);
+                }
+                else LOG_WARN("Failed to get the Window config!");
+            }
+            else LOG_WARN("Failed to load config file -- using default config!");
+
             TArray<IGlobalService*> SortedServices = TopologicalSort();
             
             if (SortedServices.IsEmpty())
@@ -66,9 +84,9 @@ export namespace Visera
 
             for (IGlobalService* Service : SortedServices)
             {
-                LOG_DEBUG("Bootstrapping {}.", Service->GetDebugName());
+                LOG_DEBUG("Bootstrapping {}.", Service->Name.GetName());
                 if (!Service->OnBootstrap.Invoke())
-                { LOG_FATAL("Failed to bootstrap {}!", Service->GetDebugName()); }
+                { LOG_FATAL("Failed to bootstrap {}!", Service->Name.GetName()); }
                 Service->Status = EStatus::Bootstrapped;
             }
         }
@@ -85,9 +103,9 @@ export namespace Visera
             for (auto It = SortedServices.rbegin(); It != SortedServices.rend(); ++It)
             {
                 IGlobalService* Service = *It;
-                LOG_DEBUG("Terminating {}.", Service->GetDebugName());
+                LOG_DEBUG("Terminating {}.", Service->Name.GetName());
                 if (!Service->OnTerminate.Invoke())
-                { LOG_FATAL("Failed to terminate {}!", Service->GetDebugName()); }
+                { LOG_FATAL("Failed to terminate {}!", Service->Name.GetName()); }
                 Service->Status = EStatus::Terminated;
             }
         }
@@ -119,10 +137,17 @@ export namespace Visera
         [[nodiscard]] Bool
         IsTerminated()   const { return Status == EStatus::Terminated; }
 
-        [[nodiscard]] FStringView
-        GetDebugName() const { return Name.GetName(); }
-
     protected:
+        struct FConfig
+        {
+            struct
+            {
+                FString Title  = "Visera";
+                UInt32  Width  = 512;
+                UInt32  Height = 512;
+            }Window;
+        };
+        static inline FConfig Config;
         TSet<FName> Dependencies;
 
         TUnicastDelegate<Bool(void)> OnBootstrap;
@@ -132,9 +157,9 @@ export namespace Visera
         virtual ~IGlobalService()
         {
             if (IsPending())
-            { LOG_WARN("Service {} was NOT bootstrapped!", GetDebugName()); }
+            { LOG_WARN("Service {} was NOT bootstrapped!", Name.GetName()); }
             else if (IsBootstrapped())
-            { LOG_ERROR("Service {} was NOT terminated!", GetDebugName()); }
+            { LOG_ERROR("Service {} was NOT terminated!", Name.GetName()); }
         }
 
     private:

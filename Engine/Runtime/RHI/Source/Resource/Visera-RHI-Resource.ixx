@@ -6,6 +6,8 @@ export import Visera.RHI.Resource.Texture;
 export import Visera.RHI.Resource.Sampler;
 export import Visera.RHI.Resource.Buffer;
 export import Visera.RHI.Resource.DescriptorSet;
+export import Visera.RHI.Resource.RenderPass;
+export import Visera.RHI.Resource.Shader;
 
 export namespace Visera
 {

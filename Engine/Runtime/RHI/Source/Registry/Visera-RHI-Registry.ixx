@@ -2,6 +2,7 @@ module;
 #include <Visera-RHI.hpp>
 export module Visera.RHI.Registry;
 #define VISERA_MODULE_NAME "RHI.Registry"
+import Visera.RHI.Registry.ID;
 import Visera.RHI.Common;
 import Visera.RHI.Vulkan;
 import Visera.RHI.Resource;
@@ -17,38 +18,53 @@ export namespace Visera
     class VISERA_RHI_API FRHIRegistry
     {
     public:
+        template<Concepts::RHIID RHIID>
+        class TEntry
+        {
+        public:
+
+        private:
+            FRHIRegistry* Registry {nullptr};
+            RHIID         ID       {};
+
+        public:
+            TEntry() = delete;
+            TEntry(FRHIRegistry& I_Registry, RHIID I_ID) : Registry { &I_Registry }, ID { I_ID } {}
+        };
+
+    public:
         [[nodiscard]] FRHITexture*
-        Get(FRHITextureHandle I_Handle) { return Textures.Get(I_Handle); }
+        Get(FRHITextureID I_Handle) { return Textures.Get(I_Handle); }
         [[nodiscard]] FRHIBuffer*
-        Get(FRHIBufferHandle I_Handle) { return Buffers.Get(I_Handle); }
+        Get(FRHIBufferID I_Handle) { return Buffers.Get(I_Handle); }
         [[nodiscard]] FRHISampler*
-        Get(FRHISamplerHandle I_Handle) { return Samplers.Get(I_Handle); }
+        Get(FRHISamplerID I_Handle) { return Samplers.Get(I_Handle); }
         [[nodiscard]] FRHIDescriptorSet*
-        Get(FRHIDescriptorSetHandle I_Handle) { return DescriptorSets.Get(I_Handle); }
+        Get(FRHIDescriptorSetID I_Handle) { return DescriptorSets.Get(I_Handle); }
         [[nodiscard]] const FRHITexture*
-        Get(FRHITextureHandle I_Handle) const { return Textures.Get(I_Handle); }
+        Get(FRHITextureID I_Handle) const { return Textures.Get(I_Handle); }
         [[nodiscard]] const FRHIBuffer*
-        Get(FRHIBufferHandle I_Handle) const { return Buffers.Get(I_Handle); }
+        Get(FRHIBufferID I_Handle) const { return Buffers.Get(I_Handle); }
         [[nodiscard]] const FRHISampler*
-        Get(FRHISamplerHandle I_Handle) const { return Samplers.Get(I_Handle); }
+        Get(FRHISamplerID I_Handle) const { return Samplers.Get(I_Handle); }
         [[nodiscard]] const FRHIDescriptorSet*
-        Get(FRHIDescriptorSetHandle I_Handle) const { return DescriptorSets.Get(I_Handle); }
-        [[nodiscard]] FRHITextureHandle
+        Get(FRHIDescriptorSetID I_Handle) const { return DescriptorSets.Get(I_Handle); }
+        [[nodiscard]] FRHITextureID
         Register(FRHITextureCreateDesc&& I_TextureDesc);
-        [[nodiscard]] FRHIBufferHandle
+        [[nodiscard]] FRHIBufferID
         Register(FRHIBufferCreateDesc&& I_BufferDesc);
-        [[nodiscard]] FRHISamplerHandle
+        [[nodiscard]] FRHISamplerID
         Register(FRHISamplerCreateDesc&& I_SamplerDesc);
-        [[nodiscard]] FRHIDescriptorSetHandle
+        [[nodiscard]] FRHIDescriptorSetID
         Register(FRHIDescriptorSetCreateDesc&& I_DescriptorSetDesc);
         void
-        Unregister(FRHITextureHandle I_Handle, UInt8 I_RetiredFrame);
+        Unregister(FRHITextureID I_Handle, UInt8 I_RetiredFrame);
         void
-        Unregister(FRHIBufferHandle I_Handle, UInt8 I_RetiredFrame);
+        Unregister(FRHIBufferID I_Handle, UInt8 I_RetiredFrame);
         void
-        Unregister(FRHISamplerHandle I_Handle, UInt8 I_RetiredFrame);
+        Unregister(FRHISamplerID I_Handle, UInt8 I_RetiredFrame);
         void
-        Unregister(FRHIDescriptorSetHandle I_Handle, UInt8 I_RetiredFrame);
+        Unregister(FRHIDescriptorSetID I_Handle, UInt8 I_RetiredFrame);
 
         void
         CollectGarbage(UInt8 I_FrameIndex);
@@ -60,12 +76,16 @@ export namespace Visera
         [[nodiscard]] const FVulkanDescriptorPool&
         GetDescriptorSetPool() const { return DescriptorSetPool; }
 
+        // New APIs
+        template<Concepts::RHIID RHIID> void
+        Acquire(RHIID I_ID);
+
     private:
-        TSlotMap<FRHITexture,                FRHITextureHandle>             Textures;
-        TSlotMap<FRHISampler,                FRHISamplerHandle>             Samplers;
-        TSlotMap<FRHIBuffer,                 FRHIBufferHandle>              Buffers;
-        TSlotMap<FRHIDescriptorSet,          FRHIDescriptorSetHandle>       DescriptorSets;
-        TSlotMap<FVulkanDescriptorSetLayout, FRHIDescriptorSetLayoutHandle> DescriptorSetLayouts;
+        TSlotMap<FRHITexture,                FRHITextureID>             Textures;
+        TSlotMap<FRHISampler,                FRHISamplerID>             Samplers;
+        TSlotMap<FRHIBuffer,                 FRHIBufferID>              Buffers;
+        TSlotMap<FRHIDescriptorSet,          FRHIDescriptorSetID>       DescriptorSets;
+        TSlotMap<FVulkanDescriptorSetLayout, FRHIDescriptorSetLayoutID> DescriptorSetLayouts;
 
 
         template<typename HandleType>
@@ -74,15 +94,15 @@ export namespace Visera
             HandleType ResourceHandle { };
             UInt8      RetiredFrame   {0};
         };
-        TArray<FGarbageItem<FRHITextureHandle>>         GarbageBinTextures;
-        TArray<FGarbageItem<FRHIBufferHandle>>          GarbageBinBuffers;
-        TArray<FGarbageItem<FRHISamplerHandle>>         GarbageBinSamplers;
-        TArray<FGarbageItem<FRHIDescriptorSetHandle>>   GarbageBinDescriptorSets;
+        TArray<FGarbageItem<FRHITextureID>>         GarbageBinTextures;
+        TArray<FGarbageItem<FRHIBufferID>>          GarbageBinBuffers;
+        TArray<FGarbageItem<FRHISamplerID>>         GarbageBinSamplers;
+        TArray<FGarbageItem<FRHIDescriptorSetID>>   GarbageBinDescriptorSets;
 
-        TMap<UInt64, TArray<FRHITextureHandle>>         RecycleBinTextures;
-        TMap<UInt64, TArray<FRHIBufferHandle>>          RecycleBinBuffers;
-        TMap<UInt64, TArray<FRHISamplerHandle>>         RecycleBinSamplers;
-        TMap<UInt64, TArray<FRHIDescriptorSetHandle>>   RecycleBinDescriptorSets;
+        TMap<UInt64, TArray<FRHITextureID>>         RecycleBinTextures;
+        TMap<UInt64, TArray<FRHIBufferID>>          RecycleBinBuffers;
+        TMap<UInt64, TArray<FRHISamplerID>>         RecycleBinSamplers;
+        TMap<UInt64, TArray<FRHIDescriptorSetID>>   RecycleBinDescriptorSets;
 
         FVulkanDriver*        Driver;
         FVulkanDescriptorPool DescriptorSetPool;
@@ -157,7 +177,7 @@ export namespace Visera
     }
 
 
-    FRHISamplerHandle FRHIRegistry::
+    FRHISamplerID FRHIRegistry::
     Register(FRHISamplerCreateDesc&& I_SamplerDesc)
     {
         const UInt64 Key = Hash(I_SamplerDesc);
@@ -169,7 +189,7 @@ export namespace Visera
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const FRHISamplerHandle Handle  = Handles[Idx];
+                const FRHISamplerID Handle  = Handles[Idx];
                 const auto*            Sampler = Samplers.Get(Handle);
                 if (Sampler == nullptr) { continue; }
 
@@ -184,7 +204,7 @@ export namespace Visera
         FVulkanSampler   Sampler = Driver->CreateImageSampler(
             TypeCast(I_SamplerDesc.Type),
             TypeCast(I_SamplerDesc.AddressMode));
-        FRHISamplerHandle Handle = Samplers.Insert(
+        FRHISamplerID Handle = Samplers.Insert(
             FRHISampler{std::move(I_SamplerDesc), std::move(Sampler)},
             False);
 
@@ -192,7 +212,7 @@ export namespace Visera
         return Handle;
     }
 
-    FRHITextureHandle FRHIRegistry::
+    FRHITextureID FRHIRegistry::
     Register(FRHITextureCreateDesc&& I_TextureDesc)
     {
         const UInt64 Key = Hash(I_TextureDesc);
@@ -204,7 +224,7 @@ export namespace Visera
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const FRHITextureHandle Handle  = Handles[Idx];
+                const FRHITextureID Handle  = Handles[Idx];
                 const auto*            Texture = Textures.Get(Handle);
                 if (Texture == nullptr) { continue; }
 
@@ -234,7 +254,7 @@ export namespace Visera
             vk::ImageAspectFlagBits::eColor,
             I_TextureDesc.MipLevelRange,
             I_TextureDesc.ArrayLayerRange);
-        FRHITextureHandle Handle = Textures.Insert(
+        FRHITextureID Handle = Textures.Insert(
             FRHITexture{std::move(I_TextureDesc), std::move(Image), std::move(ImageView)},
             True);
 
@@ -242,7 +262,7 @@ export namespace Visera
         return Handle;
     }
 
-    FRHIBufferHandle FRHIRegistry::
+    FRHIBufferID FRHIRegistry::
     Register(FRHIBufferCreateDesc&& I_BufferDesc)
     {
         const UInt64 Key = Hash(I_BufferDesc);
@@ -254,7 +274,7 @@ export namespace Visera
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const FRHIBufferHandle Handle = Handles[Idx];
+                const FRHIBufferID Handle = Handles[Idx];
                 const FRHIBuffer*      Buffer = Buffers.Get(Handle);
                 if (Buffer == nullptr) { continue; }
 
@@ -279,7 +299,7 @@ export namespace Visera
         }
 
         FVulkanBuffer     Buffer = Driver->CreateBuffer(BufferCreateInfo, MemoryProperties);
-        FRHIBufferHandle  Handle = Buffers.Insert(
+        FRHIBufferID  Handle = Buffers.Insert(
             FRHIBuffer{std::move(I_BufferDesc), std::move(Buffer)},
             True);
 
@@ -287,7 +307,7 @@ export namespace Visera
         return Handle;
     }
 
-    FRHIDescriptorSetHandle FRHIRegistry::
+    FRHIDescriptorSetID FRHIRegistry::
     Register(FRHIDescriptorSetCreateDesc&& I_DescriptorSetDesc)
     {
         VISERA_ASSERT(!I_DescriptorSetDesc.Bindings.IsEmpty());
@@ -300,7 +320,7 @@ export namespace Visera
 
             for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
             {
-                const FRHIDescriptorSetHandle Handle = Handles[Idx];
+                const FRHIDescriptorSetID Handle = Handles[Idx];
                 const auto* DescriptorSet = DescriptorSets.Get(Handle);
                 if (DescriptorSet == nullptr) { continue; }
 
@@ -313,12 +333,12 @@ export namespace Visera
         }
         FVulkanDescriptorSetLayout Layout =
             Driver->CreateDescriptorSetLayout(I_DescriptorSetDesc.Bindings);
-        FRHIDescriptorSetLayoutHandle LayoutHandle =
+        FRHIDescriptorSetLayoutID LayoutHandle =
             DescriptorSetLayouts.Insert(std::move(Layout), False);
         FVulkanDescriptorSetLayout* LayoutPtr = DescriptorSetLayouts.Get(LayoutHandle);
         VISERA_ASSERT(LayoutPtr != nullptr);
         FVulkanDescriptorSet VulkanDescriptorSet = DescriptorSetPool.CreateDescriptorSet(*LayoutPtr);
-        FRHIDescriptorSetHandle Handle = DescriptorSets.Insert(
+        FRHIDescriptorSetID Handle = DescriptorSets.Insert(
             FRHIDescriptorSet{std::move(I_DescriptorSetDesc), std::move(VulkanDescriptorSet)},
             False);
 
@@ -327,25 +347,25 @@ export namespace Visera
     }
 
     void FRHIRegistry::
-    Unregister(FRHITextureHandle I_Handle, UInt8 I_RetiredFrame)
+    Unregister(FRHITextureID I_Handle, UInt8 I_RetiredFrame)
     {
         GarbageBinTextures.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
     }
 
     void FRHIRegistry::
-    Unregister(FRHIBufferHandle I_Handle, UInt8 I_RetiredFrame)
+    Unregister(FRHIBufferID I_Handle, UInt8 I_RetiredFrame)
     {
         GarbageBinBuffers.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
     }
 
     void FRHIRegistry::
-    Unregister(FRHISamplerHandle I_Handle, UInt8 I_RetiredFrame)
+    Unregister(FRHISamplerID I_Handle, UInt8 I_RetiredFrame)
     {
         GarbageBinSamplers.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
     }
 
     void FRHIRegistry::
-    Unregister(FRHIDescriptorSetHandle I_Handle, UInt8 I_RetiredFrame)
+    Unregister(FRHIDescriptorSetID I_Handle, UInt8 I_RetiredFrame)
     {
         GarbageBinDescriptorSets.PushBack({ .ResourceHandle = I_Handle, .RetiredFrame = I_RetiredFrame });
     }

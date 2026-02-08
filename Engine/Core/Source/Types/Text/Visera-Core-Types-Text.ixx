@@ -80,9 +80,7 @@ export namespace Visera
         {
             String.Assign(I_Literal, N - 1);
             if (!std::is_constant_evaluated())
-            {
-                VISERA_ASSERT(ValidateUTF8(I_Literal, N - 1));
-            }
+            { VISERA_ASSERT(ValidateUTF8(FString(I_Literal, N - 1))); }
         }
         FText(const FText&)                      = default;
         FText(FText&&)                  noexcept = default;

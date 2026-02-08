@@ -28,17 +28,6 @@ struct FEngine
 
     Bool Run()
     {
-        TMPSCQueue<Int32> MPSCQueue;
-        MPSCQueue.Enqueue(1);
-        MPSCQueue.Enqueue(2);
-        LOG_INFO("{}", MPSCQueue.Dequeue().GetValue());
-        LOG_INFO("{}", MPSCQueue.Dequeue().GetValue());
-        TSPSCQueue<Float> SPSCQueue;
-        SPSCQueue.Enqueue(1);
-        SPSCQueue.Enqueue(2);
-        LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
-        LOG_INFO("{}", SPSCQueue.Dequeue().GetValue());
-
         Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
         {
             if (I_Button == FMouse::EButton::Left)
@@ -46,18 +35,6 @@ struct FEngine
                 LOG_INFO("Left");
             }
         });
-
-        TOptional<Int32> Num = 32;
-        LOG_ERROR("{}", Num.GetValue());
-
-        LOG_INFO("{}", FText(True));
-        LOG_INFO("{}", FText(False));
-        FString MyString = "A.B.C";
-        for (auto View : MyString.SplitToViews(".B"))
-        {
-            LOG_INFO("{}", View);
-        }
-        LOG_WARN("{}", MyString);
 
         LOG_INFO("Visera Engine Run()");
 
@@ -70,84 +47,6 @@ struct FEngine
         TSharedPtr<FImageAsset> ImgAsset3 = AssetHub->LoadImage(TexturePath);
         if (!ImgAsset1) { LOG_ERROR("Failed to load test image"); return 1; }
         const FImage& SrcImage = ImgAsset1->GetImage();
-
-        // Copy asset image to mutable buffer (IAsset is read-only; modify then Save with FImage)
-        auto TestImage = MakeShared<FImage>(FImage::FCreateInfo{
-            .Width = SrcImage.GetWidth(),
-            .Height = SrcImage.GetHeight(),
-            .Depth = 1,
-            .PixelFormat = SrcImage.GetPixelFormat(),
-            .ColorSpace = SrcImage.GetColorSpace(),
-        });
-        std::memcpy(TestImage->AccessData(), SrcImage.GetData(), SrcImage.GetSizeInBytes());
-
-        const FImage* TestImage2 = ImgAsset2 ? &ImgAsset2->GetImage() : nullptr;
-        const FImage* TestImage3 = ImgAsset3 ? &ImgAsset3->GetImage() : nullptr;
-
-        // Test LUT: Color inversion using sRGB to Linear conversion
-        LOG_INFO("Testing LUT: Inverting colors in image ({}x{})", TestImage->GetWidth(), TestImage->GetHeight());
-        {
-            UInt32 ProcessedPixels = 0;
-            for (auto& Pixel : TestImage->View())
-            {
-                // Get pixel color (RAW read - for sRGB images, Get() returns sRGB values as 0-1 floats)
-                FLinearColor PixelColor = Pixel.Get();
-                
-                // Convert to sRGB UInt8 values if image is sRGB format
-                if (TestImage->GetPixelFormat() == EPixelFormat::RGBA8_UNorm)
-                {
-                    // Extract sRGB UInt8 values
-                    UInt8 SRGB_R = static_cast<UInt8>(Math::Clamp(PixelColor.R * 255.0f, 0.0f, 255.0f));
-                    UInt8 SRGB_G = static_cast<UInt8>(Math::Clamp(PixelColor.G * 255.0f, 0.0f, 255.0f));
-                    UInt8 SRGB_B = static_cast<UInt8>(Math::Clamp(PixelColor.B * 255.0f, 0.0f, 255.0f));
-                    UInt8 SRGB_A = static_cast<UInt8>(Math::Clamp(PixelColor.A * 255.0f, 0.0f, 255.0f));
-                    
-                    // Convert sRGB to Linear using LUT (via FLinearColor constructor)
-                    FLinearColor LinearColor(SRGB_R, SRGB_G, SRGB_B, SRGB_A);
-                    
-                    // Invert color in Linear space: (1.0 - color)
-                    LinearColor.R = 1.0f - LinearColor.R;
-                    LinearColor.G = 1.0f - LinearColor.G;
-                    LinearColor.B = 1.0f - LinearColor.B;
-                    // Keep alpha unchanged
-                    
-                    // Convert back to sRGB
-                    FColor InvertedSRGB = FColor::SRGB8ColorFromLinear(LinearColor);
-                    
-                    // Set pixel (RAW write - expects sRGB values as 0-1 floats for sRGB images)
-                    FLinearColor SRGBAsLinear;
-                    SRGBAsLinear.R = InvertedSRGB.R / 255.0f;
-                    SRGBAsLinear.G = InvertedSRGB.G / 255.0f;
-                    SRGBAsLinear.B = InvertedSRGB.B / 255.0f;
-                    SRGBAsLinear.A = InvertedSRGB.A / 255.0f;
-                    Pixel.Set(SRGBAsLinear);
-                }
-                else
-                {
-                    // For Linear formats, directly invert in Linear space
-                    PixelColor.R = 1.0f - PixelColor.R;
-                    PixelColor.G = 1.0f - PixelColor.G;
-                    PixelColor.B = 1.0f - PixelColor.B;
-                    Pixel.Set(PixelColor);
-                }
-                
-                ProcessedPixels++;
-            }
-            LOG_INFO("LUT test completed: Processed {} pixels", ProcessedPixels);
-        }
-        
-        FTextureID TexID = Graphics->CreateTexture2D(TestImage);
-
-        Window->Resize(TestImage->GetWidth(), TestImage->GetHeight());
-
-        auto TestTexture = Graphics->GetTexture2D(TexID);
-
-        auto Material = MakeShared<FMaterial>(FJSON::Load(FPath{"Assets/App/Material/BasicSprite.vmaterial"}).GetValue());
-
-        Material->SetBaseColorHandle(TexID);
-
-        FSpriteRenderer Sprite;
-        Sprite.SetMaterial(Material);
 
         while (!Window->ShouldClose())
         {
@@ -163,11 +62,8 @@ struct FEngine
             {
 
             }
-            Commands.ConvertImageLayout(TestTexture->TextureHandle, ERHIImageLayout::TransferSrc);
-            Commands.BlitToSwapChain(TestTexture->TextureHandle, ERHIFilter::Linear);
-            Commands.ConvertImageLayout(TestTexture->TextureHandle, ERHIImageLayout::ShaderReadOnly);
 
-            RHI->Submit(Commands);
+            //RHI->Submit(Commands);
 
             RHI->EndFrame();
             RHI->Present();

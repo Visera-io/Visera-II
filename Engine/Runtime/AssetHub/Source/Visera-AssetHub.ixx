@@ -185,7 +185,7 @@ export namespace Visera
         UInt32 Version = 0;
         if (!ReadShaderChunks(I_Path, Version, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
         { return nullptr; }
-        FShaderReflection Refl;
+        FShader::FLayout Refl;
         if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(Version, FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
         { return nullptr; }
         if (Refl.EntryPoints.IsEmpty())

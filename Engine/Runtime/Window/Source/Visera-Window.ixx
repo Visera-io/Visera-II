@@ -47,7 +47,10 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                PlatformWindow = FPlatform::CreateWindow("Visera", 1920, 1080);
+                PlatformWindow = FPlatform::CreateWindow(
+                    Config.Window.Title,
+                    Config.Window.Width,
+                    Config.Window.Height);
                 if (!PlatformWindow) { return False; }
 
                 if (!FPlatformWindow::WindowResizeCallback.TryBind([this](UInt32 I_NewWidth, UInt32 I_NewHeight)
