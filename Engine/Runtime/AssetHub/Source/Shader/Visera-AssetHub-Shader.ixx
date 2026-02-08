@@ -2,9 +2,11 @@ module;
 #include <Visera-AssetHub.hpp>
 export module Visera.AssetHub.Shader;
 #define VISERA_MODULE_NAME "AssetHub.Shader"
+import Visera.AssetHub.Asset;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Array;
 import Visera.Core.Types.String;
+import Visera.Core.Types.Pointer;
 import Visera.Core.OS.FileSystem;
 import Visera.RHI.Common;
 
@@ -40,7 +42,7 @@ export namespace Visera
         TArray<FPushConstant> PushConstants;
     };
 
-    /** .vshader binary format: constants and encode/decode helpers. Single source of truth for Validator and runtime read. */
+    /** Pure shader data: SPIR-V bytes + reflection. Use FShader::Read/Write for .vshader format; save via FAssetHub::SaveShader. */
     class VISERA_ASSETHUB_API FShader
     {
     public:
@@ -54,36 +56,79 @@ export namespace Visera
         static constexpr UInt32 ChunkTableSize = ShaderChunkCount * ChunkEntrySize;
         static constexpr UInt32 ShaderFileHeaderTotal = HeaderSize + ChunkTableSize;
 
-        static UInt32 ReadU32(const FByte*& I_Ptr)
+        static UInt32
+        ReadU32(const FByte*& I_Ptr)
         {
             UInt32 v = static_cast<UInt32>(I_Ptr[0]) | (static_cast<UInt32>(I_Ptr[1]) << 8) | (static_cast<UInt32>(I_Ptr[2]) << 16) | (static_cast<UInt32>(I_Ptr[3]) << 24);
             I_Ptr += 4;
             return v;
         }
-        static UInt8 ReadU8(const FByte*& I_Ptr) { return static_cast<UInt8>(*I_Ptr++); }
-
+        static UInt8
+        ReadU8(const FByte*& I_Ptr) { return static_cast<UInt8>(*I_Ptr++); }
         /** Binary layout: resource stage 0=All, 1=Vertex, 2=Fragment, 3=Compute. Used by Deserialize only. */
-        static ERHIShaderStages ResourceStageFromU8(UInt8 E) { if (E == 1) return ERHIShaderStages::Vertex; if (E == 2) return ERHIShaderStages::Fragment; if (E == 3) return ERHIShaderStages::Compute; return ERHIShaderStages::All; }
+        static ERHIShaderStages
+        ResourceStageFromU8(UInt8 E) { if (E == 1) return ERHIShaderStages::Vertex; if (E == 2) return ERHIShaderStages::Fragment; if (E == 3) return ERHIShaderStages::Compute; return ERHIShaderStages::All; }
 
-        static void WriteU32(TArray<FByte>& O_Out, UInt32 V)
+        static void
+        WriteU32(TArray<FByte>& O_Out, UInt32 V)
         {
             O_Out.PushBack(static_cast<FByte>(V & 0xff));
             O_Out.PushBack(static_cast<FByte>((V >> 8) & 0xff));
             O_Out.PushBack(static_cast<FByte>((V >> 16) & 0xff));
             O_Out.PushBack(static_cast<FByte>((V >> 24) & 0xff));
         }
-        static void WriteU8(TArray<FByte>& O_Out, UInt8 V) { O_Out.PushBack(V); }
-        static void WriteBytes(TArray<FByte>& O_Out, const char* I_Ptr, UInt32 I_Len)
+        static void
+        WriteU8(TArray<FByte>& O_Out, UInt8 V) { O_Out.PushBack(V); }
+        static void
+        WriteBytes(TArray<FByte>& O_Out, const char* I_Ptr, UInt32 I_Len)
         {
             for (UInt32 i = 0; i < I_Len; ++i) O_Out.PushBack(static_cast<FByte>(I_Ptr[i]));
         }
 
-        /** Loaded/compiled shader: SPIR-V bytes + reflection. */
+        [[nodiscard]] const TArray<FByte>&
+        GetSPIRV() const { return SPIRV; }
+        [[nodiscard]] const FShaderReflection&
+        GetReflection() const { return Reflection; }
+        [[nodiscard]] UInt64
+        GetSizeInBytes() const { return SPIRV.GetSize(); }
+
+    private:
         TArray<FByte> SPIRV;
         FShaderReflection Reflection;
 
-        [[nodiscard]] const TArray<FByte>& GetSPIRV() const { return SPIRV; }
-        [[nodiscard]] const FShaderReflection& GetReflection() const { return Reflection; }
+    public:
+        FShader() = default;
+        FShader(TArray<FByte> I_SPIRV, FShaderReflection I_Reflection)
+            : SPIRV{std::move(I_SPIRV)}, Reflection{std::move(I_Reflection)} {}
+    };
+
+    /** Serialize reflection to .vshader reflection chunk format. */
+    [[nodiscard]] TArray<FByte>
+    SerializeReflection(const FShaderReflection& I_Reflection);
+
+    /** Write FShader to .vshader file. Use FAssetHub::SaveShader or this directly. */
+    [[nodiscard]] Bool
+    WriteShaderToFile(const FShader& I_Shader, const FPath& I_Path);
+
+    /** Read-only shader asset; implements IAsset. Use FAssetHub::SaveShader(const FShader&, path) to write. */
+    class VISERA_ASSETHUB_API FShaderAsset : public IAsset
+    {
+    public:
+        [[nodiscard]] const TArray<FByte>&
+        GetSPIRV() const { return Data.GetSPIRV(); }
+        [[nodiscard]] const FShaderReflection&
+        GetReflection() const { return Data.GetReflection(); }
+        [[nodiscard]] const FShader&
+        GetShader() const { return Data; }
+        [[nodiscard]] UInt64
+        GetByteSize() const override { return Data.GetSizeInBytes(); }
+
+    private:
+        FShader Data;
+
+    public:
+        FShaderAsset() = default;
+        explicit FShaderAsset(FShader I_Shader) : Data(std::move(I_Shader)) {}
     };
 
     /** Read SPIR-V and Reflection chunks from a .vshader binary file. */
@@ -202,8 +247,6 @@ export namespace Visera
             O_Reflection.Resources.PushBack(std::move(R));
         }
 
-        // v2+: optional push-constant blocks (count + entries).
-        // Keep it optional so older chunks (v1) still deserialize.
         if (I_ShaderVersion >= 2u && p < end)
         {
             if (p + 4 > end) return False;
@@ -227,5 +270,83 @@ export namespace Visera
             }
         }
         return True;
+    }
+
+    // --- SerializeReflection & WriteShaderToFile implementation ---
+    TArray<FByte>
+    SerializeReflection(const FShaderReflection& I_Reflection)
+    {
+        TArray<FByte> Out;
+        TArray<FString> NameTable;
+        auto NameIndex = [&NameTable](const FString& N) -> UInt32 {
+            for (UInt64 i = 0; i < NameTable.GetSize(); ++i) if (NameTable[i] == N) return static_cast<UInt32>(i);
+            NameTable.PushBack(N);
+            return static_cast<UInt32>(NameTable.GetSize() - 1);
+        };
+        for (const auto& EP : I_Reflection.EntryPoints) (void)NameIndex(EP.Name);
+        for (const auto& R : I_Reflection.Resources) (void)NameIndex(R.Name);
+        FShader::WriteU32(Out, static_cast<UInt32>(NameTable.GetSize()));
+        for (const auto& N : NameTable)
+        {
+            const UInt32 Len = static_cast<UInt32>(N.GetSize());
+            FShader::WriteU32(Out, Len);
+            FShader::WriteBytes(Out, N.Data(), Len);
+        }
+        FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.EntryPoints.GetSize()));
+        for (const auto& EP : I_Reflection.EntryPoints)
+        {
+            FShader::WriteU32(Out, NameIndex(EP.Name));
+            FShader::WriteU32(Out, static_cast<UInt32>(EP.Stage));
+        }
+        FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.Resources.GetSize()));
+        for (const auto& R : I_Reflection.Resources)
+        {
+            FShader::WriteU32(Out, NameIndex(R.Name));
+            FShader::WriteU8(Out, static_cast<UInt8>(R.Type));
+            FShader::WriteU32(Out, R.Set);
+            FShader::WriteU32(Out, R.Binding);
+            FShader::WriteU32(Out, R.ArrayCount);
+            FShader::WriteU8(Out, static_cast<UInt8>(R.Access));
+            FShader::WriteU32(Out, static_cast<UInt32>(R.Stages));
+        }
+        FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.PushConstants.GetSize()));
+        for (const auto& PC : I_Reflection.PushConstants)
+        {
+            FShader::WriteU32(Out, PC.Size);
+            FShader::WriteU32(Out, static_cast<UInt32>(PC.Stages));
+        }
+        return Out;
+    }
+
+    Bool
+    WriteShaderToFile(const FShader& I_Shader, const FPath& I_Path)
+    {
+        const TArray<FByte> ReflChunk = SerializeReflection(I_Shader.GetReflection());
+        const UInt32 SpirvSize = static_cast<UInt32>(I_Shader.GetSPIRV().GetSize());
+        const UInt32 ReflSize = static_cast<UInt32>(ReflChunk.GetSize());
+        const UInt32 Chunk0Offset = FShader::ShaderFileHeaderTotal;
+        const UInt32 Chunk1Offset = Chunk0Offset + SpirvSize;
+        TArray<FByte> Header;
+        Header.Reserve(FShader::ShaderFileHeaderTotal);
+        FShader::WriteU32(Header, FShader::ShaderMagic);
+        FShader::WriteU32(Header, FShader::ShaderVersion);
+        FShader::WriteU32(Header, FShader::ShaderChunkCount);
+        FShader::WriteU32(Header, FShader::ShaderChunkTypeSPIRV);
+        FShader::WriteU32(Header, Chunk0Offset);
+        FShader::WriteU32(Header, SpirvSize);
+        FShader::WriteU32(Header, FShader::ShaderChunkTypeReflection);
+        FShader::WriteU32(Header, Chunk1Offset);
+        FShader::WriteU32(Header, ReflSize);
+        if (auto File = FFileSystem::OpenFile(I_Path, EFileMode::Write | EFileMode::Binary); File && File->IsOpen())
+        {
+            const UInt64 HeaderSize = Header.GetSize();
+            if (File->Write(Header.Data(), 1, HeaderSize) != HeaderSize) return False;
+            const UInt64 SpirvBytes = I_Shader.GetSPIRV().GetSize();
+            if (File->Write(I_Shader.GetSPIRV().Data(), 1, SpirvBytes) != SpirvBytes) return False;
+            const UInt64 ReflChunkSize = ReflChunk.GetSize();
+            if (File->Write(ReflChunk.Data(), 1, ReflChunkSize) != ReflChunkSize) return False;
+            return True;
+        }
+        return False;
     }
 }

@@ -20,21 +20,21 @@ export namespace Visera
     {
     public:
         /**
-         * Imports image from a file path and creates an FImage.
+         * Imports image from a file path.
          * @param I_Path The path to the image file
-         * @return A shared pointer to the loaded FImage, or nullptr on failure
+         * @return Loaded FImage, or empty (0x0) FImage on failure
          */
-        [[nodiscard]] virtual TSharedPtr<FImage>
+        [[nodiscard]] virtual FImage
         Import(const FPath& I_Path) = 0;
 
         /**
-         * Exports an FImage to a file path.
-         * @param I_Image The image to export
+         * Exports an FImage to a file path. Takes pure data (const FImage&) to avoid multi-thread write issues.
+         * @param I_Image The image data to export
          * @param I_Path The path to save the image file
          * @return True if successful, false otherwise
          */
         [[nodiscard]] virtual Bool
-        Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path) = 0;
+        Export(const FImage& I_Image, const FPath& I_Path) = 0;
 
     public:
         virtual ~IImageWrapper() = default;

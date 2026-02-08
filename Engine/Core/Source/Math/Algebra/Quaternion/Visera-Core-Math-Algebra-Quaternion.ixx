@@ -32,11 +32,11 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool
         IsZero() const noexcept { return X==0.0f && Y==0.0f && Z==0.0f && W==0.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
         IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X,0.0f) && Math::IsNearlyEqual(Y,0.0f) && Math::IsNearlyEqual(Z,0.0f) && Math::IsNearlyEqual(W,0.0f); }
         [[nodiscard]] constexpr Bool
         IsIdentity() const noexcept { return X==0.0f && Y==0.0f && Z==0.0f && W==1.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
         IsNearlyIdentity() const noexcept { return Math::IsNearlyEqual(X,0.0f) && Math::IsNearlyEqual(Y,0.0f) && Math::IsNearlyEqual(Z,0.0f) && Math::IsNearlyEqual(W,1.0f); }
 
         [[nodiscard]] constexpr Float&

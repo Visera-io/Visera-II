@@ -18,11 +18,11 @@ export namespace Visera
     class VISERA_ASSETHUB_API FPNGImageWrapper : public IImageWrapper
     {
     public:
-        [[nodiscard]] TSharedPtr<FImage>
+        [[nodiscard]] FImage
         Import(const FPath& I_Path) override;
 
         [[nodiscard]] Bool
-        Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path) override;
+        Export(const FImage& I_Image, const FPath& I_Path) override;
 
     private:
         TUniquePtr<FFile> File;
@@ -55,13 +55,13 @@ export namespace Visera
         EndParsing();
     }
 
-    TSharedPtr<FImage> FPNGImageWrapper::
+    FImage FPNGImageWrapper::
     Import(const FPath& I_Path)
     {
         if (!BeginParsing(I_Path))
         {
             LOG_ERROR("Failed to parse the image {}!", I_Path);
-            return nullptr;
+            return {};
         }
 
         Preprocessing();
@@ -72,10 +72,10 @@ export namespace Visera
         {
             LOG_ERROR("Invalid pixel format for PNG: {}", I_Path);
             EndParsing();
-            return nullptr;
+            return {};
         }
 
-        auto CreateInfo = FImage::FCreateInfo
+        FImage::FCreateInfo CreateInfo
         {
             .Width      = Width,
             .Height     = Height,
@@ -84,28 +84,17 @@ export namespace Visera
             .ColorSpace = ColorSpace,
         };
 
-        auto Image = MakeShared<FImage>(CreateInfo);
-        if (!Image)
-        {
-            LOG_ERROR("Failed to create FImage for PNG: {}", I_Path);
-            EndParsing();
-            return nullptr;
-        }
+        FImage Image(CreateInfo);
 
-        // Read image data directly into FImage's data buffer
         const UInt32 RowBytes = static_cast<UInt32>(png_get_rowbytes(PNGHandle, PNGInfo));
-        FByte* ImageData = Image->AccessData();
+        FByte* ImageData = Image.AccessData();
 
-        // Read rows directly into FImage's data buffer
         for (UInt32 Row = 0; Row < Height; ++Row)
         {
             png_read_row(PNGHandle, &ImageData[Row * RowBytes], nullptr);
         }
 
-        // Read end of image
         png_read_end(PNGHandle, PNGInfo);
-
-        // Cleanup
         EndParsing();
 
         return Image;
@@ -304,12 +293,11 @@ export namespace Visera
     }
 
     Bool FPNGImageWrapper::
-    Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path)
+    Export(const FImage& I_Image, const FPath& I_Path)
     {
-        // Only check format compatibility, not image validity (validity checked in FAssetHub::SaveImage)
-        const EPixelFormat Format = I_Image->GetPixelFormat();
-        const UInt32 Width = I_Image->GetWidth();
-        const UInt32 Height = I_Image->GetHeight();
+        const EPixelFormat Format = I_Image.GetPixelFormat();
+        const UInt32 Width = I_Image.GetWidth();
+        const UInt32 Height = I_Image.GetHeight();
 
         // PNG only supports 8-bit and 16-bit formats
         // Convert to RGBA8 or RGBA16 based on format
@@ -399,8 +387,8 @@ export namespace Visera
         png_write_info(PNGWrite, PNGInfoWrite);
 
         // Get image data
-        const FByte* ImageData = I_Image->GetData();
-        const UInt32 RowPitch = I_Image->GetRowPitchBytes();
+        const FByte* ImageData = I_Image.GetData();
+        const UInt32 RowPitch = I_Image.GetRowPitchBytes();
 
         // Write image rows
         for (UInt32 Row = 0; Row < Height; ++Row)

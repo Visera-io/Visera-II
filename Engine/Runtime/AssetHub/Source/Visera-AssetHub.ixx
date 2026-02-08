@@ -3,13 +3,19 @@ module;
 export module Visera.AssetHub;
 #define VISERA_MODULE_NAME "AssetHub"
 export import Visera.Core.Types.Path;
+export import Visera.AssetHub.Image;
+export import Visera.AssetHub.Shader;
+export import Visera.AssetHub.Font;
+       import Visera.AssetHub.Asset;
+       import Visera.Core.Types.Pointer;
+       import Visera.Core.Meta.Cast;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.String;
        import Visera.Core.OS.Thread.Sync;
-       import Visera.AssetHub.Image;
-       import Visera.AssetHub.Shader;
-       import Visera.AssetHub.Font;
+       import Visera.Core.OS.FileSystem;
+       import Visera.Core.Image;
+       import Visera.Core.Font;
        import Visera.Global;
 
 export namespace Visera
@@ -17,17 +23,31 @@ export namespace Visera
     class VISERA_ASSETHUB_API FAssetHub : public IGlobalService
     {
     public:
-        [[nodiscard]] TSharedPtr<FImage>
+        /** Load image; returns read-only FImageAsset (IAsset). Use Save(const FImage&, path) to write. */
+        [[nodiscard]] TSharedPtr<FImageAsset>
         LoadImage(const FPath& I_Path);
-        /** Save image to file. Automatically detects format from extension. */
+        /** Save image data to file (pure data FImage; avoids multi-thread write via asset handle). */
         [[nodiscard]] Bool
-        SaveImage(TSharedPtr<const FImage> I_Image, const FPath& I_Path);
-        /** Load .vshader from file. Requires AssetHub (and dependencies) to be registered. */
-        [[nodiscard]] TSharedPtr<FShader>
+        SaveImage(const FImage& I_Image, const FPath& I_Path);
+        /** Load .vshader from file. Returns read-only asset (IAsset). */
+        [[nodiscard]] TSharedPtr<FShaderAsset>
         LoadShader(const FPath& I_Path);
-        /** Load font face from file. */
-        [[nodiscard]] TSharedPtr<FFont>
-        LoadFont(const FPath& I_Path, Int32 I_FaceIndex = 0);
+        /** Save shader data to .vshader file (pure data FShader; use FShader::Write* for custom serialization). */
+        [[nodiscard]] Bool
+        SaveShader(const FShader& I_Shader, const FPath& I_Path);
+        /** Load font face from file. Optional I_PixelSize: when > 0, size is set at load time (cached per path+face+size). Returns read-only FFontAsset (IAsset). */
+        [[nodiscard]] TSharedPtr<FFontAsset>
+        LoadFont(const FPath& I_Path, Int32 I_FaceIndex = 0, UInt32 I_PixelSize = 0);
+
+        /** Get cached image by name (same name as used when loaded by path, e.g. FName(I_Path.GetString())). Returns nullptr if not found or cast fails. */
+        [[nodiscard]] TSharedPtr<FImageAsset>
+        LoadImageFromCache(const FName& I_Name);
+        /** Get cached shader by name. Returns nullptr if not found or cast fails. */
+        [[nodiscard]] TSharedPtr<FShaderAsset>
+        LoadShaderFromCache(const FName& I_Name);
+        /** Get cached font by name (font cache name is path_faceIndex_pixelSize). Returns nullptr if not found or cast fails. */
+        [[nodiscard]] TSharedPtr<FFontAsset>
+        LoadFontFromCache(const FName& I_Name);
 
     private:
         template<typename T>
@@ -60,9 +80,8 @@ export namespace Visera
             mutable FRWLock          RWLock;
             TMap<FName, TWeakPtr<T>> Entries;
         };
-        TCache<FImage>  ImageCache;
-        TCache<FFont>   FontCache;
-        TCache<FShader> ShaderCache;
+        /** Unified cache by IAsset; Load* methods cast to concrete type. */
+        TCache<IAsset> AssetCache;
 
     public:
         FAssetHub() : IGlobalService(EName::AssetHub)
@@ -86,133 +105,80 @@ export namespace Visera
         }
     };
 
-    /**
-     * Loads an image from a file path and creates an FImage.
-     * Automatically detects the image format and uses the appropriate loader.
-     * @param I_Path The path to the image file
-     * @return A shared pointer to the loaded FImage, or nullptr on failure
-     */
-    TSharedPtr<FImage> FAssetHub::
+    TSharedPtr<FImageAsset> FAssetHub::
     LoadImage(const FPath& I_Path)
     {
-        FName PathName = FName{I_Path.GetString()};
-        if (auto Cache = ImageCache.Find(PathName); !Cache.IsExpired())
+        const FName PathName{I_Path.GetString()};
+        if (auto W = AssetCache.Find(PathName); !W.IsExpired())
         {
             LOG_TRACE("Get {} from cache.", I_Path);
-            return Cache.Lock();
+            return Cast<FImageAsset>(W.Lock());
         }
 
-        // Detect image format from extension
         const EImageFormat Format = DetectImageFormat(I_Path);
-        
         if (Format == EImageFormat::Invalid)
         {
             LOG_ERROR("Failed to detect image format for: {}", I_Path);
             return nullptr;
         }
 
-        // Create appropriate wrapper and load image
         TUniquePtr<IImageWrapper> Wrapper;
         switch (Format)
         {
-        case EImageFormat::PNG:
-            Wrapper = MakeUnique<FPNGImageWrapper>();
-            break;
-
-        case EImageFormat::EXR:
-            Wrapper = MakeUnique<FEXRImageWrapper>();
-            break;
-        
+        case EImageFormat::PNG:  Wrapper = MakeUnique<FPNGImageWrapper>(); break;
+        case EImageFormat::EXR:  Wrapper = MakeUnique<FEXRImageWrapper>(); break;
         default:
             LOG_ERROR("Unsupported image format for: {}", I_Path);
             return nullptr;
         }
 
-        auto NewImage = Wrapper->Import(I_Path);
-        if (!ImageCache.Store(PathName, NewImage))
-        { LOG_WARN("Failed to store the {} to image cache!", I_Path); }
+        FImage NewImage = Wrapper->Import(I_Path);
+        if (NewImage.GetWidth() == 0) return nullptr;
 
-        return NewImage;
+        auto NewAsset = MakeShared<FImageAsset>(std::move(NewImage));
+        if (!AssetCache.Store(PathName, Cast<IAsset>(NewAsset)))
+        { LOG_WARN("Failed to store {} to asset cache!", I_Path); }
+        return NewAsset;
     }
 
     Bool FAssetHub::
-    SaveImage(TSharedPtr<const FImage> I_Image, const FPath& I_Path)
+    SaveImage(const FImage& I_Image, const FPath& I_Path)
     {
-        // Validate image
-        if (!I_Image)
-        {
-            LOG_ERROR("Invalid image for saving: {}", I_Path);
-            return False;
-        }
-
-        if (I_Image->GetWidth() == 0 || I_Image->GetHeight() == 0)
+        if (I_Image.GetWidth() == 0 || I_Image.GetHeight() == 0)
         {
             LOG_ERROR("Image has invalid dimensions ({}x{}) for saving: {}",
-                     I_Image->GetWidth(), I_Image->GetHeight(), I_Path);
+                     I_Image.GetWidth(), I_Image.GetHeight(), I_Path);
             return False;
         }
-
-        if (I_Image->GetPixelFormat() == EPixelFormat::Invalid)
+        if (I_Image.GetPixelFormat() == EPixelFormat::Invalid)
         {
             LOG_ERROR("Image has invalid pixel format for saving: {}", I_Path);
             return False;
         }
 
-        // Auto-detect format based on pixel format
-        // EXR for float formats, PNG for integer formats
-        const EPixelFormat PixelFormat = I_Image->GetPixelFormat();
-        const Bool IsFloatFormat = I_Image->IsFloatFormat();
+        const Bool IsFloatFormat = I_Image.IsFloatFormat();
+        const EImageFormat TargetFormat = IsFloatFormat ? EImageFormat::EXR : EImageFormat::PNG;
 
-        EImageFormat TargetFormat = EImageFormat::Invalid;
-
-        if (IsFloatFormat)
-        {
-            // Float formats -> EXR
-            TargetFormat = EImageFormat::EXR;
-        }
-        else
-        {
-            // Integer formats -> PNG
-            TargetFormat = EImageFormat::PNG;
-        }
-
-        // Verify file extension matches the target format
-        const EImageFormat ExtensionFormat = DetectImageFormat(I_Path);
-        if (ExtensionFormat != TargetFormat)
-        {
-            LOG_WARN("File extension does not match image format. Image format: {}, Extension format: {}. Using image format.",
-                    static_cast<Int32>(TargetFormat), static_cast<Int32>(ExtensionFormat));
-        }
-
-        // Create appropriate wrapper and save image
         TUniquePtr<IImageWrapper> Wrapper;
         switch (TargetFormat)
         {
-        case EImageFormat::PNG:
-            Wrapper = MakeUnique<FPNGImageWrapper>();
-            break;
-
-        case EImageFormat::EXR:
-            Wrapper = MakeUnique<FEXRImageWrapper>();
-            break;
-
+        case EImageFormat::PNG:  Wrapper = MakeUnique<FPNGImageWrapper>(); break;
+        case EImageFormat::EXR:  Wrapper = MakeUnique<FEXRImageWrapper>(); break;
         default:
-            LOG_ERROR("Unsupported pixel format for saving: {} (format: {})",
-                     I_Path, static_cast<Int32>(PixelFormat));
+            LOG_ERROR("Unsupported pixel format for saving: {}", I_Path);
             return False;
         }
-
         return Wrapper->Export(I_Image, I_Path);
     }
 
-    TSharedPtr<FShader> FAssetHub::
+    TSharedPtr<FShaderAsset> FAssetHub::
     LoadShader(const FPath& I_Path)
     {
-        FName PathName = FName{I_Path.GetString()};
-        if (auto Cache = ShaderCache.Find(PathName); !Cache.IsExpired())
+        const FName PathName{I_Path.GetString()};
+        if (auto W = AssetCache.Find(PathName); !W.IsExpired())
         {
             LOG_TRACE("Get {} from shader cache.", I_Path);
-            return Cache.Lock();
+            return Cast<FShaderAsset>(W.Lock());
         }
 
         TArray<FByte> SPIRVChunk, ReflectionChunk;
@@ -224,44 +190,91 @@ export namespace Visera
         { return nullptr; }
         if (Refl.EntryPoints.IsEmpty())
         { return nullptr; }
-        auto NewShader = MakeShared<FShader>();
-        NewShader->SPIRV = std::move(SPIRVChunk);
-        NewShader->Reflection = std::move(Refl);
-        if (!ShaderCache.Store(PathName, NewShader))
-        { LOG_WARN("Failed to store {} to shader cache!", I_Path); }
+        auto NewShader = MakeShared<FShaderAsset>(FShader{std::move(SPIRVChunk), std::move(Refl)});
+        if (!AssetCache.Store(PathName, Cast<IAsset>(NewShader)))
+        { LOG_WARN("Failed to store {} to asset cache!", I_Path); }
         return NewShader;
     }
 
-    /**
-     * Loads a font face from a file path and creates an FFont.
-     * The font face can be used for rendering glyphs and generating MSDF atlas.
-     * @param I_Path The path to the font file
-     * @param I_FaceIndex Face index in the font file (0 for single-face fonts)
-     * @return A shared pointer to the loaded FFont, or nullptr on failure
-     */
-    TSharedPtr<FFont> FAssetHub::
-    LoadFont(const FPath& I_Path, Int32 I_FaceIndex)
+    Bool FAssetHub::
+    SaveShader(const FShader& I_Shader, const FPath& I_Path)
     {
-        // Create cache key from path and face index
-        const FString CacheKeyStr = FString::Format("{}_{}", I_Path.GetString(), I_FaceIndex);
+        return WriteShaderToFile(I_Shader, I_Path);
+    }
+
+    TSharedPtr<FFontAsset> FAssetHub::
+    LoadFont(const FPath& I_Path, Int32 I_FaceIndex, UInt32 I_PixelSize)
+    {
+        const FString CacheKeyStr = FString::Format("{}_{}_{}", I_Path.GetString(), I_FaceIndex, I_PixelSize);
         const FName CacheKey{CacheKeyStr};
 
-        if (auto Cache = FontCache.Find(CacheKey); !Cache.IsExpired())
+        if (auto W = AssetCache.Find(CacheKey); !W.IsExpired())
         {
-            LOG_TRACE("Get font {} (face {}) from cache.", I_Path, I_FaceIndex);
-            return Cache.Lock();
+            LOG_TRACE("Get font {} (face {}, size {}) from cache.", I_Path, I_FaceIndex, I_PixelSize);
+            return Cast<FFontAsset>(W.Lock());
         }
 
-        auto NewFace = MakeShared<FFont>();
-        if (!NewFace->LoadFromFile(I_Path, I_FaceIndex))
+        auto File = FFileSystem::OpenFile(I_Path, EFileMode::Read | EFileMode::Binary);
+        if (!File || !File->IsOpen())
+        {
+            LOG_ERROR("Failed to open font file: {}", I_Path);
+            return nullptr;
+        }
+        TArray<FByte> FileBytes = File->ReadAll();
+        if (FileBytes.IsEmpty())
+        {
+            LOG_ERROR("Failed to read font file or empty: {}", I_Path);
+            return nullptr;
+        }
+
+        FFreeType::FFace Face{nullptr};
+        TArray<FByte> FontData;
+        const TOptional<FFontFaceInfo> InfoOpt = FFreeType::Load(FileBytes, I_FaceIndex, Face, FontData);
+        if (!InfoOpt.HasValue() || Face == nullptr)
         {
             LOG_ERROR("Failed to load font from: {}", I_Path);
             return nullptr;
         }
-
-        if (!FontCache.Store(CacheKey, NewFace))
-        { LOG_WARN("Failed to store the font {} (face {}) to font cache!", I_Path, I_FaceIndex); }
-
+        if (I_PixelSize > 0 && !FFreeType::SetPixelSizes(Face, I_PixelSize))
+        {
+            FFreeType::DoneFace(Face);
+            LOG_ERROR("Failed to set font pixel size {} for: {}", I_PixelSize, I_Path);
+            return nullptr;
+        }
+        FFont Font(std::move(FontData), InfoOpt.GetValue());
+        auto NewFace = MakeShared<FFontAsset>(std::move(Font), Face);
+        if (!AssetCache.Store(CacheKey, Cast<IAsset>(NewFace)))
+        { LOG_WARN("Failed to store font {} (face {}, size {}) to asset cache!", I_Path, I_FaceIndex, I_PixelSize); }
         return NewFace;
+    }
+
+    TSharedPtr<FImageAsset> FAssetHub::
+    LoadImageFromCache(const FName& I_Name)
+    {
+        auto W = AssetCache.Find(I_Name);
+        if (W.IsExpired()) return nullptr;
+        auto S = W.Lock();
+        if (!S) return nullptr;
+        return Cast<FImageAsset>(S);
+    }
+
+    TSharedPtr<FShaderAsset> FAssetHub::
+    LoadShaderFromCache(const FName& I_Name)
+    {
+        auto W = AssetCache.Find(I_Name);
+        if (W.IsExpired()) return nullptr;
+        auto S = W.Lock();
+        if (!S) return nullptr;
+        return Cast<FShaderAsset>(S);
+    }
+
+    TSharedPtr<FFontAsset> FAssetHub::
+    LoadFontFromCache(const FName& I_Name)
+    {
+        auto W = AssetCache.Find(I_Name);
+        if (W.IsExpired()) return nullptr;
+        auto S = W.Lock();
+        if (!S) return nullptr;
+        return Cast<FFontAsset>(S);
     }
 }

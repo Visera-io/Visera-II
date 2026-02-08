@@ -37,9 +37,9 @@ export namespace Visera
         }
 
         [[nodiscard]] constexpr Bool
-        operator==(FDegree I_Rival) const noexcept { return Math::IsNearlyEqual(Value, I_Rival.Value); }
+        operator==(FDegree I_Rival) const noexcept { return Value == I_Rival.Value; }
         [[nodiscard]] constexpr Bool
-        operator!=(FDegree I_Rival) const noexcept { return !Math::IsNearlyEqual(Value, I_Rival.Value); }
+        operator!=(FDegree I_Rival) const noexcept { return Value != I_Rival.Value; }
         [[nodiscard]] constexpr Bool
         operator<(FDegree I_Rival) const noexcept { return Value < I_Rival.Value; }
         [[nodiscard]] constexpr Bool

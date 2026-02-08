@@ -5,14 +5,12 @@ module;
 #include <freetype/ftoutln.h>
 export module Visera.AssetHub.Font.FreeType;
 #define VISERA_MODULE_NAME "AssetHub.Font"
-export import Visera.AssetHub.Font.Common;
-export import Visera.Core.Types.Path;
-export import Visera.Core.Types.Pointer;
-export import Visera.Core.Types.Array;
-export import Visera.Core.Types.String;
-export import Visera.Core.Types.Optional;
-       import Visera.Global.Log;
-       import Visera.Core.OS.FileSystem;
+import Visera.Core.Font;
+import Visera.Core.Types.Path;
+import Visera.Core.Types.Array;
+import Visera.Core.Types.Optional;
+import Visera.Global.Log;
+import Visera.Core.OS.FileSystem;
 
 export namespace Visera
 {

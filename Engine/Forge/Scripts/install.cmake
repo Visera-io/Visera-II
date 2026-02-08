@@ -14,9 +14,6 @@ macro(install_visera_forge in_target)
     include(install_re2)
     link_re2(${in_target})
 
-    include(install_msdfgen)
-    link_msdfgen(${in_target})
-
     include(install_slang)
     link_slang(${in_target})
 

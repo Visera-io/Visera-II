@@ -1,10 +1,9 @@
 module;
-#include <Visera-AssetHub.hpp>
-export module Visera.AssetHub.Font.Common;
-#define VISERA_MODULE_NAME "AssetHub.Font"
+#include <Visera-Core.hpp>
+export module Visera.Core.Font;
+#define VISERA_MODULE_NAME "Core.Font"
 import Visera.Core.Types.Array;
 import Visera.Core.Types.String;
-import Visera.Core.Image;
 
 export namespace Visera
 {
@@ -38,7 +37,7 @@ export namespace Visera
 	/**
 	 * Represents a glyph's metrics and rendering information.
 	 */
-	struct VISERA_ASSETHUB_API FGlyphMetrics
+	struct VISERA_CORE_API FGlyphMetrics
 	{
 		/** Width of the glyph in pixels. */
 		UInt32 Width{0};
@@ -57,7 +56,7 @@ export namespace Visera
 	/**
 	 * Represents a glyph's rendering data and metrics.
 	 */
-	struct VISERA_ASSETHUB_API FGlyphData
+	struct VISERA_CORE_API FGlyphData
 	{
 		/** Glyph metrics. */
 		FGlyphMetrics Metrics;
@@ -72,9 +71,9 @@ export namespace Visera
 	};
 
 	/**
-	 * Represents font face information.
+	 * Represents font face information (pure data).
 	 */
-	struct VISERA_ASSETHUB_API FFontFaceInfo
+	struct VISERA_CORE_API FFontFaceInfo
 	{
 		/** Font family name. */
 		FString FamilyName;
@@ -91,7 +90,7 @@ export namespace Visera
 	/**
 	 * Represents a point in a glyph outline.
 	 */
-	struct VISERA_ASSETHUB_API FGlyphOutlinePoint
+	struct VISERA_CORE_API FGlyphOutlinePoint
 	{
 		/** X coordinate (in font units, typically 1/64 pixel). */
 		Int32 X{0};
@@ -104,7 +103,7 @@ export namespace Visera
 	/**
 	 * Represents a glyph outline for conversion to other formats.
 	 */
-	struct VISERA_ASSETHUB_API FGlyphOutline
+	struct VISERA_CORE_API FGlyphOutline
 	{
 		/** Array of outline points. */
 		TArray<FGlyphOutlinePoint> Points;
@@ -112,5 +111,27 @@ export namespace Visera
 		TArray<Int32> ContourEnds;
 	};
 
-}
+	/**
+	 * Pure font data: font file bytes + face info (like FImage for images).
+	 * Backend (e.g. FreeType) opens this for rendering; asset holds FFont + backend handle.
+	 */
+	class VISERA_CORE_API FFont
+	{
+	public:
+		[[nodiscard]] const TArray<FByte>&
+		GetData() const { return Data; }
+		[[nodiscard]] const FFontFaceInfo&
+		GetFaceInfo() const { return FaceInfo; }
+		[[nodiscard]] UInt64
+		GetByteSize() const { return Data.GetSize(); }
 
+	private:
+		TArray<FByte> Data;
+		FFontFaceInfo FaceInfo;
+
+	public:
+		FFont() = default;
+		FFont(TArray<FByte> I_Data, FFontFaceInfo I_Info)
+			: Data{std::move(I_Data)}, FaceInfo{std::move(I_Info)} {}
+	};
+}

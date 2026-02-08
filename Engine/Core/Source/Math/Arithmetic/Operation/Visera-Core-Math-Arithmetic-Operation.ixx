@@ -59,9 +59,9 @@ export namespace Visera::Math
 	IsFinite(T I_Num) noexcept { return std::isfinite(I_Num); }
     template <Concepts::Integral T> [[nodiscard]] constexpr Bool
 	IsFinite(T I_Num) noexcept { return True; }
-    [[nodiscard]] constexpr Bool
+    [[nodiscard]] inline Bool
 	IsNearlyEqual(Float I_NumA, Float I_NumB, Float I_Tolerance = 1E-8f) noexcept { return Abs(I_NumA - I_NumB) <= I_Tolerance; }
-	[[nodiscard]] constexpr Bool
+	[[nodiscard]] inline Bool
 	IsNearlyEqual(Double I_NumA, Double I_NumB, Double I_Tolerance = 1E-8) noexcept { return Abs(I_NumA - I_NumB) <= I_Tolerance; }
 	template<Concepts::FloatingPoint T> T
 	Round(T I_Value) noexcept { return std::round(I_Value); }

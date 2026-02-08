@@ -101,6 +101,7 @@ export namespace Visera
 
     public:
         /** Construct from a dynamically built path string (e.g. from filesystem enumeration). */
+        FPath() = default;
         explicit FPath(FString I_Path) : PathString{std::move(I_Path)} {}
         /** Construct from UTF-8 path (e.g. std::filesystem::path::u8string()). */
         explicit FPath(const std::u8string& I_Utf8Path)
@@ -115,7 +116,7 @@ export namespace Visera
             static_assert(N >= 1);
             if (!std::is_constant_evaluated())
             {
-                VISERA_ASSERT(FText::ValidateUTF8(I_Literal));
+                VISERA_ASSERT(FText::ValidateUTF8(FStringView(I_Literal, N - 1)));
                 VISERA_ASSERT(IsNormalized(I_Literal));
             }
         }

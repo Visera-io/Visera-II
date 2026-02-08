@@ -14,18 +14,18 @@ export namespace Visera
     class VISERA_ASSETHUB_API FEXRImageWrapper : public IImageWrapper
     {
     public:
-        [[nodiscard]] TSharedPtr<FImage>
+        [[nodiscard]] FImage
         Import(const FPath& I_Path) override;
 
         [[nodiscard]] Bool
-        Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path) override;
+        Export(const FImage& I_Image, const FPath& I_Path) override;
 
     public:
         FEXRImageWrapper() = default;
         ~FEXRImageWrapper() override = default;
     };
 
-    TSharedPtr<FImage> FEXRImageWrapper::
+    FImage FEXRImageWrapper::
     Import(const FPath& I_Path)
     {
         try
@@ -39,17 +39,16 @@ export namespace Visera
             if (Width <= 0 || Height <= 0)
             {
                 LOG_ERROR("Invalid EXR data window ({}x{}): {}", Width, Height, I_Path);
-                return nullptr;
+                return {};
             }
 
             Imf::Array2D<Imf::Rgba> Pixels;
             Pixels.resizeErase(Height, Width);
 
-            // The base pointer must be offset by -min for dataWindow
             File.setFrameBuffer(&Pixels[-DW.min.y][-DW.min.x], 1, Width);
             File.readPixels(DW.min.y, DW.max.y);
 
-            auto CreateInfo = FImage::FCreateInfo
+            FImage::FCreateInfo CreateInfo
             {
                 .Width       = static_cast<UInt32>(Width),
                 .Height      = static_cast<UInt32>(Height),
@@ -58,16 +57,9 @@ export namespace Visera
                 .ColorSpace  = EColorSpace::Linear,
             };
 
-            auto Image = MakeShared<FImage>(CreateInfo);
-            if (!Image)
-            {
-                LOG_ERROR("Failed to create FImage for EXR: {}", I_Path);
-                return nullptr;
-            }
+            FImage Image(CreateInfo);
 
-            // Copy as RGBA half-floats (16-bit) into FImage buffer.
-            // OpenEXR stores half components; we store raw half bits.
-            FByte* Out = Image->AccessData();
+            FByte* Out = Image.AccessData();
             auto*  OutU16 = reinterpret_cast<UInt16*>(Out);
 
             UInt64 WriteIndex = 0;
@@ -89,22 +81,21 @@ export namespace Visera
         catch (const std::exception& Ex)
         {
             LOG_ERROR("Failed to load EXR {}: {}", I_Path, Ex.what());
-            return nullptr;
+            return {};
         }
         catch (...)
         {
             LOG_ERROR("Failed to load EXR {}: unknown error", I_Path);
-            return nullptr;
+            return {};
         }
     }
 
     Bool FEXRImageWrapper::
-    Export(TSharedPtr<const FImage> I_Image, const FPath& I_Path)
+    Export(const FImage& I_Image, const FPath& I_Path)
     {
-        // Only check format compatibility, not image validity (validity checked in FAssetHub::SaveImage)
-        const EPixelFormat Format = I_Image->GetPixelFormat();
-        const UInt32 Width = I_Image->GetWidth();
-        const UInt32 Height = I_Image->GetHeight();
+        const EPixelFormat Format = I_Image.GetPixelFormat();
+        const UInt32 Width = I_Image.GetWidth();
+        const UInt32 Height = I_Image.GetHeight();
 
         // EXR supports float formats (16-bit half or 32-bit float)
         // Determine if we should use half-float or full float
@@ -129,8 +120,8 @@ export namespace Visera
             Imf::Array2D<Imf::Rgba> Pixels;
             Pixels.resizeErase(Height, Width);
 
-            const FByte* ImageData = I_Image->GetData();
-            const UInt32 RowPitch = I_Image->GetRowPitchBytes();
+            const FByte* ImageData = I_Image.GetData();
+            const UInt32 RowPitch = I_Image.GetRowPitchBytes();
 
             if (UseHalfFloat)
             {

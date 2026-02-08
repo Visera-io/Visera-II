@@ -65,9 +65,24 @@ struct FEngine
         FJSON Config = FJSON::Load(FPath{"Assets/App/Configs/config.json"}).GetValue();
 
         auto TexturePath = Config.GetPath("Assets.Textures[0]"_JQL);
-        TSharedPtr<FImage> TestImage  = AssetHub->LoadImage(TexturePath);
-        TSharedPtr<FImage> TestImage2 = AssetHub->LoadImage(TexturePath);
-        TSharedPtr<FImage> TestImage3 = AssetHub->LoadImage(TexturePath);
+        TSharedPtr<FImageAsset> ImgAsset1 = AssetHub->LoadImage(TexturePath);
+        TSharedPtr<FImageAsset> ImgAsset2 = AssetHub->LoadImage(TexturePath);
+        TSharedPtr<FImageAsset> ImgAsset3 = AssetHub->LoadImage(TexturePath);
+        if (!ImgAsset1) { LOG_ERROR("Failed to load test image"); return 1; }
+        const FImage& SrcImage = ImgAsset1->GetImage();
+
+        // Copy asset image to mutable buffer (IAsset is read-only; modify then Save with FImage)
+        auto TestImage = MakeShared<FImage>(FImage::FCreateInfo{
+            .Width = SrcImage.GetWidth(),
+            .Height = SrcImage.GetHeight(),
+            .Depth = 1,
+            .PixelFormat = SrcImage.GetPixelFormat(),
+            .ColorSpace = SrcImage.GetColorSpace(),
+        });
+        std::memcpy(TestImage->AccessData(), SrcImage.GetData(), SrcImage.GetSizeInBytes());
+
+        const FImage* TestImage2 = ImgAsset2 ? &ImgAsset2->GetImage() : nullptr;
+        const FImage* TestImage3 = ImgAsset3 ? &ImgAsset3->GetImage() : nullptr;
 
         // Test LUT: Color inversion using sRGB to Linear conversion
         LOG_INFO("Testing LUT: Inverting colors in image ({}x{})", TestImage->GetWidth(), TestImage->GetHeight());

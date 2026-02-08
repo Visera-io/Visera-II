@@ -37,11 +37,11 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool
 	    IsZero() const noexcept { return Data[0]==0.0f && Data[1]==0.0f && Data[2]==0.0f && Data[3]==0.0f; }
-        [[nodiscard]] constexpr Bool
-	    IsNearlyZero() const noexcept { return Math::IsNearlyEqual(Data[0],0.0f) && Math::IsNearlyEqual(Data[1],0.0f) && Math::IsNearlyEqual(Data[2],0.0f) && Math::IsNearlyEqual(Data[3],0.0f); }
+        [[nodiscard]] inline Bool
+		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(Data[0],0.0f) && Math::IsNearlyEqual(Data[1],0.0f) && Math::IsNearlyEqual(Data[2],0.0f) && Math::IsNearlyEqual(Data[3],0.0f); }
         [[nodiscard]] constexpr Bool
 	    IsIdentity() const noexcept { return (*this)(0,0)==1.0f && (*this)(0,1)==0.0f && (*this)(1,0)==0.0f && (*this)(1,1)==1.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
 	    IsNearlyIdentity() const noexcept { return Math::IsNearlyEqual((*this)(0,0),1.0f) && Math::IsNearlyEqual((*this)(0,1),0.0f) && Math::IsNearlyEqual((*this)(1,0),0.0f) && Math::IsNearlyEqual((*this)(1,1),1.0f); }
 
         [[nodiscard]] constexpr Float
@@ -145,11 +145,11 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool
         IsZero() const noexcept { return Data[0]==0.0f && Data[1]==0.0f && Data[2]==0.0f && Data[3]==0.0f && Data[4]==0.0f && Data[5]==0.0f && Data[6]==0.0f && Data[7]==0.0f && Data[8]==0.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
         IsNearlyZero() const noexcept { return Math::IsNearlyEqual(Data[0],0.0f) && Math::IsNearlyEqual(Data[1],0.0f) && Math::IsNearlyEqual(Data[2],0.0f) && Math::IsNearlyEqual(Data[3],0.0f) && Math::IsNearlyEqual(Data[4],0.0f) && Math::IsNearlyEqual(Data[5],0.0f) && Math::IsNearlyEqual(Data[6],0.0f) && Math::IsNearlyEqual(Data[7],0.0f) && Math::IsNearlyEqual(Data[8],0.0f); }
         [[nodiscard]] constexpr Bool
         IsIdentity() const noexcept { return (*this)(0,0)==1.0f && (*this)(0,1)==0.0f && (*this)(0,2)==0.0f && (*this)(1,0)==0.0f && (*this)(1,1)==1.0f && (*this)(1,2)==0.0f && (*this)(2,0)==0.0f && (*this)(2,1)==0.0f && (*this)(2,2)==1.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
         IsNearlyIdentity() const noexcept { return Math::IsNearlyEqual((*this)(0,0),1.0f) && Math::IsNearlyEqual((*this)(0,1),0.0f) && Math::IsNearlyEqual((*this)(0,2),0.0f) && Math::IsNearlyEqual((*this)(1,0),0.0f) && Math::IsNearlyEqual((*this)(1,1),1.0f) && Math::IsNearlyEqual((*this)(1,2),0.0f) && Math::IsNearlyEqual((*this)(2,0),0.0f) && Math::IsNearlyEqual((*this)(2,1),0.0f) && Math::IsNearlyEqual((*this)(2,2),1.0f); }
 
         [[nodiscard]] constexpr Float
@@ -256,11 +256,11 @@ export namespace Visera
 
         [[nodiscard]] constexpr Bool
         IsZero() const noexcept { return Data[0]==0.0f && Data[1]==0.0f && Data[2]==0.0f && Data[3]==0.0f && Data[4]==0.0f && Data[5]==0.0f && Data[6]==0.0f && Data[7]==0.0f && Data[8]==0.0f && Data[9]==0.0f && Data[10]==0.0f && Data[11]==0.0f && Data[12]==0.0f && Data[13]==0.0f && Data[14]==0.0f && Data[15]==0.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
         IsNearlyZero() const noexcept { return Math::IsNearlyEqual(Data[0],0.0f) && Math::IsNearlyEqual(Data[1],0.0f) && Math::IsNearlyEqual(Data[2],0.0f) && Math::IsNearlyEqual(Data[3],0.0f) && Math::IsNearlyEqual(Data[4],0.0f) && Math::IsNearlyEqual(Data[5],0.0f) && Math::IsNearlyEqual(Data[6],0.0f) && Math::IsNearlyEqual(Data[7],0.0f) && Math::IsNearlyEqual(Data[8],0.0f) && Math::IsNearlyEqual(Data[9],0.0f) && Math::IsNearlyEqual(Data[10],0.0f) && Math::IsNearlyEqual(Data[11],0.0f) && Math::IsNearlyEqual(Data[12],0.0f) && Math::IsNearlyEqual(Data[13],0.0f) && Math::IsNearlyEqual(Data[14],0.0f) && Math::IsNearlyEqual(Data[15],0.0f); }
         [[nodiscard]] constexpr Bool
         IsIdentity() const noexcept { return (*this)(0,0)==1.0f && (*this)(0,1)==0.0f && (*this)(0,2)==0.0f && (*this)(0,3)==0.0f && (*this)(1,0)==0.0f && (*this)(1,1)==1.0f && (*this)(1,2)==0.0f && (*this)(1,3)==0.0f && (*this)(2,0)==0.0f && (*this)(2,1)==0.0f && (*this)(2,2)==1.0f && (*this)(2,3)==0.0f && (*this)(3,0)==0.0f && (*this)(3,1)==0.0f && (*this)(3,2)==0.0f && (*this)(3,3)==1.0f; }
-        [[nodiscard]] constexpr Bool
+        [[nodiscard]] inline Bool
         IsNearlyIdentity() const noexcept { return Math::IsNearlyEqual((*this)(0,0),1.0f) && Math::IsNearlyEqual((*this)(0,1),0.0f) && Math::IsNearlyEqual((*this)(0,2),0.0f) && Math::IsNearlyEqual((*this)(0,3),0.0f) && Math::IsNearlyEqual((*this)(1,0),0.0f) && Math::IsNearlyEqual((*this)(1,1),1.0f) && Math::IsNearlyEqual((*this)(1,2),0.0f) && Math::IsNearlyEqual((*this)(1,3),0.0f) && Math::IsNearlyEqual((*this)(2,0),0.0f) && Math::IsNearlyEqual((*this)(2,1),0.0f) && Math::IsNearlyEqual((*this)(2,2),1.0f) && Math::IsNearlyEqual((*this)(2,3),0.0f) && Math::IsNearlyEqual((*this)(3,0),0.0f) && Math::IsNearlyEqual((*this)(3,1),0.0f) && Math::IsNearlyEqual((*this)(3,2),0.0f) && Math::IsNearlyEqual((*this)(3,3),1.0f); }
 
         [[nodiscard]] constexpr Float

@@ -24,7 +24,7 @@ export namespace Visera
 
 		[[nodiscard]] constexpr Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f; }
-		[[nodiscard]] constexpr Bool
+		[[nodiscard]] inline Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f); }
 		[[nodiscard]] constexpr Float
 		Dot(const FVector2F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Y * I_Vector.Y); }
@@ -73,7 +73,7 @@ export namespace Visera
 
 		[[nodiscard]] constexpr Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f; }
-		[[nodiscard]] constexpr Bool
+		[[nodiscard]] inline Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f); }
 		[[nodiscard]] constexpr Float
 		Dot(const FVector3F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Math::MulAdd(Y, I_Vector.Y, Z * I_Vector.Z)); }
@@ -122,7 +122,7 @@ export namespace Visera
 
 		[[nodiscard]] constexpr Bool
 		IsZero() const noexcept { return X == 0.0f && Y == 0.0f && Z == 0.0f && W == 0.0f; }
-		[[nodiscard]] constexpr Bool
+		[[nodiscard]] inline Bool
 		IsNearlyZero() const noexcept { return Math::IsNearlyEqual(X, 0.0f) && Math::IsNearlyEqual(Y, 0.0f) && Math::IsNearlyEqual(Z, 0.0f) && Math::IsNearlyEqual(W, 0.0f); }
 		[[nodiscard]] constexpr Float
 		Dot(const FVector4F& I_Vector) const { return Math::MulAdd(X, I_Vector.X, Math::MulAdd(Y, I_Vector.Y, Math::MulAdd(Z, I_Vector.Z, W * I_Vector.W))); }
