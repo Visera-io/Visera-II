@@ -24,7 +24,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_global(...)
 else()
     add_library(${VISERA_GLOBAL} SHARED)
-    target_compile_definitions(${VISERA_GLOBAL} PRIVATE VISERA_GLOBAL_BUILD_SHARED)
     add_library(Visera::Global ALIAS ${VISERA_GLOBAL})
 
     set_target_properties(${VISERA_GLOBAL} PROPERTIES

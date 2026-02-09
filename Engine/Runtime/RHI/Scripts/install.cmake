@@ -30,7 +30,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_rhi(...)
 else()
     add_library(${VISERA_RHI} SHARED)
-    target_compile_definitions(${VISERA_RHI} PRIVATE VISERA_RHI_BUILD_SHARED)
     add_library(Visera::RHI ALIAS ${VISERA_RHI})
 
     set_target_properties(${VISERA_RHI} PROPERTIES

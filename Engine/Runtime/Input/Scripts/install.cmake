@@ -24,7 +24,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_input(...)
 else()
     add_library(${VISERA_INPUT} SHARED)
-    target_compile_definitions(${VISERA_INPUT} PRIVATE VISERA_INPUT_BUILD_SHARED)
     add_library(Visera::Input ALIAS ${VISERA_INPUT})
 
     set_target_properties(${VISERA_INPUT} PROPERTIES

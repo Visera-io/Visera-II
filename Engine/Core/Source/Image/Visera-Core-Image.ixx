@@ -6,7 +6,7 @@ export module Visera.Core.Image;
 #define VISERA_MODULE_NAME "Core.Image"
 export import Visera.Core.Image.Pixel;
 export import Visera.Core.Image.Common;
-       import Visera.Core.Color;
+       import Visera.Core.Math.Color;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.Half;
        import Visera.Core.OS.Memory;

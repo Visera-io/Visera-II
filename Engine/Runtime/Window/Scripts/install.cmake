@@ -24,7 +24,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_window(...)
 else()
     add_library(${VISERA_WINDOW} SHARED)
-    target_compile_definitions(${VISERA_WINDOW} PRIVATE VISERA_WINDOW_BUILD_SHARED)
     add_library(Visera::Window ALIAS ${VISERA_WINDOW})
 
     set_target_properties(${VISERA_WINDOW} PROPERTIES

@@ -27,7 +27,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_physics2d(...)
 else()
     add_library(${VISERA_PHYSICS2D} SHARED)
-    target_compile_definitions(${VISERA_PHYSICS2D} PRIVATE VISERA_PHYSICS2D_BUILD_SHARED)
     add_library(Visera::Audio ALIAS ${VISERA_PHYSICS2D})
 
     set_target_properties(${VISERA_PHYSICS2D} PROPERTIES

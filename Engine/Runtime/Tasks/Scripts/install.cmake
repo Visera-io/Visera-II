@@ -24,7 +24,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_tasks(...)
 else()
     add_library(${VISERA_TASKS} SHARED)
-    target_compile_definitions(${VISERA_TASKS} PRIVATE VISERA_TASKS_BUILD_SHARED)
     add_library(Visera::Tasks ALIAS ${VISERA_TASKS})
 
     set_target_properties(${VISERA_TASKS} PROPERTIES

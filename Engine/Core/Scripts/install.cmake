@@ -53,8 +53,8 @@ endmacro()
 if(VISERA_MONOLITHIC_MODE)
     #install_visera_core(...)
 else()
-    add_library(${VISERA_CORE} STATIC)
-    target_compile_definitions(${VISERA_CORE} PRIVATE VISERA_CORE_BUILD_STATIC)
+    add_library(${VISERA_CORE} SHARED)
+    target_compile_definitions(${VISERA_CORE} PRIVATE VISERA_CORE_BUILD_SHARED)
     add_library(Visera::Core ALIAS ${VISERA_CORE})
 
     set_target_properties(${VISERA_CORE} PROPERTIES

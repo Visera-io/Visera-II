@@ -36,7 +36,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_assethub(...)
 else()
     add_library(${VISERA_ASSETHUB} SHARED)
-    target_compile_definitions(${VISERA_ASSETHUB} PRIVATE VISERA_ASSETHUB_BUILD_SHARED)
     add_library(Visera::AssetHub ALIAS ${VISERA_ASSETHUB})
 
     set_target_properties(${VISERA_ASSETHUB} PROPERTIES

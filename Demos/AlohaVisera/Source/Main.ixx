@@ -3,32 +3,17 @@ module;
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
-import Visera.RHI;
-import Visera.Tasks;
-import Visera.Audio;
-import Visera.Global;
-import Visera.Window;
-import Visera.Input;
-import Visera.Graphics;
-import Visera.Graphics.Renderer;
-import Visera.AssetHub;
+import Visera.Runtime;
 using namespace Visera;
 
 struct FEngine
 {
-    FInput*    Input;
-    FWindow*   Window;
-    FTasks*    Tasks;
-    FRHI*      RHI;
-    FAudio*    Audio;
-    FGraphics* Graphics;
-    FAssetHub* AssetHub;
-
+    TUniquePtr<FRuntime> Runtime;
     FHiResClock Timer;
 
     Bool Run()
     {
-        Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
+        Runtime->Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
         {
             if (I_Button == FMouse::EButton::Left)
             {
@@ -42,19 +27,19 @@ struct FEngine
         FJSON Config = FJSON::Load(FPath{"Assets/App/Configs/config.json"}).GetValue();
 
         auto TexturePath = Config.GetPath("Assets.Textures[0]"_JQL);
-        TSharedPtr<FImageAsset> ImgAsset1 = AssetHub->LoadImage(TexturePath);
-        TSharedPtr<FImageAsset> ImgAsset2 = AssetHub->LoadImage(TexturePath);
-        TSharedPtr<FImageAsset> ImgAsset3 = AssetHub->LoadImage(TexturePath);
+        auto ImgAsset1 = Runtime->AssetHub->LoadImage(TexturePath);
+        auto ImgAsset2 = Runtime->AssetHub->LoadImage(TexturePath);
+        auto ImgAsset3 = Runtime->AssetHub->LoadImage(TexturePath);
         if (!ImgAsset1) { LOG_ERROR("Failed to load test image"); return 1; }
         const FImage& SrcImage = ImgAsset1->GetImage();
 
-        while (!Window->ShouldClose())
+        while (!Runtime->Window->ShouldClose())
         {
-            Window->PollEvents();
+            Runtime->Window->PollEvents();
 
-            if (!RHI->BeginFrame()) { continue; }
+            if (!Runtime->RHI->BeginFrame()) { continue; }
 
-            Graphics->Tick(0);
+            Runtime->Graphics->Tick(0);
 
             Commands.Reset();
 
@@ -63,10 +48,10 @@ struct FEngine
 
             }
 
-            //RHI->Submit(Commands);
+            //Runtime->RHI->Submit(Commands);
 
-            RHI->EndFrame();
-            RHI->Present();
+            Runtime->RHI->EndFrame();
+            Runtime->RHI->Present();
         }
 
         return EXIT_SUCCESS;
@@ -75,20 +60,29 @@ struct FEngine
     FEngine()
     {
         LOG_INFO("Visera Engine");
-        Input    = IGlobalService::Register<FInput>    (EName::Input);
-        Window   = IGlobalService::Register<FWindow>   (EName::Window);
-        Tasks    = IGlobalService::Register<FTasks>    (EName::Tasks);
-        RHI      = IGlobalService::Register<FRHI>      (EName::RHI);
-        Audio    = IGlobalService::Register<FAudio>    (EName::Audio);
-        Graphics = IGlobalService::Register<FGraphics> (EName::Graphics);
-        AssetHub = IGlobalService::Register<FAssetHub> (EName::AssetHub);
-
-        IGlobalService::Bootstrap();
+        
+        // Load runtime config file
+        TOptional<FJSON> RuntimeConfig;
+        if (auto ConfigFile = FJSON::Load(FPlatform::GetResourceDirectory() / FPath{"Engine/Config.runtime.json"}); ConfigFile.HasValue())
+        {
+            RuntimeConfig = std::move(ConfigFile).GetValue();
+            LOG_DEBUG("Runtime config loaded: {}", RuntimeConfig.GetValue().Dump());
+        }
+        else
+        {
+            LOG_WARN("Failed to load config file Engine/Config.runtime.json -- using default config!");
+        }
+        
+        Runtime = FRuntime::Create(EMode::Full, RuntimeConfig);
+        if (!Runtime)
+        {
+            LOG_FATAL("Failed to create FRuntime!");
+        }
     }
     ~FEngine()
     {
-        IGlobalService::Terminate();
         LOG_INFO("~Visera Engine");
+        // Runtime will be destroyed automatically, which calls Terminate()
     }
 };
 

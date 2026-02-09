@@ -27,7 +27,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_scripting(...)
 else()
     add_library(${VISERA_SCRIPTING} SHARED)
-    target_compile_definitions(${VISERA_SCRIPTING} PRIVATE VISERA_SCRIPTING_BUILD_SHARED)
     add_library(Visera::Scripting ALIAS ${VISERA_SCRIPTING})
 
     set_target_properties(${VISERA_SCRIPTING} PROPERTIES

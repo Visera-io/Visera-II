@@ -60,6 +60,9 @@ export namespace Visera
         TWeakPtr(std::nullptr_t) noexcept : Self() {}
         TWeakPtr(const TSharedPtr<T>& I_Shared) noexcept : Self(I_Shared.GetNative()) {}
         TWeakPtr(TSharedPtr<T>&&) = delete;
+        template<typename U>
+        requires std::convertible_to<U*, T*>
+        TWeakPtr(const TSharedPtr<U>& I_Shared) noexcept : Self(I_Shared.GetNative()) {}
         TWeakPtr(const TWeakPtr&) = default;
         TWeakPtr(TWeakPtr&&) noexcept = default;
         template<typename U>
@@ -71,6 +74,9 @@ export namespace Visera
         TWeakPtr(std::weak_ptr<T> I_Other) noexcept : Self(std::move(I_Other)) {}
 
         TWeakPtr& operator=(const TSharedPtr<T>& I_Shared) noexcept { Self = I_Shared.GetNative(); return *this; }
+        template<typename U>
+        requires std::convertible_to<U*, T*>
+        TWeakPtr& operator=(const TSharedPtr<U>& I_Shared) noexcept { Self = I_Shared.GetNative(); return *this; }
         TWeakPtr& operator=(const TWeakPtr&) = default;
         TWeakPtr& operator=(TWeakPtr&&) noexcept = default;
         template<typename U>

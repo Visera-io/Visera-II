@@ -2,25 +2,12 @@ module;
 #include <Visera-Forge.hpp>
 export module Visera.Forge;
 #define VISERA_MODULE_NAME "Forge"
-import Visera.Global;
-import Visera.Tasks;
-import Visera.AssetHub;
+import Visera.Core;
 import Visera.Platform;
-import Visera.AssetHub.Shader;
-import Visera.RHI.Common;
-import Visera.Forge.Shader.Compiler;
-import Visera.Forge.Shader.Validator;
-export import Visera.Forge.Baking.Font;
-import Visera.Core.Types.String;
-import Visera.Core.Types.Optional;
-import Visera.Core.Types.Path;
-import Visera.Core.Types.Array;
-import Visera.Core.Types.Pointer;
-import Visera.Core.OS.FileSystem;
-import Visera.Core.Algorithm.Ranges;
-import Visera.Core.Math.Arithmetic.Operation;
-import Visera.Core.Image;
-import Visera.Forge.Utils.Wildcard;
+import Visera.Runtime;
+import Visera.Forge.Utils;
+import Visera.Forge.Baking;
+import Visera.Forge.Shader;
 
 namespace Visera::Forge
 {
@@ -98,7 +85,7 @@ namespace Visera::Forge
 
     // Compile shader from slang file -> FShaderAsset, then save
     [[nodiscard]] Bool
-    CompileShader(const FPath& I_SourcePath)
+    CompileShader(const FPath& I_SourcePath, FAssetHub* I_AssetHub)
     {
         LOG_INFO("Compiling shader: {}", I_SourcePath);
 
@@ -157,8 +144,7 @@ namespace Visera::Forge
             OutputName.Append(".vshader");
             OutputPath = *OutputPath.GetParent() / FPath(OutputName);
 
-            auto AssetHub = IGlobalService::Get<FAssetHub>(EName::AssetHub);
-            if (!AssetHub || !AssetHub->SaveShader(ShaderData, OutputPath))
+            if (!I_AssetHub || !I_AssetHub->SaveShader(ShaderData, OutputPath))
             {
                 LOG_ERROR("Failed to save shader: {}", OutputPath);
                 return False;
@@ -190,6 +176,14 @@ namespace Visera::Forge
             return 0;
         }
 
+        // Create Runtime with only Tasks and AssetHub services
+        auto Runtime = FRuntime::Create({EName::Tasks, EName::AssetHub});
+        if (!Runtime)
+        {
+            LOG_FATAL("Failed to create FRuntime!");
+            return 1;
+        }
+
         FStringView Command = I_Argv[1];
         if (Command == "Shader")
         {
@@ -200,8 +194,6 @@ namespace Visera::Forge
                 LOG_INFO("Example: Visera-Forge Shader \"./Engine/Shaders/*.slang\"");
                 return 1;
             }
-            (void)IGlobalService::Register<FTasks>(EName::Tasks);
-            (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
 
             const FPath PathWithPattern = FPath{I_Argv[2]};
             LOG_INFO("Searching for shader files matching: {}", PathWithPattern);
@@ -221,7 +213,7 @@ namespace Visera::Forge
 
             for (const auto& FilePath : MatchedFiles)
             {
-                if (CompileShader(FilePath))
+                if (CompileShader(FilePath, Runtime->AssetHub))
                 {
                     ++SuccessCount;
                 }
@@ -245,8 +237,6 @@ namespace Visera::Forge
                 LOG_INFO("  no-meta: skip writing .vshader.meta (reflection JSON); default is to write.");
                 return 1;
             }
-            (void)IGlobalService::Register<FTasks>(EName::Tasks);
-            (void)IGlobalService::Register<FAssetHub>(EName::AssetHub);
             const FPath PathWithPattern = FPath{I_Argv[2]};
             const Bool OutputMeta = (I_Argc < 4 || (FStringView{I_Argv[3]} != "no-meta" && FStringView{I_Argv[3]} != "0"));
             LOG_INFO("Validating shader files matching: {} (output .meta: {})", PathWithPattern, OutputMeta);

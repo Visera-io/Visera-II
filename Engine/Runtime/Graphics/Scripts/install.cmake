@@ -29,7 +29,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_graphics(...)
 else()
     add_library(${VISERA_GRAPHICS} SHARED)
-    target_compile_definitions(${VISERA_GRAPHICS} PRIVATE VISERA_GRAPHICS_BUILD_SHARED)
     add_library(Visera::Graphics ALIAS ${VISERA_GRAPHICS})
 
     set_target_properties(${VISERA_GRAPHICS} PROPERTIES

@@ -3,7 +3,7 @@ module;
 export module Visera.Core.Image.Pixel;
 #define VISERA_MODULE_NAME "Core.Image"
 export import Visera.Core.Image.Common;
-       import Visera.Core.Color;
+       import Visera.Core.Math.Color;
        import Visera.Core.Types.Half;
        import Visera.Core.Math.Arithmetic.Operation;
 

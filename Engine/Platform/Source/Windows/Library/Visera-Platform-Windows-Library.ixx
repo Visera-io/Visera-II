@@ -6,7 +6,7 @@ export module Visera.Platform.Windows.Library;
 import Visera.Platform.Interface.Library;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.String;
-import Visera.Global.Log;
+import Visera.Core.Log;
 
 namespace Visera
 {

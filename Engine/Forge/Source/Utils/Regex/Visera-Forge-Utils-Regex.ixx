@@ -28,7 +28,7 @@ export namespace Visera::Forge
             return absl::string_view(n.data(), n.size());
         }
 
-        static const RE2& GetRe(const FRegexPattern& I_Pattern);
+        static const RE2& GetRE(const FRegexPattern& I_Pattern);
 
     public:
         // ---------------------------------------------------------------------
@@ -160,7 +160,7 @@ export namespace Visera::Forge
         [[nodiscard]] Bool Ok() const { return Re.ok(); }
 
     private:
-        [[nodiscard]] const RE2& GetRe() const { return Re; }
+        [[nodiscard]] const RE2& GetRE() const { return Re; }
 
         RE2 Re;
     };
@@ -168,57 +168,57 @@ export namespace Visera::Forge
     // -------------------------------------------------------------------------
     // FRegex implementations that use FRegexPattern (no RE2 in signature)
     // -------------------------------------------------------------------------
-    inline const RE2& FRegex::GetRe(const FRegexPattern& I_Pattern)
+    inline const RE2& FRegex::GetRE(const FRegexPattern& I_Pattern)
     {
-        return I_Pattern.GetRe();
+        return I_Pattern.GetRE();
     }
 
     inline Bool FRegex::FullMatch(FStringView I_Text, const FRegexPattern& I_Pattern)
     {
-        return RE2::FullMatch(ToAbseil(I_Text), GetRe(I_Pattern));
+        return RE2::FullMatch(ToAbseil(I_Text), GetRE(I_Pattern));
     }
 
     template<typename T>
     inline Bool FRegex::FullMatch(FStringView I_Text, const FRegexPattern& I_Pattern, T* I_Out)
     {
-        return RE2::FullMatch(ToAbseil(I_Text), GetRe(I_Pattern), I_Out);
+        return RE2::FullMatch(ToAbseil(I_Text), GetRE(I_Pattern), I_Out);
     }
 
     template<typename T, typename... A>
     inline Bool FRegex::FullMatch(FStringView I_Text, const FRegexPattern& I_Pattern, T* I_Out, A&&... I_Args)
     {
-        return RE2::FullMatch(ToAbseil(I_Text), GetRe(I_Pattern), I_Out, std::forward<A>(I_Args)...);
+        return RE2::FullMatch(ToAbseil(I_Text), GetRE(I_Pattern), I_Out, std::forward<A>(I_Args)...);
     }
 
     inline Bool FRegex::PartialMatch(FStringView I_Text, const FRegexPattern& I_Pattern)
     {
-        return RE2::PartialMatch(ToAbseil(I_Text), GetRe(I_Pattern));
+        return RE2::PartialMatch(ToAbseil(I_Text), GetRE(I_Pattern));
     }
 
     template<typename T>
     inline Bool FRegex::PartialMatch(FStringView I_Text, const FRegexPattern& I_Pattern, T* I_Out)
     {
-        return RE2::PartialMatch(ToAbseil(I_Text), GetRe(I_Pattern), I_Out);
+        return RE2::PartialMatch(ToAbseil(I_Text), GetRE(I_Pattern), I_Out);
     }
 
     template<typename T, typename... A>
     inline Bool FRegex::PartialMatch(FStringView I_Text, const FRegexPattern& I_Pattern, T* I_Out, A&&... I_Args)
     {
-        return RE2::PartialMatch(ToAbseil(I_Text), GetRe(I_Pattern), I_Out, std::forward<A>(I_Args)...);
+        return RE2::PartialMatch(ToAbseil(I_Text), GetRE(I_Pattern), I_Out, std::forward<A>(I_Args)...);
     }
 
     inline Bool FRegex::Replace(FString* I_Str, const FRegexPattern& I_Pattern, FStringView I_Rewrite)
     {
-        return RE2::Replace(&I_Str->GetNative(), GetRe(I_Pattern), ToAbseil(I_Rewrite));
+        return RE2::Replace(&I_Str->GetNative(), GetRE(I_Pattern), ToAbseil(I_Rewrite));
     }
 
     inline int FRegex::GlobalReplace(FString* I_Str, const FRegexPattern& I_Pattern, FStringView I_Rewrite)
     {
-        return RE2::GlobalReplace(&I_Str->GetNative(), GetRe(I_Pattern), ToAbseil(I_Rewrite));
+        return RE2::GlobalReplace(&I_Str->GetNative(), GetRE(I_Pattern), ToAbseil(I_Rewrite));
     }
 
     inline Bool FRegex::Extract(FStringView I_Text, const FRegexPattern& I_Pattern, FStringView I_Rewrite, FString* I_Out)
     {
-        return RE2::Extract(ToAbseil(I_Text), GetRe(I_Pattern), ToAbseil(I_Rewrite), &I_Out->GetNative());
+        return RE2::Extract(ToAbseil(I_Text), GetRE(I_Pattern), ToAbseil(I_Rewrite), &I_Out->GetNative());
     }
 }

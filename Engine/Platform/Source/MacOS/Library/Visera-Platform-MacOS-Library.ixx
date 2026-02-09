@@ -5,7 +5,7 @@ export module Visera.Platform.MacOS.Library;
 #define VISERA_MODULE_NAME "Platform.MacOS"
 import Visera.Platform.Interface.Library;
 import Visera.Core.Types.Path;
-import Visera.Global.Log;
+import Visera.Core.Log;
 
 namespace Visera
 {

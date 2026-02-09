@@ -6,7 +6,7 @@ The RHI layer abstracts the graphics API (e.g. Vulkan) and provides a stable int
 
 - **Public API**: Texture, buffer, sampler handles and create/destroy; command list recording; frame begin/end and present.
 - **Backends**: Vulkan (primary); additional backends may be added later.
-- **Ownership**: Engine module `Visera.RHI`; implementation under `Engine/Runtime/RHI/`.
+- **Ownership**: Engine module `Visera.Runtime.Global`; implementation under `Engine/Runtime/RHI/`.
 
 ## Key concepts
 

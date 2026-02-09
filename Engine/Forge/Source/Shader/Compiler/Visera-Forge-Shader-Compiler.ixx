@@ -8,7 +8,7 @@ import Visera.Core.Types.Path;
 import Visera.Core.Types.Set;
 import Visera.Core.Types.Array;
 import Visera.Core.Types.String;
-import Visera.Global;
+import Visera.Runtime.Global;
 
 export namespace Visera::Forge
 {

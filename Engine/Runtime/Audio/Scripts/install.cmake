@@ -30,7 +30,6 @@ if(VISERA_MONOLITHIC_MODE)
     #install_visera_audio(...)
 else()
     add_library(${VISERA_AUDIO} SHARED)
-    target_compile_definitions(${VISERA_AUDIO} PRIVATE VISERA_AUDIO_BUILD_SHARED)
     add_library(Visera::Audio ALIAS ${VISERA_AUDIO})
 
     set_target_properties(${VISERA_AUDIO} PROPERTIES

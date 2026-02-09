@@ -16,6 +16,7 @@ export import Visera.Core.Types.Pointer;
 export import Visera.Core.Types.SlotMap;
 export import Visera.Core.Types.Optional;
 export import Visera.Core.Types.UUID;
+export import Visera.Core.Types.Name;
 
 export namespace Visera
 {

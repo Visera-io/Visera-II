@@ -3,12 +3,12 @@ module;
 export module Visera.Core;
 #define VISERA_MODULE_NAME "Core"
 export import Visera.Core.OS;
+export import Visera.Core.Log;
 export import Visera.Core.Math;
 export import Visera.Core.Meta;
 export import Visera.Core.Types;
-export import Visera.Core.Color;
+export import Visera.Core.Math.Color;
 export import Visera.Core.Image;
-export import Visera.Core.Logger;
 export import Visera.Core.Traits;
 export import Visera.Core.Delegate;
 export import Visera.Core.Algorithm;
