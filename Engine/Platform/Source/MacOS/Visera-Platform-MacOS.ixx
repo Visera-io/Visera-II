@@ -59,12 +59,11 @@ export namespace Visera
 
     TUniquePtr<IPlatformPath> FMacOSPlatform::GetExecutableDirectory() const
     {
-        char Path[PATH_MAX];
-        uint32_t PathLength = sizeof(Path);
+        char   Path[PATH_MAX];
+        UInt32 PathLength = sizeof(Path);
         if (_NSGetExecutablePath(Path, &PathLength) != 0)
         { LOG_FATAL("Failed to get executable path!"); }
-        const FPath ExePath(Path);
-        if (auto Parent = ExePath.GetParent(); Parent.HasValue())
+        if (auto Parent = FPath(FString(Path)).GetParent(); Parent.HasValue())
         { return MakeUnique<FMacOSPath>(Parent.GetValue().GetString().GetNative()); }
         return nullptr;
     }

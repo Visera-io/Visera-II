@@ -8,6 +8,7 @@ export module Visera.AssetHub.Font.FreeType;
 import Visera.Core.Font;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Array;
+import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
 import Visera.Global.Log;
 import Visera.Core.OS.FileSystem;

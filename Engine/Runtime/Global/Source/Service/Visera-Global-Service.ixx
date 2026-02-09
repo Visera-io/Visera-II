@@ -138,16 +138,18 @@ export namespace Visera
         IsTerminated()   const { return Status == EStatus::Terminated; }
 
     protected:
-        struct FConfig
+        static inline struct FConfig
         {
             struct
             {
-                FString Title  = "Visera";
-                UInt32  Width  = 512;
-                UInt32  Height = 512;
+                FString Title;
+                UInt32  Width;
+                UInt32  Height;
             }Window;
+        } Config
+        {
+            .Window { .Title = "Visera", .Width = 512, .Height = 512 },
         };
-        static inline FConfig Config;
         TSet<FName> Dependencies;
 
         TUnicastDelegate<Bool(void)> OnBootstrap;

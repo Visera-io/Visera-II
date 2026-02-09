@@ -12,6 +12,7 @@ export import Visera.AssetHub.Font;
        import Visera.Core.Types.Map;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.String;
+       import Visera.Core.Types.Optional;
        import Visera.Core.OS.Thread.Sync;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Image;
@@ -229,7 +230,7 @@ export namespace Visera
 
         FFreeType::FFace Face{nullptr};
         TArray<FByte> FontData;
-        const TOptional<FFontFaceInfo> InfoOpt = FFreeType::Load(FileBytes, I_FaceIndex, Face, FontData);
+        const auto InfoOpt = FFreeType::Load(FileBytes, I_FaceIndex, Face, FontData);
         if (!InfoOpt.HasValue() || Face == nullptr)
         {
             LOG_ERROR("Failed to load font from: {}", I_Path);
