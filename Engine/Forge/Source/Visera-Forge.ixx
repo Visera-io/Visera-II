@@ -85,7 +85,7 @@ namespace Visera::Forge
 
     // Compile shader from slang file -> FShaderAsset, then save
     [[nodiscard]] Bool
-    CompileShader(const FPath& I_SourcePath, FAssetHub* I_AssetHub)
+    CompileShader(const FPath& I_SourcePath, TUniqueRef<FRuntime> I_Runtime)
     {
         LOG_INFO("Compiling shader: {}", I_SourcePath);
 
@@ -131,8 +131,6 @@ namespace Visera::Forge
                 Refl.PushConstants.PushBack({ PC.Size, StagesMask });
             }
 
-            FShader ShaderData(std::move(SPIRV), std::move(Refl));
-
             FPath OutputPath = I_SourcePath;
             FString OutputName(*OutputPath.GetFileName());
             const auto DotPos = OutputName.FindLast(".");
@@ -144,7 +142,7 @@ namespace Visera::Forge
             OutputName.Append(".vshader");
             OutputPath = *OutputPath.GetParent() / FPath(OutputName);
 
-            if (!I_AssetHub || !I_AssetHub->SaveShader(ShaderData, OutputPath))
+            if (!I_Runtime->AssetHub->SaveShader({std::move(SPIRV), std::move(Refl)}, OutputPath))
             {
                 LOG_ERROR("Failed to save shader: {}", OutputPath);
                 return False;
@@ -213,7 +211,7 @@ namespace Visera::Forge
 
             for (const auto& FilePath : MatchedFiles)
             {
-                if (CompileShader(FilePath, Runtime->AssetHub))
+                if (CompileShader(FilePath, Runtime))
                 {
                     ++SuccessCount;
                 }
