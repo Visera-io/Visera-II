@@ -11,6 +11,7 @@ export import Visera.Runtime.RHI.CommandList;
        import Visera.Core.Log;
        import Visera.Core.Types.Array;
        import Visera.Core.Types.Pointer.Shared;
+       import Visera.Core.Types.String;
        import Visera.Core.Delegate;
        import Visera.Runtime.Global;
        import vulkan_hpp;
@@ -166,7 +167,15 @@ export namespace Visera
                     else { LOG_ERROR("Failed to get Window!"); }
                 });
 #endif
-                Driver = new FVulkanDriver({.Window = Window});
+                vk::PresentModeKHR PresentMode = vk::PresentModeKHR::eFifo;
+                {
+                    FJSON RHIConfig = Config.GetObject("RHI");
+                    FString PresentModeStr = RHIConfig.GetString("PresentMode", "VSync");
+                    if (PresentModeStr == "Immediate") PresentMode = vk::PresentModeKHR::eImmediate;
+                    else if (PresentModeStr == "Mailbox") PresentMode = vk::PresentModeKHR::eMailbox;
+                    else if (PresentModeStr == "FIFO" || PresentModeStr == "VSync") PresentMode = vk::PresentModeKHR::eFifo;
+                }
+                Driver = new FVulkanDriver({.Window = Window, .SwapChainPresentMode = PresentMode});
 
                 if (Driver->GetDevice().GraphicsQueueFamilyIndex
                     !=

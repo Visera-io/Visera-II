@@ -5,23 +5,17 @@ export module Visera.Core.Image.Pixel;
 export import Visera.Core.Image.Common;
        import Visera.Core.Math.Color;
        import Visera.Core.Types.Half;
+       import Visera.Core.Types.Optional;
        import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
 {
-    /**
-     * Pixel accessor/view for FImage, similar to FCommandView in RHI.
-     * Provides read/write access to a single pixel in an image.
-     * Also provides static utility methods for pixel format operations.
-     */
+    class FPixel;
+    template<> inline constexpr Bool HasIntrusiveUnsetOptionalState<FPixel> = True;
+
     class VISERA_CORE_API FPixel
     {
     public:
-        /**
-         * Calculates the number of bytes per pixel for a given pixel format.
-         * @param I_Format The pixel format
-         * @return The number of bytes per pixel
-         */
         [[nodiscard]] static constexpr UInt8
         GetByteSize(EPixelFormat I_Format) noexcept;
         [[nodiscard]] static constexpr UInt8
@@ -31,50 +25,24 @@ export namespace Visera
         [[nodiscard]] static constexpr Bool
         IsFloatFormat(EPixelFormat I_Format) noexcept;
 
-        /**
-         * Gets the pointer to pixel data.
-         * @return Pointer to pixel data
-         */
-        [[nodiscard]] FByte* GetData() { return Data; }
+        [[nodiscard]] inline FByte* GetData() { return Data; }
+        [[nodiscard]] inline const FByte* GetData() const { return Data; }
+        [[nodiscard]] inline EPixelFormat GetPixelFormat() const { return PixelFormat; }
+        [[nodiscard]] inline UInt8 GetBytesPerPixel() const { return BytesPerPixel; }
 
-        /**
-         * Gets the const pointer to pixel data.
-         * @return Const pointer to pixel data
-         */
-        [[nodiscard]] const FByte* GetData() const { return Data; }
+        template<Concepts::Color TColor = FColor>
+        [[nodiscard]] TColor GetColor() const;
 
-        /**
-         * Gets the pixel format.
-         * @return Pixel format
-         */
-        [[nodiscard]] EPixelFormat GetPixelFormat() const { return PixelFormat; }
+        template<Concepts::Color TColor = FColor>
+        void SetColor(const TColor& I_Color);
 
-        /**
-         * Gets the bytes per pixel.
-         * @return Bytes per pixel
-         */
-        [[nodiscard]] UInt8 GetBytesPerPixel() const { return BytesPerPixel; }
-
-        /**
-         * Gets the pixel value as FLinearColor.
-         * This is a RAW READ operation - it directly reads the pixel values
-         * from the pixel format without any colorspace conversion (e.g., sRGB).
-         * For HDR formats (float), values can exceed 1.0 to represent high dynamic range.
-         * @return FLinearColor value representing the pixel
-         */
-        [[nodiscard]] FLinearColor Get() const;
-
-        /**
-         * Sets the pixel value from a color type.
-         * This is a RAW WRITE operation - it directly writes the color values
-         * to the pixel format without any colorspace conversion (e.g., sRGB).
-         * For colorspace-aware writes, use FImage-level methods that handle sRGB conversion.
-         * For HDR formats (float), values can exceed 1.0 to represent high dynamic range.
-         * @tparam TColor Color type (must satisfy Concepts::Color, defaults to FLinearColor)
-         * @param I_Color Color value
-         */
-        template<Concepts::Color TColor = FLinearColor>
-        void Set(const TColor& I_Color);
+        /** Assignment from color; enables Image(i,j,0) = FColor::Magenta(). */
+        template<Concepts::Color TColor = FColor>
+        FPixel& operator=(const TColor& I_Color)
+        {
+            SetColor(I_Color);
+            return *this;
+        }
 
     private:
         FByte*       Data;          // Pointer to pixel data
@@ -82,21 +50,39 @@ export namespace Visera
         UInt8        BytesPerPixel; // Bytes per pixel (cached for performance)
 
     public:
-        /**
-         * Constructs a read-only pixel view from const data pointer.
-         * @param I_Data Const pointer to pixel data
-         * @param I_PixelFormat Format of the pixel
-         * @param I_BytesPerPixel Bytes per pixel (cached for performance)
-         */
         explicit FPixel(const FByte* I_Data, EPixelFormat I_PixelFormat, UInt8 I_BytesPerPixel)
             : Data{const_cast<FByte*>(I_Data)}
             , PixelFormat{I_PixelFormat}
             , BytesPerPixel{I_BytesPerPixel}
         {
         }
+
+        FPixel(FIntrusiveUnsetOptionalState I_Unset) noexcept
+            : Data{nullptr}
+            , PixelFormat{EPixelFormat::Invalid}
+            , BytesPerPixel{0}
+        {
+        }
+
+        VISERA_CORE_API
+        friend Bool operator==(const FPixel& I_Lhs, FIntrusiveUnsetOptionalState) noexcept;
     };
 
     /**
+     * Equality operator for IntrusiveOptional support.
+     * Returns true if pixel is unset (Data == nullptr).
+     */
+    inline Bool operator==(const FPixel& I_Lhs, FIntrusiveUnsetOptionalState) noexcept
+    {
+        return I_Lhs.Data == nullptr;
+    }
+    static_assert(sizeof(TOptional<FPixel>) == sizeof(FPixel));
+
+    /**
+     * Pixel accessor/view for FImage, similar to FCommandView in RHI.
+     * Provides read/write access to a single pixel in an image.
+     * Also provides static utility methods for pixel format operations.
+     * 
      * Calculates the number of bytes per pixel for a given pixel format.
      * @param I_Format The pixel format
      * @return The number of bytes per pixel
@@ -213,10 +199,18 @@ export namespace Visera
                I_Format == EPixelFormat::RGBA32_Float;
     }
 
-    FLinearColor FPixel::
-    Get() const
+    /**
+     * Gets the pixel value as the specified color type.
+     * Reads raw pixel data (linear); for FColor, converts linear -> sRGB.
+     * For HDR formats (float), values can exceed 1.0.
+     * @tparam TColor Color type (default FColor)
+     * @return Color value representing the pixel
+     */
+    template<Concepts::Color TColor>
+    TColor FPixel::
+    GetColor() const
     {
-        if (!Data) { return FLinearColor{}; }
+        VISERA_ASSERT(Data);
 
         FLinearColor Result{};
 
@@ -424,21 +418,50 @@ export namespace Visera
             break;
         }
 
-        return Result;
+        if constexpr (std::is_same_v<TColor, FLinearColor>)
+        {
+            return Result;
+        }
+        else if constexpr (std::is_same_v<TColor, FColor>)
+        {
+            return FColor::SRGB8ColorFromLinear(Result);
+        }
+        else
+        {
+            TColor Out{};
+            Out.R = static_cast<decltype(Out.R)>(Result.R);
+            Out.G = static_cast<decltype(Out.G)>(Result.G);
+            Out.B = static_cast<decltype(Out.B)>(Result.B);
+            Out.A = static_cast<decltype(Out.A)>(Result.A);
+            return Out;
+        }
     }
 
-    template<Concepts::Color TColor /* = FLinearColor */> void FPixel::
-    Set(const TColor& I_Color)
+    /**
+     * Sets the pixel value from a color type.
+     * Writes the color to the pixel format. FColor (sRGB) is converted to linear.
+     * For HDR formats (float), values can exceed 1.0.
+     * @tparam TColor Color type
+     * @param I_Color Color value
+     */
+    template<Concepts::Color TColor>
+    void FPixel::
+    SetColor(const TColor& I_Color)
     {
         if (!Data) { return; }
 
-        // Extract color components as Float
-        // For HDR formats (float), values can exceed 1.0, so we don't clamp for those formats
         Float R, G, B, A;
-        
-        if constexpr (std::is_same_v<TColor, FLinearColor>)
+
+        if constexpr (std::is_same_v<TColor, FColor>)
         {
-            // FLinearColor: already Float, can be > 1.0 for HDR
+            // FColor (sRGB 8-bit): convert to linear
+            R = FLinearColor::SRGBToLinear(I_Color.R);
+            G = FLinearColor::SRGBToLinear(I_Color.G);
+            B = FLinearColor::SRGBToLinear(I_Color.B);
+            A = static_cast<Float>(I_Color.A) / 255.0f;
+        }
+        else if constexpr (std::is_same_v<TColor, FLinearColor>)
+        {
             R = I_Color.R;
             G = I_Color.G;
             B = I_Color.B;
@@ -446,7 +469,6 @@ export namespace Visera
         }
         else
         {
-            // Generic color type: assume Float components
             R = static_cast<Float>(I_Color.R);
             G = static_cast<Float>(I_Color.G);
             B = static_cast<Float>(I_Color.B);
@@ -639,8 +661,13 @@ export namespace Visera
 
         case EPixelFormat::Invalid:
         default:
-            // Unsupported format - do nothing
             break;
         }
     }
+
+    // Explicit instantiations for common color types (module export)
+    template FLinearColor FPixel::GetColor<FLinearColor>() const;
+    template FColor FPixel::GetColor<FColor>() const;
+    template void FPixel::SetColor<FColor>(const FColor&);
+    template void FPixel::SetColor<FLinearColor>(const FLinearColor&);
 }

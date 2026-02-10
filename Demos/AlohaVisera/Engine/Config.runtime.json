@@ -1,0 +1,10 @@
+{
+    "Window": {
+        "Title": "Visera",
+        "Width": 512,
+        "Height": 512
+    },
+    "RHI": {
+        "PresentMode": "VSync"
+    }
+}

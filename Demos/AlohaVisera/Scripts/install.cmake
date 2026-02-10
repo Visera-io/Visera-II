@@ -46,6 +46,16 @@ add_custom_command(
     "${VISERA_APP_ASSETS_DIR}"
     "${VISERA_APP_RESOURCE_DIR}/Assets/App"
 )
+set(VISERA_APP_ENGINE_DIR "${PROJECT_SOURCE_DIR}/Engine")
+if(EXISTS "${VISERA_APP_ENGINE_DIR}")
+    add_custom_command(
+        TARGET ${VISERA_APP}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${VISERA_APP_ENGINE_DIR}"
+        "${VISERA_APP_RESOURCE_DIR}/Engine"
+    )
+endif()
 # <<App Icon>>
 if(WIN32)
     set(APP_ICON_WINDOWS "${VISERA_APP_ASSETS_DIR}/Icon/App.ico.rc")

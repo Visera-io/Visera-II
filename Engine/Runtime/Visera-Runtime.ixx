@@ -195,7 +195,7 @@ export namespace Visera
             }
         }
 
-        auto TopologicalSort()
+        TArray<TSharedPtr<IGlobalService>> TopologicalSort()
         {
             auto Result = TArray<TSharedPtr<IGlobalService>>();
             Result.Reserve(Registry.GetSize());

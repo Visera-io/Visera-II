@@ -10,6 +10,7 @@ export import Visera.Core.Math.Trigonometry;
 export import Visera.Core.Math.Hash;
 export import Visera.Core.Math.Random;
 export import Visera.Core.Math.Bit;
+export import Visera.Core.Math.Kernel;
 
 export namespace Visera
 {

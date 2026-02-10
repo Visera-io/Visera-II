@@ -5,7 +5,7 @@ export module Visera.Core.Math.Random;
 export import Visera.Core.Math.Random.RNG;
 export import Visera.Core.Math.Random.Seed;
 
-export namespace Visera
+export namespace Visera::Math
 {
 
-} // namespace Visera
+}

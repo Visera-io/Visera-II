@@ -5,7 +5,7 @@ export module Visera.Core.Math.Hash;
 export import Visera.Core.Math.Hash.CityHash;
 export import Visera.Core.Math.Hash.GoldenRatio;
 
-export namespace Visera
+export namespace Visera::Math
 {
 
 }

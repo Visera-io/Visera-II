@@ -3,6 +3,7 @@ module;
 export module AlohaVisera;
 #define VISERA_MODULE_NAME "AlohaVisera"
 import Visera.Core;
+import Visera.Platform;
 import Visera.Runtime;
 using namespace Visera;
 
@@ -13,17 +14,26 @@ struct FEngine
 
     Bool Run()
     {
-        Runtime->Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
-        {
-            if (I_Button == FMouse::EButton::Left)
-            {
-                LOG_INFO("Left");
-            }
-        });
+        auto Image = Runtime->AssetHub->LoadImage(FPlatform::GetResourceDirectory() / FPath{"Assets/App/Texture/Bronya.png"})->GetImage();
+        // Gaussian blur test
+        FImage BlurredImage = Algorithm::GaussianBlur(
+            Image.View2D(),
+            3.0f,  // sigma
+            5u,    // radius
+            Algorithm::EAddressMode::ClampToEdge);
+        (void)Runtime->AssetHub->SaveImage(BlurredImage.View2D(), FPlatform::GetCacheDirectory() / FPath{"TestGaussianBlur.png"});
+
+        // Runtime->Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
+        // {
+        //     if (I_Button == FMouse::EButton::Left)
+        //     {
+        //         LOG_INFO("Left");
+        //     }
+        // });
 
         LOG_INFO("Visera Engine Run()");
 
-        FRHICommandList Commands;
+        //FRHICommandList Commands;
         FJSON Config = FJSON::Load(FPath{"Assets/App/Configs/config.json"}).GetValue();
 
         auto TexturePath = Config.GetPath("Assets.Textures[0]"_JQL);
@@ -41,7 +51,7 @@ struct FEngine
 
             Runtime->Graphics->Tick(0);
 
-            Commands.Reset();
+            //Commands.Reset();
 
             // Rendering
             {
@@ -66,11 +76,6 @@ struct FEngine
         if (auto ConfigFile = FJSON::Load(FPlatform::GetResourceDirectory() / FPath{"Engine/Config.runtime.json"}); ConfigFile.HasValue())
         {
             RuntimeConfig = std::move(ConfigFile).GetValue();
-            LOG_DEBUG("Runtime config loaded: {}", RuntimeConfig.GetValue().Dump());
-        }
-        else
-        {
-            LOG_WARN("Failed to load config file Engine/Config.runtime.json -- using default config!");
         }
         
         Runtime = FRuntime::Create(EMode::Full, RuntimeConfig);

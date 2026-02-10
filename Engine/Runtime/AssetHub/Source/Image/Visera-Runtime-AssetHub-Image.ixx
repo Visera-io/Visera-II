@@ -6,12 +6,12 @@ export import Visera.Runtime.AssetHub.Image.Common;
 export import Visera.Runtime.AssetHub.Image.Wrapper;
 export import Visera.Runtime.AssetHub.Image.PNG;
 export import Visera.Runtime.AssetHub.Image.EXR;
-import Visera.Runtime.AssetHub.Asset;
-import Visera.Core.Image;
+       import Visera.Runtime.AssetHub.Asset;
+       import Visera.Core.Image;
 
 export namespace Visera
 {
-	/** Read-only image asset; implements IAsset. Use FAssetHub::Save(const FImage&, path) to write. */
+	/** Read-only image asset; implements IAsset. Use FAssetHub::SaveImage(view, path) to write. */
 	class VISERA_RUNTIME_API FImageAsset : public IAsset
 	{
 	public:

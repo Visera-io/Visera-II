@@ -28,8 +28,8 @@ export namespace Visera
         Import(const FPath& I_Path) = 0;
 
         /**
-         * Exports an FImage to a file path. Takes pure data (const FImage&) to avoid multi-thread write issues.
-         * @param I_Image The image data to export
+         * Exports an FImage to a file path.
+         * @param I_Image The image data to export (e.g. from FImage view copy)
          * @param I_Path The path to save the image file
          * @return True if successful, false otherwise
          */

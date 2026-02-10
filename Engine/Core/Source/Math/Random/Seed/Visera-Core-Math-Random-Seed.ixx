@@ -6,7 +6,7 @@ export module Visera.Core.Math.Random.Seed;
 
 namespace Visera
 {
-    export class VISERA_CORE_API FSeedPool
+    export class VISERA_CORE_API FRandomSeed
     {
     public:
         template<Concepts::UnsignedIntegral T = UInt32> [[nodiscard]] inline T

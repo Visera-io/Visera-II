@@ -5,6 +5,7 @@ export module Visera.Runtime.Window;
 #define VISERA_MODULE_NAME "Runtime.Windo"
 import Visera.Runtime.Global;
 import Visera.Platform;
+import Visera.Core.Types.String;
 import Visera.Core.Types.Pointer.Unique;
 import Visera.Core.Delegate.Multicast;
 

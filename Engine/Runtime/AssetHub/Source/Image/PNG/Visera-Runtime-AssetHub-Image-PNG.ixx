@@ -7,6 +7,9 @@ export import Visera.Runtime.AssetHub.Image.Common;
        import Visera.Runtime.AssetHub.Image.Wrapper;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Types.Array;
+       import Visera.Core.Math.Color;
+       import Visera.Core.Math.Arithmetic.Operation;
+       import Visera.Core.Types.Half;
        import Visera.Core.Log;
 
 export namespace Visera
@@ -295,54 +298,85 @@ export namespace Visera
     Bool FPNGImageWrapper::
     Export(const FImage& I_Image, const FPath& I_Path)
     {
-        const EPixelFormat Format = I_Image.GetPixelFormat();
         const UInt32 Width = I_Image.GetWidth();
         const UInt32 Height = I_Image.GetHeight();
 
-        // PNG only supports 8-bit and 16-bit formats
-        // Convert to RGBA8 or RGBA16 based on format
+        // Determine target format for PNG
+        EPixelFormat TargetFormat = EPixelFormat::Invalid;
         Int32 BitDepth = 8;
         Int32 ColorType = PNG_COLOR_TYPE_RGBA;
-        UInt32 BytesPerChannel = 1;
 
-        switch (Format)
+        const EPixelFormat SrcFormat = I_Image.GetPixelFormat();
+        const Bool IsFloatFormat = I_Image.IsFloatFormat();
+
+        if (IsFloatFormat)
         {
-        case EPixelFormat::R8_UNorm:
-            ColorType = PNG_COLOR_TYPE_GRAY;
-            break;
-        case EPixelFormat::RG8_UNorm:
-            ColorType = PNG_COLOR_TYPE_GRAY_ALPHA;
-            break;
-        case EPixelFormat::RGB8_UNorm:
-            ColorType = PNG_COLOR_TYPE_RGB;
-            break;
-        case EPixelFormat::RGBA8_UNorm:
+            // Float formats: convert to 16-bit UNorm to preserve quality
+            TargetFormat = EPixelFormat::RGBA16_UNorm;
+            BitDepth = 16;
             ColorType = PNG_COLOR_TYPE_RGBA;
-            break;
-        case EPixelFormat::R16_UNorm:
-            BitDepth = 16;
-            BytesPerChannel = 2;
-            ColorType = PNG_COLOR_TYPE_GRAY;
-            break;
-        case EPixelFormat::RG16_UNorm:
-            BitDepth = 16;
-            BytesPerChannel = 2;
-            ColorType = PNG_COLOR_TYPE_GRAY_ALPHA;
-            break;
-        case EPixelFormat::RGB16_UNorm:
-            BitDepth = 16;
-            BytesPerChannel = 2;
-            ColorType = PNG_COLOR_TYPE_RGB;
-            break;
-        case EPixelFormat::RGBA16_UNorm:
-            BitDepth = 16;
-            BytesPerChannel = 2;
-            ColorType = PNG_COLOR_TYPE_RGBA;
-            break;
-        default:
-            LOG_ERROR("Unsupported pixel format for PNG export: {}", static_cast<Int32>(Format));
+        }
+        else
+        {
+            // UNorm formats: use existing format if supported, otherwise convert
+            switch (SrcFormat)
+            {
+            case EPixelFormat::R8_UNorm:
+                TargetFormat = EPixelFormat::R8_UNorm;
+                ColorType = PNG_COLOR_TYPE_GRAY;
+                break;
+            case EPixelFormat::RG8_UNorm:
+                TargetFormat = EPixelFormat::RG8_UNorm;
+                ColorType = PNG_COLOR_TYPE_GRAY_ALPHA;
+                break;
+            case EPixelFormat::RGB8_UNorm:
+                TargetFormat = EPixelFormat::RGB8_UNorm;
+                ColorType = PNG_COLOR_TYPE_RGB;
+                break;
+            case EPixelFormat::RGBA8_UNorm:
+            case EPixelFormat::BGRA8_UNorm:
+                TargetFormat = EPixelFormat::RGBA8_UNorm;
+                ColorType = PNG_COLOR_TYPE_RGBA;
+                break;
+            case EPixelFormat::R16_UNorm:
+                TargetFormat = EPixelFormat::R16_UNorm;
+                BitDepth = 16;
+                ColorType = PNG_COLOR_TYPE_GRAY;
+                break;
+            case EPixelFormat::RG16_UNorm:
+                TargetFormat = EPixelFormat::RG16_UNorm;
+                BitDepth = 16;
+                ColorType = PNG_COLOR_TYPE_GRAY_ALPHA;
+                break;
+            case EPixelFormat::RGB16_UNorm:
+                TargetFormat = EPixelFormat::RGB16_UNorm;
+                BitDepth = 16;
+                ColorType = PNG_COLOR_TYPE_RGB;
+                break;
+            case EPixelFormat::RGBA16_UNorm:
+                TargetFormat = EPixelFormat::RGBA16_UNorm;
+                BitDepth = 16;
+                ColorType = PNG_COLOR_TYPE_RGBA;
+                break;
+            default:
+                // Unsupported format: convert to RGBA8
+                LOG_WARN("Unsupported pixel format {} for PNG, converting to RGBA8", static_cast<Int32>(SrcFormat));
+                TargetFormat = EPixelFormat::RGBA8_UNorm;
+                ColorType = PNG_COLOR_TYPE_RGBA;
+                break;
+            }
+        }
+
+        // Convert format using Clone if needed
+        const FImage ConvertedImage = (SrcFormat == TargetFormat) ? I_Image : I_Image.Clone(EColorSpace::Unknown, TargetFormat);
+
+        if (TargetFormat == EPixelFormat::Invalid)
+        {
+            LOG_ERROR("Failed to determine PNG format for export: {}", I_Path);
             return False;
         }
+
+        const UInt32 BytesPerChannel = (BitDepth == 16) ? 2 : 1;
 
         // Open file for writing
         auto File = FFileSystem::OpenFile(I_Path, EFileMode::Write | EFileMode::Binary);
@@ -386,9 +420,9 @@ export namespace Visera
         // Write header
         png_write_info(PNGWrite, PNGInfoWrite);
 
-        // Get image data
-        const FByte* ImageData = I_Image.GetData();
-        const UInt32 RowPitch = I_Image.GetRowPitchBytes();
+        // Get image data from converted image
+        const FByte* ImageData = ConvertedImage.GetData();
+        const UInt32 RowPitch = ConvertedImage.GetRowPitchBytes();
 
         // Write image rows
         for (UInt32 Row = 0; Row < Height; ++Row)

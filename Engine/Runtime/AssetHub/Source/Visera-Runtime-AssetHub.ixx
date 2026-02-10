@@ -24,12 +24,12 @@ export namespace Visera
     class VISERA_RUNTIME_API FAssetHub : public IGlobalService
     {
     public:
-        /** Load image; returns read-only FImageAsset (IAsset). Use Save(const FImage&, path) to write. */
+        /** Load image; returns read-only FImageAsset (IAsset). Use SaveImage(view, path) to write. */
         [[nodiscard]] TSharedPtr<FImageAsset>
         LoadImage(const FPath& I_Path);
-        /** Save image data to file (pure data FImage; avoids multi-thread write via asset handle). */
+        /** Save image data to file. Takes FImageView2D for explicit region; copies to FImage and exports. */
         [[nodiscard]] Bool
-        SaveImage(const FImage& I_Image, const FPath& I_Path);
+        SaveImage(const FImageView2D& I_View, const FPath& I_Path);
         /** Load .vshader from file. Returns read-only asset (IAsset). */
         [[nodiscard]] TSharedPtr<FShaderAsset>
         LoadShader(const FPath& I_Path);
@@ -144,22 +144,27 @@ export namespace Visera
     }
 
     Bool FAssetHub::
-    SaveImage(const FImage& I_Image, const FPath& I_Path)
+    SaveImage(const FImageView2D& I_View, const FPath& I_Path)
     {
-        if (I_Image.GetWidth() == 0 || I_Image.GetHeight() == 0)
+        const FImage ToSave{I_View, std::pmr::get_default_resource()};
+        if (ToSave.GetWidth() == 0 || ToSave.GetHeight() == 0)
         {
-            LOG_ERROR("Image has invalid dimensions ({}x{}) for saving: {}",
-                     I_Image.GetWidth(), I_Image.GetHeight(), I_Path);
+            LOG_ERROR("Image view has invalid dimensions ({}x{}) for saving: {}",
+                     ToSave.GetWidth(), ToSave.GetHeight(), I_Path);
             return False;
         }
-        if (I_Image.GetPixelFormat() == EPixelFormat::Invalid)
+        if (ToSave.GetPixelFormat() == EPixelFormat::Invalid)
         {
             LOG_ERROR("Image has invalid pixel format for saving: {}", I_Path);
             return False;
         }
 
-        const Bool IsFloatFormat = I_Image.IsFloatFormat();
-        const EImageFormat TargetFormat = IsFloatFormat ? EImageFormat::EXR : EImageFormat::PNG;
+        const EImageFormat TargetFormat = DetectImageFormat(I_Path);
+        if (TargetFormat == EImageFormat::Invalid)
+        {
+            LOG_ERROR("Failed to detect image format from file extension for: {}", I_Path);
+            return False;
+        }
 
         TUniquePtr<IImageWrapper> Wrapper;
         switch (TargetFormat)
@@ -167,10 +172,16 @@ export namespace Visera
         case EImageFormat::PNG:  Wrapper = MakeUnique<FPNGImageWrapper>(); break;
         case EImageFormat::EXR:  Wrapper = MakeUnique<FEXRImageWrapper>(); break;
         default:
-            LOG_ERROR("Unsupported pixel format for saving: {}", I_Path);
+            LOG_ERROR("Unsupported image format for saving: {}", I_Path);
             return False;
         }
-        return Wrapper->Export(I_Image, I_Path);
+
+        const Bool bSuccess = Wrapper->Export(ToSave, I_Path);
+        if (bSuccess)
+        { LOG_DEBUG("Successfully saved image to: {}", I_Path); }
+        else
+        { LOG_ERROR("Failed to save image to: {}", I_Path); }
+        return bSuccess;
     }
 
     TSharedPtr<FShaderAsset> FAssetHub::

@@ -7,6 +7,8 @@ export module Visera.Runtime.AssetHub.Image.EXR;
 export import Visera.Runtime.AssetHub.Image.Common;
        import Visera.Runtime.AssetHub.Image.Wrapper;
        import Visera.Core.Types.Half;
+       import Visera.Core.Math.Color;
+       import Visera.Core.Math.Arithmetic.Operation;
        import Visera.Core.Log;
 
 export namespace Visera
@@ -93,9 +95,21 @@ export namespace Visera
     Bool FEXRImageWrapper::
     Export(const FImage& I_Image, const FPath& I_Path)
     {
-        const EPixelFormat Format = I_Image.GetPixelFormat();
         const UInt32 Width = I_Image.GetWidth();
         const UInt32 Height = I_Image.GetHeight();
+
+        // Convert to EXR-compatible format (RGBA16_Float or RGBA32_Float)
+        const EPixelFormat SrcFormat = I_Image.GetPixelFormat();
+        EPixelFormat TargetFormat = EPixelFormat::RGBA16_Float;
+        
+        // If already RGBA Float format, use it directly
+        if (SrcFormat == EPixelFormat::RGBA16_Float || SrcFormat == EPixelFormat::RGBA32_Float)
+        {
+            TargetFormat = SrcFormat;
+        }
+
+        const FImage ConvertedImage = (SrcFormat == TargetFormat) ? I_Image : I_Image.Clone(EColorSpace::Unknown, TargetFormat);
+        const EPixelFormat Format = ConvertedImage.GetPixelFormat();
 
         // EXR supports float formats (16-bit half or 32-bit float)
         // Determine if we should use half-float or full float
@@ -109,8 +123,7 @@ export namespace Visera
             UseHalfFloat = False;
             break;
         default:
-            LOG_ERROR("Unsupported pixel format for EXR export: {} (only RGBA16_Float and RGBA32_Float are supported)", 
-                     static_cast<Int32>(Format));
+            LOG_ERROR("Failed to convert to EXR-compatible format: {}", static_cast<Int32>(Format));
             return False;
         }
 
@@ -120,8 +133,8 @@ export namespace Visera
             Imf::Array2D<Imf::Rgba> Pixels;
             Pixels.resizeErase(Height, Width);
 
-            const FByte* ImageData = I_Image.GetData();
-            const UInt32 RowPitch = I_Image.GetRowPitchBytes();
+            const FByte* ImageData = ConvertedImage.GetData();
+            const UInt32 RowPitch = ConvertedImage.GetRowPitchBytes();
 
             if (UseHalfFloat)
             {

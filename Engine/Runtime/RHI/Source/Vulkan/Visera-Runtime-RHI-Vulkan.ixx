@@ -40,6 +40,7 @@ export namespace Visera
     struct FVulkanDriverCreateInfo
     {
         TSharedPtr<FWindow> Window; // Optional: empty for offscreen mode
+        vk::PresentModeKHR SwapChainPresentMode {vk::PresentModeKHR::eFifo}; // FIFO = VSync; Mailbox = no VSync
     };
 
     class VISERA_RUNTIME_API FVulkanDriver
@@ -159,7 +160,7 @@ export namespace Visera
             vk::Format                      ImageFormat {vk::Format::eB8G8R8A8Srgb};
             vk::ColorSpaceKHR               ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                          MinimalImageCount{3};
-            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eMailbox};
+            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eFifo};
             vk::SharingMode                 SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR   CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                            bClipped       {True};
@@ -312,6 +313,7 @@ export namespace Visera
             { LOG_FATAL("Failed to create Vulkan Surface!"); }
 
             Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
+            SwapChain.PresentMode = I_CreateInfo.SwapChainPresentMode;
         }
 #endif
         

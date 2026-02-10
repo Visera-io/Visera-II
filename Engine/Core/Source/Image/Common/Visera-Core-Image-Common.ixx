@@ -10,6 +10,7 @@ export namespace Visera
      */
     enum class EColorSpace : UInt8
     {
+        Unknown,
         /** Linear color space (no gamma encoding) */
         Linear,
         /** sRGB color space (gamma encoded) */
@@ -22,6 +23,8 @@ export namespace Visera
      */
     enum class EPixelFormat : UInt8
     {
+        /** Invalid or unrecognized format */
+        Invalid,
         // 8-bit unsigned normalized formats
         R8_UNorm,          /** Single channel, 8-bit unsigned normalized */
         RG8_UNorm,         /** Two channels, 8-bit unsigned normalized */
@@ -49,9 +52,6 @@ export namespace Visera
 
         // Special packed formats
         RGBE8_HDR,          /** RGBExp format: 3x8-bit RGB + 8-bit shared exponent (HDR packed) */
-        
-        /** Invalid or unrecognized format */
-        Invalid,
     };
 }
 
