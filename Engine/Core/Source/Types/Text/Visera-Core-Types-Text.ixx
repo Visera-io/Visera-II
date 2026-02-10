@@ -4,7 +4,7 @@ module;
 #include <double-conversion/double-conversion.h>
 export module Visera.Core.Types.Text;
 #define VISERA_MODULE_NAME "Core.Types"
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
 import Visera.Core.Algorithm.Ranges;
 

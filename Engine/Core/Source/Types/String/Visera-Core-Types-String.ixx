@@ -4,7 +4,7 @@ module;
 #include <ranges>
 export module Visera.Core.Types.String;
 #define VISERA_MODULE_NAME "Core.Types"
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.Optional;
 import Visera.Core.Algorithm;
 

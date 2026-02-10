@@ -1,8 +1,8 @@
 module;
 #include <Visera-Core.hpp>
 #include <ankerl/unordered_dense.h>
-export module Visera.Core.Types.Set;
-#define VISERA_MODULE_NAME "Core.Types"
+export module Visera.Core.Containers.Set;
+#define VISERA_MODULE_NAME "Core.Containers"
 
 export namespace Visera
 {

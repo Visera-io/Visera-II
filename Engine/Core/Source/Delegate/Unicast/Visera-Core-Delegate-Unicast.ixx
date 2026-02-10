@@ -2,18 +2,23 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Delegate.Unicast;
 #define VISERA_MODULE_NAME "Core.Delegate"
-import Visera.Core.Traits.Policy;
 import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
-    // Default policy is Exclusive
-    template<typename T_Signature, typename T_Policy = Policy::Exclusive>
+    namespace Policy
+    {
+        struct SharedDelegate {};
+        struct UniqueDelegate {};
+    }
+    
+    // Default policy is UniqueDelegate
+    template<typename T_Signature, typename T_Policy = Policy::UniqueDelegate>
     class VISERA_CORE_API TUnicastDelegate;
 
-    // Shared: can re-bind and can unbind.
+    // SharedDelegate: can re-bind and can unbind.
     template<typename R, typename... T_Args>
-    class VISERA_CORE_API TUnicastDelegate<R(T_Args...), Policy::Shared>
+    class VISERA_CORE_API TUnicastDelegate<R(T_Args...), Policy::SharedDelegate>
     {
     public:
         using FCallback = TFunction<R(T_Args...)>;
@@ -48,9 +53,9 @@ export namespace Visera
         FCallback Callback;
     };
 
-    // Exclusive: can bind once and Can NOT unbind.
+    // UniqueDelegate: can bind once and Can NOT unbind.
     template<typename R, typename... T_Args>
-    class VISERA_CORE_API TUnicastDelegate<R(T_Args...), Policy::Exclusive>
+    class VISERA_CORE_API TUnicastDelegate<R(T_Args...), Policy::UniqueDelegate>
     {
     public:
         using FCallback = TFunction<R(T_Args...)>;

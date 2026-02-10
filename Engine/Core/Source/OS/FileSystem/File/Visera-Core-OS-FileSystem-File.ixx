@@ -3,7 +3,8 @@ module;
 #include <cstdio>
 export module Visera.OS.FileSystem.File;
 #define VISERA_MODULE_NAME "Core.OS"
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
+import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -131,7 +132,7 @@ export namespace Visera
             const UInt64 BytesRead = Read(Result.Data(), 1, static_cast<UInt64>(FileSize));
             if (BytesRead != static_cast<UInt64>(FileSize))
             {
-                // If read failed, resize to actual bytes read
+                LOG_DEBUG("ReadAll partial read: expected {} bytes, got {}", FileSize, BytesRead);
                 Result.Resize(BytesRead);
             }
         }

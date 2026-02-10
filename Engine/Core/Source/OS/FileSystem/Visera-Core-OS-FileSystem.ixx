@@ -7,10 +7,11 @@ export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
 export import Visera.Core.Types.Path;
-export import Visera.Core.Types.Array;
+export import Visera.Core.Containers.Array;
 export import Visera.Core.Traits.Flags;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer.Unique;
+       import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -97,6 +98,7 @@ export namespace Visera
         {
             std::filesystem::create_directories(Path, Ec);
         }
+        if (Ec) { LOG_DEBUG("CreateDirectory failed: {} - {}", Path.generic_string(), Ec.message()); }
         return ToEIOError(Ec);
     }
 
@@ -115,6 +117,7 @@ export namespace Visera
                 { std::filesystem::remove(Path, Ec); }
             }
         }
+        if (Ec) { LOG_DEBUG("DeleteDirectory failed: {} - {}", Path.generic_string(), Ec.message()); }
         return ToEIOError(Ec);
     }
 
@@ -129,6 +132,7 @@ export namespace Visera
         if (std::filesystem::exists(SourcePath, Ec))
         { return ToEIOError(Ec); }
         std::filesystem::create_symlink(TargetPath, SourcePath, Ec);
+        if (Ec) { LOG_DEBUG("CreateSoftLink failed: {} -> {} - {}", SourcePath.generic_string(), TargetPath.generic_string(), Ec.message()); }
         return ToEIOError(Ec);
     }
 
@@ -137,7 +141,12 @@ export namespace Visera
     {
         const auto Path = ToFilesystemPath(I_Path);
         auto IStream = MakeUnique<std::ifstream>(Path, ToUnderlying(I_Mode));
-        return IStream->is_open() ? std::move(IStream) : nullptr;
+        if (!IStream->is_open())
+        {
+            LOG_DEBUG("Failed to open input stream: {}", Path.generic_string());
+            return nullptr;
+        }
+        return std::move(IStream);
     }
 
     TUniquePtr<std::ofstream> FFileSystem::
@@ -145,7 +154,12 @@ export namespace Visera
     {
         const auto Path = ToFilesystemPath(I_Path);
         auto OStream = MakeUnique<std::ofstream>(Path, ToUnderlying(I_Mode));
-        return OStream->is_open() ? std::move(OStream) : nullptr;
+        if (!OStream->is_open())
+        {
+            LOG_DEBUG("Failed to open output stream: {}", Path.generic_string());
+            return nullptr;
+        }
+        return std::move(OStream);
     }
 
     inline const char* FFileSystem::
@@ -177,7 +191,11 @@ export namespace Visera
         const auto Path = ToFilesystemPath(I_Path);
         const std::string PathString = Path.generic_string();
         FILE* Handle = std::fopen(PathString.c_str(), ModeStr);
-        if (Handle == nullptr) { return nullptr; }
+        if (Handle == nullptr)
+        {
+            LOG_DEBUG("Failed to open file: {}", PathString);
+            return nullptr;
+        }
         return MakeUnique<FFile>(Handle);
     }
 
@@ -209,8 +227,10 @@ export namespace Visera
                 }
             }
         }
-        catch (const std::filesystem::filesystem_error&)
-        { }
+        catch (const std::filesystem::filesystem_error& I_Err)
+        {
+            LOG_DEBUG("EnumerateFiles failed: {}", I_Err.what());
+        }
 
         return Results;
     }

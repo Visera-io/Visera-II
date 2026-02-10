@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Types.JSON:Path;
 #define VISERA_MODULE_NAME "Core.Types"
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
 
 export namespace Visera

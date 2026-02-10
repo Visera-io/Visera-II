@@ -2,8 +2,8 @@ module;
 #include <Visera-Core.hpp>
 #include <vector>
 #include <memory_resource>
-export module Visera.Core.Types.Array;
-#define VISERA_MODULE_NAME "Core.Types"
+export module Visera.Core.Containers.Array;
+#define VISERA_MODULE_NAME "Core.Containers"
 import Visera.Core.OS.Memory;
 
 export namespace Visera

@@ -7,7 +7,7 @@ export module Visera.Core.Image;
 export import Visera.Core.Image.Pixel;
 export import Visera.Core.Image.Common;
        import Visera.Core.Math.Color;
-       import Visera.Core.Types.Array;
+       import Visera.Core.Containers.Array;
        import Visera.Core.Types.Half;
        import Visera.Core.Types.Optional;
        import Visera.Core.OS.Memory;

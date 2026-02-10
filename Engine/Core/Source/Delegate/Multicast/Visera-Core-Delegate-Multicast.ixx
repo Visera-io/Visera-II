@@ -2,7 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Delegate.Multicast;
 #define VISERA_MODULE_NAME "Core.Delegate"
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 
 export namespace Visera
 {

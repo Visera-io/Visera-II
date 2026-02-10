@@ -5,7 +5,7 @@ export module Visera.Core.Types.JSON;
 export import :Path;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.Text;
-       import Visera.Core.Types.Array;
+       import Visera.Core.Containers.Array;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Optional;
        import Visera.Core.OS.FileSystem;

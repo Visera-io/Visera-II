@@ -3,7 +3,7 @@ module;
 export module Visera.Core.Math.Kernel.Gaussian;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic.Operation;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 
 export namespace Visera::Math
 {

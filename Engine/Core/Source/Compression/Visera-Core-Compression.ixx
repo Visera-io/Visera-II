@@ -4,8 +4,9 @@ module;
 export module Visera.Core.Compression;
 #define VISERA_MODULE_NAME "Core.Compression"
 import Visera.Core.OS.Memory;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
+import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -46,6 +47,8 @@ export namespace Visera
 
         if (Result == Z_OK)
         { O_Buffer->Resize(CompressedSize + sizeof(UInt32)); }
+        else
+        { LOG_ERROR("Compression failed with error code: {}", Result); }
         return static_cast<ECompressionStatue>(Result);
     }
 }

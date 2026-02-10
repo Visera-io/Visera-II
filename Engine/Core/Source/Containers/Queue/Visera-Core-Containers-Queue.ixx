@@ -1,8 +1,8 @@
 module;
 #include <Visera-Core.hpp>
 #include <queue>
-export module Visera.Core.Types.Queue;
-#define VISERA_MODULE_NAME "Core.Types"
+export module Visera.Core.Containers.Queue;
+#define VISERA_MODULE_NAME "Core.Containers"
 import Visera.Core.OS.Memory;
 
 export namespace Visera

@@ -1,8 +1,8 @@
 module;
 #include <Visera-Core.hpp>
-export module Visera.Core.Types.SlotMap;
-#define VISERA_MODULE_NAME "Core.Types"
-import Visera.Core.Types.Array;
+export module Visera.Core.Containers.SlotMap;
+#define VISERA_MODULE_NAME "Core.Containers"
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.Handle;
 import Visera.Core.Types.Pointer.Unique;
 import Visera.Core.Math.Arithmetic.Interval;

@@ -7,7 +7,6 @@ export import Visera.Core.Log;
 export import Visera.Core.Math;
 export import Visera.Core.Meta;
 export import Visera.Core.Types;
-export import Visera.Core.Math.Color;
 export import Visera.Core.Image;
 export import Visera.Core.Traits;
 export import Visera.Core.Delegate;
