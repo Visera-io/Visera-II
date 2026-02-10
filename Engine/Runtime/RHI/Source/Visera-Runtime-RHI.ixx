@@ -1,7 +1,7 @@
 module;
 #include <Visera-RHI.hpp>
 export module Visera.Runtime.RHI;
-#define VISERA_MODULE_NAME "Runtime.RH"
+#define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
 export import Visera.Runtime.RHI.Resource;
 export import Visera.Runtime.RHI.CommandList;
