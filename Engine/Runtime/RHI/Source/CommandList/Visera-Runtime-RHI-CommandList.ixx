@@ -50,14 +50,11 @@ export namespace Visera
     public:
         struct FWriteBuffer
         {
-            FRHIBufferHandle Buffer;
-            const FByte* Data;
-            UInt64       Size;
+            FRHIBufferHandle TargetBuffer;
+            FRHIBufferHandle StagingBuffer;
         };
         void inline
-        WriteBuffer(FRHIBufferHandle I_Buffer, const FByte* I_Data, UInt64 I_Size);
-        void inline
-        WriteBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_Size);
+        WriteBuffer(const FRHIBufferID& I_TargetBuffer, const FRHIBufferID& I_StagingBuffer);
 
         struct FEnterRenderPass
         {
@@ -78,8 +75,6 @@ export namespace Visera
             FRHIBufferHandle  Buffer;
             FRHITextureHandle Image;
         };
-        void inline
-        CopyBufferToImage(FRHIBufferHandle I_Buffer, FRHITextureHandle I_Texture);
         void inline
         CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture);
 
@@ -103,8 +98,6 @@ export namespace Visera
             ERHIImageLayout NewLayout;
         };
         void inline
-        ConvertImageLayout(FRHITextureHandle I_Texture, ERHIImageLayout I_NewLayout);
-        void inline
         ConvertImageLayout(const FRHITextureID& I_Texture, ERHIImageLayout I_NewLayout);
 
         struct FClearColorImage
@@ -112,8 +105,6 @@ export namespace Visera
             FRHITextureHandle  Image;
             FRHIClearColor ClearColor;
         };
-        void inline
-        ClearColorImage(FRHITextureHandle I_Texture, FRHIClearColor I_ClearColor);
         void inline
         ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor);
 
@@ -124,8 +115,6 @@ export namespace Visera
             ERHIFilter    Filter;
         };
         void inline
-        BlitImage(FRHITextureHandle I_SrcTexture, FRHITextureHandle I_DstTexture, ERHIFilter I_Filter);
-        void inline
         BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter);
 
         struct FBlitToSwapChain
@@ -133,8 +122,6 @@ export namespace Visera
             FRHITextureHandle Image;
             ERHIFilter    Filter;
         };
-        void inline
-        BlitToSwapChain(FRHITextureHandle I_Texture, ERHIFilter I_Filter);
         void inline
         BlitToSwapChain(const FRHITextureID& I_Texture, ERHIFilter I_Filter);
 
@@ -284,56 +271,43 @@ export namespace Visera
     };
 
     void FRHICommandList::
-    WriteBuffer(FRHIBufferHandle I_Buffer, const FByte* I_Data, UInt64 I_Size)
+    WriteBuffer(const FRHIBufferID& I_TargetBuffer, const FRHIBufferID& I_StagingBuffer)
     {
-        VISERA_ASSERT(I_Buffer != FRHIBufferHandle{});
+        const auto TargetBufferHandle  = I_TargetBuffer.GetHandle();
+        const auto StagingBufferHandle = I_StagingBuffer.GetHandle();
+        VISERA_ASSERT(TargetBufferHandle  != FRHIBufferHandle{});
+        VISERA_ASSERT(StagingBufferHandle != FRHIBufferHandle{});
         RecordCommand(ECommandType::WriteBuffer, FWriteBuffer
         {
-            .Buffer = I_Buffer,
-            .Data   = I_Data,
-            .Size   = I_Size,
-        });
-    }
-
-    void FRHICommandList::
-    WriteBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_Size)
-    {
-        WriteBuffer(I_Buffer.GetHandle(), I_Data, I_Size);
-    }
-
-    void FRHICommandList::
-    ConvertImageLayout(FRHITextureHandle I_Texture, ERHIImageLayout I_NewLayout)
-    {
-        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
-        RecordCommand(ECommandType::ConvertImageLayout, FConvertImageLayout
-        {
-            .Image     = I_Texture,
-            .NewLayout = I_NewLayout,
+            .TargetBuffer  = TargetBufferHandle,
+            .StagingBuffer = StagingBufferHandle
         });
     }
 
     void FRHICommandList::
     ConvertImageLayout(const FRHITextureID& I_Texture, ERHIImageLayout I_NewLayout)
     {
-        ConvertImageLayout(I_Texture.GetHandle(), I_NewLayout);
-    }
-
-    void FRHICommandList::
-    CopyBufferToImage(FRHIBufferHandle I_Buffer, FRHITextureHandle I_Texture)
-    {
-        VISERA_ASSERT(I_Buffer  != FRHIBufferHandle{});
-        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
-        RecordCommand(ECommandType::CopyBufferToImage, FCopyBufferToImage
+        const auto Handle = I_Texture.GetHandle();
+        VISERA_ASSERT(Handle != FRHITextureHandle{});
+        RecordCommand(ECommandType::ConvertImageLayout, FConvertImageLayout
         {
-            .Buffer = I_Buffer,
-            .Image  = I_Texture,
+            .Image     = Handle,
+            .NewLayout = I_NewLayout,
         });
     }
 
     void FRHICommandList::
     CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture)
     {
-        CopyBufferToImage(I_Buffer.GetHandle(), I_Texture.GetHandle());
+        const auto BufferHandle = I_Buffer.GetHandle();
+        const auto ImageHandle  = I_Texture.GetHandle();
+        VISERA_ASSERT(BufferHandle != FRHIBufferHandle{});
+        VISERA_ASSERT(ImageHandle  != FRHITextureHandle{});
+        RecordCommand(ECommandType::CopyBufferToImage, FCopyBufferToImage
+        {
+            .Buffer = BufferHandle,
+            .Image  = ImageHandle,
+        });
     }
 
     void FRHICommandList::
@@ -355,58 +329,42 @@ export namespace Visera
     }
 
     void FRHICommandList::
-    ClearColorImage(FRHITextureHandle I_Texture, FRHIClearColor I_ClearColor)
-    {
-        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
-        RecordCommand(ECommandType::ClearColorImage, FClearColorImage
-        {
-            .Image      = I_Texture,
-            .ClearColor = I_ClearColor,
-        });
-    }
-
-    void FRHICommandList::
     ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor)
     {
-        ClearColorImage(I_Texture.GetHandle(), I_ClearColor);
-    }
-
-    void FRHICommandList::
-    BlitImage(FRHITextureHandle I_SrcTexture,
-              FRHITextureHandle I_DstTexture,
-              ERHIFilter    I_Filter)
-    {
-        VISERA_ASSERT(I_SrcTexture != FRHITextureHandle{});
-        VISERA_ASSERT(I_DstTexture != FRHITextureHandle{});
-        RecordCommand(ECommandType::BlitImage, FBlitImage
+        const auto Handle = I_Texture.GetHandle();
+        VISERA_ASSERT(Handle != FRHITextureHandle{});
+        RecordCommand(ECommandType::ClearColorImage, FClearColorImage
         {
-            .SrcImage = I_SrcTexture,
-            .DstImage = I_DstTexture,
-            .Filter   = I_Filter,
+            .Image      = Handle,
+            .ClearColor = I_ClearColor,
         });
     }
 
     void FRHICommandList::
     BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter)
     {
-        BlitImage(I_SrcTexture.GetHandle(), I_DstTexture.GetHandle(), I_Filter);
-    }
-
-    void FRHICommandList::
-    BlitToSwapChain(FRHITextureHandle I_Texture, ERHIFilter I_Filter)
-    {
-        VISERA_ASSERT(I_Texture != FRHITextureHandle{});
-        RecordCommand(ECommandType::BlitToSwapChain, FBlitToSwapChain
+        const auto SrcHandle = I_SrcTexture.GetHandle();
+        const auto DstHandle = I_DstTexture.GetHandle();
+        VISERA_ASSERT(SrcHandle != FRHITextureHandle{});
+        VISERA_ASSERT(DstHandle != FRHITextureHandle{});
+        RecordCommand(ECommandType::BlitImage, FBlitImage
         {
-            .Image  = I_Texture,
-            .Filter = I_Filter,
+            .SrcImage = SrcHandle,
+            .DstImage = DstHandle,
+            .Filter   = I_Filter,
         });
     }
 
     void FRHICommandList::
     BlitToSwapChain(const FRHITextureID& I_Texture, ERHIFilter I_Filter)
     {
-        BlitToSwapChain(I_Texture.GetHandle(), I_Filter);
+        const auto Handle = I_Texture.GetHandle();
+        VISERA_ASSERT(Handle != FRHITextureHandle{});
+        RecordCommand(ECommandType::BlitToSwapChain, FBlitToSwapChain
+        {
+            .Image  = Handle,
+            .Filter = I_Filter,
+        });
     }
 }
 VISERA_MAKE_FORMATTER(Visera::ECommandType,

@@ -17,11 +17,7 @@ export namespace Visera
    class VISERA_RUNTIME_API FGraphics : public IGlobalService
    {
    public:
-      void Tick(Float I_Time)
-      {
-         RHI->Submit(CommandList);
-         CommandList.Reset();
-      }
+
 
    private:
       FRHI*           RHI;

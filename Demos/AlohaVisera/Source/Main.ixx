@@ -14,46 +14,8 @@ struct FEngine
 
     Bool Run()
     {
-        {
-            FImage Image = FImage{FImage::FCreateInfo
-            {
-                .Width  = 1024,
-                .Height = 1024,
-            }};
-            for (int row = 0; row < Image.GetHeight(); row++)
-            {
-                for (int col = 0; col < Image.GetWidth(); col++)
-                {
-                    if ( row >= col   )
-                    {
-                        Image(row,col,0) = FColor::Purple();
-                    }
-                    else
-                    {
-                        Image(row,col,0) = FColor::Red();
-                    }
-                }
-            }
-            Image = Algorithm::GaussianBlur(Image.View2D(), 3, 2, Algorithm::EAddressMode::ClampToEdge);
-            (void)Runtime->AssetHub->SaveImage(Image.View2D(), FPlatform::GetCacheDirectory() / FPath{"Testzhs.png"});
-        }
-
         auto Image = Runtime->AssetHub->LoadImage(FPlatform::GetResourceDirectory() / FPath{"Assets/App/Texture/Bronya.png"})->GetImage();
-        // Gaussian blur test
-        FImage BlurredImage = Algorithm::GaussianBlur(
-            Image.View2D(),
-            3.0f,  // sigma
-            5u,    // radius
-            Algorithm::EAddressMode::ClampToEdge);
-        (void)Runtime->AssetHub->SaveImage(BlurredImage.View2D(), FPlatform::GetCacheDirectory() / FPath{"TestGaussianBlur.png"});
 
-        // Runtime->Input->GetMouse()->OnPressed.Subscribe([](FMouse::EButton I_Button)
-        // {
-        //     if (I_Button == FMouse::EButton::Left)
-        //     {
-        //         LOG_INFO("Left");
-        //     }
-        // });
 
         LOG_INFO("Visera Engine Run()");
 
@@ -72,8 +34,6 @@ struct FEngine
             Runtime->Window->PollEvents();
 
             if (!Runtime->RHI->BeginFrame()) { continue; }
-
-            Runtime->Graphics->Tick(0);
 
             //Commands.Reset();
 

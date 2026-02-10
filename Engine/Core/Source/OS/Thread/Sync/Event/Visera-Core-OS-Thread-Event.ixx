@@ -9,7 +9,7 @@ export namespace Visera
     class VISERA_CORE_API FEvent
     {
     public:
-        FEvent() : bIsSignaled(False) {}
+        FEvent() : bSignaled(False) {}
         void
         Trigger();
         void
@@ -22,9 +22,9 @@ export namespace Visera
         IsSignaled() const;
 
     private:
-        mutable std::mutex Mutex;
+        mutable std::mutex      Mutex;
         std::condition_variable ConditionVariable;
-        Bool bIsSignaled;
+        Bool                    bSignaled;
     };
 
     void FEvent::
@@ -32,7 +32,7 @@ export namespace Visera
     {
         {
             std::lock_guard Lock(Mutex);
-            bIsSignaled = True;
+            bSignaled = True;
         }
         ConditionVariable.notify_all();
     }
@@ -41,7 +41,7 @@ export namespace Visera
     Reset()
     {
         std::lock_guard Lock(Mutex);
-        bIsSignaled = False;
+        bSignaled = False;
     }
 
     void FEvent::
@@ -50,7 +50,7 @@ export namespace Visera
         std::unique_lock Lock(Mutex);
         ConditionVariable.wait(Lock, [this]
         {
-            return bIsSignaled;
+            return bSignaled;
         });
     }
 
@@ -58,13 +58,13 @@ export namespace Visera
     TryWait()
     {
         std::lock_guard Lock(Mutex);
-        return bIsSignaled;
+        return bSignaled;
     }
 
     Bool FEvent::
     IsSignaled() const
     {
         std::lock_guard Lock(Mutex);
-        return bIsSignaled;
+        return bSignaled;
     }
 }

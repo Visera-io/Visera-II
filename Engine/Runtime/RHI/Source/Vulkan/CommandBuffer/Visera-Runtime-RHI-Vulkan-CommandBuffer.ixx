@@ -13,25 +13,78 @@ import vulkan_hpp;
 
 export namespace Visera
 {
-    template<EVulkanQueueFamily QueueFamily>
-    class VISERA_RUNTIME_API FVulkanCommandBuffer
+    // --- Status traits ---
+    struct FCommandStatusBasic
+    {
+        enum class E : UInt8 { Idle, Recording, ReadyToSubmit };
+    };
+
+    struct FCommandStatusGraphics
+    {
+        enum class E : UInt8 { Idle, Recording, InsideRenderPass, ReadyToSubmit };
+    };
+
+    template<EVulkanQueueFamily Q>
+    struct TVulkanCommandTraits
+    {
+        static_assert(static_cast<int>(Q) != static_cast<int>(Q),
+            "TVulkanCommandTraits is not specialized for this QueueFamily.");
+    };
+
+    template<>
+    struct TVulkanCommandTraits<EVulkanQueueFamily::Transfer>
+    {
+        using Status = FCommandStatusBasic::E;
+    };
+
+    template<>
+    struct TVulkanCommandTraits<EVulkanQueueFamily::Compute>
+    {
+        using Status = FCommandStatusBasic::E;
+    };
+
+    template<>
+    struct TVulkanCommandTraits<EVulkanQueueFamily::Graphics>
+    {
+        using Status = FCommandStatusGraphics::E;
+    };
+
+    // Opaque primary template; only Transfer/Compute/Graphics specializations are defined.
+    template<EVulkanQueueFamily Q>
+    class VISERA_RUNTIME_API FVulkanCommandBuffer;
+
+    // --- Base (non-template) ---
+    class VISERA_RUNTIME_API FVulkanCommandBufferBase
+    {
+    protected:
+        vk::CommandBuffer Handle{nullptr};
+
+        FVulkanCommandBufferBase() = default;
+
+        static vk::CommandBuffer
+        Allocate(const vk::raii::CommandPool& I_Pool,
+                 const vk::CommandBufferAllocateInfo& I_Info)
+        {
+            auto Results = I_Pool.getDevice().allocateCommandBuffers(I_Info);
+            if (!Results.has_value())
+            { LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
+            return std::move(Results->front());
+        }
+    };
+
+    // --- Common template (Reset/Begin/End/Handle/Status) ---
+    template<EVulkanQueueFamily Q>
+    class VISERA_RUNTIME_API TVulkanCommandBufferCommon : public FVulkanCommandBufferBase
     {
     public:
-        enum class EStatus : UInt8
-        {
-            Idle,
-            Recording,
-            ReadyToSubmit,    // ===Queue::Submit==> Idle (by Reset())
-        };
+        static constexpr EVulkanQueueFamily QueueFamily = Q;
+        using EStatus = typename TVulkanCommandTraits<Q>::Status;
 
-        void
-        Reset();
-        void
-        Begin();
-        void
-        End();
+        void Reset();
+        void Begin(vk::CommandBufferUsageFlags I_Flags = {});
+        void End();
 
-        [[nodiscard]] inline  vk::CommandBuffer
+        [[nodiscard]] inline vk::CommandBuffer
         GetHandle() const { return Handle; }
         [[nodiscard]] inline EStatus
         GetStatus() const { return Status; }
@@ -44,353 +97,192 @@ export namespace Visera
         IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
 
     protected:
-        vk::CommandBuffer           Handle {nullptr};
-        EStatus                     Status { EStatus::Idle };
+        EStatus Status{EStatus::Idle};
 
     public:
-        FVulkanCommandBuffer() = default;
-        FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                             const vk::CommandBufferAllocateInfo& I_CreateInfo);
-        FVulkanCommandBuffer(FVulkanCommandBuffer&&) = default;
-        FVulkanCommandBuffer& operator=(FVulkanCommandBuffer&&) = default;
-        ~FVulkanCommandBuffer() {}
+        TVulkanCommandBufferCommon() = default;
+        TVulkanCommandBufferCommon(const vk::raii::CommandPool& I_CommandPool,
+                                   const vk::CommandBufferAllocateInfo& I_CreateInfo)
+        {
+            Handle = Allocate(I_CommandPool, I_CreateInfo);
+        }
+        TVulkanCommandBufferCommon(TVulkanCommandBufferCommon&&) = default;
+        TVulkanCommandBufferCommon& operator=(TVulkanCommandBufferCommon&&) = default;
+        ~TVulkanCommandBufferCommon() = default;
     };
 
+    // --- Transfer specialization ---
     template<>
     class VISERA_RUNTIME_API FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>
+        : public TVulkanCommandBufferCommon<EVulkanQueueFamily::Transfer>
     {
-    public:
-        static constexpr EVulkanQueueFamily
-        QueueFamily = EVulkanQueueFamily::Transfer;
-
-        enum class EStatus : UInt8
-        {
-            Idle,
-            Recording,
-            ReadyToSubmit,    // ===Queue::Submit==> Idle (by Reset())
-        };
-
-        void
-        Reset();
-        void
-        Begin();
-        void
-        ConvertImageLayout(FVulkanImage*           I_Image,
-                           vk::ImageLayout         I_NewLayout,
-                           EVulkanTransferStage    I_SrcStage,
-                           EVulkanTransferAccess   I_SrcAccess,
-                           EVulkanTransferStage    I_DstStage,
-                           EVulkanTransferAccess   I_DstAccess);
-        void
-        BlitImage(FVulkanImage* I_SrcImage,
-                  FVulkanImage* I_DstImage,
-                  vk::Filter    I_Filter);
-        void
-        CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
-                          FVulkanImage*  I_DstImage);
-        void
-        End();
-
-        [[nodiscard]] inline  vk::CommandBuffer
-        GetHandle() const { return Handle; }
-        [[nodiscard]] inline EStatus
-        GetStatus() const { return Status; }
-
-        [[nodiscard]] inline Bool
-        IsIdle() const { return Status == EStatus::Idle; }
-        [[nodiscard]] inline Bool
-        IsRecording() const { return Status == EStatus::Recording; }
-        [[nodiscard]] inline Bool
-        IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
-
-    private:
-        vk::CommandBuffer           Handle {nullptr};
-        EStatus                     Status { EStatus::Idle };
+        using Super = TVulkanCommandBufferCommon<EVulkanQueueFamily::Transfer>;
 
     public:
-        FVulkanCommandBuffer() = default;
-        FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                             const vk::CommandBufferAllocateInfo& I_CreateInfo);
-        FVulkanCommandBuffer(FVulkanCommandBuffer&&) = default;
-        FVulkanCommandBuffer& operator=(FVulkanCommandBuffer&&) = default;
-        ~FVulkanCommandBuffer() {}
+        using Super::Super;
+
+        void ConvertImageLayout(FVulkanImage*           I_Image,
+                               vk::ImageLayout         I_NewLayout,
+                               EVulkanTransferStage    I_SrcStage,
+                               EVulkanTransferAccess   I_SrcAccess,
+                               EVulkanTransferStage    I_DstStage,
+                               EVulkanTransferAccess   I_DstAccess);
+        void BlitImage(FVulkanImage* I_SrcImage,
+                      FVulkanImage* I_DstImage,
+                      vk::Filter    I_Filter);
+        void CopyBuffer(FVulkanBuffer* I_SrcBuffer,
+                       FVulkanBuffer* I_DstBuffer,
+                       UInt64         I_SrcOffset = 0,
+                       UInt64         I_DstOffset = 0,
+                       UInt64         I_Size = 0);
+        void CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
+                              FVulkanImage*  I_DstImage);
     };
 
-    template<>
-    class VISERA_RUNTIME_API FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>
-    {
-    public:
-        static constexpr EVulkanQueueFamily
-        QueueFamily = EVulkanQueueFamily::Graphics;
-
-        enum class EStatus : UInt8
-        {
-            Idle,
-            Recording,
-            InsideRenderPass,
-            ReadyToSubmit,    // ===Queue::Submit==> Idle (by Reset())
-        };
-
-        void
-        Reset();
-        void
-        Begin();
-        void
-        ConvertImageLayout(FVulkanImage*           I_Image,
-                           vk::ImageLayout         I_NewLayout,
-                           EVulkanGraphicsStage    I_SrcStage,
-                           EVulkanGraphicsAccess   I_SrcAccess,
-                           EVulkanGraphicsStage    I_DstStage,
-                           EVulkanGraphicsAccess   I_DstAccess);
-        void
-        ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor);
-        void
-        SetViewport(const vk::Viewport& I_Viewport) { CurrentViewport = I_Viewport; Handle.setViewport(0, CurrentViewport.GetValue()); }
-        void
-        SetScissor(const vk::Rect2D& I_Scissor)     { CurrentScissor = I_Scissor;   Handle.setScissor(0, CurrentScissor.GetValue());}
-        void
-        EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline);
-        void
-        BindVertexBuffer(UInt32                    I_Binding,
-                         FVulkanBuffer*            I_VertexBuffer,
-                         UInt64                    I_BufferOffset);
-        void
-        PushConstants(const void*          I_Data,
-                      UInt32               I_Offset,
-                      UInt32               I_Size);
-        template<class T> void
-        PushConstants(const T&             I_Data,
-                      UInt32               I_Offset = 0) { PushConstants(&I_Data, I_Offset, sizeof(I_Data)); }
-        void
-        BindDescriptorSet(UInt32                           I_SetIndex,
-                          FVulkanDescriptorSet*            I_DescriptorSet);
-        void
-        Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
-             UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
-        void
-        DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount,
-                    UInt32 I_FirstIndex, Int32  I_VertexOffset,
-                    UInt32 I_FirstInstance) const;
-        void
-        LeaveRenderPipeline();
-        void
-        BlitImage(FVulkanImage* I_SrcImage,
-                  FVulkanImage* I_DstImage,
-                  vk::Filter    I_Filter);
-        void
-        CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
-                          FVulkanImage*  I_DstImage);
-        void
-        End();
-
-        [[nodiscard]] inline  vk::CommandBuffer
-        GetHandle() const { return Handle; }
-        [[nodiscard]] inline EStatus
-        GetStatus() const { return Status; }
-
-        [[nodiscard]] inline Bool
-        IsIdle() const { return Status == EStatus::Idle; }
-        [[nodiscard]] inline Bool
-        IsRecording() const { return Status == EStatus::Recording; }
-        [[nodiscard]] inline Bool
-        IsInsideRenderPass()  const { return Status == EStatus::InsideRenderPass; }
-        [[nodiscard]] inline Bool
-        IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
-
-    private:
-        vk::CommandBuffer           Handle {nullptr};
-        TOptional<vk::Viewport>     CurrentViewport;
-        TOptional<vk::Rect2D>       CurrentScissor;
-        FVulkanRenderPipeline*      CurrentRenderPipeline  {nullptr};
-
-        EStatus Status { EStatus::Idle };
-
-    public:
-        FVulkanCommandBuffer() = default;
-        FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                             const vk::CommandBufferAllocateInfo& I_CreateInfo);
-        FVulkanCommandBuffer(FVulkanCommandBuffer&&) = default;
-        FVulkanCommandBuffer& operator=(FVulkanCommandBuffer&&) = default;
-        ~FVulkanCommandBuffer() {}
-    };
-
+    // --- Compute specialization ---
     template<>
     class VISERA_RUNTIME_API FVulkanCommandBuffer<EVulkanQueueFamily::Compute>
+        : public TVulkanCommandBufferCommon<EVulkanQueueFamily::Compute>
     {
-    public:
-        static constexpr EVulkanQueueFamily
-        QueueFamily = EVulkanQueueFamily::Compute;
-
-        enum class EStatus : UInt8
-        {
-            Idle,
-            Recording,
-            ReadyToSubmit,    // ===Queue::Submit==> Idle (by Reset())
-        };
-
-        void
-        Reset();
-        void
-        Begin();
-        void
-        ConvertImageLayout(FVulkanImage*           I_Image,
-                           vk::ImageLayout         I_NewLayout,
-                           EVulkanComputeStage     I_SrcStage,
-                           EVulkanComputeAccess    I_SrcAccess,
-                           EVulkanComputeStage     I_DstStage,
-                           EVulkanComputeAccess    I_DstAccess);
-        void
-        PushConstants(const void*          I_Data,
-                      UInt32               I_Offset,
-                      UInt32               I_Size);
-        template<class T> void
-        PushConstants(const T&             I_Data,
-                      UInt32               I_Offset = 0) { PushConstants(&I_Data, I_Offset, sizeof(I_Data)); }
-        void
-        BindDescriptorSet(UInt32                           I_SetIndex,
-                          FVulkanDescriptorSet*            I_DescriptorSet);
-        void
-        EnterComputePipeline(FVulkanComputePipeline* I_ComputePipeline);
-        void
-        Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ);
-        void
-        LeaveComputePipeline();
-        void
-        CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
-                          FVulkanImage*  I_DstImage);
-        void
-        End();
-
-        [[nodiscard]] inline  vk::CommandBuffer
-        GetHandle() const { return Handle; }
-        [[nodiscard]] inline EStatus
-        GetStatus() const { return Status; }
-
-        [[nodiscard]] inline Bool
-        IsIdle() const { return Status == EStatus::Idle; }
-        [[nodiscard]] inline Bool
-        IsRecording() const { return Status == EStatus::Recording; }
-        [[nodiscard]] inline Bool
-        IsReadyToSubmit() const { return Status == EStatus::ReadyToSubmit; }
-        [[nodiscard]] inline Bool
-        IsInsideComputePipeline() const { return CurrentComputePipeline != nullptr; }
+        using Super = TVulkanCommandBufferCommon<EVulkanQueueFamily::Compute>;
 
     private:
-        vk::CommandBuffer           Handle {nullptr};
-        FVulkanComputePipeline*     CurrentComputePipeline {nullptr};
-
-        EStatus Status { EStatus::Idle };
+        FVulkanComputePipeline* CurrentComputePipeline{nullptr};
 
     public:
-        FVulkanCommandBuffer() = default;
-        FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                             const vk::CommandBufferAllocateInfo& I_CreateInfo);
-        FVulkanCommandBuffer(FVulkanCommandBuffer&&) = default;
-        FVulkanCommandBuffer& operator=(FVulkanCommandBuffer&&) = default;
-        ~FVulkanCommandBuffer() {}
+        using Super::Super;
+
+        void ConvertImageLayout(FVulkanImage*           I_Image,
+                               vk::ImageLayout         I_NewLayout,
+                               EVulkanComputeStage     I_SrcStage,
+                               EVulkanComputeAccess    I_SrcAccess,
+                               EVulkanComputeStage     I_DstStage,
+                               EVulkanComputeAccess    I_DstAccess);
+        void PushConstants(const void* I_Data,
+                          UInt32      I_Offset,
+                          UInt32      I_Size);
+        template<class T> void
+        PushConstants(const T& I_Data, UInt32 I_Offset = 0)
+        {
+            PushConstants(&I_Data, I_Offset, sizeof(I_Data));
+        }
+        void BindDescriptorSet(UInt32                I_SetIndex,
+                              FVulkanDescriptorSet* I_DescriptorSet);
+        void EnterComputePipeline(FVulkanComputePipeline* I_ComputePipeline);
+        void Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ);
+        void LeaveComputePipeline();
+        void CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
+                              FVulkanImage*  I_DstImage);
+
+        [[nodiscard]] inline Bool
+        IsInsideComputePipeline() const { return CurrentComputePipeline != nullptr; }
+    };
+
+    // --- Graphics specialization ---
+    template<>
+    class VISERA_RUNTIME_API FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>
+        : public TVulkanCommandBufferCommon<EVulkanQueueFamily::Graphics>
+    {
+        using Super = TVulkanCommandBufferCommon<EVulkanQueueFamily::Graphics>;
+
+    private:
+        TOptional<vk::Viewport>     CurrentViewport;
+        TOptional<vk::Rect2D>      CurrentScissor;
+        FVulkanRenderPipeline*     CurrentRenderPipeline{nullptr};
+
+    public:
+        using Super::Super;
+
+        void ConvertImageLayout(FVulkanImage*           I_Image,
+                               vk::ImageLayout         I_NewLayout,
+                               EVulkanGraphicsStage    I_SrcStage,
+                               EVulkanGraphicsAccess   I_SrcAccess,
+                               EVulkanGraphicsStage    I_DstStage,
+                               EVulkanGraphicsAccess   I_DstAccess);
+        void ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor);
+        void SetViewport(const vk::Viewport& I_Viewport);
+        void SetScissor(const vk::Rect2D& I_Scissor);
+        void EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline);
+        void BindVertexBuffer(UInt32         I_Binding,
+                             FVulkanBuffer* I_VertexBuffer,
+                             UInt64         I_BufferOffset);
+        void PushConstants(const void* I_Data,
+                          UInt32      I_Offset,
+                          UInt32      I_Size);
+        template<class T> void
+        PushConstants(const T& I_Data, UInt32 I_Offset = 0)
+        {
+            PushConstants(&I_Data, I_Offset, sizeof(I_Data));
+        }
+        void BindDescriptorSet(UInt32                I_SetIndex,
+                              FVulkanDescriptorSet* I_DescriptorSet);
+        void Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
+                 UInt32 I_FirstVertex, UInt32 I_FirstInstance) const;
+        void DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount,
+                        UInt32 I_FirstIndex, Int32  I_VertexOffset,
+                        UInt32 I_FirstInstance) const;
+        void LeaveRenderPipeline();
+        void BlitImage(FVulkanImage* I_SrcImage,
+                      FVulkanImage* I_DstImage,
+                      vk::Filter    I_Filter);
+        void CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
+                              FVulkanImage*  I_DstImage);
+
+        [[nodiscard]] inline Bool
+        IsInsideRenderPass() const { return Status == EStatus::InsideRenderPass; }
+
+        void Reset()
+        {
+            VISERA_ASSERT(!IsInsideRenderPass());
+            Super::Reset();
+        }
+
+        void End()
+        {
+            VISERA_ASSERT(!IsInsideRenderPass());
+            Super::End();
+        }
     };
 
     namespace Concepts
     {
         template<class T> concept
-        CommandBuffer = requires(T I_Cmd)
+        CommandBuffer = requires(T I_Command)
         {
-            { T::QueueFamily            } -> std::convertible_to<EVulkanQueueFamily>;
-            { I_Cmd.GetHandle()         } -> std::same_as<vk::CommandBuffer>;
-            { I_Cmd.IsReadyToSubmit()   } -> std::convertible_to<Bool>;
+            { T::QueueFamily          } -> std::convertible_to<EVulkanQueueFamily>;
+            { I_Command.GetHandle()       } -> std::same_as<vk::CommandBuffer>;
+            { I_Command.IsReadyToSubmit() } -> std::convertible_to<Bool>;
         };
     }
 
-    template<EVulkanQueueFamily QueueFamily>
-    FVulkanCommandBuffer<QueueFamily>::
-    FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                         const vk::CommandBufferAllocateInfo& I_CreateInfo)
-    {
-        auto Results = I_CommandPool.getDevice().allocateCommandBuffers(I_CreateInfo);
-        if (!Results.has_value())
-        {  LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
-        else
-        { Handle = std::move(Results->front()); }
-    }
-
-    template<EVulkanQueueFamily QueueFamily>
-    void FVulkanCommandBuffer<QueueFamily>::
-    Reset()
+    // ========== TVulkanCommandBufferCommon implementations ==========
+    template<EVulkanQueueFamily Q>
+    void TVulkanCommandBufferCommon<Q>::Reset()
     {
         VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
-
         (void)Handle.reset();
-
         Status = EStatus::Idle;
     }
 
-    template<EVulkanQueueFamily QueueFamily>
-    void FVulkanCommandBuffer<QueueFamily>::
-    Begin()
+    template<EVulkanQueueFamily Q>
+    void TVulkanCommandBufferCommon<Q>::Begin(vk::CommandBufferUsageFlags I_Flags)
     {
         VISERA_ASSERT(IsIdle());
-
-        auto BeginInfo = vk::CommandBufferBeginInfo{}
-        ;
-        auto Result = Handle.begin(BeginInfo);
-
+        auto BeginInfo = vk::CommandBufferBeginInfo{};
+        BeginInfo.flags = I_Flags;
+        (void)Handle.begin(BeginInfo);
         Status = EStatus::Recording;
     }
 
-    template<EVulkanQueueFamily QueueFamily>
-    void FVulkanCommandBuffer<QueueFamily>::
-    End()
+    template<EVulkanQueueFamily Q>
+    void TVulkanCommandBufferCommon<Q>::End()
     {
         VISERA_ASSERT(IsRecording());
-        Handle.end();
-
+        (void)Handle.end();
         Status = EStatus::ReadyToSubmit;
     }
 
-    FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                         const vk::CommandBufferAllocateInfo& I_CreateInfo)
-    {
-        auto Results = I_CommandPool.getDevice().allocateCommandBuffers(I_CreateInfo);
-        if (!Results.has_value())
-        {  LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
-        else
-        { Handle = std::move(Results->front()); }
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
-    Reset()
-    {
-        VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
-
-        (void)Handle.reset();
-
-        Status = EStatus::Idle;
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
-    Begin()
-    {
-        VISERA_ASSERT(IsIdle());
-
-        auto BeginInfo = vk::CommandBufferBeginInfo{}
-        ;
-        auto Result = Handle.begin(BeginInfo);
-
-        Status = EStatus::Recording;
-    }
-
-    FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
-    FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                         const vk::CommandBufferAllocateInfo& I_CreateInfo)
-    {
-        auto Results = I_CommandPool.getDevice().allocateCommandBuffers(I_CreateInfo);
-        if (!Results.has_value())
-        {  LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
-        else
-        { Handle = std::move(Results->front()); }
-    }
-
+    // ========== Transfer implementations ==========
     void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
     ConvertImageLayout(FVulkanImage*           I_Image,
                        vk::ImageLayout         I_NewLayout,
@@ -404,33 +296,28 @@ export namespace Visera
 
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
-        if (NewLayout == vk::ImageLayout::eUndefined ||
-            OldLayout == NewLayout)
-        {
-            return;
-        }
+        if (NewLayout == vk::ImageLayout::eUndefined || OldLayout == NewLayout)
+        { return; }
 
         const auto ImageHandle = I_Image->GetHandle();
-
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setBaseMipLevel    (0)
-            .setLevelCount      (I_Image->GetMipmapLevels())
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (I_Image->GetArrayLayers())
-        ;
+            .setAspectMask    (vk::ImageAspectFlagBits::eColor)
+            .setBaseMipLevel  (0)
+            .setLevelCount    (I_Image->GetMipmapLevels())
+            .setBaseArrayLayer(0)
+            .setLayerCount    (I_Image->GetArrayLayers());
+
         auto Barrier = vk::ImageMemoryBarrier2{}
-            .setSrcStageMask        (TypeCast(I_SrcStage))
-            .setSrcAccessMask       (TypeCast(I_SrcAccess))
-            .setDstStageMask        (TypeCast(I_DstStage))
-            .setDstAccessMask       (TypeCast(I_DstAccess))
-            .setOldLayout           (OldLayout)
-            .setNewLayout           (NewLayout)
-            .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setImage               (ImageHandle)
-            .setSubresourceRange    (ImageSubresourceRange)
-        ;
+            .setSrcStageMask       (TypeCast(I_SrcStage))
+            .setSrcAccessMask      (TypeCast(I_SrcAccess))
+            .setDstStageMask       (TypeCast(I_DstStage))
+            .setDstAccessMask      (TypeCast(I_DstAccess))
+            .setOldLayout          (OldLayout)
+            .setNewLayout          (NewLayout)
+            .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
+            .setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
+            .setImage              (ImageHandle)
+            .setSubresourceRange   (ImageSubresourceRange);
         I_Image->ConvertLayout(Handle, Barrier);
     }
 
@@ -446,27 +333,56 @@ export namespace Visera
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
 
         const auto Offset = vk::Offset3D{0, 0, 0};
-        const auto&  SrcExtent = I_SrcImage->GetExtent();
+        const auto& SrcExtent = I_SrcImage->GetExtent();
         vk::Offset3D SrcRange(SrcExtent.width, SrcExtent.height, SrcExtent.depth);
-        const auto&  DstExtent = I_DstImage->GetExtent();
+        const auto& DstExtent = I_DstImage->GetExtent();
         vk::Offset3D DstRange(DstExtent.width, DstExtent.height, DstExtent.depth);
 
         const auto BlitRegion = vk::ImageBlit2{}
             .setSrcSubresource (I_SrcImage->GetSubresourceLayers(0))
             .setSrcOffsets({Offset, SrcRange})
             .setDstSubresource (I_DstImage->GetSubresourceLayers(0))
-            .setDstOffsets     ({Offset, DstRange})
-        ;
+            .setDstOffsets     ({Offset, DstRange});
         const auto BlitInfo = vk::BlitImageInfo2{}
-            .setSrcImage        (I_SrcImage->GetHandle())
-            .setSrcImageLayout  (I_SrcImage->GetLayout())
-            .setDstImage        (I_DstImage->GetHandle())
-            .setDstImageLayout  (I_DstImage->GetLayout())
-            .setRegionCount     (1)
-            .setPRegions        (&BlitRegion)
-            .setFilter          (I_Filter)
-        ;
+            .setSrcImage       (I_SrcImage->GetHandle())
+            .setSrcImageLayout (I_SrcImage->GetLayout())
+            .setDstImage       (I_DstImage->GetHandle())
+            .setDstImageLayout (I_DstImage->GetLayout())
+            .setRegionCount    (1)
+            .setPRegions       (&BlitRegion)
+            .setFilter        (I_Filter);
         Handle.blitImage2(BlitInfo);
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
+    CopyBuffer(FVulkanBuffer* I_SrcBuffer,
+               FVulkanBuffer* I_DstBuffer,
+               UInt64         I_SrcOffset,
+               UInt64         I_DstOffset,
+               UInt64         I_Size)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SrcBuffer != nullptr);
+        VISERA_ASSERT(I_DstBuffer != nullptr);
+
+        const UInt64 CopySize = (I_Size > 0)
+            ? I_Size
+            : (std::min)(I_SrcBuffer->GetMemorySize() - I_SrcOffset,
+                         I_DstBuffer->GetMemorySize() - I_DstOffset);
+        VISERA_ASSERT(CopySize > 0);
+
+        const auto CopyRegion = vk::BufferCopy2{}
+            .setSrcOffset(I_SrcOffset)
+            .setDstOffset(I_DstOffset)
+            .setSize    (CopySize);
+
+        const auto CopyInfo = vk::CopyBufferInfo2{}
+            .setSrcBuffer   (I_SrcBuffer->GetHandle())
+            .setDstBuffer   (I_DstBuffer->GetHandle())
+            .setRegionCount (1)
+            .setPRegions    (&CopyRegion);
+
+        Handle.copyBuffer2(CopyInfo);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
@@ -478,64 +394,36 @@ export namespace Visera
         VISERA_ASSERT(I_DstImage  != nullptr);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
+
         auto CopyRegion = vk::BufferImageCopy2{}
-            .setBufferOffset        (0)
-            .setBufferRowLength     (0)
-            .setBufferImageHeight   (0)
-            .setImageSubresource    (I_DstImage->GetSubresourceLayers(0))
-            .setImageOffset         ({0, 0, 0})
-            .setImageExtent         (I_DstImage->GetExtent())
-        ;
+            .setBufferOffset      (0)
+            .setBufferRowLength   (0)
+            .setBufferImageHeight (0)
+            .setImageSubresource  (I_DstImage->GetSubresourceLayers(0))
+            .setImageOffset       ({0, 0, 0})
+            .setImageExtent       (I_DstImage->GetExtent());
         auto CopyInfo = vk::CopyBufferToImageInfo2{}
-            .setSrcBuffer           (I_SrcBuffer->GetHandle())
-            .setDstImage            (I_DstImage->GetHandle())
-            .setDstImageLayout      (I_DstImage->GetLayout())
-            .setRegionCount         (1)
-            .setPRegions            (&CopyRegion)
-        ;
+            .setSrcBuffer   (I_SrcBuffer->GetHandle())
+            .setDstImage   (I_DstImage->GetHandle())
+            .setDstImageLayout(I_DstImage->GetLayout())
+            .setRegionCount (1)
+            .setPRegions    (&CopyRegion);
         Handle.copyBufferToImage2(CopyInfo);
     }
 
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
-    End()
+    // ========== Graphics implementations ==========
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    SetViewport(const vk::Viewport& I_Viewport)
     {
-        VISERA_ASSERT(IsRecording());
-        auto Result = Handle.end();
-
-        Status = EStatus::ReadyToSubmit;
+        CurrentViewport = I_Viewport;
+        Handle.setViewport(0, 1, &CurrentViewport.GetValue());
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    Reset()
+    SetScissor(const vk::Rect2D& I_Scissor)
     {
-        VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
-
-        (void)Handle.reset();
-
-        Status = EStatus::Idle;
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    Begin()
-    {
-        VISERA_ASSERT(IsIdle());
-
-        auto BeginInfo = vk::CommandBufferBeginInfo{}
-        ;
-        auto Result = Handle.begin(BeginInfo);
-
-        Status = EStatus::Recording;
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor)
-    {
-        auto ResourceRange = I_Image->GetSubresourceRange();
-        Handle.clearColorImage(I_Image->GetHandle(),
-            I_Image->GetLayout(),
-            &I_ClearColor,
-            1,
-            &ResourceRange);
+        CurrentScissor = I_Scissor;
+        Handle.setScissor(0, 1, &CurrentScissor.GetValue());
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
@@ -551,36 +439,42 @@ export namespace Visera
 
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
-        if (NewLayout == vk::ImageLayout::eUndefined ||
-            OldLayout == NewLayout)
-        {
-            return;
-        }
+        if (NewLayout == vk::ImageLayout::eUndefined || OldLayout == NewLayout)
+        { return; }
 
         const auto ImageHandle = I_Image->GetHandle();
-
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setBaseMipLevel    (0)
-            .setLevelCount      (I_Image->GetMipmapLevels())
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (I_Image->GetArrayLayers())
-        ;
+            .setAspectMask    (vk::ImageAspectFlagBits::eColor)
+            .setBaseMipLevel  (0)
+            .setLevelCount    (I_Image->GetMipmapLevels())
+            .setBaseArrayLayer(0)
+            .setLayerCount    (I_Image->GetArrayLayers());
+
         auto Barrier = vk::ImageMemoryBarrier2{}
-            .setSrcStageMask        (TypeCast(I_SrcStage))
-            .setSrcAccessMask       (TypeCast(I_SrcAccess))
-            .setDstStageMask        (TypeCast(I_DstStage))
-            .setDstAccessMask       (TypeCast(I_DstAccess))
-            .setOldLayout           (OldLayout)
-            .setNewLayout           (NewLayout)
-            .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setImage               (ImageHandle)
-            .setSubresourceRange    (ImageSubresourceRange)
-        ;
+            .setSrcStageMask       (TypeCast(I_SrcStage))
+            .setSrcAccessMask      (TypeCast(I_SrcAccess))
+            .setDstStageMask       (TypeCast(I_DstStage))
+            .setDstAccessMask      (TypeCast(I_DstAccess))
+            .setOldLayout          (OldLayout)
+            .setNewLayout          (NewLayout)
+            .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
+            .setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
+            .setImage              (ImageHandle)
+            .setSubresourceRange   (ImageSubresourceRange);
         I_Image->ConvertLayout(Handle, Barrier);
     }
-    
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor)
+    {
+        auto ResourceRange = I_Image->GetSubresourceRange();
+        Handle.clearColorImage(I_Image->GetHandle(),
+            I_Image->GetLayout(),
+            &I_ClearColor,
+            1,
+            &ResourceRange);
+    }
+
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
     EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline)
     {
@@ -616,9 +510,9 @@ export namespace Visera
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    PushConstants(const void*          I_Data,
-                  UInt32               I_Offset,
-                  UInt32               I_Size)
+    PushConstants(const void* I_Data,
+                  UInt32      I_Offset,
+                  UInt32      I_Size)
     {
         VISERA_ASSERT(IsInsideRenderPass());
         VISERA_ASSERT((I_Offset % 4) == 0);
@@ -629,32 +523,30 @@ export namespace Visera
         auto StageFlags = PipelineLayout->GetPushConstantStages();
 
         const auto Info = vk::PushConstantsInfo{}
-            .setLayout      (PipelineLayout->GetHandle())
-            .setStageFlags  (StageFlags)
-            .setOffset      (I_Offset)
-            .setSize        (I_Size)
-            .setPValues     (I_Data)
-        ;
+            .setLayout     (PipelineLayout->GetHandle())
+            .setStageFlags (StageFlags)
+            .setOffset     (I_Offset)
+            .setSize       (I_Size)
+            .setPValues    (I_Data);
         Handle.pushConstants2(Info);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    BindVertexBuffer(UInt32                    I_Binding,
-                     FVulkanBuffer*            I_VertexBuffer,
-                     UInt64                    I_BufferOffset)
+    BindVertexBuffer(UInt32         I_Binding,
+                     FVulkanBuffer* I_VertexBuffer,
+                     UInt64         I_BufferOffset)
     {
         VISERA_ASSERT(IsInsideRenderPass());
         VISERA_ASSERT(I_VertexBuffer != nullptr);
         Handle.bindVertexBuffers2(
             I_Binding,
             {I_VertexBuffer->GetHandle()},
-            {I_BufferOffset}
-        );
+            {I_BufferOffset});
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    BindDescriptorSet(UInt32                           I_SetIndex,
-                      FVulkanDescriptorSet*            I_DescriptorSet)
+    BindDescriptorSet(UInt32                I_SetIndex,
+                      FVulkanDescriptorSet* I_DescriptorSet)
     {
         VISERA_ASSERT(IsInsideRenderPass());
         VISERA_ASSERT(I_DescriptorSet != nullptr);
@@ -666,12 +558,11 @@ export namespace Visera
         const auto DescriptorSet = I_DescriptorSet->GetHandle();
 
         const auto BindInfo = vk::BindDescriptorSetsInfo{}
-            .setLayout              (PipelineLayout->GetHandle())
-            .setStageFlags          (StageFlags)
-            .setFirstSet            (I_SetIndex)
-            .setDescriptorSetCount  (1)
-            .setPDescriptorSets     (&DescriptorSet)
-        ;
+            .setLayout             (PipelineLayout->GetHandle())
+            .setStageFlags         (StageFlags)
+            .setFirstSet           (I_SetIndex)
+            .setDescriptorSetCount (1)
+            .setPDescriptorSets    (&DescriptorSet);
         Handle.bindDescriptorSets2(BindInfo);
     }
 
@@ -679,7 +570,7 @@ export namespace Visera
     Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount,
          UInt32 I_FirstVertex, UInt32 I_FirstInstance) const
     {
-        VISERA_ASSERT(IsInsideRenderPass());
+        VISERA_ASSERT(Status == EStatus::InsideRenderPass);
         Handle.draw(I_VertexCount,
             I_InstanceCount,
             I_FirstVertex,
@@ -691,7 +582,7 @@ export namespace Visera
                 UInt32 I_FirstIndex, Int32  I_VertexOffset,
                 UInt32 I_FirstInstance) const
     {
-        VISERA_ASSERT(IsInsideRenderPass());
+        VISERA_ASSERT(Status == EStatus::InsideRenderPass);
         Handle.drawIndexed(I_IndexCount,
             I_InstanceCount,
             I_FirstIndex,
@@ -735,17 +626,15 @@ export namespace Visera
             .setSrcSubresource (I_SrcImage->GetSubresourceLayers(0))
             .setSrcOffsets     ({Offset, SrcRange})
             .setDstSubresource (I_DstImage->GetSubresourceLayers(0))
-            .setDstOffsets     ({Offset, DstRange})
-        ;
+            .setDstOffsets     ({Offset, DstRange});
         const auto BlitInfo = vk::BlitImageInfo2{}
-            .setSrcImage        (I_SrcImage->GetHandle())
-            .setSrcImageLayout  (I_SrcImage->GetLayout())
-            .setDstImage        (I_DstImage->GetHandle())
-            .setDstImageLayout  (I_DstImage->GetLayout())
-            .setRegionCount     (1)
-            .setPRegions        (&BlitRegion)
-            .setFilter          (I_Filter)
-        ;
+            .setSrcImage       (I_SrcImage->GetHandle())
+            .setSrcImageLayout (I_SrcImage->GetLayout())
+            .setDstImage       (I_DstImage->GetHandle())
+            .setDstImageLayout (I_DstImage->GetLayout())
+            .setRegionCount    (1)
+            .setPRegions       (&BlitRegion)
+            .setFilter         (I_Filter);
         Handle.blitImage2(BlitInfo);
     }
 
@@ -758,72 +647,29 @@ export namespace Visera
         VISERA_ASSERT(I_DstImage != nullptr);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
+
         const auto ImageSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setMipLevel        (0)
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (1)
-        ;
+            .setAspectMask     (vk::ImageAspectFlagBits::eColor)
+            .setMipLevel      (0)
+            .setBaseArrayLayer (0)
+            .setLayerCount     (1);
         auto CopyRegion = vk::BufferImageCopy2{}
-            .setBufferOffset        (0)
-            .setBufferRowLength     (0)
-            .setBufferImageHeight   (0)
-            .setImageSubresource    (ImageSubresourceRange)
-            .setImageOffset         ({0, 0, 0})
-            .setImageExtent         (I_DstImage->GetExtent())
-        ;
+            .setBufferOffset      (0)
+            .setBufferRowLength   (0)
+            .setBufferImageHeight (0)
+            .setImageSubresource  (ImageSubresourceRange)
+            .setImageOffset       ({0, 0, 0})
+            .setImageExtent       (I_DstImage->GetExtent());
         auto CopyInfo = vk::CopyBufferToImageInfo2{}
-            .setSrcBuffer(I_SrcBuffer->GetHandle())
-            .setDstImage(I_DstImage->GetHandle())
-            .setDstImageLayout(I_DstImage->GetLayout())
-            .setRegionCount(1)
-            .setPRegions(&CopyRegion)
-        ;
+            .setSrcBuffer       (I_SrcBuffer->GetHandle())
+            .setDstImage        (I_DstImage->GetHandle())
+            .setDstImageLayout  (I_DstImage->GetLayout())
+            .setRegionCount     (1)
+            .setPRegions        (&CopyRegion);
         Handle.copyBufferToImage2(CopyInfo);
     }
 
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
-    End()
-    {
-        VISERA_ASSERT(IsRecording());
-        auto Result = Handle.end();
-
-        Status = EStatus::ReadyToSubmit;
-    }
-
-    FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
-    FVulkanCommandBuffer(const vk::raii::CommandPool&         I_CommandPool,
-                         const vk::CommandBufferAllocateInfo& I_CreateInfo)
-    {
-        auto Results = I_CommandPool.getDevice().allocateCommandBuffers(I_CreateInfo);
-        if (!Results.has_value())
-        {  LOG_FATAL("Failed to create a new Vulkan Command Buffer!"); }
-        else
-        { Handle = std::move(Results->front()); }
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
-    Reset()
-    {
-        VISERA_ASSERT(IsReadyToSubmit() || IsIdle());
-
-        (void)Handle.reset();
-
-        Status = EStatus::Idle;
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
-    Begin()
-    {
-        VISERA_ASSERT(IsIdle());
-
-        auto BeginInfo = vk::CommandBufferBeginInfo{}
-        ;
-        auto Result = Handle.begin(BeginInfo);
-
-        Status = EStatus::Recording;
-    }
-
+    // ========== Compute implementations ==========
     void FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
     ConvertImageLayout(FVulkanImage*           I_Image,
                        vk::ImageLayout         I_NewLayout,
@@ -834,43 +680,38 @@ export namespace Visera
     {
         VISERA_ASSERT(IsRecording());
         VISERA_ASSERT(I_Image != nullptr);
-        
+
         auto OldLayout = I_Image->GetLayout();
         auto NewLayout = I_NewLayout;
-        if (NewLayout == vk::ImageLayout::eUndefined ||
-            OldLayout == NewLayout)
-        {
-            return;
-        }
+        if (NewLayout == vk::ImageLayout::eUndefined || OldLayout == NewLayout)
+        { return; }
 
         const auto ImageHandle = I_Image->GetHandle();
-
         auto ImageSubresourceRange = vk::ImageSubresourceRange{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setBaseMipLevel    (0)
-            .setLevelCount      (I_Image->GetMipmapLevels())
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (I_Image->GetArrayLayers())
-        ;
+            .setAspectMask    (vk::ImageAspectFlagBits::eColor)
+            .setBaseMipLevel  (0)
+            .setLevelCount    (I_Image->GetMipmapLevels())
+            .setBaseArrayLayer(0)
+            .setLayerCount    (I_Image->GetArrayLayers());
+
         auto Barrier = vk::ImageMemoryBarrier2{}
-            .setSrcStageMask        (TypeCast(I_SrcStage))
-            .setSrcAccessMask       (TypeCast(I_SrcAccess))
-            .setDstStageMask        (TypeCast(I_DstStage))
-            .setDstAccessMask       (TypeCast(I_DstAccess))
-            .setOldLayout           (OldLayout)
-            .setNewLayout           (NewLayout)
-            .setSrcQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setDstQueueFamilyIndex (vk::QueueFamilyIgnored)
-            .setImage               (ImageHandle)
-            .setSubresourceRange    (ImageSubresourceRange)
-        ;
+            .setSrcStageMask       (TypeCast(I_SrcStage))
+            .setSrcAccessMask      (TypeCast(I_SrcAccess))
+            .setDstStageMask       (TypeCast(I_DstStage))
+            .setDstAccessMask      (TypeCast(I_DstAccess))
+            .setOldLayout          (OldLayout)
+            .setNewLayout          (NewLayout)
+            .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
+            .setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
+            .setImage              (ImageHandle)
+            .setSubresourceRange   (ImageSubresourceRange);
         I_Image->ConvertLayout(Handle, Barrier);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
-    PushConstants(const void*          I_Data,
-                  UInt32               I_Offset,
-                  UInt32               I_Size)
+    PushConstants(const void* I_Data,
+                  UInt32      I_Offset,
+                  UInt32      I_Size)
     {
         VISERA_ASSERT(IsInsideComputePipeline());
         VISERA_ASSERT((I_Offset % 4) == 0);
@@ -881,18 +722,17 @@ export namespace Visera
         auto StageFlags = vk::ShaderStageFlagBits::eCompute;
 
         const auto Info = vk::PushConstantsInfo{}
-            .setLayout      (PipelineLayout->GetHandle())
-            .setStageFlags  (StageFlags)
-            .setOffset      (I_Offset)
-            .setSize        (I_Size)
-            .setPValues     (I_Data)
-        ;
+            .setLayout     (PipelineLayout->GetHandle())
+            .setStageFlags (StageFlags)
+            .setOffset     (I_Offset)
+            .setSize       (I_Size)
+            .setPValues    (I_Data);
         Handle.pushConstants2(Info);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
-    BindDescriptorSet(UInt32                           I_SetIndex,
-                      FVulkanDescriptorSet*            I_DescriptorSet)
+    BindDescriptorSet(UInt32                I_SetIndex,
+                      FVulkanDescriptorSet* I_DescriptorSet)
     {
         VISERA_ASSERT(IsInsideComputePipeline());
         VISERA_ASSERT(I_DescriptorSet != nullptr);
@@ -904,12 +744,11 @@ export namespace Visera
         const auto DescriptorSet = I_DescriptorSet->GetHandle();
 
         const auto BindInfo = vk::BindDescriptorSetsInfo{}
-            .setLayout              (PipelineLayout->GetHandle())
-            .setStageFlags          (StageFlags)
-            .setFirstSet            (I_SetIndex)
-            .setDescriptorSetCount  (1)
-            .setPDescriptorSets     (&DescriptorSet)
-        ;
+            .setLayout             (PipelineLayout->GetHandle())
+            .setStageFlags         (StageFlags)
+            .setFirstSet           (I_SetIndex)
+            .setDescriptorSetCount (1)
+            .setPDescriptorSets    (&DescriptorSet);
         Handle.bindDescriptorSets2(BindInfo);
     }
 
@@ -951,36 +790,25 @@ export namespace Visera
         VISERA_ASSERT(I_DstImage != nullptr);
         VISERA_ASSERT(I_DstImage->GetLayout() == vk::ImageLayout::eTransferDstOptimal);
         VISERA_ASSERT(I_SrcBuffer->GetMemorySize() <= I_DstImage->GetMemorySize());
+
         const auto ImageSubresourceRange = vk::ImageSubresourceLayers{}
-            .setAspectMask      (vk::ImageAspectFlagBits::eColor)
-            .setMipLevel        (0)
-            .setBaseArrayLayer  (0)
-            .setLayerCount      (1)
-        ;
+            .setAspectMask     (vk::ImageAspectFlagBits::eColor)
+            .setMipLevel      (0)
+            .setBaseArrayLayer (0)
+            .setLayerCount     (1);
         auto CopyRegion = vk::BufferImageCopy2{}
-            .setBufferOffset        (0)
-            .setBufferRowLength     (0)
-            .setBufferImageHeight   (0)
-            .setImageSubresource    (ImageSubresourceRange)
-            .setImageOffset         ({0, 0, 0})
-            .setImageExtent         (I_DstImage->GetExtent())
-        ;
+            .setBufferOffset      (0)
+            .setBufferRowLength   (0)
+            .setBufferImageHeight (0)
+            .setImageSubresource  (ImageSubresourceRange)
+            .setImageOffset       ({0, 0, 0})
+            .setImageExtent       (I_DstImage->GetExtent());
         auto CopyInfo = vk::CopyBufferToImageInfo2{}
-            .setSrcBuffer(I_SrcBuffer->GetHandle())
-            .setDstImage(I_DstImage->GetHandle())
-            .setDstImageLayout(I_DstImage->GetLayout())
-            .setRegionCount(1)
-            .setPRegions(&CopyRegion)
-        ;
+            .setSrcBuffer       (I_SrcBuffer->GetHandle())
+            .setDstImage        (I_DstImage->GetHandle())
+            .setDstImageLayout   (I_DstImage->GetLayout())
+            .setRegionCount     (1)
+            .setPRegions        (&CopyRegion);
         Handle.copyBufferToImage2(CopyInfo);
-    }
-
-    void FVulkanCommandBuffer<EVulkanQueueFamily::Compute>::
-    End()
-    {
-        VISERA_ASSERT(IsRecording());
-        auto Result = Handle.end();
-
-        Status = EStatus::ReadyToSubmit;
     }
 }

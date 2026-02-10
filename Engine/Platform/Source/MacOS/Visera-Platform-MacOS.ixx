@@ -2,6 +2,7 @@ module;
 #include <Visera-Platform.hpp>
 #if defined(VISERA_ON_APPLE_SYSTEM)
 #include <mach-o/dyld.h>
+#include <pthread.h>
 #include <uuid/uuid.h>
 #endif
 export module Visera.Platform.MacOS;
@@ -49,6 +50,8 @@ export namespace Visera
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
+        void
+        SetCurrentThreadName(FStringView I_Name) const override;
 
     public:
         FMacOSPlatform();
@@ -123,6 +126,14 @@ export namespace Visera
         FUUID UUID;
         ::uuid_generate_random(UUID.Data); // v4 random UUID :contentReference[oaicite:1]{index=1}
         return UUID;
+    }
+
+    void FMacOSPlatform::SetCurrentThreadName(FStringView I_Name) const
+    {
+        if (I_Name.IsEmpty()) { return; }
+        std::string Name(I_Name.GetNative());
+        if (Name.size() > 63) { Name.resize(63); }
+        (void)pthread_setname_np(Name.c_str());
     }
 #endif
 }

@@ -1,5 +1,6 @@
 module;
 #include <windows.h>
+#include <processthreadsapi.h>
 #undef LoadLibrary
 #undef CreateDirectory
 #undef CreateWindow
@@ -72,6 +73,8 @@ namespace Visera
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
+        void
+        SetCurrentThreadName(FStringView I_Name) const override;
 
     public:
         FWindowsPlatform();
@@ -164,5 +167,17 @@ namespace Visera
         UUID.Data[15] = static_cast<FByte>(Buffer.Data4[7]);
 
         return UUID;
+    }
+
+    void FWindowsPlatform::SetCurrentThreadName(FStringView I_Name) const
+    {
+        if (I_Name.IsEmpty()) { return; }
+        const std::string_view Sv = I_Name.GetNative();
+        const int WideLen = MultiByteToWideChar(CP_UTF8, 0, Sv.data(), static_cast<int>(Sv.size()), nullptr, 0);
+        if (WideLen <= 0) { return; }
+        std::wstring WideBuf(static_cast<std::size_t>(WideLen + 1), L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, Sv.data(), static_cast<int>(Sv.size()), WideBuf.data(), WideLen + 1);
+        WideBuf[static_cast<std::size_t>(WideLen)] = L'\0';
+        SetThreadDescription(GetCurrentThread(), WideBuf.data());
     }
 }

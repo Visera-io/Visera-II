@@ -34,6 +34,8 @@ export namespace Visera
         SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const = 0;
         [[nodiscard]] virtual FUUID
         GenerateUUID() const = 0;
+        virtual void
+        SetCurrentThreadName(FStringView I_Name) const = 0;
         [[nodiscard]] inline EPlatform
         GetType() const { return Type; }
 

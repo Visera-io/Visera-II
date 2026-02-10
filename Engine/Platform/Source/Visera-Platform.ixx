@@ -44,6 +44,8 @@ export namespace Visera
         GenerateUUID() { return Get()->GenerateUUID(); }
         [[nodiscard]] static inline EPlatform
         GetType() { return Get()->GetType(); }
+        static inline void
+        SetCurrentThreadName(FStringView I_Name) { Get()->SetCurrentThreadName(I_Name); }
 
     private:
         static inline TUniqueRef<IPlatform>

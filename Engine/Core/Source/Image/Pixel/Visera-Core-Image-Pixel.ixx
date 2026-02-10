@@ -2,11 +2,11 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Image.Pixel;
 #define VISERA_MODULE_NAME "Core.Image"
-export import Visera.Core.Image.Common;
-       import Visera.Core.Math.Color;
-       import Visera.Core.Types.Half;
-       import Visera.Core.Types.Optional;
-       import Visera.Core.Math.Arithmetic.Operation;
+import Visera.Core.Image.Common;
+import Visera.Core.Math.Color;
+import Visera.Core.Types.Half;
+import Visera.Core.Types.Optional;
+import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
 {
@@ -31,10 +31,10 @@ export namespace Visera
         [[nodiscard]] inline UInt8 GetBytesPerPixel() const { return BytesPerPixel; }
 
         template<Concepts::Color TColor = FColor>
-        [[nodiscard]] TColor GetColor() const;
+        [[nodiscard]] VISERA_CORE_API TColor GetColor() const;
 
         template<Concepts::Color TColor = FColor>
-        void SetColor(const TColor& I_Color);
+        VISERA_CORE_API void SetColor(const TColor& I_Color);
 
         /** Assignment from color; enables Image(i,j,0) = FColor::Magenta(). */
         template<Concepts::Color TColor = FColor>
@@ -207,7 +207,7 @@ export namespace Visera
      * @return Color value representing the pixel
      */
     template<Concepts::Color TColor>
-    TColor FPixel::
+    VISERA_CORE_API TColor FPixel::
     GetColor() const
     {
         VISERA_ASSERT(Data);
@@ -445,7 +445,7 @@ export namespace Visera
      * @param I_Color Color value
      */
     template<Concepts::Color TColor>
-    void FPixel::
+    VISERA_CORE_API void FPixel::
     SetColor(const TColor& I_Color)
     {
         if (!Data) { return; }
@@ -664,10 +664,4 @@ export namespace Visera
             break;
         }
     }
-
-    // Explicit instantiations for common color types (module export)
-    template FLinearColor FPixel::GetColor<FLinearColor>() const;
-    template FColor FPixel::GetColor<FColor>() const;
-    template void FPixel::SetColor<FColor>(const FColor&);
-    template void FPixel::SetColor<FLinearColor>(const FLinearColor&);
 }
