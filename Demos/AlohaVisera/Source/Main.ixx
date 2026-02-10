@@ -14,6 +14,30 @@ struct FEngine
 
     Bool Run()
     {
+        {
+            FImage Image = FImage{FImage::FCreateInfo
+            {
+                .Width  = 1024,
+                .Height = 1024,
+            }};
+            for (int row = 0; row < Image.GetHeight(); row++)
+            {
+                for (int col = 0; col < Image.GetWidth(); col++)
+                {
+                    if ( row >= col   )
+                    {
+                        Image(row,col,0) = FColor::Purple();
+                    }
+                    else
+                    {
+                        Image(row,col,0) = FColor::Red();
+                    }
+                }
+            }
+            Image = Algorithm::GaussianBlur(Image.View2D(), 3, 2, Algorithm::EAddressMode::ClampToEdge);
+            (void)Runtime->AssetHub->SaveImage(Image.View2D(), FPlatform::GetCacheDirectory() / FPath{"Testzhs.png"});
+        }
+
         auto Image = Runtime->AssetHub->LoadImage(FPlatform::GetResourceDirectory() / FPath{"Assets/App/Texture/Bronya.png"})->GetImage();
         // Gaussian blur test
         FImage BlurredImage = Algorithm::GaussianBlur(

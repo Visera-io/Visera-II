@@ -792,7 +792,6 @@ export namespace Visera
                 const UInt32 RowPitch = Image->GetRowPitchBytes();
                 const UInt32 SlicePitch = Image->GetSlicePitchBytes();
                 const UInt32 ClampedLayer = Math::Min(Layer, Image->GetDepth() > 0 ? Image->GetDepth() - 1 : 0);
-                // Use const FByte* constructor to create a read-only pixel view
                 const FByte* ConstPixelData = Image->GetData() + (ClampedLayer * SlicePitch) + (Y * RowPitch + X * BytesPerPixel);
                 CurrentPixel = FPixel{ConstPixelData, Image->GetPixelFormat(), static_cast<UInt8>(BytesPerPixel)};
                 CachedPixelIndex = PixelIndex;
@@ -1551,7 +1550,6 @@ export namespace Visera
             {
                 const UInt32 X = PixelIndex % ViewWidth;
                 const UInt32 Y = PixelIndex / ViewWidth;
-                
                 const UInt32 DstOffset = (Y * DstRowPitch) + (X * BytesPerPixel);
                 Memory::Memcpy(DstSliceData + DstOffset, Pixel.GetData(), BytesPerPixel);
                 ++PixelIndex;
@@ -1637,7 +1635,6 @@ export namespace Visera
         {
             const UInt32 X = PixelIndex % ViewWidth;
             const UInt32 Y = PixelIndex / ViewWidth;
-            
             const UInt32 DstOffset = (Y * DstRowPitch) + (X * BytesPerPixel);
             Memory::Memcpy(DstData + DstOffset, Pixel.GetData(), BytesPerPixel);
             ++PixelIndex;
@@ -1654,17 +1651,17 @@ export namespace Visera
     TOptional<FPixel> FImage::
     GetPixel(const FPoint3U& I_Pos) const
     {
-        // Check bounds
-        if (I_Pos.X >= Info.Width || I_Pos.Y >= Info.Height || I_Pos.Z >= Info.Depth)
+        // Check bounds (X=row, Y=col)
+        if (I_Pos.X >= Info.Height || I_Pos.Y >= Info.Width || I_Pos.Z >= Info.Depth)
         {
             return TOptional<FPixel>{};
         }
 
-        // Calculate pixel data pointer
+        // Calculate pixel data pointer: (0,0)=top-left, X=row(down), Y=col(right); offset = row*RowPitch + col*BytesPerPixel
         const UInt32 BytesPerPixel = GetBytesPerPixel();
         const UInt32 RowPitch      = GetRowPitchBytes();
         const UInt32 SlicePitch    = GetSlicePitchBytes();
-        const FByte* PixelData     = GetData() + (I_Pos.Z * SlicePitch) + (I_Pos.Y * RowPitch) + (I_Pos.X * BytesPerPixel);
+        const FByte* PixelData    = GetData() + (I_Pos.Z * SlicePitch) + (I_Pos.X * RowPitch) + (I_Pos.Y * BytesPerPixel);
         
         return TOptional<FPixel>{FPixel{PixelData, Info.PixelFormat, static_cast<UInt8>(BytesPerPixel)}};
     }
@@ -1675,7 +1672,7 @@ export namespace Visera
         const UInt32 BytesPerPixel = GetBytesPerPixel();
         const UInt32 RowPitch = GetRowPitchBytes();
         const UInt32 SlicePitch = GetSlicePitchBytes();
-        FByte* PixelData = AccessData() + (I_Z * SlicePitch) + (I_Y * RowPitch) + (I_X * BytesPerPixel);
+        FByte* PixelData = AccessData() + (I_Z * SlicePitch) + (I_X * RowPitch) + (I_Y * BytesPerPixel);
         return FPixel{PixelData, Info.PixelFormat, static_cast<UInt8>(BytesPerPixel)};
     }
 
@@ -1685,7 +1682,7 @@ export namespace Visera
         const UInt32 BytesPerPixel = GetBytesPerPixel();
         const UInt32 RowPitch = GetRowPitchBytes();
         const UInt32 SlicePitch = GetSlicePitchBytes();
-        const FByte* PixelData = GetData() + (I_Z * SlicePitch) + (I_Y * RowPitch) + (I_X * BytesPerPixel);
+        const FByte* PixelData = GetData() + (I_Z * SlicePitch) + (I_X * RowPitch) + (I_Y * BytesPerPixel);
         return FPixel{PixelData, Info.PixelFormat, static_cast<UInt8>(BytesPerPixel)};
     }
 
@@ -2038,7 +2035,7 @@ export namespace Visera
     {
         const UInt32 AbsX = IntervalX.Left + I_X;
         const UInt32 AbsY = IntervalY.Left + I_Y;
-        return Image->operator()(AbsX, AbsY, Layer);
+        return Image->operator()(AbsY, AbsX, Layer);
     }
 
     FPixel FImageView2D::
@@ -2046,7 +2043,7 @@ export namespace Visera
     {
         const UInt32 AbsX = IntervalX.Left + I_X;
         const UInt32 AbsY = IntervalY.Left + I_Y;
-        return Image->operator()(AbsX, AbsY, Layer);
+        return Image->operator()(AbsY, AbsX, Layer);
     }
 
     // Implementation of FImageView3DIterator::GetPixelCount
@@ -2123,7 +2120,7 @@ export namespace Visera
         const UInt32 AbsX = IntervalX.Left + I_X;
         const UInt32 AbsY = IntervalY.Left + I_Y;
         const UInt32 AbsZ = MinLayer + I_Z;
-        return Image->operator()(AbsX, AbsY, AbsZ);
+        return Image->operator()(AbsY, AbsX, AbsZ);
     }
 
     FPixel FImageView3D::
@@ -2132,6 +2129,6 @@ export namespace Visera
         const UInt32 AbsX = IntervalX.Left + I_X;
         const UInt32 AbsY = IntervalY.Left + I_Y;
         const UInt32 AbsZ = MinLayer + I_Z;
-        return Image->operator()(AbsX, AbsY, AbsZ);
+        return Image->operator()(AbsY, AbsX, AbsZ);
     }
 }
