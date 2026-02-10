@@ -113,7 +113,7 @@ export namespace Visera
         const FName PathName{I_Path.GetString()};
         if (auto W = AssetCache.Find(PathName); !W.IsExpired())
         {
-            LOG_TRACE("Get {} from cache.", I_Path);
+            LOG_DEBUG("LoadImage: {} (from cache).", I_Path);
             return Cast<FImageAsset>(W.Lock());
         }
 
@@ -140,6 +140,7 @@ export namespace Visera
         auto NewAsset = MakeShared<FImageAsset>(std::move(NewImage));
         if (!AssetCache.Store(PathName, Cast<IAsset>(NewAsset)))
         { LOG_WARN("Failed to store {} to asset cache!", I_Path); }
+        LOG_DEBUG("LoadImage: {}.", I_Path);
         return NewAsset;
     }
 
@@ -190,7 +191,7 @@ export namespace Visera
         const FName PathName{I_Path.GetString()};
         if (auto W = AssetCache.Find(PathName); !W.IsExpired())
         {
-            LOG_TRACE("Get {} from shader cache.", I_Path);
+            LOG_DEBUG("LoadShader: {} (from cache).", I_Path);
             return Cast<FShaderAsset>(W.Lock());
         }
 
@@ -206,6 +207,7 @@ export namespace Visera
         auto NewShader = MakeShared<FShaderAsset>(FShader{std::move(SPIRVChunk), std::move(Refl)});
         if (!AssetCache.Store(PathName, Cast<IAsset>(NewShader)))
         { LOG_WARN("Failed to store {} to asset cache!", I_Path); }
+        LOG_DEBUG("LoadShader: {}.", I_Path);
         return NewShader;
     }
 
@@ -223,7 +225,7 @@ export namespace Visera
 
         if (auto W = AssetCache.Find(CacheKey); !W.IsExpired())
         {
-            LOG_TRACE("Get font {} (face {}, size {}) from cache.", I_Path, I_FaceIndex, I_PixelSize);
+            LOG_DEBUG("LoadFont: {} (face {}, size {}, from cache).", I_Path, I_FaceIndex, I_PixelSize);
             return Cast<FFontAsset>(W.Lock());
         }
 
@@ -258,6 +260,7 @@ export namespace Visera
         auto NewFace = MakeShared<FFontAsset>(std::move(Font), Face);
         if (!AssetCache.Store(CacheKey, Cast<IAsset>(NewFace)))
         { LOG_WARN("Failed to store font {} (face {}, size {}) to asset cache!", I_Path, I_FaceIndex, I_PixelSize); }
+        LOG_DEBUG("LoadFont: {} (face {}, size {}).", I_Path, I_FaceIndex, I_PixelSize);
         return NewFace;
     }
 
@@ -268,6 +271,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
+        LOG_DEBUG("LoadImageFromCache: {}.", I_Name.GetName());
         return Cast<FImageAsset>(S);
     }
 
@@ -278,6 +282,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
+        LOG_DEBUG("LoadShaderFromCache: {}.", I_Name.GetName());
         return Cast<FShaderAsset>(S);
     }
 
@@ -288,6 +293,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
+        LOG_DEBUG("LoadFontFromCache: {}.", I_Name.GetName());
         return Cast<FFontAsset>(S);
     }
 }
