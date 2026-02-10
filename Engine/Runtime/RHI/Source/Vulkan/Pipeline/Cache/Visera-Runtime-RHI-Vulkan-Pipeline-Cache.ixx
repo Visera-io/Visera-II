@@ -4,7 +4,7 @@ export module Visera.Runtime.RHI.Vulkan.Pipeline.Cache;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.OS.FileSystem;
 import Visera.Core.OS.Memory;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Log;
 import vulkan_hpp;
 

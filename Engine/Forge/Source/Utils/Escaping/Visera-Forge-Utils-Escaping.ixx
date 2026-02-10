@@ -4,7 +4,7 @@ module;
 export module Visera.Forge.Utils.Escaping;
 #define VISERA_MODULE_NAME "Forge.Utils.Escaping"
 import Visera.Core.Types.String;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.Optional;
 
 /**

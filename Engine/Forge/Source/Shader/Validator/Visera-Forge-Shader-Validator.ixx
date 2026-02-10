@@ -3,7 +3,7 @@ module;
 export module Visera.Forge.Shader.Validator;
 #define VISERA_MODULE_NAME "Forge.Shader"
 import Visera.Core.Types.Path;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
 import Visera.Core.OS.FileSystem;
 import Visera.Runtime.AssetHub.Shader;

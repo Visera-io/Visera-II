@@ -4,7 +4,7 @@ export module Visera.Runtime.AssetHub.Shader;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 import Visera.Runtime.AssetHub.Asset;
 import Visera.Core.Types.Path;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Pointer;
 import Visera.Core.OS.FileSystem;

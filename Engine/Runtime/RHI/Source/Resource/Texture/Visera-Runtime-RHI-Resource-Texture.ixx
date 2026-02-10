@@ -5,7 +5,7 @@ export module Visera.Runtime.RHI.Resource.Texture;
 import Visera.Runtime.RHI.Common;
 import Visera.Runtime.RHI.Registry.Item;
 import Visera.Runtime.RHI.Vulkan.Image;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Math.Arithmetic.Interval;
 
 export namespace Visera

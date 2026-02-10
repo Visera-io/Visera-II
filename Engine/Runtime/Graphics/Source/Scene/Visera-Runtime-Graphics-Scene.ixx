@@ -3,7 +3,7 @@ module;
 export module Visera.Runtime.Graphics.Scene;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 export import Visera.Runtime.Graphics.Scene.Camera;
-       import Visera.Core.Types.Map;
+       import Visera.Core.Containers.Map;
        import Visera.Core.Types.Name;
 
 export namespace Visera

@@ -10,18 +10,18 @@ export module Visera.Runtime.Graphics.Texture;
 //     class VISERA_RUNTIME_API FTexture2D
 //     {
 //     public:
-//         FRHITextureID TextureHandle;
-//         FRHISamplerID SamplerHandle;
+//         FRHITextureHandle TextureHandle;
+//         FRHISamplerHandle SamplerHandle;
 //
 //     public:
 //         FTexture2D() = default;
-//         FTexture2D(FRHITextureID I_TextureHandle,
-//                    FRHISamplerID I_SamplerHandle)
+//         FTexture2D(FRHITextureHandle I_TextureHandle,
+//                    FRHISamplerHandle I_SamplerHandle)
 //             : TextureHandle(I_TextureHandle),
 //               SamplerHandle(I_SamplerHandle)
 //         {
-//             VISERA_ASSERT(I_TextureHandle != FRHITextureID{} &&
-//                           I_SamplerHandle != FRHISamplerID{});
+//             VISERA_ASSERT(I_TextureHandle != FRHITextureHandle{} &&
+//                           I_SamplerHandle != FRHISamplerHandle{});
 //         }
 //     };
 // }

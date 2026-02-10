@@ -6,7 +6,7 @@ export module Visera.Runtime.AssetHub.Image.PNG;
 export import Visera.Runtime.AssetHub.Image.Common;
        import Visera.Runtime.AssetHub.Image.Wrapper;
        import Visera.Core.OS.FileSystem;
-       import Visera.Core.Types.Array;
+       import Visera.Core.Containers.Array;
        import Visera.Core.Math.Color;
        import Visera.Core.Math.Arithmetic.Operation;
        import Visera.Core.Types.Half;

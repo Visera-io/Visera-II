@@ -5,11 +5,11 @@ export module Visera.Runtime.RHI;
 export import Visera.Runtime.RHI.Common;
 export import Visera.Runtime.RHI.Resource;
 export import Visera.Runtime.RHI.CommandList;
+export import Visera.Runtime.RHI.Registry;
        import Visera.Runtime.RHI.Vulkan;
-       import Visera.Runtime.RHI.Registry;
        import Visera.Runtime.Window;
        import Visera.Core.Log;
-       import Visera.Core.Types.Array;
+       import Visera.Core.Containers.Array;
        import Visera.Core.Types.Pointer.Shared;
        import Visera.Core.Types.String;
        import Visera.Core.Delegate;
@@ -18,10 +18,6 @@ export import Visera.Runtime.RHI.CommandList;
 
 export namespace Visera
 {
-    using FTextureID = FRHIRegistry::TEntry<FRHITextureID>;
-    using FSamplerID = FRHIRegistry::TEntry<FRHISamplerID>;
-    using FBufferID  = FRHIRegistry::TEntry<FRHIBufferID>;
-
     class VISERA_RUNTIME_API FRHI : public IGlobalService
     {
         using FRHIDrawCalls     = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
@@ -35,6 +31,16 @@ export namespace Visera
         Submit(const FRHICommandList& I_CommandList);
         void
         Present();
+
+        // Resource creation
+        [[nodiscard]] FRHITextureID
+        CreateTexture(FRHITextureCreateInfo&& I_Desc);
+        [[nodiscard]] FRHIBufferID
+        CreateBuffer(FRHIBufferCreateInfo&& I_Desc);
+        [[nodiscard]] FRHISamplerID
+        CreateSampler(FRHISamplerCreateInfo&& I_Desc);
+        [[nodiscard]] FRHIDescriptorSetID
+        CreateDescriptorSet(FRHIDescriptorSetCreateInfo&& I_Desc);
 
         // Low-level API
         [[nodiscard]] inline const FVulkanDriver*
@@ -249,9 +255,13 @@ export namespace Visera
 
         if (!CurrentFrame.SubmitFence.Wait()) { return False; }
 
-        Registry->CollectGarbage(FrameIndex);
+        Registry->SetCurrentRetirementFence(&CurrentFrame.SubmitFence);
+        Registry->CollectGarbage();
 #if !defined(VISERA_OFFSCREEN_MODE)
         if (Driver->WaitNextFrame(&CurrentFrame.SwapChainReadySemaphore))
+#else
+        if (True)
+#endif
         {
             if (!CurrentFrame.SubmitFence.Reset())
             {
@@ -259,6 +269,7 @@ export namespace Visera
                 return False;
             }
         }
+#if !defined(VISERA_OFFSCREEN_MODE)
         else
         {
             LOG_TRACE("Failed to begin new frame!");
@@ -452,6 +463,45 @@ export namespace Visera
         {
             LOG_DEBUG("Failed to present frame {}!", LastSubmittedFrameIndex);
         }
+    }
+
+    FRHITextureID FRHI::
+    CreateTexture(FRHITextureCreateInfo&& I_Desc)
+    {
+        const auto W = I_Desc.Width, H = I_Desc.Height, D = I_Desc.Depth;
+        const auto Fmt = I_Desc.Format;
+        auto ID = Registry->Register(std::move(I_Desc));
+        LOG_DEBUG("CreateTexture: {}x{}x{} {} -> {}", W, H, D, Fmt, ID.GetHandle());
+        return ID;
+    }
+
+    FRHIBufferID FRHI::
+    CreateBuffer(FRHIBufferCreateInfo&& I_Desc)
+    {
+        const auto Size = I_Desc.Size;
+        auto ID = Registry->Register(std::move(I_Desc));
+        LOG_DEBUG("CreateBuffer: {} bytes -> {}", Size, ID.GetHandle());
+        return ID;
+    }
+
+    FRHISamplerID FRHI::
+    CreateSampler(FRHISamplerCreateInfo&& I_Desc)
+    {
+        const auto Type = I_Desc.Type;
+        const auto Addr = I_Desc.AddressMode;
+        auto ID = Registry->Register(std::move(I_Desc));
+        LOG_DEBUG("CreateSampler: {} {} -> {}", Type, Addr, ID.GetHandle());
+        return ID;
+    }
+
+    FRHIDescriptorSetID FRHI::
+    CreateDescriptorSet(FRHIDescriptorSetCreateInfo&& I_Desc)
+    {
+        const auto BindingCount = I_Desc.Bindings.GetSize();
+        auto ID = Registry->Register(std::move(I_Desc));
+        LOG_DEBUG("CreateDescriptorSet: {} bindings -> {}",
+                  BindingCount, ID.GetHandle());
+        return ID;
     }
 
     void FRHI::

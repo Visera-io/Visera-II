@@ -10,8 +10,8 @@ The RHI layer abstracts the graphics API (e.g. Vulkan) and provides a stable int
 
 ## Key concepts
 
-- **Handles**: `FRHITextureID`, `FRHIBufferID`, `FRHISamplerID`, `FRHIDescriptorSetID` — opaque IDs for resources managed by the RHI. Descriptor set **layout** is not exposed at the RHI API: the user provides `FRHIDescriptorSetCreateDesc` (bindings); RHI derives and caches the layout internally.
-- **Descriptor sets**: Create a set with `CreateDescriptorSet(FRHIDescriptorSetCreateDesc)` — the create desc carries `Bindings` (binding, type, count, stages). RHI builds/caches the layout from bindings and returns `FRHIDescriptorSetID`. Update bindings via `UpdateDescriptorSet(handle, binding, ...)` overloads (texture, sampler, buffer). Destroy with `DestroyDescriptorSet(handle)` (transient or deferred).
+- **Handles**: `FRHITextureHandle`, `FRHIBufferHandle`, `FRHISamplerHandle`, `FRHIDescriptorSetHandle` — opaque IDs for resources managed by the RHI. Descriptor set **layout** is not exposed at the RHI API: the user provides `FRHIDescriptorSetCreateDesc` (bindings); RHI derives and caches the layout internally.
+- **Descriptor sets**: Create a set with `CreateDescriptorSet(FRHIDescriptorSetCreateDesc)` — the create desc carries `Bindings` (binding, type, count, stages). RHI builds/caches the layout from bindings and returns `FRHIDescriptorSetHandle`. Update bindings via `UpdateDescriptorSet(handle, binding, ...)` overloads (texture, sampler, buffer). Destroy with `DestroyDescriptorSet(handle)` (transient or deferred).
 - **Command list**: Record draw and transfer commands; submit once per frame (or as needed).
 - **Frame lifecycle**: BeginFrame → record commands → Submit → EndFrame → Present.
 

@@ -23,6 +23,8 @@ namespace Visera
         IsTimeout() const { return Handle.getStatus() == vk::Result::eTimeout;  };
         [[nodiscard]] Bool
         IsNotReady() const { return Handle.getStatus() == vk::Result::eNotReady;  };
+        [[nodiscard]] Bool
+        IsSignaled() const { return Handle.getStatus() == vk::Result::eSuccess;  };
     private:
         vk::raii::Fence Handle {nullptr};
 

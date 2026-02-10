@@ -1,10 +1,1 @@
-{
-    "Window": {
-        "Title": "Visera",
-        "Width": 512,
-        "Height": 512
-    },
-    "RHI": {
-        "PresentMode": "VSync"
-    }
-}
+{"Window":{"Title":"Visera","Width":512,"Height":512},"RHI":{"PresentMode":"VSync"},"AssetHub":{"CacheCapacity":{"Image":64,"Shader":32,"Font":16}}}

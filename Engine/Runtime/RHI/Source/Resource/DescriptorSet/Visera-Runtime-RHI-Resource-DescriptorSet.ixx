@@ -5,16 +5,16 @@ export module Visera.Runtime.RHI.Resource.DescriptorSet;
 import Visera.Runtime.RHI.Common;
 import Visera.Runtime.RHI.Registry.Item;
 import Visera.Runtime.RHI.Vulkan.DescriptorSet;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 
 export namespace Visera
 {
     struct VISERA_RUNTIME_API FRHIDescriptorSetLayoutBinding
     {
-        UInt8 binding;
-        ERHIDescriptorType descriptorType;
-        UInt32 descriptorCount;
-        ERHIShaderStage stageFlags;
+        UInt8              Binding {0};
+        ERHIDescriptorType Type    {ERHIDescriptorType::Undefined};
+        UInt32             Count   {0};
+        ERHIShaderStage    Stages  {ERHIShaderStage::Undefined};
 
         Bool operator==(const FRHIDescriptorSetLayoutBinding&) const = default;
     };
@@ -34,10 +34,10 @@ export namespace Visera
                 {
                     const auto& A = Bindings[Idx];
                     const auto& B = I_Other.Bindings[Idx];
-                    if (A.binding != B.binding ||
-                        A.descriptorType != B.descriptorType ||
-                        A.descriptorCount != B.descriptorCount ||
-                        A.stageFlags != B.stageFlags)
+                    if (A.Binding != B.Binding ||
+                        A.Type != B.Type ||
+                        A.Count != B.Count ||
+                        A.Stages != B.Stages)
                     { return False; }
                 }
                 return True;

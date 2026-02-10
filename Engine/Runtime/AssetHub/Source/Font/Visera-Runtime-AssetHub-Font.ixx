@@ -5,7 +5,7 @@ export module Visera.Runtime.AssetHub.Font;
 export import Visera.Runtime.AssetHub.Font.FreeType;
 import Visera.Runtime.AssetHub.Asset;
 import Visera.Core.Font;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Core.Types.Optional;
 import Visera.Core.Log;
 

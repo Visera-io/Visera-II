@@ -9,8 +9,8 @@ export import Visera.Runtime.Graphics.Material;
        import Visera.Runtime.Global;
        import Visera.Runtime.RHI;
        import Visera.Core.Image;
-       import Visera.Core.Types.Map;
-       import Visera.Core.Types.Array;
+       import Visera.Core.Containers.Map;
+       import Visera.Core.Containers.Array;
 
 export namespace Visera
 {

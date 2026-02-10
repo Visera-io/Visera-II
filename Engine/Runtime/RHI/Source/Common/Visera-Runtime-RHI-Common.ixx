@@ -3,7 +3,7 @@ module;
 export module Visera.Runtime.RHI.Common;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Core.Traits.Flags;
-       import Visera.Core.Types.Array;
+       import Visera.Core.Containers.Array;
        import Visera.Core.Types.String;
        import Visera.Core.Math.Color.Linear;
        import Visera.Core.Log;

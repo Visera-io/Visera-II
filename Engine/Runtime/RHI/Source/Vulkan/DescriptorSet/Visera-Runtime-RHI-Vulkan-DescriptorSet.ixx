@@ -8,7 +8,7 @@ import Visera.Runtime.RHI.Vulkan.Buffer;
 import Visera.Runtime.RHI.Vulkan.Sampler;
 import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
 import Visera.Core.Log;
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import vulkan_hpp;
 
 namespace Visera

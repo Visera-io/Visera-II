@@ -4,7 +4,7 @@ export module Visera.Runtime.Graphics.Material;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 export import Visera.Core.Types.Pointer;
 	   import Visera.Core.Types.JSON;
-	   import Visera.Core.Types.Array;
+	   import Visera.Core.Containers.Array;
 	   import Visera.Core.Types.String;
 	   import Visera.Runtime.RHI;
 	   import Visera.Core.Log;

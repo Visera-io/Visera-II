@@ -2,7 +2,7 @@ module;
 #include <Visera-RHI.hpp>
 export module Visera.Runtime.RHI.Resource.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Core.Types.Array;
+import Visera.Core.Containers.Array;
 import Visera.Runtime.RHI.Common;
 import Visera.Runtime.RHI.Registry.Item;
 import Visera.Runtime.RHI.Vulkan.Pipeline.Render;
