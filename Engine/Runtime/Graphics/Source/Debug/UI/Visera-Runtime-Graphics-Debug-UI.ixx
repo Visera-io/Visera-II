@@ -59,12 +59,13 @@ export namespace Visera::Graphics
         }
 
     private:
-        FRHI* RHI {nullptr};
+        FRHI*       RHI         {nullptr};
+        FString     RuntimeName {"Unknown"};
 
     public:
-        FDebugUI(FWindow* I_Window, FRHI* I_RHI) : RHI(I_RHI)
+        FDebugUI(FWindow* I_Window, FRHI* I_RHI, FStringView I_RuntimeName = "Unknown") : RHI(I_RHI), RuntimeName(I_RuntimeName)
         {
-    #if !defined(VISERA_OFFSCREEN_MODE)
+#if !defined(VISERA_OFFSCREEN_MODE)
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
             auto& IO = ImGui::GetIO();
@@ -80,7 +81,7 @@ export namespace Visera::Graphics
             if (!IO.Fonts->AddFontFromMemoryCompressedTTF(
                 DEFAULT_FONT_COMPRESSED,
                 sizeof(DEFAULT_FONT_COMPRESSED)))
-            { LOG_ERROR("Failed to load the default font!"); }
+            { LOG_ERROR("({}) Failed to load the default font!", RuntimeName); }
 
             IO.DisplaySize = ImVec2(
                 I_Window->GetWidth(),
@@ -99,6 +100,8 @@ export namespace Visera::Graphics
             ImGui::StyleColorsDark();
 
             auto Vulkan = I_RHI->GetDriver();
+            auto* SC = Vulkan->GetSwapChain(I_Window);
+            if (!SC) { LOG_FATAL("DebugUI requires swapchain for window!"); }
 
             const VkFormat ColorRTFormat = static_cast<VkFormat>(ERHIFormat::R8G8B8A8_sRGB);
             ImGui_ImplVulkan_InitInfo CreateInfo
@@ -111,8 +114,8 @@ export namespace Visera::Graphics
                 .DescriptorPool	= nullptr, //[TODO] :Add a descriptor pool for ImGui
                 .DescriptorPoolSize = 100,
 
-                .MinImageCount	= Vulkan->GetSwapChain().MinimalImageCount,
-                .ImageCount		= static_cast<UInt32>(Vulkan->GetSwapChain().Images.GetSize()),
+                .MinImageCount	= SC->MinimalImageCount,
+                .ImageCount		= static_cast<UInt32>(SC->Images.GetSize()),
                 .PipelineCache	= *Vulkan->GetPipelineCache()->GetHandle(),
 
                 .RenderPass		= nullptr, // Ignored if using dynamic rendering
@@ -134,14 +137,14 @@ export namespace Visera::Graphics
                 },
             };
 
-            LOG_TRACE("Initializing Dear ImGUI GLFW backend.");
+            LOG_TRACE("({}) Initializing Dear ImGUI GLFW backend.", RuntimeName);
             if (!ImGui_ImplGlfw_InitForVulkan(
                 static_cast<GLFWwindow*>(I_Window->GetPlatformWindow()->GetHandle()),
                 True // Install callbacks via ImGUI
             ))
             { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
 
-            LOG_TRACE("Initializing Dear ImGUI Vulkan backend.");
+            LOG_TRACE("({}) Initializing Dear ImGUI Vulkan backend.", RuntimeName);
             if (!ImGui_ImplVulkan_Init(&CreateInfo))
             { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
 
@@ -175,7 +178,7 @@ export namespace Visera::Graphics
             //     vkCmdEndRendering(Cmds);
             // }))
             // { LOG_FATAL("Failed to bind ImGui drawcalls to backend!"); }
-    #endif
+#endif
         }
 
         ~FDebugUI()
@@ -185,9 +188,9 @@ export namespace Visera::Graphics
             {
                 RHI->GetDriver()->WaitIdle();
             }
-            LOG_TRACE("Terminating Dear ImGUI Vulkan backend.");
+            LOG_TRACE("({}) Terminating Dear ImGUI Vulkan backend.", RuntimeName);
             ImGui_ImplVulkan_Shutdown();
-            LOG_TRACE("Terminating Dear ImGUI GLFW backend.");
+            LOG_TRACE("({}) Terminating Dear ImGUI GLFW backend.", RuntimeName);
             ImGui_ImplGlfw_Shutdown();
 
             ImGui::DestroyContext();

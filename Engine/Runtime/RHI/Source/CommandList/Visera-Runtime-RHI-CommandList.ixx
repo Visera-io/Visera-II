@@ -37,6 +37,12 @@ export namespace Visera
     {
         static constexpr UInt64 CommandAlignment = 8;
 
+    public:
+        /// Target swap chain / window for execution. Set before Submit/Execute. Thread-safe.
+        FRHISwapChainID TargetSwapChain {nullptr};
+
+    private:
+
         struct alignas(8) FCommandHeader
         {
             ECommandType Type;       // Command type

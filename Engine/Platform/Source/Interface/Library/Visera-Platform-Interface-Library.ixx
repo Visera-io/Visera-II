@@ -6,30 +6,33 @@ export import Visera.Core.Types.Path;
 export import Visera.Core.Types.UUID;
 export import Visera.Core.Types.String;
 export import Visera.Core.Types.Pointer.Shared;
+export import Visera.Platform.Interface.Path;
+import Visera.Core.Types.Pointer.Unique;
 
-namespace Visera
+export namespace Visera
 {
-    export class VISERA_PLATFORM_API IPlatformLibrary
+    class VISERA_PLATFORM_API IPlatformLibrary
     {
     public:
         [[nodiscard]] virtual void*
         LoadFunction(const char* I_Name) const = 0;
 
-        [[nodiscard]] inline const FPath&
-        GetPath() const { return Path; }
+        /** Facade: returns normalized FPath for cross-platform use. */
+        [[nodiscard]] inline FPath
+        GetPath() const { return Path ? Path->ToPath() : FPath(FString()); }
 
         [[nodiscard]] inline Bool
         IsLoaded() const { return Handle != nullptr; }
 
         IPlatformLibrary() = delete;
-        IPlatformLibrary(const FPath& I_Path) : Path(I_Path) { }
+        explicit IPlatformLibrary(const IPlatformPath& I_Path) : Path(I_Path.Clone()) { }
         virtual ~IPlatformLibrary()
         {
             Handle = nullptr; // Always set Handle to nullptr to prevent double-free
         }
 
     protected:
-        FPath Path;
+        TUniquePtr<IPlatformPath> Path;
         void* Handle{nullptr};
     };
 }

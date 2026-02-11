@@ -7,39 +7,25 @@ module;
 #endif
 export module Visera.Platform.MacOS;
 #define VISERA_MODULE_NAME "Platform.MacOS"
-import Visera.Platform.Interface;
-import Visera.Platform.MacOS.Window;
-import Visera.Platform.MacOS.Library;
-import Visera.Core.Types.Path;
-import Visera.Core.Types.String;
-import Visera.Core.OS.FileSystem;
-import Visera.Core.Log;
+export import Visera.Platform.Interface;
+export import Visera.Platform.MacOS.Path;
+export import Visera.Platform.MacOS.Window;
+export import Visera.Platform.MacOS.Library;
+export import Visera.Platform.MacOS.FileSystem;
+       import Visera.Core.Types.Path;
+       import Visera.Core.Types.String;
+       import Visera.Core.OS.FileSystem;
+       import Visera.Core.Log;
 
 export namespace Visera
 {
-#if defined(VISERA_ON_APPLE_SYSTEM)
-    class VISERA_PLATFORM_API FMacOSPath : public IPlatformPath
-    {
-    public:
-        explicit FMacOSPath(const FPath& I_Path) : Native(I_Path.GetString().GetNative())
-        {
-            VISERA_ASSERT(I_Path.IsNormalized());
-        }
-        explicit FMacOSPath(std::string_view I_Native) : Native(I_Native) {}
-        [[nodiscard]] operator std::string_view() const noexcept { return Native; }
-        [[nodiscard]] FPath ToPath() const override { return FPath(FString(*this)); }
-
-    private:
-        std::string Native;
-    };
-
     class VISERA_PLATFORM_API FMacOSPlatform : public IPlatform
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path.ToPath()); }
+        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetExecutableDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
@@ -52,10 +38,15 @@ export namespace Visera
         GenerateUUID() const override;
         void
         SetCurrentThreadName(FStringView I_Name) const override;
+        [[nodiscard]] IPlatformFileSystem&
+        GetFileSystem() const override { return FileSystem; }
 
     public:
         FMacOSPlatform();
         ~FMacOSPlatform() override = default;
+
+    private:
+        mutable FMacOSPlatformFileSystem FileSystem;
     };
 
     FMacOSPlatform::FMacOSPlatform() : IPlatform{EPlatform::MacOS} {}
@@ -131,9 +122,8 @@ export namespace Visera
     void FMacOSPlatform::SetCurrentThreadName(FStringView I_Name) const
     {
         if (I_Name.IsEmpty()) { return; }
-        std::string Name(I_Name.GetNative());
-        if (Name.size() > 63) { Name.resize(63); }
-        (void)pthread_setname_np(Name.c_str());
+        FString Name(I_Name);
+        if (Name.GetSize() > 63) { Name.Resize(63); }
+        (void)pthread_setname_np(Name.Data());
     }
-#endif
 }

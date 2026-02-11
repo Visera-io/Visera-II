@@ -1,11 +1,11 @@
 module;
 #include <Visera-Platform.hpp>
-#if !defined(VISERA_OFFSCREEN_MODE)
+#include <atomic>
 #include <GLFW/glfw3.h>
-#endif
 export module Visera.Platform.Cross.Window.GLFW;
 #define VISERA_MODULE_NAME "Platform.Cross"
 import Visera.Platform.Interface.Window;
+import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -36,17 +36,26 @@ export namespace Visera
         ~FGLFWWindow() override;
 
     private:
-        GLFWwindow* Handle = nullptr;
+        static inline std::atomic<Int32> ContextCount{0};
+        GLFWwindow*                      Handle = nullptr;
     };
 
     FGLFWWindow::
     FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
     : IPlatformWindow(I_Title, I_Width, I_Height)
     {
-        glfwSetErrorCallback([](Int32 I_Error, const char* I_Message)
-        { ErrorCallback.Invoke(FString::Format("{} (error:{})", I_Message, I_Error)); });
+        if (ContextCount.fetch_add(1, std::memory_order_acq_rel) == 0)
+        {
+            glfwSetErrorCallback([](Int32 I_Error, const char* I_Message)
+            { LOG_ERROR("{} (error:{})", I_Message, I_Error); });
 
-        if (!glfwInit()) { ErrorCallback.Invoke("Failed to initialize GLFW!"); }
+            if (!glfwInit())
+            {
+                LOG_ERROR("Failed to initialize GLFW!");
+                ContextCount.fetch_sub(1, std::memory_order_acq_rel);
+                return;
+            }
+        }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE,	GLFW_TRUE);
@@ -58,7 +67,7 @@ export namespace Visera
             nullptr,
             nullptr);
         if (!Handle)
-        { ErrorCallback.Invoke("Failed to create the GLFW Window!"); return; }
+        { LOG_ERROR("Failed to create the GLFW Window!"); return; }
 
         glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
 
@@ -74,11 +83,11 @@ export namespace Visera
         // Make static callbacks able to reach this instance.
         glfwSetWindowUserPointer          (Handle, this);
 
-        glfwSetWindowContentScaleCallback (Handle, [](GLFWwindow*, Float I_ScaleX, Float I_ScaleY) { WindowContentScaleCallback.Invoke(I_ScaleX, I_ScaleY); });
-        glfwSetMouseButtonCallback        (Handle, [](GLFWwindow*, Int32 I_Button, Int32 I_Action, Int32 I_Mods) { MouseButtonCallback.Invoke(I_Button, I_Action, I_Mods); });
-        glfwSetCursorPosCallback          (Handle, [](GLFWwindow*, Double I_PosX, Double I_PosY) { CursorMoveCallback.Invoke(I_PosX, I_PosY); });
-        glfwSetScrollCallback             (Handle, [](GLFWwindow*, Double I_OffsetX, Double I_OffsetY) { ScrollCallback.Invoke(I_OffsetX, I_OffsetY); });
-        glfwSetKeyCallback                (Handle, [](GLFWwindow*, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) { KeyboardCallback.Invoke(I_Key, I_ScanCode, I_Action, I_Mods); });
+        glfwSetWindowContentScaleCallback (Handle, [](GLFWwindow* I_Window, Float I_ScaleX, Float I_ScaleY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->WindowContentScaleCallback.Invoke(I_ScaleX, I_ScaleY); });
+        glfwSetMouseButtonCallback        (Handle, [](GLFWwindow* I_Window, Int32 I_Button, Int32 I_Action, Int32 I_Mods) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->MouseButtonCallback.Invoke(I_Button, I_Action, I_Mods); });
+        glfwSetCursorPosCallback          (Handle, [](GLFWwindow* I_Window, Double I_PosX, Double I_PosY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->CursorMoveCallback.Invoke(I_PosX, I_PosY); });
+        glfwSetScrollCallback             (Handle, [](GLFWwindow* I_Window, Double I_OffsetX, Double I_OffsetY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->ScrollCallback.Invoke(I_OffsetX, I_OffsetY); });
+        glfwSetKeyCallback                (Handle, [](GLFWwindow* I_Window, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->KeyboardCallback.Invoke(I_Key, I_ScanCode, I_Action, I_Mods); });
         
         glfwSetFramebufferSizeCallback    (Handle, [](GLFWwindow* I_Window, Int32 I_Width, Int32 I_Height) {
             if (auto* Self = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window)))
@@ -86,7 +95,8 @@ export namespace Visera
                 Self->Width  = static_cast<UInt32>(I_Width);
                 Self->Height = static_cast<UInt32>(I_Height);
             }
-            WindowResizeCallback.Invoke(I_Width, I_Height);
+            static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))
+            ->WindowResizeCallback.Invoke(I_Width, I_Height);
         });
     }
 
@@ -107,7 +117,10 @@ export namespace Visera
             glfwDestroyWindow(Handle);
             Handle = nullptr;
         }
-        glfwTerminate();
+        if (ContextCount.fetch_sub(1, std::memory_order_relaxed) == 1)
+        {
+            glfwTerminate();
+        }
     }
 
     GLFWmonitor* FGLFWWindow::
@@ -116,7 +129,7 @@ export namespace Visera
         auto PrimaryMonitor = glfwGetPrimaryMonitor();
         if (!PrimaryMonitor)
         {
-            ErrorCallback.Invoke("Failed to get the primary monitor!");
+            LOG_ERROR("Failed to get the primary monitor!");
             // Try to get any available monitor
             Int32 Count{0};
             GLFWmonitor** Monitors = glfwGetMonitors(&Count);
@@ -124,11 +137,10 @@ export namespace Visera
             {
                 for (Int32 i = 0; i < Count; i++)
                 {
-                    ErrorCallback.Invoke(FString::Format("Monitor[{}]: {}",
-                        i, glfwGetMonitorName(Monitors[i])));
+                    LOG_ERROR("Monitor[{}]: {}", i, glfwGetMonitorName(Monitors[i]));
                 }
             }
-            else { ErrorCallback.Invoke("No monitors found!"); }
+            else { LOG_ERROR("No monitors found!"); }
         }
         return PrimaryMonitor;
     }

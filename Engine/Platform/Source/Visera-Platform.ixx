@@ -7,18 +7,26 @@ import Visera.Platform.Windows;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
 import Visera.Platform.MacOS;
 #endif
-import Visera.Platform.Interface;
-import Visera.Core.OS.FileSystem;
-import Visera.Core.Types.Optional;
+export import Visera.Core.Types.Path;
+       import Visera.Core.Types.Optional;
+       import Visera.Core.Containers.Array;
+       import Visera.Core.OS.FileSystem;
 
 export namespace Visera
 {
-    using FPlatformWindow  = IPlatformWindow;
-    using FPlatformLibrary = IPlatformLibrary;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-    using FPlatformPath = FWindowsPath;
+    using EPlatformIOStatus = EWindowsIOStatus;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-    using FPlatformPath = FMacOSPath;
+    using EPlatformIOStatus = EMacOSIOStatus;
+#endif
+    using FPlatformWindow   = IPlatformWindow;
+    using FPlatformLibrary  = IPlatformLibrary;
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+    using FPlatformPath       = FWindowsPath;
+    using FPlatformFileSystem = FWindowsPlatformFileSystem;
+#elif defined(VISERA_ON_APPLE_SYSTEM)
+    using FPlatformPath       = FMacOSPath;
+    using FPlatformFileSystem = FMacOSPlatformFileSystem;
 #endif
 
     class VISERA_PLATFORM_API FPlatform
@@ -46,6 +54,21 @@ export namespace Visera
         GetType() { return Get()->GetType(); }
         static inline void
         SetCurrentThreadName(FStringView I_Name) { Get()->SetCurrentThreadName(I_Name); }
+
+        [[nodiscard]] static inline Bool
+        Exists(const FPath& I_Path) { return Get()->GetFileSystem().Exists(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        CreateDirectories(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().CreateDirectories(MakePlatformPath(I_Path)))); }
+        [[nodiscard]] static inline TOptional<TArray<FByte>>
+        ReadFile(const FPath& I_Path) { return Get()->GetFileSystem().ReadFile(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        WriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().WriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        ReplaceFile(const FPath& I_Source, const FPath& I_Target) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().ReplaceFile(MakePlatformPath(I_Source), MakePlatformPath(I_Target)))); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        AtomicWriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().AtomicWriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
+        [[nodiscard]] static inline FTempFileResult
+        CreateTempFileNear(const FPath& I_Directory, const FPath& I_Prefix = FPath(".VTemp-")) { return Get()->GetFileSystem().CreateTempFileNear(MakePlatformPath(I_Directory), MakePlatformPath(I_Prefix)); }
 
     private:
         static inline TUniqueRef<IPlatform>
@@ -110,7 +133,7 @@ export namespace Visera
             if (!FFileSystem::Exists(Cache.GetValue()))
             {
                 const auto Error = FFileSystem::CreateDirectory(Cache.GetValue());
-                VISERA_ASSERT(Error == EIOError::None);
+                VISERA_ASSERT(Error == EIOStatus::Success);
             }
         }
         return Cache.GetValue();

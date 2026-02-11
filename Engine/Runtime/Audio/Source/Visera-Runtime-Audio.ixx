@@ -62,8 +62,8 @@ export namespace Visera
                 (
                 switch (Engine->GetType())
                 {
-                    case IAudioEngine::EType::Null : LOG_TRACE("Audio Engine: Null.");  break;
-                    case IAudioEngine::EType::Wwise: LOG_TRACE("Audio Engine: Wwise."); break;
+                    case IAudioEngine::EType::Null : LOG_TRACE("({}) Audio Engine: Null.", GetRuntimeName());  break;
+                    case IAudioEngine::EType::Wwise: LOG_TRACE("({}) Audio Engine: Wwise.", GetRuntimeName()); break;
                     default: LOG_FATAL("Unknown Audio Engine!");  break;
                 }
                 );
@@ -84,7 +84,7 @@ export namespace Visera
                 for (auto& [Name, PID] : Playlist)
                 {
                     if (AK::SoundEngine::UnregisterGameObj(PID) != AK_Success)
-                    { LOG_ERROR("Failed to unregister {} (id:{})!", Name, PID); }
+                    { LOG_ERROR("({}) Failed to unregister {} (id:{})!", GetRuntimeName(), Name, PID); }
                 }
                 delete Engine;
                 return True;

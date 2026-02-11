@@ -151,7 +151,7 @@ export namespace Visera
         const FName PathName{I_Path.GetString()};
         if (auto W = FindInCache(ImageCache, PathName); !W.IsExpired())
         {
-            LOG_DEBUG("LoadImage: {} (from cache).", I_Path);
+            LOG_DEBUG("({}) LoadImage: {} (from cache).", GetRuntimeName(), I_Path);
             return Cast<FImageAsset>(W.Lock());
         }
 
@@ -177,7 +177,7 @@ export namespace Visera
 
         auto NewAsset = MakeShared<FImageAsset>(std::move(NewImage));
         StoreInCache(ImageCache, PathName, Cast<IAsset>(NewAsset));
-        LOG_DEBUG("LoadImage: {}.", I_Path);
+        LOG_DEBUG("({}) LoadImage: {}.", GetRuntimeName(), I_Path);
         return NewAsset;
     }
 
@@ -216,7 +216,7 @@ export namespace Visera
 
         const Bool bSuccess = Wrapper->Export(ToSave, I_Path);
         if (bSuccess)
-        { LOG_DEBUG("Successfully saved image to: {}", I_Path); }
+        { LOG_DEBUG("({}) Successfully saved image to: {}", GetRuntimeName(), I_Path); }
         else
         { LOG_ERROR("Failed to save image to: {}", I_Path); }
         return bSuccess;
@@ -228,7 +228,7 @@ export namespace Visera
         const FName PathName{I_Path.GetString()};
         if (auto W = FindInCache(ShaderCache, PathName); !W.IsExpired())
         {
-            LOG_DEBUG("LoadShader: {} (from cache).", I_Path);
+            LOG_DEBUG("({}) LoadShader: {} (from cache).", GetRuntimeName(), I_Path);
             return Cast<FShaderAsset>(W.Lock());
         }
 
@@ -243,7 +243,7 @@ export namespace Visera
         { return nullptr; }
         auto NewShader = MakeShared<FShaderAsset>(FShader{std::move(SPIRVChunk), std::move(Refl)});
         StoreInCache(ShaderCache, PathName, Cast<IAsset>(NewShader));
-        LOG_DEBUG("LoadShader: {}.", I_Path);
+        LOG_DEBUG("({}) LoadShader: {}.", GetRuntimeName(), I_Path);
         return NewShader;
     }
 
@@ -261,7 +261,7 @@ export namespace Visera
 
         if (auto W = FindInCache(FontCache, CacheKey); !W.IsExpired())
         {
-            LOG_DEBUG("LoadFont: {} (face {}, size {}, from cache).", I_Path, I_FaceIndex, I_PixelSize);
+            LOG_DEBUG("({}) LoadFont: {} (face {}, size {}, from cache).", GetRuntimeName(), I_Path, I_FaceIndex, I_PixelSize);
             return Cast<FFontAsset>(W.Lock());
         }
 
@@ -295,7 +295,7 @@ export namespace Visera
         FFont Font(std::move(FontData), InfoOpt.GetValue());
         auto NewFace = MakeShared<FFontAsset>(std::move(Font), Face);
         StoreInCache(FontCache, CacheKey, Cast<IAsset>(NewFace));
-        LOG_DEBUG("LoadFont: {} (face {}, size {}).", I_Path, I_FaceIndex, I_PixelSize);
+        LOG_DEBUG("({}) LoadFont: {} (face {}, size {}).", GetRuntimeName(), I_Path, I_FaceIndex, I_PixelSize);
         return NewFace;
     }
 
@@ -306,7 +306,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
-        LOG_DEBUG("LoadImageFromCache: {}.", I_Name.GetName());
+        LOG_DEBUG("({}) LoadImageFromCache: {}.", GetRuntimeName(), I_Name.GetName());
         return Cast<FImageAsset>(S);
     }
 
@@ -317,7 +317,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
-        LOG_DEBUG("LoadShaderFromCache: {}.", I_Name.GetName());
+        LOG_DEBUG("({}) LoadShaderFromCache: {}.", GetRuntimeName(), I_Name.GetName());
         return Cast<FShaderAsset>(S);
     }
 
@@ -328,7 +328,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
-        LOG_DEBUG("LoadFontFromCache: {}.", I_Name.GetName());
+        LOG_DEBUG("({}) LoadFontFromCache: {}.", GetRuntimeName(), I_Name.GetName());
         return Cast<FFontAsset>(S);
     }
 }

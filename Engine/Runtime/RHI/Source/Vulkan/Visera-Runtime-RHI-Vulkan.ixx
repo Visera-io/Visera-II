@@ -1,9 +1,7 @@
 module;
 #include <Visera-RHI.hpp>
-#if !defined(VISERA_OFFSCREEN_MODE)
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#endif
 export module Visera.Runtime.RHI.Vulkan;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Vulkan.Common;
@@ -27,6 +25,7 @@ export import Visera.Runtime.RHI.Vulkan.Sync;
        import Visera.Core.Types.Path;
        import Visera.Core.Containers.Set;
        import Visera.Core.Containers.Array;
+       import Visera.Core.Containers.Map;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer.Shared;
        import Visera.Runtime.Window;
@@ -41,15 +40,14 @@ export namespace Visera
     {
         TSharedPtr<FWindow> Window; // Optional: empty for offscreen mode
         vk::PresentModeKHR SwapChainPresentMode {vk::PresentModeKHR::eFifo}; // FIFO = VSync; Mailbox = no VSync
+        Bool               bOffScreenMode {False}; // When true: no Surface, no SwapChain
+        FString            ApplicationName {"Runtime"}; // For Vulkan AppInfo and internal logs
+        UInt32             ApplicationVersion {vk::makeVersion(1, 0, 0)}; // From config
     };
 
     class VISERA_RUNTIME_API FVulkanDriver
     {
     public:
-        [[nodiscard]] inline Bool
-        WaitNextFrame(FVulkanSemaphore* I_SignalSemaphore);
-        [[nodiscard]] inline Bool
-        Present(FVulkanSemaphore* I_WaitSemaphore);
         template<Concepts::CommandBuffer CommandBufferType> void
         Submit(CommandBufferType*    I_CommandBuffer,
                FVulkanSemaphore*     I_WaitSemaphore,
@@ -104,16 +102,14 @@ export namespace Visera
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
     private:
-        vk::ApplicationInfo              AppInfo;
-        vk::raii::Context                Context;
+        FString               ApplicationName; // For Vulkan AppInfo and internal logs
+        UInt32                ApplicationVersion;
+        vk::raii::Context     Context;
 
         vk::raii::Instance               Instance        {nullptr};
         TArray<const char*>              InstanceLayers;
         TArray<const char*>              InstanceExtensions;
         vk::raii::DebugUtilsMessengerEXT DebugMessenger  {nullptr};
-#if !defined(VISERA_OFFSCREEN_MODE)
-        vk::raii::SurfaceKHR             Surface         {nullptr};
-#endif
         struct FGPU
         {
             vk::raii::PhysicalDevice Context {nullptr};
@@ -142,17 +138,18 @@ export namespace Visera
             vk::raii::Queue     ComputeQueue   {nullptr};
         }Device;
 
-        FVulkanLoader*        Loader        {nullptr};
-        FVulkanAllocator*     Allocator     {nullptr};
-        FVulkanPipelineCache* PipelineCache {nullptr};
+        FVulkanLoader*        Loader         {nullptr};
+        FVulkanAllocator*     Allocator      {nullptr};
+        FVulkanPipelineCache* PipelineCache  {nullptr};
+        Bool                  bOffScreenMode {False};
+        vk::PresentModeKHR    PresentMode    {vk::PresentModeKHR::eFifo};
 
-#if !defined(VISERA_OFFSCREEN_MODE)
         struct FSwapChain
         {
             vk::raii::SwapchainKHR          Context     {nullptr};
             vk::raii::SwapchainKHR          OldContext  {nullptr};
             vk::Extent2D                    Extent      {0U, 0U};
-            TArray<FVulkanSwapChainImage>   Images      {}; // SwapChain manages Images so do NOT use RAII here.
+            TArray<FVulkanSwapChainImage>   Images      {};
             TArray<FVulkanImageView>        ImageViews;
             UInt32                          Cursor      {0};
             vk::ImageUsageFlags             ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
@@ -169,16 +166,22 @@ export namespace Visera
             GetCurrentImageView() { return &ImageViews[Cursor]; }
             [[nodiscard]] inline FVulkanImage*
             GetCurrentImage()    { return &Images[Cursor]; }
-        }SwapChain;
-#endif
+        };
+
+        struct FVulkanSwapChainEntry
+        {
+            vk::raii::SurfaceKHR Surface {nullptr};
+            FSwapChain           SwapChain;
+        };
+        TMap<FWindow*, FVulkanSwapChainEntry*> SwapChainEntries;
 
         void inline CreateInstance();       void inline DestroyInstance();
         void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
-        void inline DestroySurface();
-        void inline PickPhysicalDevice();
-        void inline CreateDevice();         void inline DestroyDevice();
+        void inline PickPhysicalDevice(vk::SurfaceKHR I_Surface);
+        void inline CreateDevice(vk::SurfaceKHR I_Surface);  void inline DestroyDevice();
         void inline CreateAllocator();      void inline DestroyAllocator();
-        void inline CreateSwapChain();      void inline DestroySwapChain();
+        void CreateSwapChainForEntry(FSwapChain& I_SwapChain, vk::SurfaceKHR I_Surface);
+        void DestroySwapChainEntry(FSwapChain& I_SwapChain);
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
 
         inline FVulkanDriver*
@@ -222,44 +225,20 @@ export namespace Visera
         GetGPU() const { return GPU; }
         [[nodiscard]] inline const auto&
         GetDevice() const { return Device; }
-#if !defined(VISERA_OFFSCREEN_MODE)
-        [[nodiscard]] inline const auto&
-        GetSwapChain() const { return SwapChain; }
-        [[nodiscard]] inline auto&
-        GetSwapChain() { return SwapChain; }
+        [[nodiscard]] FSwapChain*
+        GetSwapChain(FWindow* I_Window);
+        [[nodiscard]] Bool
+        HasSwapChain(FWindow* I_Window) const;
         void
-        RecreateSwapChain(UInt32 I_Width, UInt32 I_Height, TSharedRef<FWindow> I_Window)
-        {
-            // When minimized, framebuffer size can become 0x0.
-            // Vulkan forbids creating a swapchain with zero extent, so skip until restored.
-            if (I_Width == 0 || I_Height == 0)
-            {
-                LOG_TRACE("Skip SwapChain recreation while minimized ({}x{}).",
-                          I_Width, I_Height);
-                return;
-            }
-            // Used as the base extent when the surface doesn't define currentExtent.
-            SwapChain.Extent = vk::Extent2D{ I_Width, I_Height };
-            WaitIdle();
-            DestroySwapChain();
-            DestroySurface();
-            
-            // Recreate surface
-#if !defined(VISERA_OFFSCREEN_MODE)
-            VkSurfaceKHR SurfaceHandle {nullptr};
-            if(glfwCreateWindowSurface(
-                *Instance,
-                static_cast<GLFWwindow*>(I_Window->GetPlatformWindow()->GetHandle()),
-                nullptr,
-                &SurfaceHandle) != VK_SUCCESS)
-            { LOG_FATAL("Failed to recreate Vulkan Surface!"); }
-
-            Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
-#endif
-            
-            CreateSwapChain();
-        }
-#endif
+        CreateSwapChain(FWindow* I_Window);
+        void
+        DestroySwapChain(FWindow* I_Window);
+        void
+        RecreateSwapChain(FWindow* I_Window, UInt32 I_Width, UInt32 I_Height);
+        [[nodiscard]] Bool
+        WaitNextFrame(FWindow* I_Window, FVulkanSemaphore* I_SignalSemaphore);
+        [[nodiscard]] Bool
+        Present(FWindow* I_Window, FVulkanSemaphore* I_WaitSemaphore);
     public:
         explicit FVulkanDriver(const FVulkanDriverCreateInfo& I_CreateInfo);
         ~FVulkanDriver();
@@ -286,41 +265,40 @@ export namespace Visera
         { LOG_FATAL("Failed to set VK_LAYER_PATH as {}!", VulkanLayerPath); }
 #endif
 #endif
-        AppInfo = vk::ApplicationInfo{}
-        .setPApplicationName    ("Visera")
-        .setApplicationVersion  (vk::makeVersion(1, 0, 0))
-        .setPEngineName         ("Visera")
-        .setEngineVersion       (vk::makeVersion(1, 0, 0))
-        .setApiVersion          (vk::ApiVersion13)
-        ;
+        ApplicationName = I_CreateInfo.ApplicationName;
+        ApplicationVersion = I_CreateInfo.ApplicationVersion;
+        bOffScreenMode = I_CreateInfo.bOffScreenMode;
         Loader = new FVulkanLoader();
         CreateInstance();
         Loader->Load(Instance);
         CreateDebugMessenger();
         
-        // Create surface if Window is provided
-#if !defined(VISERA_OFFSCREEN_MODE)
-        if (I_CreateInfo.Window)
+        PresentMode = I_CreateInfo.SwapChainPresentMode;
+        vk::SurfaceKHR SurfaceForDevice {nullptr};
+        if (!I_CreateInfo.bOffScreenMode && I_CreateInfo.Window)
         {
+            FWindow* Win = I_CreateInfo.Window.Get();
             VkSurfaceKHR SurfaceHandle {nullptr};
-            SwapChain.Extent = vk::Extent2D{ I_CreateInfo.Window->GetWidth(), I_CreateInfo.Window->GetHeight() };
-
-            if(glfwCreateWindowSurface(
-                *Instance,
-                static_cast<GLFWwindow*>(I_CreateInfo.Window->GetPlatformWindow()->GetHandle()),
-                nullptr,
-                &SurfaceHandle) != VK_SUCCESS)
+            if (glfwCreateWindowSurface(*Instance,
+                static_cast<GLFWwindow*>(Win->GetPlatformWindow()->GetHandle()),
+                nullptr, &SurfaceHandle) != VK_SUCCESS)
             { LOG_FATAL("Failed to create Vulkan Surface!"); }
-
-            Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
-            SwapChain.PresentMode = I_CreateInfo.SwapChainPresentMode;
+            SwapChainEntries[Win] = new FVulkanSwapChainEntry();
+            auto* Entry = SwapChainEntries[Win];
+            Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
+            Entry->SwapChain.Extent = vk::Extent2D{ Win->GetWidth(), Win->GetHeight() };
+            Entry->SwapChain.PresentMode = PresentMode;
+            SurfaceForDevice = *Entry->Surface;
         }
-#endif
         
-        CreateDevice();
+        CreateDevice(SurfaceForDevice);
         Loader->Load(Device.Context);
         CreateAllocator();
-        CreateSwapChain();
+        if (!I_CreateInfo.bOffScreenMode && I_CreateInfo.Window)
+        {
+                auto& Entry = SwapChainEntries[I_CreateInfo.Window.Get()];
+                CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
+        }
         CreatePipelineCache();
     };
 
@@ -328,12 +306,14 @@ export namespace Visera
     ~FVulkanDriver()
     {
         WaitIdle();
-        // Resources are owned by registry at RHI level, not by driver
         DestroyPipelineCache();
-        DestroySwapChain();
+        for (auto& [Window, Entry] : SwapChainEntries)
+        {
+            if (Entry) { DestroySwapChainEntry(Entry->SwapChain); delete Entry; }
+        }
+        SwapChainEntries.Clear();
         DestroyAllocator();
         DestroyDevice();
-        DestroySurface();
         DestroyDebugMessenger();
         DestroyInstance();
         delete Loader;
@@ -344,7 +324,7 @@ export namespace Visera
     {
         Allocator = new FVulkanAllocator
         (
-            AppInfo.apiVersion,
+            vk::ApiVersion13,
             Instance,
             GPU.Context,
             Device.Context
@@ -370,27 +350,81 @@ export namespace Visera
     }
 
     void FVulkanDriver::
-    DestroySurface()
-    {
-#if !defined(VISERA_OFFSCREEN_MODE)
-        Surface.clear();
-#endif
-    }
-
-    void FVulkanDriver::
     DestroyDevice()
     {
         Device.Context.clear();
     }
 
-    void FVulkanDriver::
-    DestroySwapChain()
+    FVulkanDriver::FSwapChain* FVulkanDriver::
+    GetSwapChain(FWindow* I_Window)
     {
-#if !defined(VISERA_OFFSCREEN_MODE)
-        SwapChain.ImageViews.Clear();
-        SwapChain.Images.Clear();
-        SwapChain.Context.clear();
-#endif
+        auto It = SwapChainEntries.Find(I_Window);
+        return (It != SwapChainEntries.end() && It->second) ? &It->second->SwapChain : nullptr;
+    }
+
+    Bool FVulkanDriver::
+    HasSwapChain(FWindow* I_Window) const
+    {
+        auto It = SwapChainEntries.Find(I_Window);
+
+        if (It != SwapChainEntries.end() && It->second)
+        { return It->second->SwapChain.Images.GetSize() > 0; }
+
+        return False;
+    }
+
+    void FVulkanDriver::
+    CreateSwapChain(FWindow* I_Window)
+    {
+        if (SwapChainEntries.Find(I_Window) != SwapChainEntries.end()) { return; }
+        VkSurfaceKHR SurfaceHandle {nullptr};
+        if (glfwCreateWindowSurface(*Instance,
+            static_cast<GLFWwindow*>(I_Window->GetPlatformWindow()->GetHandle()),
+            nullptr, &SurfaceHandle) != VK_SUCCESS)
+        { LOG_FATAL("Failed to create Vulkan Surface!"); }
+        SwapChainEntries[I_Window] = new FVulkanSwapChainEntry();
+        auto* Entry = SwapChainEntries[I_Window];
+        Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
+        Entry->SwapChain.Extent = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
+        Entry->SwapChain.PresentMode = PresentMode;
+        CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
+        LOG_DEBUG("({}) Created SwapChain for window (title:{})", ApplicationName, I_Window->GetTitle());
+    }
+
+    void FVulkanDriver::
+    DestroySwapChain(FWindow* I_Window)
+    {
+        auto It = SwapChainEntries.Find(I_Window);
+        if (It == SwapChainEntries.end() || !It->second) { return; }
+        WaitIdle();
+        DestroySwapChainEntry(It->second->SwapChain);
+        delete It->second;
+        SwapChainEntries.Erase(I_Window);
+    }
+
+    void FVulkanDriver::
+    RecreateSwapChain(FWindow* I_Window, UInt32 I_Width, UInt32 I_Height)
+    {
+        if (I_Width == 0 || I_Height == 0)
+        {
+            LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", ApplicationName, I_Width, I_Height);
+            return;
+        }
+        auto It = SwapChainEntries.Find(I_Window);
+        if (It == SwapChainEntries.end() || !It->second) { return; }
+        It->second->SwapChain.Extent = vk::Extent2D{ I_Width, I_Height };
+        WaitIdle();
+        DestroySwapChainEntry(It->second->SwapChain);
+        CreateSwapChainForEntry(It->second->SwapChain, *It->second->Surface);
+        LOG_DEBUG("({}) Recreated SwapChain ({}x{}) for window (title:{}).", ApplicationName, I_Width, I_Height, I_Window->GetTitle());
+    }
+
+    void FVulkanDriver::
+    DestroySwapChainEntry(FSwapChain& I_SwapChain)
+    {
+        I_SwapChain.ImageViews.Clear();
+        I_SwapChain.Images.Clear();
+        I_SwapChain.Context.clear();
     }
 
     void FVulkanDriver::
@@ -445,6 +479,12 @@ export namespace Visera
         Flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
 #endif
 
+        const auto AppInfo = vk::ApplicationInfo{}
+            .setPApplicationName    (ApplicationName.Data())
+            .setApplicationVersion  (ApplicationVersion)
+            .setPEngineName         ("Visera")
+            .setEngineVersion       (vk::makeVersion(1, 0, 0))
+            .setApiVersion          (vk::ApiVersion13);
         const auto CreateInfo = vk::InstanceCreateInfo{}
             .setPApplicationInfo        (&AppInfo)
             .setEnabledLayerCount       (InstanceLayers.GetSize())
@@ -485,7 +525,7 @@ export namespace Visera
 
 
     void FVulkanDriver::
-    PickPhysicalDevice()
+    PickPhysicalDevice(vk::SurfaceKHR I_Surface)
     {
         auto Result = Instance.enumeratePhysicalDevices();
         if (!Result.has_value())
@@ -535,7 +575,7 @@ export namespace Visera
             LOG_TRACE("Current GPU candidate: {}.", Candidate.Props.deviceName.data());
 
             LOG_TRACE("Checking Vulkan API Version...");
-            Bool bSuitable = Candidate.Props.apiVersion >= AppInfo.apiVersion;
+            Bool bSuitable = Candidate.Props.apiVersion >= vk::ApiVersion13;
             if (!bSuitable) { return False; }
 
             LOG_TRACE("Checking Queue Families...");
@@ -561,18 +601,18 @@ export namespace Visera
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
                 { GPU.TransferQueueFamilies.Insert(Idx); }
 
-#if !defined(VISERA_OFFSCREEN_MODE)
-                auto Result = Candidate.Dev.getSurfaceSupportKHR(Idx, *Surface);
+            if (!bOffScreenMode && I_Surface)
+            {
+                auto Result = Candidate.Dev.getSurfaceSupportKHR(Idx, I_Surface);
                 if (Result.has_value() && *Result)
                 { GPU.PresentQueueFamilies.Insert(Idx); }
-#endif
+            }
             }
             bSuitable = !GPU.GraphicsQueueFamilies.IsEmpty() &&
                         !GPU.ComputeQueueFamilies.IsEmpty()  &&
                         !GPU.TransferQueueFamilies.IsEmpty();
-#if !defined(VISERA_OFFSCREEN_MODE)
-            bSuitable &= !GPU.PresentQueueFamilies.IsEmpty();
-#endif
+            if (!bOffScreenMode)
+            { bSuitable = bSuitable && !GPU.PresentQueueFamilies.IsEmpty(); }
             if (!bSuitable) { return False; }
 
             LOG_TRACE("Checking Extension supporting...");
@@ -585,7 +625,7 @@ export namespace Visera
             TSet<FStringView> ExtSet;
             for (const auto& Ext : Extensions)
             {
-                ExtSet.Emplace(FStringView(Ext.extensionName.data()));
+                ExtSet.Emplace(Ext.extensionName.data());
             }
 
             // Check each required extension with O(1) lookup
@@ -616,14 +656,14 @@ export namespace Visera
         GPU.DescriptorIndexingProperties = std::move(Properties2.get<vk::PhysicalDeviceDescriptorIndexingProperties>());
         GPU.Features    = GPU.Context.getFeatures();
         GPU.Features2   = GPU.Context.getFeatures2();
-        LOG_INFO("Selected GPU: {}", GPU.Properties.deviceName.data());
+        LOG_INFO("({}) Selected GPU: {}", ApplicationName, GPU.Properties.deviceName.data());
     }
 
     void FVulkanDriver::
-    CreateDevice()
+    CreateDevice(vk::SurfaceKHR I_Surface)
     {
         CollectDeviceLayersAndExtensions();
-        PickPhysicalDevice();
+        PickPhysicalDevice(I_Surface);
 
         // ---- Decide queue families and queue indices (prefer same family, different queue index) ----
         struct FQueueSelection
@@ -836,10 +876,11 @@ export namespace Visera
         Device.TransferQueue = Device.Context.getQueue(TransferQueueCandidate.Family, TransferQueueCandidate.Index);
         Device.ComputeQueue  = Device.Context.getQueue(ComputeQueueCandidate.Family,  ComputeQueueCandidate.Index);
 
-        LOG_DEBUG("Selected Device Queues: "
+        LOG_DEBUG("({}) Selected Device Queues: "
                   "Graphics(family:{}, idx:{}) "
                   "Transfer(family:{}, idx:{}) "
                   "Compute(family:{}, idx:{})",
+                  ApplicationName,
                   GraphicsQueueCandidate.Family, GraphicsQueueCandidate.Index,
                   TransferQueueCandidate.Family, TransferQueueCandidate.Index,
                   ComputeQueueCandidate.Family,  ComputeQueueCandidate.Index);
@@ -870,240 +911,218 @@ export namespace Visera
 #endif
         ;
 
-#if !defined(VISERA_OFFSCREEN_MODE)
-        if (!glfwVulkanSupported())
-        { LOG_FATAL("The Window does NOT support Vulkan!"); }
-
-        UInt32 WindowExtensionCount = 0;
-        auto WindowExtensions = glfwGetRequiredInstanceExtensions(&WindowExtensionCount);
-
-        for (UInt32 Idx = 0; Idx < WindowExtensionCount; ++Idx)
+        if (!bOffScreenMode)
         {
-            this->AddInstanceExtension(WindowExtensions[Idx]);
+            if (!glfwVulkanSupported())
+            { LOG_FATAL("The Window does NOT support Vulkan!"); }
+
+            UInt32 WindowExtensionCount = 0;
+            auto WindowExtensions = glfwGetRequiredInstanceExtensions(&WindowExtensionCount);
+
+            for (UInt32 Idx = 0; Idx < WindowExtensionCount; ++Idx)
+            {
+                this->AddInstanceExtension(WindowExtensions[Idx]);
+            }
         }
-#endif
     }
 
     void FVulkanDriver::
-    CreateSwapChain()
+    CreateSwapChainForEntry(FSwapChain& I_SwapChain, vk::SurfaceKHR I_Surface)
     {
-#if !defined(VISERA_OFFSCREEN_MODE)
-        // Check Present Mode
         {
             Bool bFoundRequiredPresentMode {False};
-            auto Result = GPU.Context.getSurfacePresentModesKHR(Surface);
+            auto Result = GPU.Context.getSurfacePresentModesKHR(I_Surface);
             if (!Result.has_value())
             { LOG_FATAL("Failed to get the required Present Mode!"); }
 
             for (const auto PresentModes = std::move(*Result);
                  const auto& PresentMode : PresentModes)
             {
-                if (PresentMode == SwapChain.PresentMode)
+                if (PresentMode == I_SwapChain.PresentMode)
                 { bFoundRequiredPresentMode = True; break; }
             }
             if (!bFoundRequiredPresentMode)
             {
-                LOG_WARN("Failed to find required present mode {} for SwapChain!"
-                         " -- Using FIFO by default.", SwapChain.PresentMode);
-                SwapChain.PresentMode = vk::PresentModeKHR::eFifo;
+                LOG_WARN("Failed to find required present mode for SwapChain! Using FIFO by default.");
+                I_SwapChain.PresentMode = vk::PresentModeKHR::eFifo;
             }
         }
 
-        // Check Image Format and Color Space
         {
             Bool bFoundRequiredFormatAndColorSpace {False};
-            auto Result = GPU.Context.getSurfaceFormatsKHR(Surface);
+            auto Result = GPU.Context.getSurfaceFormatsKHR(I_Surface);
             if (!Result.has_value())
             { LOG_FATAL("Failed to get the required format or color space!"); }
 
             for (const auto AvailableFormats = std::move(*Result);
                  const auto& AvailableFormat : AvailableFormats)
             {
-                if (AvailableFormat.format     == SwapChain.ImageFormat &&
-                    AvailableFormat.colorSpace == SwapChain.ColorSpace)
+                if (AvailableFormat.format     == I_SwapChain.ImageFormat &&
+                    AvailableFormat.colorSpace == I_SwapChain.ColorSpace)
                 { bFoundRequiredFormatAndColorSpace = True; break; }
             }
             if (!bFoundRequiredFormatAndColorSpace)
             { LOG_FATAL("Failed to find required format and color space for swapchain images!"); }
-
         }
 
-        auto Result = GPU.Context.getSurfaceCapabilitiesKHR(Surface);
+        auto Result = GPU.Context.getSurfaceCapabilitiesKHR(I_Surface);
         if (!Result.has_value())
         { LOG_FATAL("Failed to get the required surface capabilities!"); }
 
         const auto SurfaceCapabilities = std::move(*Result);
-        // Swapchain Image Extent
         {
             if (SurfaceCapabilities.currentExtent.width != Math::UpperBound<UInt32>())
             {
-                SwapChain.Extent = SurfaceCapabilities.currentExtent;
+                I_SwapChain.Extent = SurfaceCapabilities.currentExtent;
             }
             else
             {
-                // Some platforms leave currentExtent undefined; use framebuffer size as the base.
-                // Window pointer should be passed from FRHI
-                // SwapChain.Extent will be set when surface is created in constructor
-                Math::Clamp(&SwapChain.Extent.width,
+                Math::Clamp(&I_SwapChain.Extent.width,
                             SurfaceCapabilities.minImageExtent.width,
                             SurfaceCapabilities.maxImageExtent.width);
-                Math::Clamp(&SwapChain.Extent.height,
+                Math::Clamp(&I_SwapChain.Extent.height,
                             SurfaceCapabilities.minImageExtent.height,
                             SurfaceCapabilities.maxImageExtent.height);
             }
         }
 
-        // When minimized, framebuffer size can be 0x0. Vulkan forbids zero swapchain extent.
-        if (SwapChain.Extent.width == 0 || SwapChain.Extent.height == 0)
+        if (I_SwapChain.Extent.width == 0 || I_SwapChain.Extent.height == 0)
         {
-            LOG_TRACE("Skip SwapChain creation while minimized (extent:[{},{}]).",
-                      SwapChain.Extent.width, SwapChain.Extent.height);
+            LOG_TRACE("({}) Skip SwapChain creation while minimized (extent:[{},{}]).",
+                      ApplicationName, I_SwapChain.Extent.width, I_SwapChain.Extent.height);
             return;
         }
 
-        SwapChain.MinimalImageCount = Math::Max(SurfaceCapabilities.minImageCount,
-                                                SwapChain.MinimalImageCount);
+        I_SwapChain.MinimalImageCount = Math::Max(SurfaceCapabilities.minImageCount,
+                                                I_SwapChain.MinimalImageCount);
 
-        const auto CreateInfo =  vk::SwapchainCreateInfoKHR{}
-            .setSurface         (Surface)
-            .setMinImageCount   (SwapChain.MinimalImageCount)
-            .setImageFormat     (SwapChain.ImageFormat)
-            .setImageColorSpace (SwapChain.ColorSpace)
-            .setImageExtent     (SwapChain.Extent)
-            .setImageUsage      (SwapChain.ImageUsage)
-            .setImageSharingMode(SwapChain.SharingMode)
+        const auto CreateInfo = vk::SwapchainCreateInfoKHR{}
+            .setSurface         (I_Surface)
+            .setMinImageCount   (I_SwapChain.MinimalImageCount)
+            .setImageFormat     (I_SwapChain.ImageFormat)
+            .setImageColorSpace (I_SwapChain.ColorSpace)
+            .setImageExtent     (I_SwapChain.Extent)
+            .setImageUsage      (I_SwapChain.ImageUsage)
+            .setImageSharingMode(I_SwapChain.SharingMode)
             .setImageArrayLayers(1U)
             .setPreTransform    (SurfaceCapabilities.currentTransform)
-            .setCompositeAlpha  (SwapChain.CompositeAlpha)
-            .setPresentMode     (SwapChain.PresentMode)
-            .setClipped         (SwapChain.bClipped)
+            .setCompositeAlpha  (I_SwapChain.CompositeAlpha)
+            .setPresentMode     (I_SwapChain.PresentMode)
+            .setClipped         (I_SwapChain.bClipped)
         ;
-        // Create Swapchain
         {
-            auto Result = Device.Context.createSwapchainKHR(CreateInfo);
-            if (!Result.has_value())
+            auto R = Device.Context.createSwapchainKHR(CreateInfo);
+            if (!R.has_value())
             { LOG_FATAL("Failed to create Vulkan SwapChain!"); }
             else
-            { SwapChain.Context = std::move(*Result); }
+            { I_SwapChain.Context = std::move(*R); }
         }
 
-        LOG_TRACE("Created a SwapChain (extent:[{},{}]).",
-                   SwapChain.Extent.width, SwapChain.Extent.height);
+        LOG_TRACE("({}) Created a SwapChain (extent:[{},{}]).",
+                   ApplicationName, I_SwapChain.Extent.width, I_SwapChain.Extent.height);
 
-        // Retrieve Swapchain Images
         {
-            auto Result = SwapChain.Context.getImages();
-            if (!Result.has_value())
+            auto R = I_SwapChain.Context.getImages();
+            if (!R.has_value())
             { LOG_FATAL("Failed to retrieve Vulkan Swapchain Images!"); }
 
-            auto SwapChainImages = std::move(*Result);
-            SwapChain.Images.Clear();
-            SwapChain.Images.Reserve(SwapChainImages.size());
+            auto SwapChainImages = std::move(*R);
+            I_SwapChain.Images.Clear();
+            I_SwapChain.Images.Reserve(SwapChainImages.size());
             for (UInt8 Idx = 0; Idx < SwapChainImages.size(); ++Idx)
             {
-                SwapChain.Images.EmplaceBack(
+                I_SwapChain.Images.EmplaceBack(
                     Allocator,
                     SwapChainImages[Idx],
                     vk::ImageType::e2D,
-                    vk::Extent3D{SwapChain.Extent.width, SwapChain.Extent.height, 1},
-                    SwapChain.ImageFormat,
-                    SwapChain.ImageUsage);
+                    vk::Extent3D{I_SwapChain.Extent.width, I_SwapChain.Extent.height, 1},
+                    I_SwapChain.ImageFormat,
+                    I_SwapChain.ImageUsage);
             }
         }
-        // Create Image Views
-        for (auto& Image : SwapChain.Images)
+        for (auto& Image : I_SwapChain.Images)
         {
-            SwapChain.ImageViews.EmplaceBack(
-                &Image,  // Direct pointer to swapchain image
+            I_SwapChain.ImageViews.EmplaceBack(
+                &Image,
                 vk::ImageViewType::e2D,
                 vk::ImageAspectFlagBits::eColor);
         }
-#endif
     }
 
     void FVulkanDriver::
     CollectDeviceLayersAndExtensions()
     {
         this->AddDeviceExtension(vk::EXTDescriptorIndexingExtensionName)
-            ->AddDeviceExtension(vk::KHRMaintenance6ExtensionName) // BindDescriptorSets2() [TODO]: Remove in Vulkan1.4
+            ->AddDeviceExtension(vk::KHRMaintenance6ExtensionName); // BindDescriptorSets2() [TODO]: Remove in Vulkan1.4
 #if defined(VISERA_ON_APPLE_SYSTEM)
-            ->AddDeviceExtension("VK_KHR_portability_subset")
+        this->AddDeviceExtension("VK_KHR_portability_subset");
 #endif
-#if !defined(VISERA_OFFSCREEN_MODE)
-            ->AddDeviceExtension(vk::KHRSwapchainExtensionName)
-#endif
-        ;
+        if (!bOffScreenMode)
+        { this->AddDeviceExtension(vk::KHRSwapchainExtensionName); }
     }
 
     Bool FVulkanDriver::
-    WaitNextFrame(FVulkanSemaphore* I_SignalSemaphore)
+    WaitNextFrame(FWindow* I_Window, FVulkanSemaphore* I_SignalSemaphore)
     {
-#if !defined(VISERA_OFFSCREEN_MODE)
+        if (bOffScreenMode) { return True; }
+        auto* SC = GetSwapChain(I_Window);
+        if (!SC) { return False; }
         VISERA_ASSERT(I_SignalSemaphore != nullptr);
-        // Use dispatcher call to avoid Vulkan-Hpp resultCheck assert on eErrorOutOfDateKHR.
         const auto AcquireInfo = vk::AcquireNextImageInfoKHR{}
-            .setSwapchain   (SwapChain.Context)
+            .setSwapchain   (SC->Context)
             .setTimeout     (Math::UpperBound<UInt64>())
             .setSemaphore   (I_SignalSemaphore->GetHandle())
             .setFence       (nullptr)
             .setDeviceMask  (1)
         ;
-
         uint32_t NextImageIndex = 0;
         const auto RawResult = static_cast<vk::Result>(
             Device.Context.getDispatcher()->vkAcquireNextImage2KHR(
                 static_cast<VkDevice>(*Device.Context),
                 reinterpret_cast<const VkAcquireNextImageInfoKHR*>(&AcquireInfo),
                 &NextImageIndex));
-
         if (RawResult == vk::Result::eSuccess || RawResult == vk::Result::eSuboptimalKHR)
         {
-            SwapChain.Cursor = NextImageIndex;
+            SC->Cursor = NextImageIndex;
             return True;
         }
         if (RawResult == vk::Result::eErrorOutOfDateKHR)
         {
-            LOG_TRACE("AcquireNextImage returned {}.", RawResult);
+            LOG_TRACE("({}) AcquireNextImage returned {}.", ApplicationName, RawResult);
             return False;
         }
-        LOG_ERROR("Failed to acquire the next Vulkan SwapChain Image! VkResult={}", RawResult);
-#else
-        LOG_WARN("NOT need to call this in the off-screen mode!");
-#endif
+        LOG_ERROR("({}) Failed to acquire the next Vulkan SwapChain Image! VkResult={}", ApplicationName, RawResult);
         return False;
     }
 
     Bool FVulkanDriver::
-    Present(FVulkanSemaphore* I_WaitSemaphore)
+    Present(FWindow* I_Window, FVulkanSemaphore* I_WaitSemaphore)
     {
-#if !defined(VISERA_OFFSCREEN_MODE)
+        if (bOffScreenMode) { return True; }
+        auto* SC = GetSwapChain(I_Window);
+        if (!SC) { return False; }
         VISERA_ASSERT(I_WaitSemaphore != nullptr);
         auto WaitSemaphore = I_WaitSemaphore->GetHandle();
         const auto PresentInfo = vk::PresentInfoKHR{}
             .setWaitSemaphoreCount  (1)
             .setPWaitSemaphores     (&WaitSemaphore)
             .setSwapchainCount      (1)
-            .setPSwapchains         (&(*SwapChain.Context))
-            .setPImageIndices       (&SwapChain.Cursor)
-            .setPResults            (nullptr) // NOT necessary if using a single swapchain.
+            .setPSwapchains         (&(*SC->Context))
+            .setPImageIndices       (&SC->Cursor)
+            .setPResults            (nullptr)
         ;
-        // Use dispatcher call to avoid Vulkan-Hpp resultCheck assert on eErrorOutOfDateKHR.
         const auto Result = static_cast<vk::Result>(
             Device.GraphicsQueue.getDispatcher()->vkQueuePresentKHR(*Device.GraphicsQueue, &(*PresentInfo)));
-
         if (Result == vk::Result::eErrorOutOfDateKHR)
         {
-            LOG_TRACE("Present returned {}.", Result);
+            LOG_TRACE("({}) Present returned {}.", ApplicationName, Result);
             return False;
         }
         if (Result != vk::Result::eSuccess && Result != vk::Result::eSuboptimalKHR)
         {
-            LOG_ERROR("Present failed with VkResult {}", Result);
+            LOG_ERROR("({}) Present failed with VkResult {}", ApplicationName, Result);
             return False;
         }
-#else
-
-#endif
         return True;
     }
 
@@ -1294,11 +1313,11 @@ export namespace Visera
     void FVulkanDriver::
     CreatePipelineCache()
     {
-        PipelineCache = new FVulkanPipelineCache(
-            GPU.Context,
-            Device.Context,
-            FPlatform::GetCacheDirectory() / FPath{"VulkanPipelines.cache"}
-        );
+        FString UuidStr;
+        for (size_t i = 0; i < vk::UuidSize; ++i)
+        { UuidStr += FString::Format("{:02x}", static_cast<UInt32>(GPU.Properties.pipelineCacheUUID[i])); }
+        const FPath CachePath = FPlatform::GetCacheDirectory() / FPath{FString::Format("RHIPipelines.{}.cache", UuidStr)};
+        PipelineCache = new FVulkanPipelineCache(GPU.Context, Device.Context, CachePath);
     }
 
     FVulkanDescriptorSetLayout FVulkanDriver::

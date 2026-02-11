@@ -20,19 +20,17 @@ export namespace Visera
             const FByte* Icon128x128  = nullptr;
             const FByte* Icon256x256  = nullptr;
         };
-        /* void(FStringView I_Message) */ static inline TUnicastDelegate<void(FStringView)>
-        ErrorCallback;
-        /* void(Float I_ScaleX, Float I_ScaleY) */ static inline TUnicastDelegate<void(Float, Float)>
+        /* void(Float I_ScaleX, Float I_ScaleY) */ TUnicastDelegate<void(Float, Float)>
         WindowContentScaleCallback;
-        /* void(Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) */ static inline TUnicastDelegate<void(Int32, Int32, Int32, Int32)>
+        /* void(Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) */ TUnicastDelegate<void(Int32, Int32, Int32, Int32)>
         KeyboardCallback;
-        /* void(Int32 I_Button, Int32 I_Action, Int32 I_Mods) */ static inline TUnicastDelegate<void(Int32, Int32, Int32)>
+        /* void(Int32 I_Button, Int32 I_Action, Int32 I_Mods) */ TUnicastDelegate<void(Int32, Int32, Int32)>
         MouseButtonCallback;
-        /* void(Double I_PosX, Double I_PosY) */ static inline TUnicastDelegate<void(Double, Double)>
+        /* void(Double I_PosX, Double I_PosY) */ TUnicastDelegate<void(Double, Double)>
         CursorMoveCallback;
-        /* void(Double I_OffsetX,  Double I_OffsetY) */ static inline TUnicastDelegate<void(Double, Double)>
+        /* void(Double I_OffsetX,  Double I_OffsetY) */ TUnicastDelegate<void(Double, Double)>
         ScrollCallback;
-        /* void(Int32 I_Width, Int32 I_Height) */ static inline TUnicastDelegate<void(Int32, Int32)>
+        /* void(Int32 I_Width, Int32 I_Height) */ TUnicastDelegate<void(Int32, Int32)>
         WindowResizeCallback;
 
     public:

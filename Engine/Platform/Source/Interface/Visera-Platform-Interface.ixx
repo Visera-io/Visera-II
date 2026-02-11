@@ -5,6 +5,7 @@ export module Visera.Platform.Interface;
 export import Visera.Platform.Interface.Library;
 export import Visera.Platform.Interface.Path;
 export import Visera.Platform.Interface.Window;
+export import Visera.Platform.Interface.FileSystem;
 import Visera.Core.Types.Pointer.Unique;
 
 export namespace Visera
@@ -36,6 +37,8 @@ export namespace Visera
         GenerateUUID() const = 0;
         virtual void
         SetCurrentThreadName(FStringView I_Name) const = 0;
+        [[nodiscard]] virtual IPlatformFileSystem&
+        GetFileSystem() const = 0;
         [[nodiscard]] inline EPlatform
         GetType() const { return Type; }
 

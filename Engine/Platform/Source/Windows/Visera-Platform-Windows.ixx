@@ -8,61 +8,26 @@ module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform.Windows;
 #define VISERA_MODULE_NAME "Platform.Windows"
-import Visera.Platform.Interface;
-import Visera.Platform.Windows.Window;
-import Visera.Platform.Windows.Library;
-import Visera.Core.Types.Path;
-import Visera.Core.Types.String;
+export import Visera.Platform.Windows.Path;
+export import Visera.Platform.Interface;
+export import Visera.Platform.Windows.FileSystem;
+export import Visera.Platform.Windows.Window;
+export import Visera.Platform.Windows.Library;
+       import Visera.Core.Types.Path;
+       import Visera.Core.Types.String;
+       import Visera.Core.Log;
 
-namespace Visera
+export namespace Visera
 {
-    export class VISERA_PLATFORM_API FWindowsPath : public IPlatformPath
-    {
-    public:
-        explicit FWindowsPath(const FPath& I_Path);
-        explicit FWindowsPath(std::wstring_view I_Native) : Native(I_Native) {}
-        [[nodiscard]] operator std::wstring_view() const noexcept { return Native; }
-        [[nodiscard]] FPath ToPath() const override;
-
-    private:
-        std::wstring Native;
-    };
-
-    FWindowsPath::FWindowsPath(const FPath& I_Path)
-    {
-        VISERA_ASSERT(I_Path.IsNormalized());
-        const std::string_view Utf8 = I_Path.GetString().GetNative();
-        if (Utf8.empty()) return;
-        const int WideLength = MultiByteToWideChar(CP_UTF8, 0, Utf8.data(), static_cast<int>(Utf8.size()), nullptr, 0);
-        if (WideLength <= 0) return;
-        Native.resize(static_cast<size_t>(WideLength));
-        MultiByteToWideChar(CP_UTF8, 0, Utf8.data(), static_cast<int>(Utf8.size()), Native.data(), WideLength);
-        for (wchar_t& Ch : Native)
-            if (Ch == L'/') Ch = L'\\';
-    }
-
-    FPath FWindowsPath::ToPath() const
-    {
-        const std::wstring_view Wide = *this;
-        if (Wide.empty()) return FPath(FString());
-        const int Utf8Length = WideCharToMultiByte(CP_UTF8, 0, Wide.data(), static_cast<int>(Wide.size()), nullptr, 0, nullptr, nullptr);
-        if (Utf8Length <= 0) return FPath(FString());
-        std::string Utf8(static_cast<size_t>(Utf8Length), '\0');
-        WideCharToMultiByte(CP_UTF8, 0, Wide.data(), static_cast<int>(Wide.size()), Utf8.data(), Utf8Length, nullptr, nullptr);
-        for (char& Ch : Utf8)
-            if (Ch == '\\') Ch = '/';
-        FPath Path(FString(std::move(Utf8)));
-        Path.Normalize();
-        return Path;
-    }
-
-    export class VISERA_PLATFORM_API FWindowsPlatform : public IPlatform
+    class VISERA_PLATFORM_API FWindowsPlatform : public IPlatform
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
         CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
-        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path.ToPath()); }
+        LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
+        [[nodiscard]] IPlatformFileSystem&
+        GetFileSystem() const override { return FileSystem; }
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetExecutableDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
@@ -79,6 +44,9 @@ namespace Visera
     public:
         FWindowsPlatform();
         ~FWindowsPlatform() override = default;
+
+    private:
+        mutable FWindowsPlatformFileSystem FileSystem;
     };
 
     FWindowsPlatform::FWindowsPlatform()
@@ -172,12 +140,13 @@ namespace Visera
     void FWindowsPlatform::SetCurrentThreadName(FStringView I_Name) const
     {
         if (I_Name.IsEmpty()) { return; }
-        const std::string_view Sv = I_Name.GetNative();
-        const int WideLen = MultiByteToWideChar(CP_UTF8, 0, Sv.data(), static_cast<int>(Sv.size()), nullptr, 0);
+        const int WideLen = MultiByteToWideChar(CP_UTF8, 0, I_Name.Data(), static_cast<int>(I_Name.GetSize()), nullptr, 0);
         if (WideLen <= 0) { return; }
         std::wstring WideBuf(static_cast<std::size_t>(WideLen + 1), L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, Sv.data(), static_cast<int>(Sv.size()), WideBuf.data(), WideLen + 1);
+        MultiByteToWideChar(CP_UTF8, 0, I_Name.Data(), static_cast<int>(I_Name.GetSize()), WideBuf.data(), WideLen + 1);
         WideBuf[static_cast<std::size_t>(WideLen)] = L'\0';
-        SetThreadDescription(GetCurrentThread(), WideBuf.data());
+
+        if (auto Result = SetThreadDescription(GetCurrentThread(), WideBuf.data()); FAILED(Result))
+        { LOG_WARN("SetThreadDescription failed: HRESULT=0x{:08X}", static_cast<UInt32>(Result)); }
     }
 }

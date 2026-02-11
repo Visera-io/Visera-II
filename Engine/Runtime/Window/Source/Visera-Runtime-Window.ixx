@@ -2,7 +2,7 @@ module;
 #include <Visera-Window.hpp>
 #include <VISERA_ICONS.inl>
 export module Visera.Runtime.Window;
-#define VISERA_MODULE_NAME "Runtime.Windo"
+#define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Global;
 import Visera.Platform;
 import Visera.Core.Types.String;
@@ -14,11 +14,13 @@ export namespace Visera
     class VISERA_RUNTIME_API FWindow : public IGlobalService
     {
     public:
-        TMulticastDelegate<UInt32, UInt32>
+        TMulticastDelegate<FWindow*>
         OnResized;
 
         [[nodiscard]] Bool
         ShouldClose() const { return PlatformWindow->ShouldClose(); }
+        [[nodiscard]] FStringView
+        GetTitle()  const { return PlatformWindow->GetTitle(); }
         [[nodiscard]] UInt32
         GetWidth()  const { return PlatformWindow->GetWidth(); }
         [[nodiscard]] UInt32
@@ -57,9 +59,9 @@ export namespace Visera
                 PlatformWindow = FPlatform::CreateWindow(Title, Width, Height);
                 if (!PlatformWindow) { return False; }
 
-                if (!FPlatformWindow::WindowResizeCallback.TryBind([this](UInt32 I_NewWidth, UInt32 I_NewHeight)
+                if (!PlatformWindow->WindowResizeCallback.TryBind([this](Int32 /*I_NewWidth*/, Int32 /*I_NewHeight*/)
                 {
-                    OnResized.Broadcast(I_NewWidth, I_NewHeight);
+                    OnResized.Broadcast(this);
                 })) { LOG_FATAL("Failed to bind resize window event!"); }
 
                 //[TODO]: App Icon

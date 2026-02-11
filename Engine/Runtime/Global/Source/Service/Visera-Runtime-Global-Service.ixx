@@ -91,6 +91,9 @@ export namespace Visera
         [[nodiscard]] const TSet<FName>&
         GetDependencies() const { return Dependencies; }
 
+        [[nodiscard]] FString
+        GetRuntimeName() const { return Config.GetString("Runtime", "Unknown"); }
+
         // Public virtual SetStatus: allows subclasses to override state transition behavior
         // Default implementation calls corresponding OnXXX delegates based on the new status
         virtual Bool SetStatus(EStatus I_NewStatus)

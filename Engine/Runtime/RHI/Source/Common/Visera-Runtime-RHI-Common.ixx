@@ -11,6 +11,9 @@ export import Visera.Core.Traits.Flags;
 
 export namespace Visera
 {
+    /// Opaque swap chain target (FWindow*). Set on FRHICommandList before Submit/Execute.
+    using FRHISwapChainID = void*;
+
     enum class ERHIFormat : UInt32
     {
         R8G8B8_sRGB         = static_cast<UInt32>(vk::Format::eR8G8B8Srgb),

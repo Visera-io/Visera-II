@@ -4,6 +4,7 @@ module;
 export module Visera.Platform.Windows.Library;
 #define VISERA_MODULE_NAME "Platform.Windows"
 import Visera.Platform.Interface.Library;
+import Visera.Platform.Windows.Path;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.String;
 import Visera.Core.Log;
@@ -17,7 +18,7 @@ namespace Visera
         LoadFunction(const char* I_Name) const override;
 
         FWindowsLibrary() = delete;
-        FWindowsLibrary(const FPath& I_Path);
+        explicit FWindowsLibrary(const IPlatformPath& I_Path);
         ~FWindowsLibrary() override;
     };
 
@@ -31,65 +32,40 @@ namespace Visera
             if (!Function)
             {
                 DWORD Error = GetLastError();
-                LOG_ERROR("Failed to load the function '{}' from library {} -- Windows Error Code: {}", I_Name, Path, Error);
+                LOG_ERROR("Failed to load the function '{}' from library {} -- Windows Error Code: {}", I_Name, GetPath(), Error);
             }
         }
-        else 
-        {
-            LOG_ERROR("Cannot load function '{}' from an unloaded library {}!", I_Name, Path);
-        }
+        else { LOG_ERROR("Cannot load function '{}' from an unloaded library {}!", I_Name, GetPath()); }
 
         return Function;
     }
 
     FWindowsLibrary::
-    FWindowsLibrary(const FPath& I_Path)
+    FWindowsLibrary(const IPlatformPath& I_Path)
     : IPlatformLibrary{I_Path}
     {
-        LOG_TRACE("Loading Windows library: {}", I_Path);
-        
-        // Get the native path string
-        const FString UTF8Path = I_Path.GetString();
-        
-        // Convert path to wide string for Windows API
-        int WideLength = MultiByteToWideChar(CP_UTF8, 0, UTF8Path.Data(), -1, nullptr, 0);
-        if (WideLength <= 0)
-        {
-            DWORD Error = GetLastError();
-                    LOG_ERROR("Failed to convert path to wide string for library {} -- Windows Error Code: {}", I_Path, Error);
-            return;
-        }
-        
-        std::vector<wchar_t> WidePath(WideLength);
-        int ConvertResult = MultiByteToWideChar(CP_UTF8, 0, UTF8Path.Data(), -1, WidePath.data(), WideLength);
-        if (ConvertResult == 0)
-        {
-            DWORD Error = GetLastError();
-                    LOG_ERROR("Failed to convert path to wide string for library {} -- Windows Error Code: {}", I_Path, Error);
-            return;
-        }
-        
-        // Load the library using Windows API with security flags
-        // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS provides security by limiting search paths
+        const FWindowsPath& NativePath = static_cast<const FWindowsPath&>(I_Path);
+        const std::wstring_view WidePath = NativePath;
+        LOG_TRACE("Loading Windows library: {}", GetPath());
+
         Handle = LoadLibraryExW(WidePath.data(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-        
+
         if (!Handle)
         {
             DWORD Error = GetLastError();
-            // Provide more helpful error messages for common error codes
             switch (Error)
             {
                 case ERROR_MOD_NOT_FOUND:
-                    LOG_ERROR("The specified module could not be found: {}", I_Path);
+                    LOG_ERROR("The specified module could not be found: {}", GetPath());
                     break;
                 case ERROR_DLL_INIT_FAILED:
-                    LOG_ERROR("DLL initialization failed for: {}", I_Path);
+                    LOG_ERROR("DLL initialization failed for: {}", GetPath());
                     break;
                 case ERROR_BAD_EXE_FORMAT:
-                    LOG_ERROR("The library is not a valid executable format: {}", I_Path);
+                    LOG_ERROR("The library is not a valid executable format: {}", GetPath());
                     break;
                 default:
-                    LOG_ERROR("Unknown error occurred while loading library: {}", I_Path);
+                    LOG_ERROR("Unknown error occurred while loading library: {}", GetPath());
                     break;
             }
         }
@@ -100,13 +76,12 @@ namespace Visera
     {
         if (IsLoaded())
         {
-            LOG_TRACE("Unloading Windows library: {}", Path);
-            
+            LOG_TRACE("Unloading Windows library: {}", GetPath());
             BOOL Result = FreeLibrary(static_cast<HMODULE>(Handle));
             if (!Result)
             {
                 DWORD Error = GetLastError();
-                LOG_ERROR("Failed to free library {} -- Windows Error Code: {}", Path, Error);
+                LOG_ERROR("Failed to free library {} -- Windows Error Code: {}", GetPath(), Error);
             }
         }
     }

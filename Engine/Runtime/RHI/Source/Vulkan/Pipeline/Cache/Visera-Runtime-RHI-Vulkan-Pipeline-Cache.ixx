@@ -2,10 +2,11 @@ module;
 #include <Visera-RHI.hpp>
 export module Visera.Runtime.RHI.Vulkan.Pipeline.Cache;
 #define VISERA_MODULE_NAME "Runtime.RHI"
-import Visera.Core.OS.FileSystem;
 import Visera.Core.OS.Memory;
+import Visera.Core.Types.Optional;
 import Visera.Core.Containers.Array;
 import Visera.Core.Log;
+import Visera.Platform;
 import vulkan_hpp;
 
 namespace Visera
@@ -34,25 +35,10 @@ namespace Visera
                          const FPath&                    I_Path)
     : Path{ I_Path }
     {
-        if (auto Stream = FFileSystem::OpenOStream(Path, EStreamMode::Binary))
+        TArray<FByte> CacheData;
+        if (auto Data = FPlatform::ReadFile(Path); Data.HasValue() && !Data->IsEmpty())
         {
-            LOG_DEBUG("Created a new Vulkan Pipeline Cache file at {}.", Path);
-        }
-        else { LOG_FATAL("Failed to create the Vulkan Pipeline Cache at {}!", Path); }
-
-        // Read from the file
-        if (auto Stream = FFileSystem::OpenIStream(Path, EStreamMode::Binary))
-        {
-            Stream->seekg(0, std::ios::end);
-            Int64 Size = Stream->tellg();
-            Stream->seekg(0, std::ios::beg);
-
-            TArray<Int8> CacheData(Size);
-            if (Size > 0 && !Stream->read(CacheData.Data(), Size))
-            {
-                LOG_ERROR("Failed to read Vulkan Pipeline Cache data from {}.", Path);
-                return;
-            }
+            CacheData = std::move(Data.GetValue());
 
             Bool bExpired = CacheData.GetSize() < sizeof(vk::PipelineCacheHeaderVersionOne);
             if (!bExpired)
@@ -60,8 +46,7 @@ namespace Visera
                 auto* CacheHeader = reinterpret_cast<vk::PipelineCacheHeaderVersionOne*>(CacheData.Data());
                 auto  GPUProperties = I_GPU.getProperties();
 
-                bExpired = CacheData.IsEmpty() ||
-                           CacheHeader->deviceID != GPUProperties.deviceID ||
+                bExpired = CacheHeader->deviceID != GPUProperties.deviceID ||
                            CacheHeader->vendorID != GPUProperties.vendorID ||
                            Memory::Memcmp(CacheHeader->pipelineCacheUUID,
                                           GPUProperties.pipelineCacheUUID,
@@ -73,20 +58,18 @@ namespace Visera
                 LOG_DEBUG("Vulkan Pipeline Cache expired!");
                 CacheData.Clear();
             }
-
-            auto CreateInfo = vk::PipelineCacheCreateInfo()
-                .setInitialDataSize (CacheData.GetSize())
-                .setPInitialData    (CacheData.Data())
-            ;
-            auto Result = I_Device.createPipelineCache(CreateInfo);
-            if (!Result.has_value())
-            { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from {}!", Path); }
-            else
-            { Handle = std::move(*Result); }
-
-            LOG_DEBUG("Loaded Vulkan Pipeline Cache (bytes:{}) from {}.", Size, Path);
         }
-        else { LOG_FATAL("Failed to open the Vulkan Pipeline Cache at {}!", Path); }
+
+        auto CreateInfo = vk::PipelineCacheCreateInfo()
+            .setInitialDataSize(CacheData.GetSize())
+            .setPInitialData   (CacheData.Data());
+        auto Result = I_Device.createPipelineCache(CreateInfo);
+        if (!Result.has_value())
+        { LOG_FATAL("Failed to create the Vulkan Pipeline Cache from {}!", Path); }
+        else
+        { Handle = std::move(*Result); }
+
+        LOG_DEBUG("Loaded Vulkan Pipeline Cache (bytes:{}) from {}.", CacheData.GetSize(), Path);
     }
 
     FVulkanPipelineCache::
@@ -94,15 +77,12 @@ namespace Visera
     {
         if (auto Result = Handle.getData(); Result.has_value())
         {
-            auto CacheData {std::move(*Result)};
+            auto& CacheData = *Result;
             LOG_DEBUG("Caching Vulkan Pipeline Data (bytes:{}) at {}.", CacheData.size(), Path);
 
-            if (auto Stream = FFileSystem::OpenOStream(Path, EStreamMode::Binary))
-            {
-                Stream->write(reinterpret_cast<char*>(CacheData.data()),
-                              static_cast<std::streamsize>(CacheData.size()));
-            }
-            else { LOG_ERROR("Failed to open the Vulkan Pipeline Data at {}!", Path); }
+            const auto Status = FPlatform::AtomicWriteFile(Path, CacheData.data(), CacheData.size());
+            if (Status != EPlatformIOStatus::Success)
+            { LOG_ERROR("Failed to save Vulkan Pipeline Cache at {}: {}", Path, Status); }
         }
         else { LOG_ERROR("Failed to get Vulkan Pipeline Cache data, skipped to save the cache!"); }
     }

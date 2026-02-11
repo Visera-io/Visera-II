@@ -29,23 +29,58 @@ struct FEngine
         if (!ImgAsset1) { LOG_ERROR("Failed to load test image"); return 1; }
         const FImage& SrcImage = ImgAsset1->GetImage();
 
+        FJSON Config2;
+        Config2.Set("Window.Title"_JQL, "Runtime 2");
+
+        auto Runtime2 = FRuntime::Create("Runtime2", EMode::Full, Config2);
+        Runtime->Input->GetKeyboard()->OnPressed.Subscribe([](FKeyboard::EKey I_Key)
+        {
+            if (FKeyboard::EKey::Space == I_Key)
+            {
+                LOG_INFO("Runtime 1 Keyboard Space!");
+            }
+        });
+        Runtime2->Input->GetKeyboard()->OnPressed.Subscribe([](FKeyboard::EKey I_Key)
+        {
+            if (FKeyboard::EKey::Space == I_Key)
+            {
+                LOG_INFO("Runtime 2 Keyboard Space!");
+            }
+        });
+
         while (!Runtime->Window->ShouldClose())
         {
             Runtime->Window->PollEvents();
 
-            if (!Runtime->RHI->BeginFrame()) { continue; }
+            if (Runtime2 != nullptr)
+            {
+                if (!Runtime2->Window->ShouldClose())
+                {
+                    Runtime2->Window->PollEvents();
+                }
+                else Runtime2.Reset();
+            }
 
-            //Commands.Reset();
+            // Frame for PrimaryWindow (Runtime)
+            if (!Runtime->RHI->BeginFrame()) { continue; }
 
             // Rendering
             {
 
             }
 
-            //Runtime->RHI->Submit(Commands);
-
             Runtime->RHI->EndFrame();
             Runtime->RHI->Present();
+
+            // Frame for Runtime2's window (each window needs its own BeginFrame/EndFrame/Present cycle)
+            if (Runtime2 != nullptr)
+            {
+                if (Runtime->RHI->BeginFrame(Runtime2->Window.Get()))
+                {
+                    Runtime->RHI->EndFrame(Runtime2->Window.Get());
+                    Runtime->RHI->Present(Runtime2->Window.Get());
+                }
+            }
         }
 
         return EXIT_SUCCESS;
@@ -62,7 +97,7 @@ struct FEngine
             RuntimeConfig = std::move(ConfigFile).GetValue();
         }
         
-        Runtime = FRuntime::Create(EMode::Full, RuntimeConfig);
+        Runtime = FRuntime::Create("MainRuntime", EMode::Full, RuntimeConfig);
         if (!Runtime)
         {
             LOG_FATAL("Failed to create FRuntime!");

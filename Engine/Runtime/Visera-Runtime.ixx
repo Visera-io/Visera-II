@@ -21,6 +21,7 @@ export import Visera.Runtime.Window;
        import Visera.Core.Types.Optional;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Meta.Cast;
+       import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -60,7 +61,7 @@ export namespace Visera
 
         // Create with mode (Full or Minimal)
         [[nodiscard]] static TUniquePtr<FRuntime>
-        Create(EMode I_Mode = EMode::Full, TOptional<FJSON> I_Config = {})
+        Create(FString I_Name = "Runtime", EMode I_Mode = EMode::Full, TOptional<FJSON> I_Config = {})
         {
             TSet<FName> Services;
             if (I_Mode == EMode::Full)
@@ -84,15 +85,15 @@ export namespace Visera
                     EName::AssetHub
                 };
             }
-            return Create(Services, I_Config);
+            return Create(std::move(I_Name), Services, I_Config);
         }
 
         // Create with set of service names
         [[nodiscard]] static TUniquePtr<FRuntime>
-        Create(const TSet<FName>& I_Services, TOptional<FJSON> I_Config = {})
+        Create(FString I_Name, const TSet<FName>& I_Services, TOptional<FJSON> I_Config = {})
         {
             // Use new instead of MakeUnique to access private constructor
-            TUniquePtr<FRuntime> Runtime(new FRuntime(I_Services, I_Config));
+            TUniquePtr<FRuntime> Runtime(new FRuntime(std::move(I_Name), I_Services, I_Config));
             if (!Runtime)
             {
                 LOG_ERROR("Failed to create Visera Runtime!");
@@ -113,24 +114,41 @@ export namespace Visera
     private:
         FServiceRegistry Registry;
         FJSON            Config; // Global config shared by all services
+        FString          RuntimeName; // For logging, also in Config["Runtime"]
+        TSet<FName>      SharedServices; // Services borrowed from other Runtime instances (Tasks, Audio, AssetHub)
 
-        explicit FRuntime(const TSet<FName>& I_Services, TOptional<FJSON> I_Config = {})
+        static inline TWeakPtr<FTasks>    SharedTasks;
+        static inline TWeakPtr<FAudio>    SharedAudio;
+        static inline TWeakPtr<FAssetHub> SharedAssetHub;
+        static inline TWeakPtr<FRHI>      SharedRHI;
+
+        explicit FRuntime(FString I_Name, const TSet<FName>& I_Services, TOptional<FJSON> I_Config = {})
         {
+            RuntimeName = std::move(I_Name);
             // Use provided config or default empty config
             if (I_Config.HasValue())
             {
                 Config = std::move(I_Config).GetValue();
-                LOG_DEBUG("Runtime config provided: {}", Config.Dump());
+                LOG_DEBUG("({}) Runtime config provided: {}", RuntimeName, Config.Dump());
             }
+            // Inject Runtime name into Config for all services
+            Config.Set("Runtime", RuntimeName);
 
             // Register services (all services reference the same global Config)
-            if (I_Services.Contains(EName::Input))    { Input    = Register<FInput>    (EName::Input);     }
-            if (I_Services.Contains(EName::Window))   { Window   = Register<FWindow>   (EName::Window);    }
-            if (I_Services.Contains(EName::Tasks))    { Tasks    = Register<FTasks>    (EName::Tasks);     }
-            if (I_Services.Contains(EName::RHI))      { RHI      = Register<FRHI>      (EName::RHI);       }
-            if (I_Services.Contains(EName::Audio))    { Audio    = Register<FAudio>    (EName::Audio);     }
-            if (I_Services.Contains(EName::Graphics)) { Graphics = Register<FGraphics> (EName::Graphics);  }
-            if (I_Services.Contains(EName::AssetHub)) { AssetHub = Register<FAssetHub> (EName::AssetHub);  }
+            if (I_Services.Contains(EName::Input))
+            { Input    = Register<FInput>           (EName::Input);                       }
+            if (I_Services.Contains(EName::Window))
+            { Window   = Register<FWindow>          (EName::Window);                      }
+            if (I_Services.Contains(EName::Tasks))
+            { Tasks    = RegisterOrShare<FTasks>    (EName::Tasks,    SharedTasks);    }
+            if (I_Services.Contains(EName::RHI))
+            { RHI      = RegisterOrShare<FRHI>      (EName::RHI,      SharedRHI);      }
+            if (I_Services.Contains(EName::Audio))
+            { Audio    = RegisterOrShare<FAudio>    (EName::Audio,    SharedAudio);    }
+            if (I_Services.Contains(EName::Graphics))
+            { Graphics = Register<FGraphics>        (EName::Graphics);                    }
+            if (I_Services.Contains(EName::AssetHub))
+            { AssetHub = RegisterOrShare<FAssetHub> (EName::AssetHub, SharedAssetHub); }
         }
 
         template<typename T> [[nodiscard]] TSharedPtr<T>
@@ -146,9 +164,30 @@ export namespace Visera
             // TSharedPtr<IGlobalService> Service = MakeShared<T>(I_ServiceName, &Registry, Config);
             auto Service = MakeShared<T>(I_ServiceName, &Registry, Config);
 
-            Registry.Emplace(I_ServiceName, Service);
+            Registry.Insert(I_ServiceName, Service);
             LOG_TRACE("Registered service ({}) : {}.", Registry.GetSize(), I_ServiceName.GetName());
             return Cast<T>(Service);
+        }
+
+        template<typename T> [[nodiscard]] TSharedPtr<T>
+        RegisterOrShare(FName I_ServiceName, TWeakPtr<T>& I_SharedWeak)
+        {
+            if (Registry.Contains(I_ServiceName))
+            {
+                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetName());
+                return TSharedPtr<T>();
+            }
+            if (auto Shared = I_SharedWeak.Lock())
+            {
+                LOG_INFO("Service {} already created by another Runtime, sharing instance across Runtime instances.", I_ServiceName.GetName());
+                SharedServices.Insert(I_ServiceName);
+                Registry.Insert(I_ServiceName, Cast<IGlobalService>(Shared));
+                LOG_TRACE("Registered shared service ({}) : {}.", Registry.GetSize(), I_ServiceName.GetName());
+                return Shared;
+            }
+            auto Service = Register<T>(I_ServiceName);
+            I_SharedWeak = Service;
+            return Service;
         }
 
         void
@@ -170,10 +209,12 @@ export namespace Visera
 
             for (const auto& Service : SortedServices)
             {
-                LOG_DEBUG("Bootstrapping {}.", Service->GetName().GetName());
+                LOG_DEBUG("({}) Bootstrapping {}.", RuntimeName, Service->GetName().GetName());
                 if (!Service->SetStatus(IGlobalService::EStatus::Bootstrapped))
-                { LOG_FATAL("Failed to bootstrap {}!", Service->GetName().GetName()); }
+                { LOG_FATAL("({}) Failed to bootstrap {}!", RuntimeName, Service->GetName().GetName()); }
             }
+            if (Window && RHI)
+            { RHI->CreateSwapChain(Window.Get()); }
         }
 
         void
@@ -188,9 +229,11 @@ export namespace Visera
             for (auto It = SortedServices.rbegin(); It != SortedServices.rend(); ++It)
             {
                 const auto& Service = *It;
-                LOG_DEBUG("Terminating {}.", Service->GetName().GetName());
+                if (SharedServices.Contains(Service->GetName()))
+                { continue; } // Shared services are not terminated by this Runtime
+                LOG_DEBUG("({}) Terminating {}.", RuntimeName, Service->GetName().GetName());
                 if (!Service->SetStatus(IGlobalService::EStatus::Terminated))
-                { LOG_FATAL("Failed to terminate {}!", Service->GetName().GetName()); }
+                { LOG_FATAL("({}) Failed to terminate {}!", RuntimeName, Service->GetName().GetName()); }
             }
         }
 

@@ -84,7 +84,7 @@ export namespace Visera::Forge
 		auto Path = I_Path.GetString();
 		if (!SearchPaths.Contains(Path))
 		{
-			SearchPaths.Emplace(std::move(Path));
+			SearchPaths.Insert(std::move(Path));
 			LOG_DEBUG("Added a new shader path: {}", I_Path);
 			return True;
 		}

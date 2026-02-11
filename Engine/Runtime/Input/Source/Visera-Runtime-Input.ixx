@@ -5,7 +5,9 @@ export module Visera.Runtime.Input;
 export import Visera.Runtime.Input.Keyboard;
 export import Visera.Runtime.Input.Mouse;
        import Visera.Runtime.Global;
+       import Visera.Runtime.Window;
        import Visera.Platform;
+       import Visera.Core.Log;
 
 export namespace Visera
 {
@@ -25,16 +27,12 @@ export namespace Visera
         FInput(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
             : IGlobalService(I_Name, I_Registry, I_Config)
         {
-            Dependencies =
-            {
-#if !defined(VISERA_OFFSCREEN_MODE)
-                EName::Window,
-#endif
-            };
+            Dependencies = { EName::Window };
 
             if (!OnBootstrap.TryBind([this]
             {
-                if (!FPlatformWindow::MouseButtonCallback.TryBind(
+                auto Window = GetService<FWindow>(EName::Window).Lock()->GetPlatformWindow();
+                if (!Window->MouseButtonCallback.TryBind(
                 [this](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
                 {
                     const auto Button = static_cast<FMouse::EButton>(I_Button);
@@ -43,12 +41,12 @@ export namespace Visera
                     case FMouse::EAction::Release : return Mouse.OnReleased.Broadcast(Button);
                     case FMouse::EAction::Press   : return Mouse.OnPressed.Broadcast(Button);
                     case FMouse::EAction::Hold    : return Mouse.OnHeld.Broadcast(Button);
-                    default: LOG_ERROR("Unhandled button action ({})!", I_Action);
+                    default: LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), I_Action);
                     }
                 }))
-                { LOG_FATAL("Failed to bind CursorMoveCallback event!"); }
+                { LOG_FATAL("Failed to bind MouseButtonCallback event!"); }
 
-                if (!FPlatformWindow::KeyboardCallback.TryBind(
+                if (!Window->KeyboardCallback.TryBind(
                 [this](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
                 {
                     const auto Key = static_cast<FKeyboard::EKey>(I_Key);
@@ -57,18 +55,17 @@ export namespace Visera
                     case FKeyboard::EAction::Release : return Keyboard.OnReleased.Broadcast(Key);
                     case FKeyboard::EAction::Press   : return Keyboard.OnPressed.Broadcast(Key);
                     case FKeyboard::EAction::Hold    : return Keyboard.OnHeld.Broadcast(Key);
-                    default: LOG_ERROR("Unhandled key action ({})!", I_Action);
+                    default: LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), I_Action);
                     }
                 }))
                 { LOG_FATAL("Failed to bind KeyboardCallback event!"); }
 
-                if (!FPlatformWindow::CursorMoveCallback.TryBind(
+                if (!Window->CursorMoveCallback.TryBind(
                 [this](Double I_PosX, Double I_PosY)
                 {
                     Mouse.OnCursorMoved.Broadcast(I_PosX, I_PosY);
                 }))
                 { LOG_FATAL("Failed to bind CursorMoveCallback event!"); }
-
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }

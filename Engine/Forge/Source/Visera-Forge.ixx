@@ -175,7 +175,7 @@ namespace Visera::Forge
         }
 
         // Create Runtime with only Tasks and AssetHub services
-        auto Runtime = FRuntime::Create({EName::Tasks, EName::AssetHub});
+        auto Runtime = FRuntime::Create("Forge", {EName::Tasks, EName::AssetHub});
         if (!Runtime)
         {
             LOG_FATAL("Failed to create FRuntime!");
