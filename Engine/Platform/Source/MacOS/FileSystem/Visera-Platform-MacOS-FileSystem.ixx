@@ -18,7 +18,7 @@ import Visera.Core.Types.String;
 import Visera.OS.FileSystem.File;
 import Visera.Core.Log;
 
-namespace Visera
+export namespace Visera
 {
     enum class EMacOSIOStatus : UInt8
     {
@@ -28,7 +28,7 @@ namespace Visera
         Other            = 3,
     };
 
-    export class VISERA_PLATFORM_API FMacOSPlatformFileSystem : public IPlatformFileSystem
+    class VISERA_PLATFORM_API FMacOSPlatformFileSystem : public IPlatformFileSystem
     {
     public:
         [[nodiscard]] Int32
@@ -76,7 +76,7 @@ namespace Visera
         if (I_Size > 0 && TempFile->Write(I_Data, I_Size, 1) != 1)
             bWriteOk = False;
         TempFile->Flush();
-        TempFile.reset(); // close before ReplaceFile
+        TempFile.Reset(); // close before ReplaceFile
 
         if (!bWriteOk)
         {

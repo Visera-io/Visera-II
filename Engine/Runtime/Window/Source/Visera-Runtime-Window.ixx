@@ -64,7 +64,6 @@ export namespace Visera
                     OnResized.Broadcast(this);
                 })) { LOG_FATAL("Failed to bind resize window event!"); }
 
-                //[TODO]: App Icon
                 PlatformWindow->SetIcon(
                 {
                     .Icon16x16   = ViseraIcons[X16],
@@ -74,7 +73,6 @@ export namespace Visera
                     .Icon128x128 = ViseraIcons[X128],
                     .Icon256x256 = ViseraIcons[X256],
                 });
-
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }

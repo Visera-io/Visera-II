@@ -296,14 +296,8 @@ export namespace Visera
             return Cast<FFontAsset>(W.Lock());
         }
 
-        auto File = FFileSystem::OpenFile(I_Path, EFileMode::Read | EFileMode::Binary);
-        if (!File || !File->IsOpen())
-        {
-            LOG_ERROR("Failed to open font file: {}", I_Path);
-            return nullptr;
-        }
-        TArray<FByte> FileBytes = File->ReadAll();
-        if (FileBytes.IsEmpty())
+        auto FileBytesOpt = FPlatform::ReadFile(I_Path);
+        if (!FileBytesOpt.HasValue() || FileBytesOpt->IsEmpty())
         {
             LOG_ERROR("Failed to read font file or empty: {}", I_Path);
             return nullptr;
@@ -311,7 +305,7 @@ export namespace Visera
 
         FFreeType::FFace Face{nullptr};
         TArray<FByte> FontData;
-        const auto InfoOpt = FFreeType::Load(FileBytes, I_FaceIndex, Face, FontData);
+        const auto InfoOpt = FFreeType::Load(FileBytesOpt.GetValue(), I_FaceIndex, Face, FontData);
         if (!InfoOpt.HasValue() || Face == nullptr)
         {
             LOG_ERROR("Failed to load font from: {}", I_Path);

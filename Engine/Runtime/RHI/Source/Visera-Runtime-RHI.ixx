@@ -114,7 +114,7 @@ export namespace Visera
             {
                 if (I_Win->GetWidth() == 0 || I_Win->GetHeight() == 0)
                 {
-                    LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", Owner->GetRuntimeName(), I_Win->GetWidth(), I_Win->GetHeight());
+                    LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", GetRuntimeName(), I_Win->GetWidth(), I_Win->GetHeight());
                     return;
                 }
                 if (!SwapChainContexts.Contains(I_Win)) { return; }
