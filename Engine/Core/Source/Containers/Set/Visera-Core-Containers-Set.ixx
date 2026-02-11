@@ -14,7 +14,7 @@ export namespace Visera
         using SetType       = ankerl::unordered_dense::set<T>;
         using Iterator      = typename SetType::iterator;
         using ConstIterator = typename SetType::const_iterator;
-        using InsertResult  = TPair<Iterator, bool>;
+        using InsertResult  = TPair<Iterator, Bool>;
 
     private:
         SetType Set;
@@ -24,26 +24,44 @@ export namespace Visera
         TSet() = default;
         ~TSet() = default;
 
-        // Copy constructor
-        TSet(const TSet& Other) = default;
+        // Copy constructor: only if T is copy constructible
+        TSet(const TSet& I_Other)
+            requires std::copy_constructible<T>
+            = default;
+        TSet(const TSet&)
+            requires (!std::copy_constructible<T>)
+            = delete;
 
         // Move constructor
-        TSet(TSet&& Other) noexcept = default;
+        TSet(TSet&& I_Other) noexcept = default;
 
-        // Copy assignment
-        TSet& operator=(const TSet& Other) = default;
+        // Copy assignment: only if T is copyable
+        TSet& operator=(const TSet& I_Other)
+            requires (std::copy_constructible<T> && std::is_copy_assignable_v<T>)
+        {
+            if (this != &I_Other)
+            {
+                Set = I_Other.Set;
+            }
+            return *this;
+        }
+        TSet& operator=(const TSet&)
+            requires (!(std::copy_constructible<T> && std::is_copy_assignable_v<T>))
+            = delete;
 
         // Move assignment
-        TSet& operator=(TSet&& Other) noexcept = default;
+        TSet& operator=(TSet&& I_Other) noexcept = default;
 
         // Initializer list constructor
         TSet(std::initializer_list<T> I_Init)
+            requires std::copy_constructible<T>
             : Set(I_Init)
         {
         }
 
         // Initializer list assignment
         TSet& operator=(std::initializer_list<T> I_Init)
+            requires std::copy_constructible<T>
         {
             Set = I_Init;
             return *this;
@@ -57,12 +75,17 @@ export namespace Visera
 
         [[nodiscard]] UInt64 GetSize() const
         {
-            return Set.size();
+            return static_cast<UInt64>(Set.size());
         }
 
         [[nodiscard]] UInt64 GetMaxSize() const
         {
-            return Set.max_size();
+            return static_cast<UInt64>(Set.max_size());
+        }
+
+        void Reserve(UInt64 I_Capacity)
+        {
+            Set.reserve(static_cast<typename SetType::size_type>(I_Capacity));
         }
 
         // Modifiers
@@ -71,25 +94,31 @@ export namespace Visera
             Set.clear();
         }
 
-        InsertResult Insert(const T& InValue)
+        InsertResult Insert(const T& I_Value)
+            requires std::copy_constructible<T>
         {
-            return Set.insert(InValue);
+            return Set.insert(I_Value);
         }
 
-        InsertResult Insert(T&& InValue)
+        InsertResult Insert(T&& I_Value)
         {
-            return Set.insert(std::move(InValue));
+            return Set.insert(std::move(I_Value));
         }
 
         template<typename... Args>
-        InsertResult Emplace(Args&&... InArgs)
+        InsertResult Emplace(Args&&... I_Args)
         {
-            return Set.emplace(std::forward<Args>(InArgs)...);
+            return Set.emplace(std::forward<Args>(I_Args)...);
         }
 
-        UInt64 Erase(const T& InValue)
+        UInt64 Erase(const T& I_Value)
         {
-            return Set.erase(InValue);
+            return static_cast<UInt64>(Set.erase(I_Value));
+        }
+
+        Iterator Erase(ConstIterator I_Iter)
+        {
+            return Set.erase(I_Iter);
         }
 
         template<typename Predicate>
@@ -106,46 +135,56 @@ export namespace Visera
             return ErasedCount;
         }
 
-        void Swap(TSet& Other)
+        void Swap(TSet& I_Other)
         {
-            Set.swap(Other.Set);
+            Set.swap(I_Other.Set);
         }
 
         // Lookup
-        [[nodiscard]] UInt64 Count(const T& InValue) const
+        [[nodiscard]] Iterator Find(const T& I_Value)
         {
-            return Set.count(InValue);
+            return Set.find(I_Value);
         }
 
-        [[nodiscard]] Bool Contains(const T& InValue) const
+        [[nodiscard]] ConstIterator Find(const T& I_Value) const
         {
-            return Set.contains(InValue);
+            return Set.find(I_Value);
+        }
+
+        [[nodiscard]] UInt64 Count(const T& I_Value) const
+        {
+            return static_cast<UInt64>(Set.count(I_Value));
+        }
+
+        [[nodiscard]] Bool Contains(const T& I_Value) const
+        {
+            return Set.contains(I_Value);
         }
 
         // Hash and bucket interface
         [[nodiscard]] UInt64 BucketCount() const
         {
-            return Set.bucket_count();
+            return static_cast<UInt64>(Set.bucket_count());
         }
 
         // Iterator access
-        Iterator begin() { return Set.begin(); }
-        ConstIterator begin() const { return Set.begin(); }
-        ConstIterator cbegin() const { return Set.cbegin(); }
+        [[nodiscard]] Iterator begin() { return Set.begin(); }
+        [[nodiscard]] ConstIterator begin() const { return Set.begin(); }
+        [[nodiscard]] ConstIterator cbegin() const { return Set.cbegin(); }
         
-        Iterator end() { return Set.end(); }
-        ConstIterator end() const { return Set.end(); }
-        ConstIterator cend() const { return Set.cend(); }
+        [[nodiscard]] Iterator end() { return Set.end(); }
+        [[nodiscard]] ConstIterator end() const { return Set.end(); }
+        [[nodiscard]] ConstIterator cend() const { return Set.cend(); }
 
         // Comparison operators
-        Bool operator==(const TSet& Other) const
+        [[nodiscard]] Bool operator==(const TSet& I_Other) const
         {
-            return Set == Other.Set;
+            return Set == I_Other.Set;
         }
 
-        Bool operator!=(const TSet& Other) const
+        [[nodiscard]] Bool operator!=(const TSet& I_Other) const
         {
-            return !(*this == Other);
+            return !(*this == I_Other);
         }
     };
 }
