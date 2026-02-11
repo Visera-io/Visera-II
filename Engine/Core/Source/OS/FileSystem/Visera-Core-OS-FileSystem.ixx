@@ -66,6 +66,9 @@ export namespace Visera
         CreateDirectory(const FPath& I_Path);
         [[nodiscard]] EIOStatus static inline
         DeleteDirectory(const FPath& I_Path, Bool I_bForce = False);
+        /** Delete a single file. Best-effort; logs on failure. */
+        [[nodiscard]] EIOStatus static inline
+        DeleteFile(const FPath& I_Path);
         [[nodiscard]] Bool static inline
         Exists(const FPath& I_Path) { return std::filesystem::exists(ToFilesystemPath(I_Path)); }
         [[nodiscard]] TUniquePtr<std::ifstream> static inline
@@ -118,6 +121,17 @@ export namespace Visera
             }
         }
         if (Ec) { LOG_DEBUG("DeleteDirectory failed: {} - {}", Path.generic_string(), Ec.message()); }
+        return ToEIOError(Ec);
+    }
+
+    EIOStatus FFileSystem::
+    DeleteFile(const FPath& I_Path)
+    {
+        const auto Path = ToFilesystemPath(I_Path);
+        std::error_code Ec;
+        if (std::filesystem::exists(Path, Ec) && std::filesystem::is_regular_file(Path, Ec))
+        { std::filesystem::remove(Path, Ec); }
+        if (Ec) { LOG_DEBUG("DeleteFile failed: {} - {}", Path.generic_string(), Ec.message()); }
         return ToEIOError(Ec);
     }
 

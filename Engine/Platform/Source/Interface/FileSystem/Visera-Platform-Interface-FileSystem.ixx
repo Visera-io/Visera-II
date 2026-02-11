@@ -11,13 +11,6 @@ export import Visera.Platform.Interface.Path;
 
 export namespace Visera
 {
-    /** Result of CreateTempFileNear: open file handle and path for ReplaceFile. */
-    struct VISERA_PLATFORM_API FTempFileResult
-    {
-        TUniquePtr<FFile>           File;
-        TUniquePtr<IPlatformPath>   Path;
-    };
-
     /**
      * Platform-enhanced file system abstraction.
      * Extends Core.OS.FileSystem with platform-specific features (atomic write, temp file, etc.).
@@ -41,6 +34,10 @@ export namespace Visera
         [[nodiscard]] virtual Int32
         WriteFile(const IPlatformPath& I_Path, const void* I_Data, UInt64 I_Size) const;
 
+        /** Delete a single file. Best-effort; logs on failure. Returns 0=Success, 1=NotFound, 2=PermissionDenied, 3=Other. */
+        [[nodiscard]] virtual Int32
+        DeleteFile(const IPlatformPath& I_Path) const;
+
         /** Atomically replace I_Target with I_Source. Source is removed, target gets source content. */
         [[nodiscard]] virtual Int32
         ReplaceFile(const IPlatformPath& I_Source, const IPlatformPath& I_Target) const = 0;
@@ -53,7 +50,7 @@ export namespace Visera
          * Atomically create unique temp file in I_Directory. I_Prefix is path segment (e.g. "tmp").
          * Caller should Flush() before ReplaceFile. Same directory guarantee for ReplaceFile.
          */
-        [[nodiscard]] virtual FTempFileResult
+        [[nodiscard]] virtual TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>>
         CreateTempFileNear(const IPlatformPath& I_Directory, const IPlatformPath& I_Prefix) const = 0;
 
         virtual ~IPlatformFileSystem() = default;
@@ -78,5 +75,11 @@ export namespace Visera
             if (Written != 1) return 3; // Other
         }
         return 0; // Success
+    }
+
+    inline Int32 IPlatformFileSystem::
+    DeleteFile(const IPlatformPath& I_Path) const
+    {
+        return static_cast<Int32>(static_cast<UInt8>(FFileSystem::DeleteFile(I_Path.ToPath())));
     }
 }

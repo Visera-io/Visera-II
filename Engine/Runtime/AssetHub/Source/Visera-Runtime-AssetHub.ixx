@@ -3,10 +3,10 @@ module;
 export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
 export import Visera.Core.Types.Path;
+export import Visera.Runtime.AssetHub.Asset;
 export import Visera.Runtime.AssetHub.Image;
 export import Visera.Runtime.AssetHub.Shader;
 export import Visera.Runtime.AssetHub.Font;
-       import Visera.Runtime.AssetHub.Asset;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Meta.Cast;
        import Visera.Core.Containers.Map;
@@ -16,10 +16,10 @@ export import Visera.Runtime.AssetHub.Font;
        import Visera.Core.Types.JSON;
        import Visera.Core.Types.Optional;
        import Visera.Core.OS.Thread.Sync;
-       import Visera.Core.OS.FileSystem;
        import Visera.Core.Image;
        import Visera.Core.Font;
        import Visera.Runtime.Global;
+       import Visera.Platform;
 
 export namespace Visera
 {
@@ -28,19 +28,19 @@ export namespace Visera
     public:
         /** Load image; returns read-only FImageAsset (IAsset). Use SaveImage(view, path) to write. */
         [[nodiscard]] TSharedPtr<FImageAsset>
-        LoadImage(const FPath& I_Path);
+        LoadImage(const FPath& I_Path, ELoadMode I_Mode = ELoadMode::Eager);
         /** Save image data to file. Takes FImageView2D for explicit region; copies to FImage and exports. */
         [[nodiscard]] Bool
-        SaveImage(const FImageView2D& I_View, const FPath& I_Path);
+        SaveImage(const FImageView2D& I_View, const FPath& I_Path, ESaveMode I_Mode = ESaveMode::AtomicReplace);
         /** Load .vshader from file. Returns read-only asset (IAsset). */
         [[nodiscard]] TSharedPtr<FShaderAsset>
-        LoadShader(const FPath& I_Path);
+        LoadShader(const FPath& I_Path, ELoadMode I_Mode = ELoadMode::Eager);
         /** Save shader data to .vshader file (pure data FShader; use FShader::Write* for custom serialization). */
         [[nodiscard]] Bool
-        SaveShader(const FShader& I_Shader, const FPath& I_Path);
+        SaveShader(const FShader& I_Shader, const FPath& I_Path, ESaveMode I_Mode = ESaveMode::AtomicReplace);
         /** Load font face from file. Optional I_PixelSize: when > 0, size is set at load time (cached per path+face+size). Returns read-only FFontAsset (IAsset). */
         [[nodiscard]] TSharedPtr<FFontAsset>
-        LoadFont(const FPath& I_Path, Int32 I_FaceIndex = 0, UInt32 I_PixelSize = 0);
+        LoadFont(const FPath& I_Path, Int32 I_FaceIndex = 0, UInt32 I_PixelSize = 0, ELoadMode I_Mode = ELoadMode::Eager);
 
         /** Get cached image by name (same name as used when loaded by path, e.g. FName(I_Path.GetString())). Returns nullptr if not found or cast fails. */
         [[nodiscard]] TSharedPtr<FImageAsset>
@@ -85,7 +85,15 @@ export namespace Visera
 
         [[nodiscard]] TWeakPtr<IAsset> FindInCache(FCachePair& I_Cache, const FName& I_Key) const
         {
+            // [NOTE]:
+            // - We take a write lock here because LRU "GetAndTouch" mutates the cache
+            //   (moves the entry to MRU). A two-phase read->write approach would add
+            //   complexity (tokens/generation, re-checks) with little benefit for our
+            //   workload where cache hits are frequent and the critical section is small.
+            // - If this becomes a contention hotspot, consider a two-phase Peek+Touch or
+            //   an approximate-LRU scheme.
             FScopeWriteLock _{&I_Cache.Lock};
+
             if (TSharedPtr<IAsset>* Ptr = I_Cache.Hot.GetAndTouch(I_Key))
             { return TWeakPtr<IAsset>(*Ptr); }
 
@@ -98,7 +106,7 @@ export namespace Visera
                     I_Cache.Hot.Put(I_Key, S);
                     return TWeakPtr<IAsset>(S);
                 }
-                I_Cache.Cold.Erase(I_Key);
+                I_Cache.Cold.Erase(It);
             }
             return {};
         }
@@ -113,27 +121,24 @@ export namespace Visera
     public:
         FAssetHub(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
             : IGlobalService(I_Name, I_Registry, I_Config)
-            , ImageCache{
-                FCachePair{
-                    FHotCacheType(
-                        GetCapacityMBFromConfig(I_Config, "Image", DefaultImageMB) * 1024 * 1024,
-                        Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
-                    {}, {}
+            , ImageCache{FCachePair{
+                FHotCacheType(
+                    GetCapacityMBFromConfig(I_Config, "Image", DefaultImageMB) * 1024 * 1024,
+                    Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
+                {}, {}
                 }}
-            , ShaderCache{
-                FCachePair{
-                    FHotCacheType(
-                        GetCapacityMBFromConfig(I_Config, "Shader", DefaultShaderMB) * 1024 * 1024,
-                        Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
-                    {}, {}
+            , ShaderCache{FCachePair{
+                FHotCacheType(
+                    GetCapacityMBFromConfig(I_Config, "Shader", DefaultShaderMB) * 1024 * 1024,
+                    Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
+                {}, {}
                 }}
-            , FontCache{
-                FCachePair{
-                    FHotCacheType(
-                        GetCapacityMBFromConfig(I_Config, "Font", DefaultFontMB) * 1024 * 1024,
-                        Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
-                    {}, {}
-                }}
+            , FontCache{FCachePair{
+                FHotCacheType(
+                    GetCapacityMBFromConfig(I_Config, "Font", DefaultFontMB) * 1024 * 1024,
+                    Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
+                {}, {}
+            }}
         {
             Dependencies = { EName::Tasks };
 
@@ -146,7 +151,7 @@ export namespace Visera
     };
 
     TSharedPtr<FImageAsset> FAssetHub::
-    LoadImage(const FPath& I_Path)
+    LoadImage(const FPath& I_Path, ELoadMode I_Mode)
     {
         const FName PathName{I_Path.GetString()};
         if (auto W = FindInCache(ImageCache, PathName); !W.IsExpired())
@@ -182,7 +187,7 @@ export namespace Visera
     }
 
     Bool FAssetHub::
-    SaveImage(const FImageView2D& I_View, const FPath& I_Path)
+    SaveImage(const FImageView2D& I_View, const FPath& I_Path, ESaveMode I_Mode)
     {
         const FImage ToSave{I_View, std::pmr::get_default_resource()};
         if (ToSave.GetWidth() == 0 || ToSave.GetHeight() == 0)
@@ -214,7 +219,33 @@ export namespace Visera
             return False;
         }
 
-        const Bool bSuccess = Wrapper->Export(ToSave, I_Path);
+        Bool bSuccess = False;
+        if (I_Mode == ESaveMode::AtomicReplace)
+        {
+            const FPath Dir = I_Path.GetParent().HasValue() ? *I_Path.GetParent() : FPath(".");
+            auto [TempFile, TempPathPtr] = FPlatform::CreateTempFileNear(Dir);
+            if (!TempPathPtr)
+            {
+                LOG_ERROR("Failed to create temp file for atomic save: {}", I_Path);
+                return False;
+            }
+            const FPath TempPath = TempPathPtr->ToPath();
+            TempFile.Reset();
+            if (!Wrapper->Export(ToSave, TempPath))
+            {
+                LOG_ERROR("Failed to export image to temp: {}", I_Path);
+                (void)FPlatform::DeleteFile(TempPath);
+                return False;
+            }
+            const auto Status = FPlatform::ReplaceFile(TempPath, I_Path);
+            bSuccess = (Status == EPlatformIOStatus::Success);
+            if (!bSuccess)
+            { (void)FPlatform::DeleteFile(TempPath); }
+        }
+        else
+        {
+            bSuccess = Wrapper->Export(ToSave, I_Path);
+        }
         if (bSuccess)
         { LOG_DEBUG("({}) Successfully saved image to: {}", GetRuntimeName(), I_Path); }
         else
@@ -223,7 +254,7 @@ export namespace Visera
     }
 
     TSharedPtr<FShaderAsset> FAssetHub::
-    LoadShader(const FPath& I_Path)
+    LoadShader(const FPath& I_Path, ELoadMode I_Mode)
     {
         const FName PathName{I_Path.GetString()};
         if (auto W = FindInCache(ShaderCache, PathName); !W.IsExpired())
@@ -248,13 +279,13 @@ export namespace Visera
     }
 
     Bool FAssetHub::
-    SaveShader(const FShader& I_Shader, const FPath& I_Path)
+    SaveShader(const FShader& I_Shader, const FPath& I_Path, ESaveMode I_Mode)
     {
-        return WriteShaderToFile(I_Shader, I_Path);
+        return WriteShaderToFile(I_Shader, I_Path, I_Mode);
     }
 
     TSharedPtr<FFontAsset> FAssetHub::
-    LoadFont(const FPath& I_Path, Int32 I_FaceIndex, UInt32 I_PixelSize)
+    LoadFont(const FPath& I_Path, Int32 I_FaceIndex, UInt32 I_PixelSize, ELoadMode I_Mode)
     {
         const FString CacheKeyStr = FString::Format("{}_{}_{}", I_Path.GetString(), I_FaceIndex, I_PixelSize);
         const FName CacheKey{CacheKeyStr};

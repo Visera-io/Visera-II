@@ -5,6 +5,17 @@ export module Visera.Runtime.AssetHub.Asset;
 
 export namespace Visera
 {
+    enum class ELoadMode : UInt8
+    {
+        Eager,
+    };
+
+    enum class ESaveMode : UInt8
+    {
+        AtomicReplace,
+        Direct,
+    };
+
 	/**
 	 * Read-only asset interface for AssetHub.
 	 * All loaded assets (FImageAsset, FFontAsset, FShaderAsset, etc.) implement this.

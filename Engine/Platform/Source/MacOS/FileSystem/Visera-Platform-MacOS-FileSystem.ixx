@@ -35,7 +35,7 @@ namespace Visera
         ReplaceFile(const IPlatformPath& I_Source, const IPlatformPath& I_Target) const override;
         [[nodiscard]] Int32
         AtomicWriteFile(const IPlatformPath& I_Path, const void* I_Data, UInt64 I_Size) const override;
-        [[nodiscard]] FTempFileResult
+        [[nodiscard]] TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>>
         CreateTempFileNear(const IPlatformPath& I_Directory, const IPlatformPath& I_Prefix) const override;
     };
 
@@ -69,36 +69,36 @@ namespace Visera
         if (!Parent) return 3; // Other
 
         static const FMacOSPath DefaultPrefix(".VTemp-");
-        FTempFileResult Temp = CreateTempFileNear(*Parent, DefaultPrefix);
-        if (!Temp.File || !Temp.Path) return 3; // Other
+        auto [TempFile, TempPath] = CreateTempFileNear(*Parent, DefaultPrefix);
+        if (!TempFile || !TempPath) return 3; // Other
 
         Bool bWriteOk = True;
-        if (I_Size > 0 && Temp.File->Write(I_Data, I_Size, 1) != 1)
+        if (I_Size > 0 && TempFile->Write(I_Data, I_Size, 1) != 1)
             bWriteOk = False;
-        Temp.File->Flush();
-        Temp.File.Reset(); // close before ReplaceFile
+        TempFile->Flush();
+        TempFile.reset(); // close before ReplaceFile
 
         if (!bWriteOk)
         {
-            const FString TempStr(static_cast<const FMacOSPath&>(*Temp.Path).GetView());
+            const FString TempStr(static_cast<const FMacOSPath&>(*TempPath).GetView());
             std::remove(TempStr.Data());
             return 3; // Other
         }
 
-        const Int32 ReplaceErr = ReplaceFile(*Temp.Path, I_Path);
+        const Int32 ReplaceErr = ReplaceFile(*TempPath, I_Path);
         if (ReplaceErr != 0) // Success
         {
-            const FString TempStr(static_cast<const FMacOSPath&>(*Temp.Path).GetView());
+            const FString TempStr(static_cast<const FMacOSPath&>(*TempPath).GetView());
             std::remove(TempStr.Data());
             return ReplaceErr;
         }
         return 0; // Success
     }
 
-    FTempFileResult FMacOSPlatformFileSystem::
+    TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>> FMacOSPlatformFileSystem::
     CreateTempFileNear(const IPlatformPath& I_Directory, const IPlatformPath& I_Prefix) const
     {
-        FTempFileResult Result;
+        TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>> Result;
         if (I_Directory.IsEmpty()) return Result;
 
         static const FMacOSPath DefaultPrefix(".VTemp-");
@@ -128,8 +128,8 @@ namespace Visera
         }
 
         const FString TempPathStr(Tmpl.Data());
-        Result.File = MakeUnique<FFile>(Fp);
-        Result.Path = MakeUnique<FMacOSPath>(FStringView(TempPathStr));
+        Result.first = MakeUnique<FFile>(Fp);
+        Result.second = MakeUnique<FMacOSPath>(FStringView(TempPathStr));
         return Result;
     }
 }

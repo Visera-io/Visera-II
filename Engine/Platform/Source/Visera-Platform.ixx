@@ -64,10 +64,12 @@ export namespace Visera
         [[nodiscard]] static inline EPlatformIOStatus
         WriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().WriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
         [[nodiscard]] static inline EPlatformIOStatus
+        DeleteFile(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().DeleteFile(MakePlatformPath(I_Path)))); }
+        [[nodiscard]] static inline EPlatformIOStatus
         ReplaceFile(const FPath& I_Source, const FPath& I_Target) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().ReplaceFile(MakePlatformPath(I_Source), MakePlatformPath(I_Target)))); }
         [[nodiscard]] static inline EPlatformIOStatus
         AtomicWriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().AtomicWriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
-        [[nodiscard]] static inline FTempFileResult
+        [[nodiscard]] static inline auto
         CreateTempFileNear(const FPath& I_Directory, const FPath& I_Prefix = FPath(".VTemp-")) { return Get()->GetFileSystem().CreateTempFileNear(MakePlatformPath(I_Directory), MakePlatformPath(I_Prefix)); }
 
     private:

@@ -9,6 +9,7 @@ import Visera.Core.Types.String;
 import Visera.Core.Types.Pointer;
 import Visera.Core.OS.FileSystem;
 import Visera.Runtime.RHI.Common;
+import Visera.Platform;
 
 export namespace Visera
 {
@@ -80,7 +81,7 @@ export namespace Visera
 
     /** Write FShader to .vshader file. Use FAssetHub::SaveShader or this directly. */
     [[nodiscard]] Bool
-    WriteShaderToFile(const FShader& I_Shader, const FPath& I_Path);
+    WriteShaderToFile(const FShader& I_Shader, const FPath& I_Path, ESaveMode I_Mode = ESaveMode::AtomicReplace);
 
     /** Read-only shader asset; implements IAsset. Use FAssetHub::SaveShader(const FShader&, path) to write. */
     class VISERA_RUNTIME_API FShaderAsset : public IAsset
@@ -291,7 +292,7 @@ export namespace Visera
     }
 
     Bool
-    WriteShaderToFile(const FShader& I_Shader, const FPath& I_Path)
+    WriteShaderToFile(const FShader& I_Shader, const FPath& I_Path, ESaveMode I_Mode)
     {
         const TArray<FByte> ReflChunk = SerializeReflection(I_Shader.GetReflection());
         const UInt32 SpirvSize = static_cast<UInt32>(I_Shader.GetSPIRV().GetSize());
@@ -309,15 +310,22 @@ export namespace Visera
         FShader::WriteU32(Header, FShader::ShaderChunkTypeReflection);
         FShader::WriteU32(Header, Chunk1Offset);
         FShader::WriteU32(Header, ReflSize);
+
+        TArray<FByte> Buffer;
+        Buffer.Reserve(Header.GetSize() + I_Shader.GetSPIRV().GetSize() + ReflChunk.GetSize());
+        Buffer.Insert(Buffer.end(), Header.Data(), Header.Data() + Header.GetSize());
+        Buffer.Insert(Buffer.end(), I_Shader.GetSPIRV().Data(), I_Shader.GetSPIRV().Data() + I_Shader.GetSPIRV().GetSize());
+        Buffer.Insert(Buffer.end(), ReflChunk.Data(), ReflChunk.Data() + ReflChunk.GetSize());
+
+        if (I_Mode == ESaveMode::AtomicReplace)
+        {
+            const auto Status = FPlatform::AtomicWriteFile(I_Path, Buffer.Data(), Buffer.GetSize());
+            return (Status == EPlatformIOStatus::Success);
+        }
         if (auto File = FFileSystem::OpenFile(I_Path, EFileMode::Write | EFileMode::Binary); File && File->IsOpen())
         {
-            const UInt64 HeaderSize = Header.GetSize();
-            if (File->Write(Header.Data(), 1, HeaderSize) != HeaderSize) return False;
-            const UInt64 SpirvBytes = I_Shader.GetSPIRV().GetSize();
-            if (File->Write(I_Shader.GetSPIRV().Data(), 1, SpirvBytes) != SpirvBytes) return False;
-            const UInt64 ReflChunkSize = ReflChunk.GetSize();
-            if (File->Write(ReflChunk.Data(), 1, ReflChunkSize) != ReflChunkSize) return False;
-            return True;
+            const UInt64 Written = File->Write(Buffer.Data(), 1, Buffer.GetSize());
+            return (Written == Buffer.GetSize());
         }
         return False;
     }

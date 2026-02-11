@@ -166,10 +166,43 @@ export namespace Visera
         }
 
         void Put(const Key& I_Key, const Value& I_Value) { PutImpl(I_Key, I_Value); }
-        void Put(const Key& I_Key, Value&& I_Value) { PutImpl(I_Key, std::move(I_Value)); }
-        void Put(Key&& I_Key, const Value& I_Value) { PutImpl(std::move(I_Key), I_Value); }
-        void Put(Key&& I_Key, Value&& I_Value) { PutImpl(std::move(I_Key), std::move(I_Value)); }
+        void Put(const Key& I_Key, Value&& I_Value)      { PutImpl(I_Key, std::move(I_Value)); }
+        void Put(Key&& I_Key, const Value& I_Value)      { PutImpl(std::move(I_Key), I_Value); }
+        void Put(Key&& I_Key, Value&& I_Value)           { PutImpl(std::move(I_Key), std::move(I_Value)); }
 
+        Bool Remove(const Key& I_Key)
+        {
+            auto It = Map.Find(I_Key);
+            if (It == Map.end()) { return False; }
+
+            FEntry* Entry = It->second;
+            CurrentWeight -= Entry->Weight;
+            Map.Erase(I_Key);
+            LRUList.Remove(Entry);
+            delete Entry;
+            return True;
+        }
+
+        [[nodiscard]] Bool Contains(const Key& I_Key) const
+        {
+            return Map.Contains(I_Key);
+        }
+
+        void SetCapacity(UInt64 I_NewCapacity)
+        {
+            Capacity = I_NewCapacity;
+            while (Capacity > 0 && CurrentWeight > Capacity) { EvictLRU(); }
+        }
+
+        void Clear()
+        {
+            for (auto& Pair : Map) { delete Pair.second; }
+            Map.Clear();
+            LRUList.Reset();
+            CurrentWeight = 0;
+        }
+
+    private:
         template <typename K, typename V>
         void PutImpl(K&& I_Key, V&& I_Value)
         {
@@ -211,38 +244,6 @@ export namespace Visera
                 Map.Erase(EntryPtr->KeyStorage);
                 throw;
             }
-        }
-
-        Bool Remove(const Key& I_Key)
-        {
-            auto It = Map.Find(I_Key);
-            if (It == Map.end()) { return False; }
-
-            FEntry* Entry = It->second;
-            CurrentWeight -= Entry->Weight;
-            Map.Erase(I_Key);
-            LRUList.Remove(Entry);
-            delete Entry;
-            return True;
-        }
-
-        [[nodiscard]] Bool Contains(const Key& I_Key) const
-        {
-            return Map.Contains(I_Key);
-        }
-
-        void SetCapacity(UInt64 I_NewCapacity)
-        {
-            Capacity = I_NewCapacity;
-            while (Capacity > 0 && CurrentWeight > Capacity) { EvictLRU(); }
-        }
-
-        void Clear()
-        {
-            for (auto& Pair : Map) { delete Pair.second; }
-            Map.Clear();
-            LRUList.Reset();
-            CurrentWeight = 0;
         }
     };
 

@@ -34,7 +34,7 @@ export namespace Visera
         ReplaceFile(const IPlatformPath& I_Source, const IPlatformPath& I_Target) const override;
         [[nodiscard]] Int32
         AtomicWriteFile(const IPlatformPath& I_Path, const void* I_Data, UInt64 I_Size) const override;
-        [[nodiscard]] FTempFileResult
+        [[nodiscard]] TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>>
         CreateTempFileNear(const IPlatformPath& I_Directory, const IPlatformPath& I_Prefix) const override;
     };
 
@@ -78,36 +78,36 @@ export namespace Visera
         if (!Parent) return 3; // Other
 
         static const FWindowsPath DefaultPrefix(L".VTemp-");
-        FTempFileResult Temp = CreateTempFileNear(*Parent, DefaultPrefix);
-        if (!Temp.File || !Temp.Path) return 3; // Other
+        auto [TempFile, TempPath] = CreateTempFileNear(*Parent, DefaultPrefix);
+        if (!TempFile || !TempPath) return 3; // Other
 
         Bool bWriteOk = True;
-        if (I_Size > 0 && Temp.File->Write(I_Data, I_Size, 1) != 1)
+        if (I_Size > 0 && TempFile->Write(I_Data, I_Size, 1) != 1)
             bWriteOk = False;
-        Temp.File->Flush();
-        Temp.File.Reset(); // close before ReplaceFile
+        TempFile->Flush();
+        TempFile.Reset(); // close before ReplaceFile
 
         if (!bWriteOk)
         {
-            const std::wstring TempWide(static_cast<const FWindowsPath&>(*Temp.Path));
+            const std::wstring TempWide(static_cast<const FWindowsPath&>(*TempPath));
             DeleteFileW(TempWide.c_str());
             return 3; // Other
         }
 
-        const Int32 ReplaceErr = ReplaceFile(*Temp.Path, I_Path);
+        const Int32 ReplaceErr = ReplaceFile(*TempPath, I_Path);
         if (ReplaceErr != 0) // Success
         {
-            const std::wstring TempWide(static_cast<const FWindowsPath&>(*Temp.Path));
+            const std::wstring TempWide(static_cast<const FWindowsPath&>(*TempPath));
             DeleteFileW(TempWide.c_str());
             return ReplaceErr;
         }
         return 0; // Success
     }
 
-    FTempFileResult FWindowsPlatformFileSystem::
+    TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>> FWindowsPlatformFileSystem::
     CreateTempFileNear(const IPlatformPath& I_Directory, const IPlatformPath& I_Prefix) const
     {
-        FTempFileResult Result;
+        TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>> Result;
         const std::wstring DirWide(static_cast<const FWindowsPath&>(I_Directory));
         if (DirWide.empty()) return Result;
 
@@ -159,8 +159,8 @@ export namespace Visera
             return Result;
         }
 
-        Result.File = MakeUnique<FFile>(Fp);
-        Result.Path = MakeUnique<FWindowsPath>(TempPath);
+        Result.first = MakeUnique<FFile>(Fp);
+        Result.second = MakeUnique<FWindowsPath>(TempPath);
         return Result;
     }
 }
