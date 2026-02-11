@@ -30,6 +30,8 @@ export namespace Visera
         GetError() const { return Handle? std::ferror(Handle) : -1; }
         void
         ClearError() { if (Handle != nullptr) { std::clearerr(Handle); } }
+        void
+        Flush() { if (Handle != nullptr) { std::fflush(Handle); } }
         [[nodiscard]] FILE*
         GetHandle() const { return Handle; }
 

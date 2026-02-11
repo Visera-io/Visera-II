@@ -71,6 +71,43 @@ export namespace Visera
         void
         Set(FStringView I_Key, const FJSON& I_Value) { Root[I_Key.GetNative()] = I_Value.Root; }
         void
+        Set(const FJSONPath& I_Path, FStringView I_Value)
+        {
+            if (!I_Path.IsValid()) { return; }
+            const auto& Tokens = I_Path.GetTokens();
+            if (Tokens.IsEmpty()) { return; }
+            if (!Root.is_object()) { Root = Json::object(); }
+            Json* Current = std::addressof(Root);
+            for (UInt64 I = 0; I < Tokens.GetSize() - 1; ++I)
+            {
+                const auto& Token = Tokens[I];
+                if (Token.Type == FJSONPath::FToken::EType::Key)
+                {
+                    auto& Next = (*Current)[Token.Key.GetNative()];
+                    if (!Next.is_object()) { Next = Json::object(); }
+                    Current = std::addressof(Next);
+                }
+                else
+                {
+                    if (!Current->is_array()) { *Current = Json::array(); }
+                    while (Token.Index >= Current->size()) { Current->push_back(Json{}); }
+                    Current = std::addressof((*Current)[Token.Index]);
+                }
+            }
+            const auto& Last = Tokens.Back();
+            if (Last.Type == FJSONPath::FToken::EType::Key)
+            {
+                if (!Current->is_object()) { *Current = Json::object(); }
+                (*Current)[Last.Key.GetNative()] = FString(I_Value);
+            }
+            else
+            {
+                if (!Current->is_array()) { *Current = Json::array(); }
+                while (Last.Index >= Current->size()) { Current->push_back(Json{}); }
+                (*Current)[Last.Index] = FString(I_Value);
+            }
+        }
+        void
         Set(FStringView I_Key, const TArray<FJSON>& I_Array)
         {
             Json Array = Json::array();

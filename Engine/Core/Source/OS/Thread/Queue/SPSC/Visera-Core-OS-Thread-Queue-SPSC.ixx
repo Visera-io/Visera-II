@@ -64,7 +64,7 @@ export namespace Visera
             if (LocalTailNext == nullptr)
             { return nullptr; }
 
-            return  reinterpret_cast<ElementType*>(&LocalTailNext->Value);
+            return reinterpret_cast<ElementType*>(&LocalTailNext->Value);
         }
 
     private:

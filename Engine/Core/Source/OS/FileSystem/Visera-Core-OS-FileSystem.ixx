@@ -7,28 +7,28 @@ export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
 export import Visera.Core.Types.Path;
-export import Visera.Core.Containers.Array;
 export import Visera.Core.Traits.Flags;
+       import Visera.Core.Containers.Array;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer.Unique;
        import Visera.Core.Log;
 
 export namespace Visera
 {
-    enum class EIOError : UInt8
+    enum class EIOStatus : UInt8
     {
-        None             = 0,
+        Success          = 0,
         NotFound         = 1,
-        PermissionDenied  = 2,
+        PermissionDenied = 2,
         Other            = 3,
     };
 
-    [[nodiscard]] inline EIOError ToEIOError(const std::error_code& I_Ec) noexcept
+    [[nodiscard]] inline EIOStatus ToEIOError(const std::error_code& I_Ec) noexcept
     {
-        if (!I_Ec) return EIOError::None;
-        if (I_Ec == std::errc::no_such_file_or_directory) return EIOError::NotFound;
-        if (I_Ec == std::errc::permission_denied) return EIOError::PermissionDenied;
-        return EIOError::Other;
+        if (!I_Ec) return EIOStatus::Success;
+        if (I_Ec == std::errc::no_such_file_or_directory) return EIOStatus::NotFound;
+        if (I_Ec == std::errc::permission_denied) return EIOStatus::PermissionDenied;
+        return EIOStatus::Other;
     }
 
     inline std::filesystem::path ToFilesystemPath(const FPath& I_Path) noexcept
@@ -58,13 +58,13 @@ export namespace Visera
     class VISERA_CORE_API FFileSystem
     {
     public:
-        [[nodiscard]] EIOError static inline
+        [[nodiscard]] EIOStatus static inline
         CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
         [[nodiscard]] Bool static inline
         IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(ToFilesystemPath(I_Path)); }
-        [[nodiscard]] EIOError static inline
+        [[nodiscard]] EIOStatus static inline
         CreateDirectory(const FPath& I_Path);
-        [[nodiscard]] EIOError static inline
+        [[nodiscard]] EIOStatus static inline
         DeleteDirectory(const FPath& I_Path, Bool I_bForce = False);
         [[nodiscard]] Bool static inline
         Exists(const FPath& I_Path) { return std::filesystem::exists(ToFilesystemPath(I_Path)); }
@@ -89,7 +89,7 @@ export namespace Visera
         GetFileModeString(EFileMode I_Mode);
     };
 
-    EIOError FFileSystem::
+    EIOStatus FFileSystem::
     CreateDirectory(const FPath& I_Path)
     {
         const auto Path = ToFilesystemPath(I_Path);
@@ -102,7 +102,7 @@ export namespace Visera
         return ToEIOError(Ec);
     }
 
-    EIOError FFileSystem::
+    EIOStatus FFileSystem::
     DeleteDirectory(const FPath& I_Path, Bool I_bForce/* = False*/)
     {
         const auto Path = ToFilesystemPath(I_Path);
@@ -121,7 +121,7 @@ export namespace Visera
         return ToEIOError(Ec);
     }
 
-    EIOError FFileSystem::
+    EIOStatus FFileSystem::
     CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath)
     {
         const auto SourcePath = ToFilesystemPath(I_SourcePath);
@@ -235,3 +235,16 @@ export namespace Visera
         return Results;
     }
 }
+
+VISERA_MAKE_FORMATTER(Visera::EIOStatus,
+    const char* Name = "Unknown";
+    switch (I_Formatee)
+    {
+        case Visera::EIOStatus::Success:          Name = "Success";          break;
+        case Visera::EIOStatus::NotFound:         Name = "NotFound";         break;
+        case Visera::EIOStatus::PermissionDenied: Name = "PermissionDenied"; break;
+        case Visera::EIOStatus::Other:            Name = "Other";            break;
+        default: break;
+    },
+    "{}", Name
+);

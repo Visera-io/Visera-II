@@ -1,11 +1,11 @@
 module;
 #include <Visera-Core.hpp>
-#include <memory>
 export module Visera.Core.Containers.Cache.LRU;
 #define VISERA_MODULE_NAME "Core.Containers"
 import Visera.Core.Containers.List;
 import Visera.Core.Containers.Map;
 import Visera.Core.Types.Optional;
+import Visera.Core.Types.Pointer.Unique;
 import Visera.Core.Log;
 
 export namespace Visera
@@ -197,14 +197,14 @@ export namespace Visera
                 return;
             }
 
-            std::unique_ptr<FEntry> EntryPtr(new FEntry(std::forward<K>(I_Key), std::forward<V>(I_Value)));
+            auto EntryPtr = MakeUnique<FEntry>(std::forward<K>(I_Key), std::forward<V>(I_Value));
             EntryPtr->Weight = EntryWeight;
             try
             {
-                Map.Emplace(EntryPtr->KeyStorage, EntryPtr.get());
-                LRUList.AddHead(EntryPtr.get());
+                Map.Insert(EntryPtr->KeyStorage, EntryPtr.Get());
+                LRUList.AddHead(EntryPtr.Get());
                 CurrentWeight += EntryWeight;
-                EntryPtr.release();
+                (void)EntryPtr.Release();
             }
             catch (...)
             {

@@ -49,7 +49,7 @@ export namespace Visera
         {
             if (I_Handle == 0) { return; }
 
-            if (!PendingAdd.empty())
+            if (!PendingAdd.IsEmpty())
             {
                 for (auto It = PendingAdd.begin(); It != PendingAdd.end(); ++It)
                 {

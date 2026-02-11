@@ -1,6 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#include <string_view>
 export module Visera.Core.Types.Path;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.Text;
@@ -94,6 +93,8 @@ export namespace Visera
         [[nodiscard]] static FPath Normalized(const FPath& I_Path);
         /** Returns True if this path is in normalized form (no '\\', no "//", no "/./", no "/../", no trailing '/'). */
         [[nodiscard]] Bool IsNormalized() const;
+        /** Convert backslashes to forward slashes in place. */
+        static void MakePreferred(FString& I_Path);
 
     private:
         FPath(FString I_Path, Bool /* from_computed */) : PathString{std::move(I_Path)} {}
@@ -102,13 +103,23 @@ export namespace Visera
     public:
         /** Construct from a dynamically built path string (e.g. from filesystem enumeration). */
         FPath() = default;
-        explicit FPath(FString I_Path) : PathString{std::move(I_Path)} {}
+        explicit FPath(FString I_Path)
+        {
+            PathString = std::move(I_Path);
+            MakePreferred(PathString);
+        }
         /** Construct from UTF-8 path (e.g. std::filesystem::path::u8string()). */
         explicit FPath(const std::u8string& I_Utf8Path)
-            : PathString(reinterpret_cast<const char*>(I_Utf8Path.data()), I_Utf8Path.size()) {}
+            : PathString(reinterpret_cast<const char*>(I_Utf8Path.data()), I_Utf8Path.size())
+        {
+            MakePreferred(PathString);
+        }
         /** Construct from UTF-8 path view, avoids copying when a view is already available. */
         explicit FPath(std::u8string_view I_Utf8Path)
-            : PathString(reinterpret_cast<const char*>(I_Utf8Path.data()), I_Utf8Path.size()) {}
+            : PathString(reinterpret_cast<const char*>(I_Utf8Path.data()), I_Utf8Path.size())
+        {
+            MakePreferred(PathString);
+        }
 
         template <size_t N> explicit constexpr
         FPath(const char (&I_Literal)[N]) : PathString{I_Literal, N - 1}
@@ -161,6 +172,12 @@ export namespace Visera
     inline Bool FPath::IsNormalized() const
     {
         return IsNormalizedPath(PathString);
+    }
+
+    inline void FPath::MakePreferred(FString& I_Path)
+    {
+        for (char& Ch : I_Path)
+            if (Ch == '\\') Ch = '/';
     }
 
     inline FString FPath::NormalizeString(FStringView I_Path)
