@@ -35,14 +35,18 @@ export import Visera.Runtime.RHI.Vulkan.Sync;
 export namespace Visera
 {
     using EVulkanMemoryProperty = EVMAMemoryProperty;
+    using FVulkanGraphicsCommandPool = FVulkanCommandPool<EVulkanQueueFamily::Graphics>;
+    using FVulkanTransferCommandPool = FVulkanCommandPool<EVulkanQueueFamily::Transfer>;
+    using FVulkanComputeCommandPool  = FVulkanCommandPool<EVulkanQueueFamily::Compute>;
 
     struct FVulkanDriverCreateInfo
     {
         TSharedPtr<FWindow> Window; // Optional: empty for offscreen mode
-        vk::PresentModeKHR SwapChainPresentMode {vk::PresentModeKHR::eFifo}; // FIFO = VSync; Mailbox = no VSync
-        Bool               bOffScreenMode {False}; // When true: no Surface, no SwapChain
-        FString            ApplicationName {"Runtime"}; // For Vulkan AppInfo and internal logs
-        UInt32             ApplicationVersion {vk::makeVersion(1, 0, 0)}; // From config
+        vk::PresentModeKHR  SwapChainPresentMode {vk::PresentModeKHR::eFifo}; // FIFO = VSync; Mailbox = no VSync
+        Bool                bOffScreenMode       {False}; // When true: no Surface, no SwapChain
+        FString             ApplicationName      {"Visera"}; // For Vulkan AppInfo and internal logs
+        UInt32              ApplicationVersion   {vk::makeVersion(1, 0, 0)}; // From config
+        FString             GPUName             {}; // If non-empty: pick by name; release mode skips feature checks
     };
 
     class VISERA_RUNTIME_API FVulkanDriver
@@ -102,8 +106,7 @@ export namespace Visera
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
     private:
-        FString               ApplicationName; // For Vulkan AppInfo and internal logs
-        UInt32                ApplicationVersion;
+        FVulkanDriverCreateInfo Info;
         vk::raii::Context     Context;
 
         vk::raii::Instance               Instance        {nullptr};
@@ -141,8 +144,7 @@ export namespace Visera
         FVulkanLoader*        Loader         {nullptr};
         FVulkanAllocator*     Allocator      {nullptr};
         FVulkanPipelineCache* PipelineCache  {nullptr};
-        Bool                  bOffScreenMode {False};
-        vk::PresentModeKHR    PresentMode    {vk::PresentModeKHR::eFifo};
+        Bool                  bOffScreenMode {False}; // Cached from Info for hot path
 
         struct FSwapChain
         {
@@ -174,11 +176,12 @@ export namespace Visera
             FSwapChain           SwapChain;
         };
         TMap<FWindow*, FVulkanSwapChainEntry*> SwapChainEntries;
+        vk::SurfaceKHR SurfaceForDeviceSelection {nullptr};  // Primary surface for PickPhysicalDevice/CreateDevice
 
         void inline CreateInstance();       void inline DestroyInstance();
         void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
-        void inline PickPhysicalDevice(vk::SurfaceKHR I_Surface);
-        void inline CreateDevice(vk::SurfaceKHR I_Surface);  void inline DestroyDevice();
+        void inline PickPhysicalDevice();
+        void inline CreateDevice();  void inline DestroyDevice();
         void inline CreateAllocator();      void inline DestroyAllocator();
         void CreateSwapChainForEntry(FSwapChain& I_SwapChain, vk::SurfaceKHR I_Surface);
         void DestroySwapChainEntry(FSwapChain& I_SwapChain);
@@ -219,11 +222,11 @@ export namespace Visera
     public:
         [[nodiscard]] const FVulkanPipelineCache*
         GetPipelineCache() const { return PipelineCache; }
-        [[nodiscard]] inline const auto&
+        [[nodiscard]] inline const vk::raii::Instance&
         GetInstance() const { return Instance; }
-        [[nodiscard]] inline const auto&
+        [[nodiscard]] inline const FGPU&
         GetGPU() const { return GPU; }
-        [[nodiscard]] inline const auto&
+        [[nodiscard]] inline const FDevice&
         GetDevice() const { return Device; }
         [[nodiscard]] FSwapChain*
         GetSwapChain(FWindow* I_Window);
@@ -265,19 +268,16 @@ export namespace Visera
         { LOG_FATAL("Failed to set VK_LAYER_PATH as {}!", VulkanLayerPath); }
 #endif
 #endif
-        ApplicationName = I_CreateInfo.ApplicationName;
-        ApplicationVersion = I_CreateInfo.ApplicationVersion;
-        bOffScreenMode = I_CreateInfo.bOffScreenMode;
+        Info = I_CreateInfo;
+        bOffScreenMode = Info.bOffScreenMode;
         Loader = new FVulkanLoader();
         CreateInstance();
         Loader->Load(Instance);
         CreateDebugMessenger();
         
-        PresentMode = I_CreateInfo.SwapChainPresentMode;
-        vk::SurfaceKHR SurfaceForDevice {nullptr};
-        if (!I_CreateInfo.bOffScreenMode && I_CreateInfo.Window)
+        if (!Info.bOffScreenMode && Info.Window)
         {
-            FWindow* Win = I_CreateInfo.Window.Get();
+            FWindow* Win = Info.Window.Get();
             VkSurfaceKHR SurfaceHandle {nullptr};
             if (glfwCreateWindowSurface(*Instance,
                 static_cast<GLFWwindow*>(Win->GetPlatformWindow()->GetHandle()),
@@ -287,16 +287,16 @@ export namespace Visera
             auto* Entry = SwapChainEntries[Win];
             Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
             Entry->SwapChain.Extent = vk::Extent2D{ Win->GetWidth(), Win->GetHeight() };
-            Entry->SwapChain.PresentMode = PresentMode;
-            SurfaceForDevice = *Entry->Surface;
+            Entry->SwapChain.PresentMode = Info.SwapChainPresentMode;
+            SurfaceForDeviceSelection = *Entry->Surface;
         }
         
-        CreateDevice(SurfaceForDevice);
+        CreateDevice();
         Loader->Load(Device.Context);
         CreateAllocator();
-        if (!I_CreateInfo.bOffScreenMode && I_CreateInfo.Window)
+        if (!Info.bOffScreenMode && Info.Window)
         {
-                auto& Entry = SwapChainEntries[I_CreateInfo.Window.Get()];
+                auto& Entry = SwapChainEntries[Info.Window.Get()];
                 CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
         }
         CreatePipelineCache();
@@ -386,9 +386,9 @@ export namespace Visera
         auto* Entry = SwapChainEntries[I_Window];
         Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
         Entry->SwapChain.Extent = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
-        Entry->SwapChain.PresentMode = PresentMode;
+            Entry->SwapChain.PresentMode = Info.SwapChainPresentMode;
         CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
-        LOG_DEBUG("({}) Created SwapChain for window (title:{})", ApplicationName, I_Window->GetTitle());
+        LOG_DEBUG("({}) Created SwapChain for window (title:{})", Info.ApplicationName, I_Window->GetTitle());
     }
 
     void FVulkanDriver::
@@ -407,7 +407,7 @@ export namespace Visera
     {
         if (I_Width == 0 || I_Height == 0)
         {
-            LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", ApplicationName, I_Width, I_Height);
+            LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", Info.ApplicationName, I_Width, I_Height);
             return;
         }
         auto It = SwapChainEntries.Find(I_Window);
@@ -416,7 +416,7 @@ export namespace Visera
         WaitIdle();
         DestroySwapChainEntry(It->second->SwapChain);
         CreateSwapChainForEntry(It->second->SwapChain, *It->second->Surface);
-        LOG_DEBUG("({}) Recreated SwapChain ({}x{}) for window (title:{}).", ApplicationName, I_Width, I_Height, I_Window->GetTitle());
+        LOG_DEBUG("({}) Recreated SwapChain ({}x{}) for window (title:{}).", Info.ApplicationName, I_Width, I_Height, I_Window->GetTitle());
     }
 
     void FVulkanDriver::
@@ -480,8 +480,8 @@ export namespace Visera
 #endif
 
         const auto AppInfo = vk::ApplicationInfo{}
-            .setPApplicationName    (ApplicationName.Data())
-            .setApplicationVersion  (ApplicationVersion)
+            .setPApplicationName    (Info.ApplicationName.Data())
+            .setApplicationVersion  (Info.ApplicationVersion)
             .setPEngineName         ("Visera")
             .setEngineVersion       (vk::makeVersion(1, 0, 0))
             .setApiVersion          (vk::ApiVersion13);
@@ -525,7 +525,7 @@ export namespace Visera
 
 
     void FVulkanDriver::
-    PickPhysicalDevice(vk::SurfaceKHR I_Surface)
+    PickPhysicalDevice()
     {
         auto Result = Instance.enumeratePhysicalDevices();
         if (!Result.has_value())
@@ -533,44 +533,29 @@ export namespace Visera
 
         auto PhysicalDeviceCandidates = std::move(*Result);
 
-        // Pre-compute properties and scores to avoid repeated driver calls in comparator
         struct FCandidate
         {
             vk::raii::PhysicalDevice Dev{nullptr};
             vk::PhysicalDeviceProperties Props{};
-            Int32 Score = 0;
         };
 
-        TArray<FCandidate> Cands;
-        Cands.Reserve(PhysicalDeviceCandidates.size());
-
-        auto RankType = [](vk::PhysicalDeviceType Type) -> Int32
-        {
-            switch (Type)
-            {
-            case vk::PhysicalDeviceType::eDiscreteGpu:    return 0;
-            case vk::PhysicalDeviceType::eIntegratedGpu:  return 1;
-            default:                                      return 2;
-            }
-        };
-
+        // Split: Discrete first, then Integrated/others. Prefer discrete; if discrete matches, skip integrated.
+        TArray<FCandidate> DiscreteCands;
+        TArray<FCandidate> NonDiscreteCands;
         for (auto& Dev : PhysicalDeviceCandidates)
         {
             FCandidate C{};
             C.Dev   = Dev;
             C.Props = Dev.getProperties();
-            C.Score = RankType(C.Props.deviceType);
-            Cands.EmplaceBack(std::move(C));
+            if (C.Props.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+            { DiscreteCands.EmplaceBack(std::move(C)); }
+            else
+            { NonDiscreteCands.EmplaceBack(std::move(C)); }
         }
 
-        // Sort by pre-computed score
-        Algorithm::Sort(Cands, [](auto const& A, auto const& B)
+        auto TryFindSuitable = [&](TArray<FCandidate>& I_Cands) -> Bool
         {
-            return A.Score < B.Score;
-        });
-
-        const auto SelectedCandidate = Algorithm::FindIf(
-            Cands, [&](auto const& Candidate)
+            const auto It = Algorithm::FindIf(I_Cands, [&](auto const& Candidate)
         {
             LOG_TRACE("Current GPU candidate: {}.", Candidate.Props.deviceName.data());
 
@@ -601,9 +586,9 @@ export namespace Visera
                 if (vk::QueueFlagBits::eTransfer & QueueFamily.queueFlags)
                 { GPU.TransferQueueFamilies.Insert(Idx); }
 
-            if (!bOffScreenMode && I_Surface)
+            if (!bOffScreenMode && SurfaceForDeviceSelection)
             {
-                auto Result = Candidate.Dev.getSurfaceSupportKHR(Idx, I_Surface);
+                auto Result = Candidate.Dev.getSurfaceSupportKHR(Idx, SurfaceForDeviceSelection);
                 if (Result.has_value() && *Result)
                 { GPU.PresentQueueFamilies.Insert(Idx); }
             }
@@ -643,9 +628,64 @@ export namespace Visera
                 GPU.Context = Candidate.Dev;
             }
             return bSuitable;
-        });
+            });
+            return It != I_Cands.end();
+        };
 
-        if (SelectedCandidate == Cands.end())
+        auto MatchesGPUName = [&](const FCandidate& C) -> Bool
+        {
+            const FStringView Name(C.Props.deviceName.data());
+            return Name.Contains(FStringView(Info.GPUName));
+        };
+
+        auto PickByGPUName = [&](TArray<FCandidate>& I_Cands) -> Bool
+        {
+            const auto It = Algorithm::FindIf(I_Cands, MatchesGPUName);
+            if (It == I_Cands.end()) { return False; }
+            const auto& Candidate = *It;
+            DEBUG_ONLY_FIELD(
+            {
+                LOG_TRACE("Expected GPU found: {}; running full suitability checks.", Candidate.Props.deviceName.data());
+                auto QueueFamilies = Candidate.Dev.getQueueFamilyProperties();
+                GPU.QueueFamilyProperties.Clear();
+                for (const auto& QueueFamily : QueueFamilies)
+                { GPU.QueueFamilyProperties.EmplaceBack(QueueFamily); }
+                GPU.GraphicsQueueFamilies.Clear();
+                GPU.ComputeQueueFamilies.Clear();
+                GPU.TransferQueueFamilies.Clear();
+                GPU.PresentQueueFamilies.Clear();
+                for (UInt32 Idx = 0; Idx < QueueFamilies.size(); ++Idx)
+                {
+                    auto& QF = QueueFamilies[Idx];
+                    if (vk::QueueFlagBits::eGraphics & QF.queueFlags) GPU.GraphicsQueueFamilies.Insert(Idx);
+                    if (vk::QueueFlagBits::eCompute & QF.queueFlags) GPU.ComputeQueueFamilies.Insert(Idx);
+                    if (vk::QueueFlagBits::eTransfer & QF.queueFlags) GPU.TransferQueueFamilies.Insert(Idx);
+                    if (!bOffScreenMode && SurfaceForDeviceSelection)
+                    {
+                        auto R = Candidate.Dev.getSurfaceSupportKHR(Idx, SurfaceForDeviceSelection);
+                        if (R.has_value() && *R) GPU.PresentQueueFamilies.Insert(Idx);
+                    }
+                }
+                Bool bSuitable = !GPU.GraphicsQueueFamilies.IsEmpty() && !GPU.ComputeQueueFamilies.IsEmpty() && !GPU.TransferQueueFamilies.IsEmpty();
+                if (!bOffScreenMode) bSuitable = bSuitable && !GPU.PresentQueueFamilies.IsEmpty();
+                if (!bSuitable) { LOG_FATAL("Expected GPU {} failed suitability checks!", Candidate.Props.deviceName.data()); }
+                auto ExtResult = Candidate.Dev.enumerateDeviceExtensionProperties();
+                if (!ExtResult.has_value()) { LOG_FATAL("Failed to enumerate device extension properties!"); }
+                TSet<FStringView> ExtSet;
+                for (const auto& Ext : *ExtResult) ExtSet.Emplace(Ext.extensionName.data());
+                for (const char* Req : Device.Extensions)
+                { if (!ExtSet.Contains(Req)) { LOG_FATAL("Expected GPU {} missing extension {}!", Candidate.Props.deviceName.data(), Req); } }
+            });
+            GPU.Context = Candidate.Dev;
+            return True;
+        };
+
+        if (!Info.GPUName.IsEmpty())
+        {
+            if (!PickByGPUName(DiscreteCands) && !PickByGPUName(NonDiscreteCands))
+            { LOG_FATAL("Expected GPU \"{}\" not found!", Info.GPUName); }
+        }
+        else if (!TryFindSuitable(DiscreteCands) && !TryFindSuitable(NonDiscreteCands))
         { LOG_FATAL("Failed to find a suitable PhysicalDevice!"); }
 
         GPU.Properties  = GPU.Context.getProperties();
@@ -656,14 +696,14 @@ export namespace Visera
         GPU.DescriptorIndexingProperties = std::move(Properties2.get<vk::PhysicalDeviceDescriptorIndexingProperties>());
         GPU.Features    = GPU.Context.getFeatures();
         GPU.Features2   = GPU.Context.getFeatures2();
-        LOG_INFO("({}) Selected GPU: {}", ApplicationName, GPU.Properties.deviceName.data());
+        LOG_INFO("({}) Selected GPU: {}", Info.ApplicationName, GPU.Properties.deviceName.data());
     }
 
     void FVulkanDriver::
-    CreateDevice(vk::SurfaceKHR I_Surface)
+    CreateDevice()
     {
         CollectDeviceLayersAndExtensions();
-        PickPhysicalDevice(I_Surface);
+        PickPhysicalDevice();
 
         // ---- Decide queue families and queue indices (prefer same family, different queue index) ----
         struct FQueueSelection
@@ -880,7 +920,7 @@ export namespace Visera
                   "Graphics(family:{}, idx:{}) "
                   "Transfer(family:{}, idx:{}) "
                   "Compute(family:{}, idx:{})",
-                  ApplicationName,
+                  Info.ApplicationName,
                   GraphicsQueueCandidate.Family, GraphicsQueueCandidate.Index,
                   TransferQueueCandidate.Family, TransferQueueCandidate.Index,
                   ComputeQueueCandidate.Family,  ComputeQueueCandidate.Index);
@@ -989,7 +1029,7 @@ export namespace Visera
         if (I_SwapChain.Extent.width == 0 || I_SwapChain.Extent.height == 0)
         {
             LOG_TRACE("({}) Skip SwapChain creation while minimized (extent:[{},{}]).",
-                      ApplicationName, I_SwapChain.Extent.width, I_SwapChain.Extent.height);
+                      Info.ApplicationName, I_SwapChain.Extent.width, I_SwapChain.Extent.height);
             return;
         }
 
@@ -1019,7 +1059,7 @@ export namespace Visera
         }
 
         LOG_TRACE("({}) Created a SwapChain (extent:[{},{}]).",
-                   ApplicationName, I_SwapChain.Extent.width, I_SwapChain.Extent.height);
+                   Info.ApplicationName, I_SwapChain.Extent.width, I_SwapChain.Extent.height);
 
         {
             auto R = I_SwapChain.Context.getImages();
@@ -1088,10 +1128,10 @@ export namespace Visera
         }
         if (RawResult == vk::Result::eErrorOutOfDateKHR)
         {
-            LOG_TRACE("({}) AcquireNextImage returned {}.", ApplicationName, RawResult);
+            LOG_TRACE("({}) AcquireNextImage returned {}.", Info.ApplicationName, RawResult);
             return False;
         }
-        LOG_ERROR("({}) Failed to acquire the next Vulkan SwapChain Image! VkResult={}", ApplicationName, RawResult);
+        LOG_ERROR("({}) Failed to acquire the next Vulkan SwapChain Image! VkResult={}", Info.ApplicationName, RawResult);
         return False;
     }
 
@@ -1115,12 +1155,12 @@ export namespace Visera
             Device.GraphicsQueue.getDispatcher()->vkQueuePresentKHR(*Device.GraphicsQueue, &(*PresentInfo)));
         if (Result == vk::Result::eErrorOutOfDateKHR)
         {
-            LOG_TRACE("({}) Present returned {}.", ApplicationName, Result);
+            LOG_TRACE("({}) Present returned {}.", Info.ApplicationName, Result);
             return False;
         }
         if (Result != vk::Result::eSuccess && Result != vk::Result::eSuboptimalKHR)
         {
-            LOG_ERROR("({}) Present failed with VkResult {}", ApplicationName, Result);
+            LOG_ERROR("({}) Present failed with VkResult {}", Info.ApplicationName, Result);
             return False;
         }
         return True;
@@ -1313,10 +1353,10 @@ export namespace Visera
     void FVulkanDriver::
     CreatePipelineCache()
     {
-        FString UuidStr;
+        FString UUIDString;
         for (size_t i = 0; i < vk::UuidSize; ++i)
-        { UuidStr += FString::Format("{:02x}", static_cast<UInt32>(GPU.Properties.pipelineCacheUUID[i])); }
-        const FPath CachePath = FPlatform::GetCacheDirectory() / FPath{FString::Format("RHIPipelines.{}.cache", UuidStr)};
+        { UUIDString += FString::Format("{:02x}", static_cast<UInt32>(GPU.Properties.pipelineCacheUUID[i])); }
+        const FPath CachePath = FPlatform::GetCacheDirectory() / FPath{FString::Format("RHIPipelines.{}.cache", UUIDString)};
         PipelineCache = new FVulkanPipelineCache(GPU.Context, Device.Context, CachePath);
     }
 

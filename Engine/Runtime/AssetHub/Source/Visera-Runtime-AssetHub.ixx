@@ -17,6 +17,7 @@ export import Visera.Runtime.AssetHub.Font;
        import Visera.Core.Types.Optional;
        import Visera.Core.OS.Thread.Sync;
        import Visera.Core.Image;
+       import Visera.Core.OS.Memory;
        import Visera.Core.Font;
        import Visera.Runtime.Global;
        import Visera.Platform;
@@ -57,16 +58,6 @@ export namespace Visera
         static constexpr UInt64 DefaultShaderMB = 32;
         static constexpr UInt64 DefaultFontMB   = 16;
 
-        static UInt64 GetCapacityMBFromConfig(const FJSON& I_Config, const char* I_TypeKey, UInt64 I_DefaultMB)
-        {
-            if (!I_Config.Contains("AssetHub")) { return I_DefaultMB; }
-            const FJSON HubConfig = I_Config.GetObject("AssetHub");
-            if (!HubConfig.Contains("CacheCapacity")) { return I_DefaultMB; }
-            const FJSON CapConfig = HubConfig.GetObject("CacheCapacity");
-            const Double Cap = CapConfig.GetNumber(I_TypeKey, static_cast<Double>(I_DefaultMB));
-            return Cap > 0 ? static_cast<UInt64>(Cap) : I_DefaultMB;
-        }
-
         static UInt64 GetAssetByteSize(const TSharedPtr<IAsset>& I_Ptr)
         { return I_Ptr ? I_Ptr->GetByteSize() : 0; }
 
@@ -79,9 +70,10 @@ export namespace Visera
             mutable TMap<FName, TWeakPtr<IAsset>> Cold;
             mutable FRWLock Lock;
         };
-        FCachePair ImageCache;
-        FCachePair ShaderCache;
-        FCachePair FontCache;
+
+        TUniquePtr<FCachePair> ImageCache;
+        TUniquePtr<FCachePair> ShaderCache;
+        TUniquePtr<FCachePair> FontCache;
 
         [[nodiscard]] TWeakPtr<IAsset> FindInCache(FCachePair& I_Cache, const FName& I_Key) const
         {
@@ -121,25 +113,23 @@ export namespace Visera
     public:
         FAssetHub(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
             : IGlobalService(I_Name, I_Registry, I_Config)
-            , ImageCache{FCachePair{
-                FHotCacheType(
-                    GetCapacityMBFromConfig(I_Config, "Image", DefaultImageMB) * 1024 * 1024,
-                    Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
-                {}, {}
-                }}
-            , ShaderCache{FCachePair{
-                FHotCacheType(
-                    GetCapacityMBFromConfig(I_Config, "Shader", DefaultShaderMB) * 1024 * 1024,
-                    Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
-                {}, {}
-                }}
-            , FontCache{FCachePair{
-                FHotCacheType(
-                    GetCapacityMBFromConfig(I_Config, "Font", DefaultFontMB) * 1024 * 1024,
-                    Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
-                {}, {}
-            }}
         {
+            auto GetCapMB = [&](const FStaticJSONPath& I_Path, UInt64 I_Default) -> UInt64
+            {
+                const UInt64 V = I_Config.GetNumber(I_Path, static_cast<UInt64>(I_Default));
+                return V > 0 ? V * 1024 * 1024 : I_Default * 1024 * 1024;
+            };
+            auto MakeCache = [](UInt64 I_CapBytes)
+            {
+                return TUniquePtr<FCachePair>(new FCachePair{
+                    FHotCacheType(I_CapBytes, Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
+                    {}, {}
+                });
+            };
+            ImageCache  = MakeCache(GetCapMB(TJSONPath<"AssetHub.CacheCapacityMB.Image",  3>::Get(),  DefaultImageMB));
+            ShaderCache = MakeCache(GetCapMB(TJSONPath<"AssetHub.CacheCapacityMB.Shader", 3>::Get(), DefaultShaderMB));
+            FontCache   = MakeCache(GetCapMB(TJSONPath<"AssetHub.CacheCapacityMB.Font",   3>::Get(),   DefaultFontMB));
+
             Dependencies = { EName::Tasks };
 
             if (!OnBootstrap.TryBind([this] { return True; }))
@@ -154,7 +144,7 @@ export namespace Visera
     LoadImage(const FPath& I_Path, ELoadMode I_Mode)
     {
         const FName PathName{I_Path.GetString()};
-        if (auto W = FindInCache(ImageCache, PathName); !W.IsExpired())
+        if (auto W = FindInCache(*ImageCache, PathName); !W.IsExpired())
         {
             LOG_DEBUG("({}) LoadImage: {} (from cache).", GetRuntimeName(), I_Path);
             return Cast<FImageAsset>(W.Lock());
@@ -181,7 +171,7 @@ export namespace Visera
         if (NewImage.GetWidth() == 0) return nullptr;
 
         auto NewAsset = MakeShared<FImageAsset>(std::move(NewImage));
-        StoreInCache(ImageCache, PathName, Cast<IAsset>(NewAsset));
+        StoreInCache(*ImageCache, PathName, Cast<IAsset>(NewAsset));
         LOG_DEBUG("({}) LoadImage: {}.", GetRuntimeName(), I_Path);
         return NewAsset;
     }
@@ -189,7 +179,7 @@ export namespace Visera
     Bool FAssetHub::
     SaveImage(const FImageView2D& I_View, const FPath& I_Path, ESaveMode I_Mode)
     {
-        const FImage ToSave{I_View, std::pmr::get_default_resource()};
+        const FImage ToSave{I_View, Memory::GetDefaultResource()};
         if (ToSave.GetWidth() == 0 || ToSave.GetHeight() == 0)
         {
             LOG_ERROR("Image view has invalid dimensions ({}x{}) for saving: {}",
@@ -257,7 +247,7 @@ export namespace Visera
     LoadShader(const FPath& I_Path, ELoadMode I_Mode)
     {
         const FName PathName{I_Path.GetString()};
-        if (auto W = FindInCache(ShaderCache, PathName); !W.IsExpired())
+        if (auto W = FindInCache(*ShaderCache, PathName); !W.IsExpired())
         {
             LOG_DEBUG("({}) LoadShader: {} (from cache).", GetRuntimeName(), I_Path);
             return Cast<FShaderAsset>(W.Lock());
@@ -273,7 +263,7 @@ export namespace Visera
         if (Refl.EntryPoints.IsEmpty())
         { return nullptr; }
         auto NewShader = MakeShared<FShaderAsset>(FShader{std::move(SPIRVChunk), std::move(Refl)});
-        StoreInCache(ShaderCache, PathName, Cast<IAsset>(NewShader));
+        StoreInCache(*ShaderCache, PathName, Cast<IAsset>(NewShader));
         LOG_DEBUG("({}) LoadShader: {}.", GetRuntimeName(), I_Path);
         return NewShader;
     }
@@ -290,7 +280,7 @@ export namespace Visera
         const FString CacheKeyStr = FString::Format("{}_{}_{}", I_Path.GetString(), I_FaceIndex, I_PixelSize);
         const FName CacheKey{CacheKeyStr};
 
-        if (auto W = FindInCache(FontCache, CacheKey); !W.IsExpired())
+        if (auto W = FindInCache(*FontCache, CacheKey); !W.IsExpired())
         {
             LOG_DEBUG("({}) LoadFont: {} (face {}, size {}, from cache).", GetRuntimeName(), I_Path, I_FaceIndex, I_PixelSize);
             return Cast<FFontAsset>(W.Lock());
@@ -319,7 +309,7 @@ export namespace Visera
         }
         FFont Font(std::move(FontData), InfoOpt.GetValue());
         auto NewFace = MakeShared<FFontAsset>(std::move(Font), Face);
-        StoreInCache(FontCache, CacheKey, Cast<IAsset>(NewFace));
+        StoreInCache(*FontCache, CacheKey, Cast<IAsset>(NewFace));
         LOG_DEBUG("({}) LoadFont: {} (face {}, size {}).", GetRuntimeName(), I_Path, I_FaceIndex, I_PixelSize);
         return NewFace;
     }
@@ -327,7 +317,7 @@ export namespace Visera
     TSharedPtr<FImageAsset> FAssetHub::
     LoadImageFromCache(const FName& I_Name)
     {
-        auto W = FindInCache(ImageCache, I_Name);
+        auto W = FindInCache(*ImageCache, I_Name);
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
@@ -338,7 +328,7 @@ export namespace Visera
     TSharedPtr<FShaderAsset> FAssetHub::
     LoadShaderFromCache(const FName& I_Name)
     {
-        auto W = FindInCache(ShaderCache, I_Name);
+        auto W = FindInCache(*ShaderCache, I_Name);
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
@@ -349,7 +339,7 @@ export namespace Visera
     TSharedPtr<FFontAsset> FAssetHub::
     LoadFontFromCache(const FName& I_Name)
     {
-        auto W = FindInCache(FontCache, I_Name);
+        auto W = FindInCache(*FontCache, I_Name);
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;

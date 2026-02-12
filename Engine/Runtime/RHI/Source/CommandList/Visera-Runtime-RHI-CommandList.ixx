@@ -26,7 +26,7 @@ export namespace Visera
     };
 
     // Command view returned by iterator
-    struct FCommandView
+    struct FRHICommandView
     {
         ECommandType Type;
         const FByte* PayloadPtrAligned; // Already aligned payload start
@@ -39,7 +39,7 @@ export namespace Visera
 
     public:
         /// Target swap chain / window for execution. Set before Submit/Execute. Thread-safe.
-        FRHISwapChainID TargetSwapChain {nullptr};
+        FRHISwapChainID TargetSwapChain { 0 };  // Index into FRHI's swap chain array; 0 = primary
 
     private:
 
@@ -156,7 +156,7 @@ export namespace Visera
             {
             }
 
-            [[nodiscard]] FCommandView operator*() const
+            [[nodiscard]] FRHICommandView operator*() const
             {
                 const UInt64 HeaderOffset = Memory::Align(Offset, FRHICommandList::CommandAlignment);
                 if (HeaderOffset + sizeof(FCommandHeader) > Size)
@@ -225,6 +225,15 @@ export namespace Visera
 
     public:
         FRHICommandList() : MemoryCache(), Buffer(&MemoryCache.Get()) { }
+
+        FRHICommandList(const FRHICommandList& I_Other)
+            : MemoryCache(), Buffer(&MemoryCache.Get()), CommandCount(I_Other.CommandCount)
+        {
+            TargetSwapChain = I_Other.TargetSwapChain;
+            Buffer.Resize(I_Other.Buffer.GetSize());
+            if (I_Other.Buffer.GetSize() > 0)
+            { Memory::Memcpy(Buffer.Data(), I_Other.Buffer.Data(), I_Other.Buffer.GetSize()); }
+        }
 
     private:
         // Record a command with payload struct

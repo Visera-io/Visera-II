@@ -88,19 +88,3 @@ endforeach()
 
 add_subdirectory(Engine)
 add_subdirectory(${VISERA_APP_DIR})
-
-#add_custom_target(
-#    "Visera-App" ALL COMMAND
-#    dotnet build ${VISERA_APP_PROJECT}
-#    -c $<IF:$<CONFIG:Release>,Release,Debug>
-#
-#    -p:VISERA_ENGINE_APIS=${VISERA_API_DIR}
-#
-#    -p:OutputPath=${VISERA_APP_FRAMEWORK_DIR}/
-#    -p:BaseIntermediateOutputPath=${CMAKE_BINARY_DIR}/API/
-#    -p:IntermediateOutputPath=${CMAKE_BINARY_DIR}/API/
-#
-#    WORKING_DIRECTORY ${VISERA_APP_DIR}
-#)
-#add_dependencies(${VISERA_APP} "Visera-App")
-#set_target_properties("Visera-App" PROPERTIES FOLDER "Visera/App")

@@ -6,15 +6,17 @@ export import Visera.Runtime.RHI.Common;
 export import Visera.Runtime.RHI.Resource;
 export import Visera.Runtime.RHI.CommandList;
 export import Visera.Runtime.RHI.Registry;
+export import Visera.Runtime.RHI.SwapChain;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Window;
        import Visera.Runtime.Global;
        import Visera.Core.OS.Thread;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Map;
+       import Visera.Core.Types.Optional;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Types.String;
-       import Visera.Core.Delegate;
+       import Visera.Core.Types.JSON;
        import Visera.Core.Log;
        import Visera.Platform;
        import vulkan_hpp;
@@ -23,22 +25,21 @@ export namespace Visera
 {
     class VISERA_RUNTIME_API FRHI : public IGlobalService
     {
-        using FRHIDrawCalls     = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
-        using FRHITransferCalls = FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>;
-
     public:
-        [[nodiscard]] Bool
-        BeginFrame(FWindow* I_Window = nullptr);
+        /// Submit command list for execution on FRHI thread (transfers ownership).
         void
-        EndFrame(FWindow* I_Window = nullptr);
+        Execute(TUniquePtr<FRHICommandList> I_CommandList);
+        /// Submit command list (makes a copy; prefer Execute(TUniquePtr) when possible).
         void
         Execute(FRHICommandList& I_CommandList);
-        void
-        Present(FWindow* I_Window = nullptr);
+
         void
         CreateSwapChain(FWindow* I_Window);
         void
         DestroySwapChain(FWindow* I_Window);
+        /// Return swap chain index for I_Window; used to set FRHICommandList::TargetSwapChain.
+        [[nodiscard]] TOptional<FRHISwapChainID>
+        GetSwapChainIndex(FWindow* I_Window) const;
         void
         WaitIdle() const { Driver->WaitIdle(); }
 
@@ -72,7 +73,7 @@ export namespace Visera
             void Start(FRHI* I_Owner);
             void Run();
             void Stop();
-            void Enqueue(TUniquePtr<FRHICommandList> I_CommandList); // Main Thread Use
+            void Enqueue(TUniquePtr<FRHICommandList> I_CommandList);
         };
 
         FRHIThread     RHIThread;
@@ -81,120 +82,12 @@ export namespace Visera
         FRHIRegistry*  Registry {nullptr};
         Bool           bOffScreenMode {False};
 
-        FVulkanCommandPool<EVulkanQueueFamily::Graphics>
-        GraphicsCommandPool;
-        FVulkanCommandPool<EVulkanQueueFamily::Transfer>
-        TransferCommandPool;
+        FVulkanGraphicsCommandPool GraphicsCommandPool;
+        FVulkanTransferCommandPool TransferCommandPool;
 
-        struct FFrame
-        {
-            FVulkanFence      ExecuteFence;
-            FVulkanSemaphore  SwapChainReadySemaphore;
-            FVulkanSemaphore  RenderFinishedSemaphore;    // Offscreen only
-            FRHIDrawCalls     DrawCalls;
-            FVulkanSemaphore  TransferFinishedSemaphore;
-            FRHITransferCalls TransferCalls;
-        };
-        struct FSwapChainContext
-        {
-            TArray<FFrame> Frames;
-            TArray<FVulkanSemaphore> RenderFinishedSemaphores;
-            UInt8 FrameIndex = 0;
-            UInt8 LastSubmittedImageIndex = 0;
-        };
-        TMap<FWindow*, FSwapChainContext*> SwapChainContexts;
-        TMap<FWindow*, TMulticastDelegate<FWindow*>::FHandle> ResizeHandles;
-        FWindow* PrimaryWindow {nullptr};  // First swapchain, for parameterless overloads
-
-        void
-        SubscribeToWindowResize(FWindow* I_Window)
-        {
-            if (ResizeHandles.Contains(I_Window)) { return; }
-            auto Handle = I_Window->OnResized.Subscribe([this](FWindow* I_Win)
-            {
-                if (I_Win->GetWidth() == 0 || I_Win->GetHeight() == 0)
-                {
-                    LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", GetRuntimeName(), I_Win->GetWidth(), I_Win->GetHeight());
-                    return;
-                }
-                if (!SwapChainContexts.Contains(I_Win)) { return; }
-                LOG_DEBUG("({}) Recreating SwapChain ({}x{}) for window (title:{}).",
-                          GetRuntimeName(), I_Win->GetWidth(), I_Win->GetHeight(), I_Win->GetTitle());
-                Driver->WaitIdle();
-                if (auto It = SwapChainContexts.Find(I_Win); It != SwapChainContexts.end() && It->second)
-                { delete It->second; }
-                SwapChainContexts.Erase(I_Win);
-                Driver->RecreateSwapChain(I_Win, I_Win->GetWidth(), I_Win->GetHeight());
-                InitializeSwapChainContext(I_Win);
-            });
-            ResizeHandles.Insert(I_Window, Handle);
-        }
-
-        void
-        UnsubscribeFromWindowResize(FWindow* I_Window)
-        {
-            if (auto It = ResizeHandles.Find(I_Window); It != ResizeHandles.end())
-            {
-                I_Window->OnResized.Unsubscribe(It->second);
-                ResizeHandles.Erase(I_Window);
-            }
-        }
-
-        void
-        InitializeSwapChainContext(FWindow* I_Window)
-        {
-            auto* SC = Driver->GetSwapChain(I_Window);
-            if (!SC) { return; }
-            SwapChainContexts[I_Window] = new FSwapChainContext();
-            auto* Ctx = SwapChainContexts[I_Window];
-            Ctx->Frames.Resize(SC->Images.GetSize());
-            Ctx->RenderFinishedSemaphores.Clear();
-            for (UInt32 Idx = 0; Idx < SC->Images.GetSize(); ++Idx)
-            {
-                Ctx->RenderFinishedSemaphores.EmplaceBack(Driver->CreateSemaphore());
-            }
-            for (auto& Frame : Ctx->Frames)
-            {
-                Frame.ExecuteFence = Driver->CreateFence(True);
-                Frame.SwapChainReadySemaphore = Driver->CreateSemaphore();
-                Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
-                Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
-                Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
-            }
-            FRHIDrawCalls Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
-            Cmd.Begin();
-            for (auto& Image : SC->Images)
-            {
-                Cmd.ConvertImageLayout(&Image,
-                    vk::ImageLayout::ePresentSrcKHR,
-                    EVulkanGraphicsStage::TopOfPipe,
-                    EVulkanGraphicsAccess::None,
-                    EVulkanGraphicsStage::BottomOfPipe,
-                    EVulkanGraphicsAccess::None);
-            }
-            Cmd.End();
-            FVulkanFence Fence = Driver->CreateFence(False);
-            Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-            if (!Fence.Wait())
-            { LOG_FATAL("Failed to init RHI SwapChain!"); }
-        }
-
-        void
-        InitializeOffscreenFrames()
-        {
-            FWindow* OffscreenKey = reinterpret_cast<FWindow*>(1); // Sentinel for offscreen
-            SwapChainContexts[OffscreenKey] = new FSwapChainContext();
-            auto* Ctx = SwapChainContexts[OffscreenKey];
-            Ctx->Frames.Resize(1);
-            for (auto& Frame : Ctx->Frames)
-            {
-                Frame.ExecuteFence = Driver->CreateFence(True);
-                Frame.RenderFinishedSemaphore = Driver->CreateSemaphore();
-                Frame.DrawCalls = GraphicsCommandPool.CreateCommandBuffer(True);
-                Frame.TransferFinishedSemaphore = Driver->CreateSemaphore();
-                Frame.TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
-            }
-        }
+        static constexpr UInt8        PrimarySwapChainIndex {0};
+        TArray<FRHISwapChain>         SwapChains;
+        TMap<FWindow*, UInt8>         WindowToSwapChainIndex;
 
     public:
         FRHI(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
@@ -227,30 +120,28 @@ export namespace Visera
                         return False;
                     }
 
-                    SubscribeToWindowResize(Window.Get());
                 }
-                vk::PresentModeKHR PresentMode = vk::PresentModeKHR::eFifo;
-                UInt32 AppVersion = vk::makeVersion(1, 0, 0);
-                {
-                    FJSON RHIConfig = Config.GetObject("RHI");
-                    FString PresentModeStr = RHIConfig.GetString("PresentMode", "VSync");
-                    if (PresentModeStr == "Immediate") PresentMode = vk::PresentModeKHR::eImmediate;
-                    else if (PresentModeStr == "Mailbox") PresentMode = vk::PresentModeKHR::eMailbox;
-                    else if (PresentModeStr == "FIFO" || PresentModeStr == "VSync") PresentMode = vk::PresentModeKHR::eFifo;
-                    if (RHIConfig.Contains("ApplicationVersionMajor") || RHIConfig.Contains("ApplicationVersionMinor") || RHIConfig.Contains("ApplicationVersionPatch"))
-                    {
-                        AppVersion = vk::makeVersion(
-                            static_cast<UInt32>(RHIConfig.GetNumber("ApplicationVersionMajor", 1)),
-                            static_cast<UInt32>(RHIConfig.GetNumber("ApplicationVersionMinor", 0)),
-                            static_cast<UInt32>(RHIConfig.GetNumber("ApplicationVersionPatch", 0)));
-                    }
-                }
-                Driver = new FVulkanDriver({.Window = Window, .SwapChainPresentMode = PresentMode, .bOffScreenMode = bOffScreenMode, .ApplicationName = GetRuntimeName(), .ApplicationVersion = AppVersion});
+                auto ExpectedGPU    = GetConfig().GetString(TJSONPath<"RHI.GPU", 2>::Get(), "");
+                auto bVSync = GetConfig().GetBool(TJSONPath<"RHI.VSync", 2>::Get(), True);
+                vk::PresentModeKHR PresentMode = bVSync?
+                    vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
+                UInt32 AppVersion = vk::makeVersion(
+                    GetConfig().GetNumber(TJSONPath<"RHI.Version[0]", 3>::Get(), 1),
+                    GetConfig().GetNumber(TJSONPath<"RHI.Version[1]", 3>::Get(), 0),
+                    GetConfig().GetNumber(TJSONPath<"RHI.Version[2]", 3>::Get(), 0)
+                );
+                Driver = new FVulkanDriver({.Window = Window, .SwapChainPresentMode = PresentMode, .bOffScreenMode = bOffScreenMode, .ApplicationName = GetRuntimeName(), .ApplicationVersion = AppVersion, .GPUName = ExpectedGPU});
 
                 if (Driver->GetDevice().GraphicsQueueFamilyIndex
                     !=
                     Driver->GetDevice().TransferQueueFamilyIndex)
                 { LOG_WARN("({}) NOT support \"Queue Family Ownership Transfer\"!", GetRuntimeName()); }
+
+                if (ExpectedGPU.IsEmpty())
+                {
+                    FString GPUName(Driver->GetGPU().Properties.deviceName.data());
+                    SetConfig(TJSONPath<"RHI.GPU", 2>::Get(), GPUName);
+                }
 
                 Registry = new FRHIRegistry(Driver);
 
@@ -258,11 +149,16 @@ export namespace Visera
                 TransferCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Transfer>(False);
 
                 if (bOffScreenMode)
-                { InitializeOffscreenFrames(); }
+                {
+                    SwapChains.EmplaceBack();
+                    SwapChains.Back().Initialize(Driver, &GraphicsCommandPool, &TransferCommandPool, nullptr);
+                }
                 else
                 {
-                    PrimaryWindow = Window.Get();
-                    InitializeSwapChainContext(PrimaryWindow);
+                    SwapChains.EmplaceBack();
+                    SwapChains.Back().Initialize(Driver, &GraphicsCommandPool, &TransferCommandPool, Window.Get());
+                    SwapChains.Back().SubscribeToResize(Driver, &GraphicsCommandPool, &TransferCommandPool, Window.Get(), GetRuntimeName());
+                    WindowToSwapChainIndex.Insert(Window.Get(), PrimarySwapChainIndex);
                 }
 
                 RHIThread.Start(this);
@@ -276,11 +172,10 @@ export namespace Visera
                 RHIThread.Stop();
 
                 Driver->WaitIdle();
-                for (auto& [W, H] : ResizeHandles)
-                { W->OnResized.Unsubscribe(H); }
-                ResizeHandles.Clear();
-                for (auto& [W, Ctx] : SwapChainContexts) { if (Ctx) delete Ctx; }
-                SwapChainContexts.Clear();
+                for (auto& Ctx : SwapChains)
+                { Ctx.UnsubscribeFromResize(); }
+                SwapChains.Clear();
+                WindowToSwapChainIndex.Clear();
                 GraphicsCommandPool = {};
                 TransferCommandPool = {};
                 delete Registry;
@@ -292,7 +187,7 @@ export namespace Visera
     private:
         template<typename T>
         [[nodiscard]] static const T&
-        DecodePayload(const FCommandView& I_Cmd)
+        DecodePayload(const FRHICommandView& I_Cmd)
         {
             VISERA_ASSERT(I_Cmd.PayloadPtrAligned != nullptr);
             VISERA_ASSERT(I_Cmd.PayloadBytes == sizeof(T));
@@ -315,12 +210,13 @@ export namespace Visera
             return Buf->GetVulkanBuffer();
         }
 
-        void ExecuteConvertImageLayout(FFrame& I_Frame, const FCommandView& I_Cmd);
-        void ExecuteClearColorImage(FFrame& I_Frame, const FCommandView& I_Cmd);
-        void ExecuteBlitImage(FFrame& I_Frame, const FCommandView& I_Cmd);
-        void ExecuteBlitToSwapChain(FFrame& I_Frame, const FCommandView& I_Cmd, FWindow* I_TargetWindow);
-        void ExecuteCopyBufferToImage(FFrame& I_Frame, const FCommandView& I_Cmd);
-        void ExecuteWriteBuffer(FFrame& I_Frame, const FCommandView& I_Cmd);
+        void ExecuteImmediate(FRHICommandList& I_CommandList);
+        void ExecuteConvertImageLayout(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+        void ExecuteClearColorImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+        void ExecuteBlitImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+        void ExecuteBlitToSwapChain(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd, FWindow* I_TargetWindow);
+        void ExecuteCopyBufferToImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+        void ExecuteWriteBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
 
         // Map a single vk::ImageLayout to the stage/access for barrier src or dst.
         static void MapGraphicsLayoutToBarrier(
@@ -355,21 +251,41 @@ export namespace Visera
     CreateSwapChain(FWindow* I_Window)
     {
         if (bOffScreenMode) { return; }
-        if (SwapChainContexts.Contains(I_Window)) { return; }
+        if (WindowToSwapChainIndex.Contains(I_Window)) { return; }
         Driver->CreateSwapChain(I_Window);
-        SubscribeToWindowResize(I_Window);
-        InitializeSwapChainContext(I_Window);
+        SwapChains.EmplaceBack();
+        SwapChains.Back().Initialize(Driver, &GraphicsCommandPool, &TransferCommandPool, I_Window);
+        SwapChains.Back().SubscribeToResize(Driver, &GraphicsCommandPool, &TransferCommandPool, I_Window, GetRuntimeName());
+        WindowToSwapChainIndex.Insert(I_Window, static_cast<UInt8>(SwapChains.GetSize() - 1));
     }
 
     void FRHI::
     DestroySwapChain(FWindow* I_Window)
     {
         if (bOffScreenMode) { return; }
-        UnsubscribeFromWindowResize(I_Window);
-        if (auto It = SwapChainContexts.Find(I_Window); It != SwapChainContexts.end() && It->second)
-        { delete It->second; }
-        SwapChainContexts.Erase(I_Window);
+        if (auto It = WindowToSwapChainIndex.Find(I_Window); It != WindowToSwapChainIndex.end())
+        {
+            UInt8 Idx = It->second;
+            SwapChains[Idx].UnsubscribeFromResize();
+            // Swap-and-pop to keep indices compact; update map for swapped window
+            if (Idx != SwapChains.GetSize() - 1)
+            {
+                SwapChains[Idx] = std::move(SwapChains.Back());
+                if (FWindow* Moved = SwapChains[Idx].Window)
+                { WindowToSwapChainIndex[Moved] = Idx; }
+            }
+            SwapChains.PopBack();
+            WindowToSwapChainIndex.Erase(I_Window);
+        }
         Driver->DestroySwapChain(I_Window);
+    }
+
+    TOptional<FRHISwapChainID> FRHI::
+    GetSwapChainIndex(FWindow* I_Window) const
+    {
+        if (auto It = WindowToSwapChainIndex.Find(I_Window); It != WindowToSwapChainIndex.end())
+        { return TOptional<FRHISwapChainID>(It->second); }
+        return NullOpt;
     }
 
     void FRHI::FRHIThread::
@@ -398,10 +314,10 @@ export namespace Visera
                 if (auto R = CommandListQueue.Dequeue(); R.HasValue())
                 {
                     bExecuted = True;
-                    Owner->Execute(*std::move(R).GetValue());
+                    Owner->ExecuteImmediate(*std::move(R).GetValue());
                 }
                 else break;
-            }while (True);
+            } while (True);
 
             if (!bExecuted) { WakeEvent.Wait(); }
         }
@@ -427,99 +343,25 @@ export namespace Visera
         WakeEvent.Trigger();
     }
 
-    Bool FRHI::
-    BeginFrame(FWindow* I_Window)
-    {
-        FWindow* Win = I_Window ? I_Window : PrimaryWindow;
-        if (!Win && bOffScreenMode) { Win = reinterpret_cast<FWindow*>(1); }
-        if (!Win) { return False; }
-        auto It = SwapChainContexts.Find(Win);
-        if (It == SwapChainContexts.end() || !It->second) { return False; }
-        auto* Ctx = It->second;
-
-        FFrame& CurrentFrame = Ctx->Frames[Ctx->FrameIndex];
-        if (!CurrentFrame.ExecuteFence.Wait()) { return False; }
-
-        Registry->SetCurrentRetirementFence(&CurrentFrame.ExecuteFence);
-        Registry->CollectGarbage();
-        Bool bAcquired = bOffScreenMode ? True : Driver->WaitNextFrame(Win, &CurrentFrame.SwapChainReadySemaphore);
-        if (bAcquired)
-        {
-            if (!CurrentFrame.ExecuteFence.Reset())
-            {
-                LOG_ERROR("({}) Failed to reset the Fence!", GetRuntimeName());
-                return False;
-            }
-        }
-        else
-        {
-            LOG_TRACE("({}) Failed to begin new frame!", GetRuntimeName());
-            return False;
-        }
-        CurrentFrame.TransferCalls.Reset();
-        CurrentFrame.TransferCalls.Begin();
-        CurrentFrame.DrawCalls.Reset();
-        CurrentFrame.DrawCalls.Begin();
-
-        return True;
-    }
-
     void FRHI::
-    EndFrame(FWindow* I_Window)
+    Execute(TUniquePtr<FRHICommandList> I_CommandList)
     {
-        FWindow* Win = I_Window ? I_Window : PrimaryWindow;
-        if (!Win && bOffScreenMode) { Win = reinterpret_cast<FWindow*>(1); }
-        if (!Win) { return; }
-        auto It = SwapChainContexts.Find(Win);
-        if (It == SwapChainContexts.end() || !It->second) { return; }
-        auto* Ctx = It->second;
-
-        FFrame& CurrentFrame = Ctx->Frames[Ctx->FrameIndex];
-        CurrentFrame.TransferCalls.End();
-        CurrentFrame.DrawCalls.End();
-
-        FVulkanSemaphore* TransferWait = bOffScreenMode ? nullptr : &CurrentFrame.SwapChainReadySemaphore;
-        Driver->Submit(&CurrentFrame.TransferCalls,
-            TransferWait,
-            &CurrentFrame.TransferFinishedSemaphore,
-            nullptr);
-
-        if (bOffScreenMode)
-        {
-            Driver->Submit(&CurrentFrame.DrawCalls,
-                &CurrentFrame.TransferFinishedSemaphore,
-                &CurrentFrame.RenderFinishedSemaphore,
-                &CurrentFrame.ExecuteFence);
-        }
-        else
-        {
-            auto* SC = Driver->GetSwapChain(Win);
-            if (SC)
-            {
-                const UInt8 ImageIndex = SC->Cursor;
-                Driver->Submit(&CurrentFrame.DrawCalls,
-                    &CurrentFrame.TransferFinishedSemaphore,
-                    &Ctx->RenderFinishedSemaphores[ImageIndex],
-                    &CurrentFrame.ExecuteFence);
-                Ctx->LastSubmittedImageIndex = ImageIndex;
-            }
-        }
-
-        Registry->ClearGarbage();
-        Ctx->FrameIndex = (Ctx->FrameIndex + 1) % Ctx->Frames.GetSize();
+        RHIThread.Enqueue(std::move(I_CommandList));
     }
 
     void FRHI::
     Execute(FRHICommandList& I_CommandList)
     {
-        FWindow* Win = static_cast<FWindow*>(I_CommandList.TargetSwapChain);
-        if (!Win && bOffScreenMode) { Win = reinterpret_cast<FWindow*>(1); }
-        if (!Win) { Win = PrimaryWindow; }
-        if (!Win) { return; }
-        auto It = SwapChainContexts.Find(Win);
-        if (It == SwapChainContexts.end() || !It->second) { return; }
-        auto* Ctx = It->second;
-        FFrame& Frame = Ctx->Frames[Ctx->FrameIndex];
+        Execute(MakeUnique<FRHICommandList>(I_CommandList));
+    }
+
+    void FRHI::
+    ExecuteImmediate(FRHICommandList& I_CommandList)
+    {
+        FRHISwapChainID Idx = I_CommandList.TargetSwapChain;
+        if (Idx >= SwapChains.GetSize()) { return; }
+        auto* Ctx = &SwapChains[Idx];
+        FRHIInFlightFrame& Frame = Ctx->InFlightFrames[Ctx->FrameIndex];
         VISERA_ASSERT(Frame.DrawCalls.IsRecording());
         VISERA_ASSERT(Frame.TransferCalls.IsRecording());
 
@@ -532,7 +374,7 @@ export namespace Visera
             case ECommandType::ConvertImageLayout:  ExecuteConvertImageLayout(Frame, Command); break;
             case ECommandType::ClearColorImage:     ExecuteClearColorImage(Frame, Command); break;
             case ECommandType::BlitImage:           ExecuteBlitImage(Frame, Command); break;
-            case ECommandType::BlitToSwapChain:     ExecuteBlitToSwapChain(Frame, Command, Win); break;
+            case ECommandType::BlitToSwapChain:     ExecuteBlitToSwapChain(Frame, Command, Ctx->Window); break;
             case ECommandType::CopyBufferToImage:   ExecuteCopyBufferToImage(Frame, Command); break;
             case ECommandType::WriteBuffer:         ExecuteWriteBuffer(Frame, Command); break;
             default: LOG_ERROR("({}) Unknown Command Type: {}", GetRuntimeName(), static_cast<UInt16>(Command.Type)); break;
@@ -541,7 +383,7 @@ export namespace Visera
     }
 
     void FRHI::
-    ExecuteConvertImageLayout(FFrame& I_Frame, const FCommandView& I_Cmd)
+    ExecuteConvertImageLayout(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
         const auto& Payload = DecodePayload<FRHICommandList::FConvertImageLayout>(I_Cmd);
         auto* Img = GetVulkanImageChecked(Payload.Image);
@@ -554,7 +396,7 @@ export namespace Visera
     }
 
     void FRHI::
-    ExecuteClearColorImage(FFrame& I_Frame, const FCommandView& I_Cmd)
+    ExecuteClearColorImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
         const auto& Payload = DecodePayload<FRHICommandList::FClearColorImage>(I_Cmd);
         auto* Img = GetVulkanImageChecked(Payload.Image);
@@ -567,7 +409,7 @@ export namespace Visera
     }
 
     void FRHI::
-    ExecuteBlitImage(FFrame& I_Frame, const FCommandView& I_Cmd)
+    ExecuteBlitImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
         const auto& Payload = DecodePayload<FRHICommandList::FBlitImage>(I_Cmd);
         auto* SrcImg = GetVulkanImageChecked(Payload.SrcImage);
@@ -576,7 +418,7 @@ export namespace Visera
     }
 
     void FRHI::
-    ExecuteBlitToSwapChain(FFrame& I_Frame, const FCommandView& I_Cmd, FWindow* I_TargetWindow)
+    ExecuteBlitToSwapChain(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd, FWindow* I_TargetWindow)
     {
         if (bOffScreenMode || !I_TargetWindow) { return; }
         auto* SC = Driver->GetSwapChain(I_TargetWindow);
@@ -604,7 +446,7 @@ export namespace Visera
     }
 
     void FRHI::
-    ExecuteCopyBufferToImage(FFrame& I_Frame, const FCommandView& I_Cmd)
+    ExecuteCopyBufferToImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
         const auto& Payload = DecodePayload<FRHICommandList::FCopyBufferToImage>(I_Cmd);
         auto* VulkanBuffer = GetVulkanBufferChecked(Payload.Buffer);
@@ -627,27 +469,12 @@ export namespace Visera
     }
 
     void FRHI::
-    ExecuteWriteBuffer(FFrame& I_Frame, const FCommandView& I_Cmd)
+    ExecuteWriteBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
         const auto& Payload = DecodePayload<FRHICommandList::FWriteBuffer>(I_Cmd);
         auto* TargetBuffer  = GetVulkanBufferChecked(Payload.TargetBuffer);
         auto* StagingBuffer = GetVulkanBufferChecked(Payload.StagingBuffer);
         I_Frame.TransferCalls.CopyBuffer(StagingBuffer, TargetBuffer);
-    }
-
-    void FRHI::
-    Present(FWindow* I_Window)
-    {
-        if (bOffScreenMode) { return; }
-        FWindow* Window = I_Window ? I_Window : PrimaryWindow;
-        if (!Window) { return; }
-        auto It = SwapChainContexts.Find(Window);
-        if (It == SwapChainContexts.end() || !It->second) { return; }
-        auto* Ctx = It->second;
-        if (!Driver->Present(Window, &Ctx->RenderFinishedSemaphores[Ctx->LastSubmittedImageIndex]))
-        {
-            LOG_DEBUG("({}) Failed to present frame!", GetRuntimeName());
-        }
     }
 
     FRHITextureID FRHI::

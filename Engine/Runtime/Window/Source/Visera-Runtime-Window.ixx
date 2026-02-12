@@ -51,10 +51,9 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                FJSON ServiceConfig = Config.GetObject("Window");
-                FString Title = ServiceConfig.GetString("Title", "Visera");
-                UInt32  Width = static_cast<UInt32>(ServiceConfig.GetNumber("Width", 512));
-                UInt32  Height = static_cast<UInt32>(ServiceConfig.GetNumber("Height", 512));
+                FString Title  = GetConfig().GetString(TJSONPath<"Window.Title",  2>::Get(), "Visera");
+                UInt32  Width  = GetConfig().GetNumber(TJSONPath<"Window.Width",  2>::Get(), 512);
+                UInt32  Height = GetConfig().GetNumber(TJSONPath<"Window.Height", 2>::Get(), 512);
                 
                 PlatformWindow = FPlatform::CreateWindow(Title, Width, Height);
                 if (!PlatformWindow) { return False; }

@@ -94,6 +94,15 @@ export namespace Visera
         [[nodiscard]] FString
         GetRuntimeName() const { return Config.GetString("Runtime", "Unknown"); }
 
+        /** Notify this service of a config change. Called by Runtime or other services. */
+        void
+        NotifyConfigChanged(const FJSONPath& I_Path)
+        { OnConfigChange.Invoke(I_Path); }
+        /** Notify this service of a static config-path change. */
+        void
+        NotifyConfigChanged(const FStaticJSONPath& I_Path)
+        { OnConfigChangeStatic.Invoke(I_Path); }
+
         // Public virtual SetStatus: allows subclasses to override state transition behavior
         // Default implementation calls corresponding OnXXX delegates based on the new status
         virtual Bool SetStatus(EStatus I_NewStatus)
@@ -172,10 +181,67 @@ export namespace Visera
         TSet<FName>                  Dependencies;
         TUnicastDelegate<Bool(void)> OnBootstrap;
         TUnicastDelegate<Bool(void)> OnTerminate;
+        TUnicastDelegate<void(const FJSONPath&)> OnConfigChange;
+        TUnicastDelegate<void(const FStaticJSONPath&)> OnConfigChangeStatic;
 
         FServiceRegistry* Registry {nullptr}; // Registry pointer set by constructor
-        const   FJSON&    Config;             // Config JSON reference to global config in FRuntime (all services share the same global config)
         mutable EStatus   Status   {EStatus::Pending};
+
+        [[nodiscard]] const FJSON&
+        GetConfig() const { return Config; }
+
+        /** Set config value at path and notify all services in registry via OnConfigChange. For internal use by Service subclasses. */
+        template<Concepts::JSONPath TPath> IGlobalService&
+        SetConfig(const TPath& I_Path, FStringView I_Value)
+        {
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::JSONPath TPath> IGlobalService&
+        SetConfig(const TPath& I_Path, Double I_Value)
+        {
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::JSONPath TPath> IGlobalService&
+        SetConfig(const TPath& I_Path, Int64 I_Value)
+        {
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::JSONPath TPath> IGlobalService&
+        SetConfig(const TPath& I_Path, Bool I_Value)
+        {
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::JSONPath TPath> IGlobalService&
+        SetConfig(const TPath& I_Path, const FJSON& I_Value)
+        {
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+    private:
+        template<Concepts::JSONPath TPath>
+        void NotifyConfigChange(const TPath& I_Path)
+        {
+            if (!Registry) { return; }
+            for (auto& [Name, Service] : *Registry)
+            {
+                Service->NotifyConfigChanged(I_Path);
+            }
+        }
+        FJSON& Config; // Config JSON reference to global config in FRuntime (all services share the same global config)
 
     public:
         virtual ~IGlobalService()
@@ -205,7 +271,7 @@ export namespace Visera
         explicit IGlobalService(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
             : Name     (I_Name)
             , Registry (I_Registry)
-            , Config   (I_Config) { }
+            , Config   (const_cast<FJSON&>(I_Config)) { }
 
         IGlobalService(const IGlobalService&)			 = delete;
         IGlobalService& operator=(const IGlobalService&) = delete;

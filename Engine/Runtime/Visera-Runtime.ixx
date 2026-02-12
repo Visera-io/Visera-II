@@ -59,6 +59,138 @@ export namespace Visera
             return TWeakPtr<T>();
         }
 
+        /** Set config value at path and notify all services via OnConfigChange. */
+        template<Concepts::JSONPath TPath> FRuntime&
+        SetConfig(const TPath& I_Path, FStringView I_Value)
+        {
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
+            {
+                LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Path, I_Value);
+            }
+            else
+            {
+                DEBUG_ONLY_FIELD
+                (
+                    FString DebugPath;
+                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
+                    {
+                        DebugPath += I_Path.Tokens[Idx].GetString();
+                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
+                    }
+                    LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, DebugPath, I_Value);
+                )
+            }
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::JSONPath TPath> FRuntime&
+        SetConfig(const TPath& I_Path, Double I_Value)
+        {
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
+            {
+                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value);
+            }
+            else
+            {
+                DEBUG_ONLY_FIELD
+                (
+                    FString DebugPath;
+                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
+                    {
+                        DebugPath += I_Path.Tokens[Idx].GetString();
+                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
+                    }
+                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value);
+                )
+            }
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::Integral T, Concepts::JSONPath TPath> FRuntime&
+        SetConfig(const TPath& I_Path, T I_Value)
+        {
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
+            {
+                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value);
+            }
+            else
+            {
+                DEBUG_ONLY_FIELD
+                (
+                    FString DebugPath;
+                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
+                    {
+                        DebugPath += I_Path.Tokens[Idx].GetString();
+                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
+                    }
+                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value);
+                )
+            }
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::Boolean T, Concepts::JSONPath TPath> FRuntime&
+        SetConfig(const TPath& I_Path, T I_Value)
+        {
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
+            {
+                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value);
+            }
+            else
+            {
+                DEBUG_ONLY_FIELD
+                (
+                    FString DebugPath;
+                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
+                    {
+                        DebugPath += I_Path.Tokens[Idx].GetString();
+                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
+                    }
+                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value);
+                )
+            }
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        template<Concepts::JSONPath TPath> FRuntime&
+        SetConfig(const TPath& I_Path, const FJSON& I_Value)
+        {
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
+            {
+                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value.Dump(False));
+            }
+            else
+            {
+                DEBUG_ONLY_FIELD
+                (
+                    FString DebugPath;
+                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
+                    {
+                        DebugPath += I_Path.Tokens[Idx].GetString();
+                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
+                    }
+                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value.Dump(False));
+                )
+            }
+            Config.Set(I_Path, I_Value);
+            NotifyConfigChange(I_Path);
+            return *this;
+        }
+
+        ~FRuntime()
+        {
+            Terminate();
+            // TSharedPtr automatically manages lifetime, no need to manually unregister
+        }
+
         // Create with mode (Full or Minimal)
         [[nodiscard]] static TUniquePtr<FRuntime>
         Create(FString I_Name = "Runtime", EMode I_Mode = EMode::Full, TOptional<FJSON> I_Config = {})
@@ -103,12 +235,6 @@ export namespace Visera
             Runtime->Bootstrap();
 
             return Runtime;
-        }
-
-        ~FRuntime()
-        {
-            Terminate();
-            // TSharedPtr automatically manages lifetime, no need to manually unregister
         }
 
     private:
@@ -237,7 +363,18 @@ export namespace Visera
             }
         }
 
-        TArray<TSharedPtr<IGlobalService>> TopologicalSort()
+        template<Concepts::JSONPath TPath>
+        void
+        NotifyConfigChange(const TPath& I_Path)
+        {
+            for (auto& [Name, Service] : Registry)
+            {
+                Service->NotifyConfigChanged(I_Path);
+            }
+        }
+
+        TArray<TSharedPtr<IGlobalService>>
+        TopologicalSort()
         {
             auto Result = TArray<TSharedPtr<IGlobalService>>();
             Result.Reserve(Registry.GetSize());
