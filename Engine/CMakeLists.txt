@@ -25,14 +25,7 @@ else()
 endif()
 
 add_library(${VISERA} SHARED)
-target_sources(${VISERA}
-    PUBLIC
-    FILE_SET "visera_core_modules" TYPE CXX_MODULES
-    FILES  "${VISERA_API_DIR}/Source/Visera-API.ixx")
-set_target_properties(${VISERA} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-)
+
 if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 add_custom_command(
     TARGET ${VISERA}
@@ -46,7 +39,6 @@ endif()
 add_subdirectory(${VISERA_CORE_DIR})
 add_subdirectory(${VISERA_PLATFORM_DIR})
 add_subdirectory(${VISERA_RUNTIME_DIR})
-#add_subdirectory(${VISERA_API_DIR})
 if(VISERA_MONOLITHIC_MODE)
     target_compile_definitions(${VISERA} PRIVATE VISERA_MONOLITHIC_MODE)
     install_visera_core     (${VISERA})
@@ -57,7 +49,6 @@ else()
     target_link_libraries(${VISERA} PUBLIC Visera::Platform)
     target_link_libraries(${VISERA} PUBLIC Visera::Runtime)
 endif()
-#install_visera_api      (${VISERA})
 
 if(VISERA_BUILD_FORGE)
     add_subdirectory(${VISERA_FORGE_DIR})

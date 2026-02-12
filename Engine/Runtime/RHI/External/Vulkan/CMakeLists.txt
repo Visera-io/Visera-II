@@ -62,29 +62,29 @@ target_link_libraries(VulkanModule PUBLIC VulkanLoader)
 if(APPLE)
     add_custom_command(TARGET VulkanModule POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks"
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+        "${VISERA_APP_FRAMEWORK_DIR}"
+        "${VISERA_APP_RESOURCE_DIR}/Vulkan/"
         # Vulkan
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libvulkan.1.dylib" # Note: this is a renamed lib
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+        "${VISERA_APP_FRAMEWORK_DIR}/"
         # MoltenVk
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libMoltenVK.dylib"
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+        "${VISERA_APP_FRAMEWORK_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/MoltenVK_icd.json"
-        "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+        "${VISERA_APP_RESOURCE_DIR}/Vulkan/"
     )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         add_custom_command(TARGET VulkanModule POST_BUILD
             # Validation Layer
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libVkLayer_khronos_validation.dylib"
-            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Frameworks/"
+            "${VISERA_APP_FRAMEWORK_DIR}/"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/VkLayer_khronos_validation.json"
-            "$<TARGET_BUNDLE_DIR:${VISERA_APP}>/Contents/Resources/Vulkan/"
+            "${VISERA_APP_RESOURCE_DIR}/Vulkan/"
         )
     endif()
 elseif(WIN32)

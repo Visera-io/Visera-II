@@ -52,10 +52,6 @@ else()
     set(CMAKE_SHARED_LINKER_FLAGS_DEVELOP "")
 endif()
 
-set(VISERA_APP          "AlohaVisera")
-set(VISERA_APP_AUTHOR   "LJYC (ljyc.me)")
-set(VISERA_APP_DIR      "Demos/AlohaVisera")
-
 if(NOT VISERA_APP OR NOT VISERA_APP_DIR)
     message(FATAL_ERROR "Please specify both VISERA_APP and VISERA_APP_DIR!")
 endif()
