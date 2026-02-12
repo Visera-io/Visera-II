@@ -79,7 +79,7 @@ export namespace Visera
     static_assert(sizeof(TOptional<FPixel>) == sizeof(FPixel));
 
     /**
-     * Pixel accessor/view for FImage, similar to FCommandView in RHI.
+     * Pixel accessor/view for FImage, similar to FRHICommandView in RHI.
      * Provides read/write access to a single pixel in an image.
      * Also provides static utility methods for pixel format operations.
      * 

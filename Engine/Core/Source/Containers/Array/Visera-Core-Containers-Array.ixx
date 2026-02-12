@@ -361,31 +361,31 @@ export namespace Visera
 
     public:
         // Constructors and Destructor
-        explicit TPMRArray(std::pmr::memory_resource* I_Resource = std::pmr::get_default_resource())
+        explicit TPMRArray(std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
             : Array(I_Resource)
         {
         }
 
         ~TPMRArray() = default;
 
-        explicit TPMRArray(SizeType I_Count, std::pmr::memory_resource* I_Resource = std::pmr::get_default_resource())
+        explicit TPMRArray(SizeType I_Count, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
             : Array(I_Count, I_Resource)
         {
         }
 
-        TPMRArray(SizeType I_Count, const T& I_Value, std::pmr::memory_resource* I_Resource = std::pmr::get_default_resource())
+        TPMRArray(SizeType I_Count, const T& I_Value, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
             requires std::copy_constructible<T>
             : Array(I_Count, I_Value, I_Resource)
         {
         }
 
         template<typename InputIt>
-        TPMRArray(InputIt I_First, InputIt I_Last, std::pmr::memory_resource* I_Resource = std::pmr::get_default_resource())
+        TPMRArray(InputIt I_First, InputIt I_Last, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
             : Array(I_First, I_Last, I_Resource)
         {
         }
 
-        TPMRArray(std::initializer_list<T> I_Init, std::pmr::memory_resource* I_Resource = std::pmr::get_default_resource())
+        TPMRArray(std::initializer_list<T> I_Init, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
             requires std::copy_constructible<T>
             : Array(I_Init, I_Resource)
         {

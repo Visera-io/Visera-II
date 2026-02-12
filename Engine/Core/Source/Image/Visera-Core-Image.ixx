@@ -354,7 +354,7 @@ export namespace Visera
             UInt32          SlicePitchBytes{0}; // Auto-calculated if 0 (RowPitchBytes * Height)
 
             std::pmr::memory_resource*
-            MemoryArena = std::pmr::get_default_resource();
+            MemoryArena = Memory::GetDefaultResource();
         };
 
         [[nodiscard]] inline FByte*
@@ -392,9 +392,9 @@ export namespace Visera
               UInt32 I_NewHeight = ~0U,
               UInt32 I_NewDepth = ~0U) const;
 
-        FImage(const FImageView3D& I_View, std::pmr::memory_resource* I_MemoryArena = std::pmr::get_default_resource());
+        FImage(const FImageView3D& I_View, std::pmr::memory_resource* I_MemoryArena = Memory::GetDefaultResource());
 
-        FImage(const FImageView2D& I_View, std::pmr::memory_resource* I_MemoryArena = std::pmr::get_default_resource());
+        FImage(const FImageView2D& I_View, std::pmr::memory_resource* I_MemoryArena = Memory::GetDefaultResource());
 
         [[nodiscard]] TOptional<FPixel>
         GetPixel(const FPoint3U& I_Pos) const;

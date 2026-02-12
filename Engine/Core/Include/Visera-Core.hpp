@@ -89,10 +89,8 @@
 
 #if !defined(VISERA_RELEASE_MODE)
 #define DEBUG_ONLY_FIELD(I_Content) I_Content
-#define RELEASE_ONLY_FIELD(I_Content)
 #else
 #define DEBUG_ONLY_FIELD(I_Content)
-#define RELEASE_ONLY_FIELD(I_Content) I_Content
 #endif
 
 #define VISERA_UNIMPLEMENTED_API LOG_FATAL("Unimplemented function {}!", __FUNCTION__);

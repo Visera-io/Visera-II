@@ -23,11 +23,6 @@ export namespace Visera
     class FJSON;
     template<> inline constexpr Bool HasIntrusiveUnsetOptionalState<FJSON> = True;
 
-    /** JSON Query Language: compile-time path literal, e.g. json.GetString("config.server.port"_JQL). */
-    [[nodiscard]] constexpr FJSONPath
-    operator""_JQL(const char* I_Query, size_t I_Length) noexcept
-    { return FJSONPath(I_Query, I_Length); }
-
     class VISERA_CORE_API FJSON
     {
         using Json = nlohmann::json;
@@ -60,60 +55,61 @@ export namespace Visera
         Clear() noexcept { Root = Json{}; }
         [[nodiscard]] FString
         Dump(Bool I_bPretty = True) const { return I_bPretty ? Root.dump(4) : Root.dump(); }
-        void
-        Set(FStringView I_Key, FStringView I_Value) { Root[I_Key.GetNative()] = FString(I_Value); }
-        void
-        Set(FStringView I_Key, Double I_Value) { Root[I_Key.GetNative()] = I_Value; }
-        void
-        Set(FStringView I_Key, Int64 I_Value) { Root[I_Key.GetNative()] = static_cast<std::int64_t>(I_Value); }
-        void
-        Set(FStringView I_Key, Bool I_Value) { Root[I_Key.GetNative()] = static_cast<bool>(I_Value); }
-        void
-        Set(FStringView I_Key, const FJSON& I_Value) { Root[I_Key.GetNative()] = I_Value.Root; }
-        void
-        Set(const FJSONPath& I_Path, FStringView I_Value)
+        FJSON&
+        Set(FStringView I_Key, FStringView I_Value) { Root[I_Key.GetNative()] = FString(I_Value); return *this; }
+        FJSON&
+        Set(FStringView I_Key, Double I_Value) { Root[I_Key.GetNative()] = I_Value; return *this; }
+        FJSON&
+        Set(FStringView I_Key, Int64 I_Value) { Root[I_Key.GetNative()] = static_cast<std::int64_t>(I_Value); return *this; }
+        FJSON&
+        Set(FStringView I_Key, Bool I_Value) { Root[I_Key.GetNative()] = static_cast<bool>(I_Value); return *this; }
+        FJSON&
+        Set(FStringView I_Key, const FJSON& I_Value) { Root[I_Key.GetNative()] = I_Value.Root; return *this; }
+        template<Concepts::JSONPath TPath> FJSON&
+        Set(const TPath& I_Path, FStringView I_Value)
         {
-            if (!I_Path.IsValid()) { return; }
-            const auto& Tokens = I_Path.GetTokens();
-            if (Tokens.IsEmpty()) { return; }
-            if (!Root.is_object()) { Root = Json::object(); }
-            Json* Current = std::addressof(Root);
-            for (UInt64 I = 0; I < Tokens.GetSize() - 1; ++I)
-            {
-                const auto& Token = Tokens[I];
-                if (Token.Type == FJSONPath::FToken::EType::Key)
-                {
-                    auto& Next = (*Current)[Token.Key.GetNative()];
-                    if (!Next.is_object()) { Next = Json::object(); }
-                    Current = std::addressof(Next);
-                }
-                else
-                {
-                    if (!Current->is_array()) { *Current = Json::array(); }
-                    while (Token.Index >= Current->size()) { Current->push_back(Json{}); }
-                    Current = std::addressof((*Current)[Token.Index]);
-                }
-            }
-            const auto& Last = Tokens.Back();
-            if (Last.Type == FJSONPath::FToken::EType::Key)
-            {
-                if (!Current->is_object()) { *Current = Json::object(); }
-                (*Current)[Last.Key.GetNative()] = FString(I_Value);
-            }
-            else
-            {
-                if (!Current->is_array()) { *Current = Json::array(); }
-                while (Last.Index >= Current->size()) { Current->push_back(Json{}); }
-                (*Current)[Last.Index] = FString(I_Value);
-            }
+            Json Value;
+            Value = FString(I_Value);
+            return SetPathValue(I_Path, std::move(Value));
         }
-        void
+
+        template<Concepts::JSONPath TPath> FJSON&
+        Set(const TPath& I_Path, Double I_Value)
+        {
+            Json Value;
+            Value = I_Value;
+            return SetPathValue(I_Path, std::move(Value));
+        }
+
+        template<Concepts::Integral T, Concepts::JSONPath TPath> FJSON&
+        Set(const TPath& I_Path, T I_Value)
+        {
+            Json Value;
+            Value = static_cast<std::int64_t>(I_Value);
+            return SetPathValue(I_Path, std::move(Value));
+        }
+
+        template<Concepts::Boolean T, Concepts::JSONPath TPath> FJSON&
+        Set(const TPath& I_Path, Bool I_Value)
+        {
+            Json Value;
+            Value = static_cast<bool>(I_Value);
+            return SetPathValue(I_Path, std::move(Value));
+        }
+
+        template<Concepts::JSONPath TPath> FJSON&
+        Set(const TPath& I_Path, const FJSON& I_Value)
+        {
+            return SetPathValue(I_Path, Json(I_Value.Root));
+        }
+        FJSON&
         Set(FStringView I_Key, const TArray<FJSON>& I_Array)
         {
             Json Array = Json::array();
             for (const auto& Item : I_Array)
             { Array.push_back(Item.Root); }
             Root[I_Key.GetNative()] = Array;
+            return *this;
         }
         // ---- Get (safe) ----
         [[nodiscard]] FString
@@ -132,15 +128,15 @@ export namespace Visera
             try { return TOptional<FString>(GetStringFromJsonValue(*It)); } catch (...) { return NullOpt; }
         }
 
-        [[nodiscard]] FString
-        GetString(const FJSONPath& I_Path, FStringView I_DefaultValue = "") const
+        template<Concepts::JSONPath TPath> [[nodiscard]] FString
+        GetString(const TPath& I_Path, FStringView I_DefaultValue = "") const
         {
             const auto Opt = TryGetString(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : FString(I_DefaultValue);
         }
 
-        [[nodiscard]] TOptional<FString>
-        TryGetString(const FJSONPath& I_Path) const noexcept
+        template<Concepts::JSONPath TPath> [[nodiscard]] TOptional<FString>
+        TryGetString(const TPath& I_Path) const noexcept
         {
             const Json* Ptr = FindPath(Root, I_Path);
             if (!Ptr || !Ptr->is_string()) { return NullOpt; }
@@ -161,49 +157,88 @@ export namespace Visera
             return Result.HasValue()? TOptional<FPath>(FPath{Result.GetValue()}) : NullOpt;
         }
 
-        [[nodiscard]] FPath
-        GetPath(const FJSONPath& I_Path, const FPath& I_DefaultValue = FPath{""}) const
+        template<Concepts::JSONPath TPath> [[nodiscard]] FPath
+        GetPath(const TPath& I_Path, const FPath& I_DefaultValue = FPath{""}) const
         {
             const auto Opt = TryGetPath(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
         }
 
-        [[nodiscard]] TOptional<FPath>
-        TryGetPath(const FJSONPath& I_Path) const noexcept
+        template<Concepts::JSONPath TPath> [[nodiscard]] TOptional<FPath>
+        TryGetPath(const TPath& I_Path) const noexcept
         {
             const Json* Ptr = FindPath(Root, I_Path);
             if (!Ptr || !Ptr->is_string()) { return NullOpt; }
             try { return TOptional<FPath>(FPath{GetStringFromJsonValue(*Ptr)}); } catch (...) { return NullOpt; }
         }
 
-        [[nodiscard]] Double
-        GetNumber(FStringView I_Key, Double I_DefaultValue = 0.0) const noexcept
+        template<Concepts::FloatingPoint T>
+        [[nodiscard]] T
+        GetNumber(FStringView I_Key, T I_DefaultValue = T{0}) const noexcept
         {
-            const auto Opt = TryGetNumber(I_Key);
+            const auto Opt = TryGetNumber<T>(I_Key);
             return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
         }
 
-        [[nodiscard]] TOptional<Double>
+        template<Concepts::Integral T>
+        [[nodiscard]] T
+        GetNumber(FStringView I_Key, T I_DefaultValue = T{0}) const noexcept
+        {
+            const auto Opt = TryGetNumber<T>(I_Key);
+            return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
+        }
+
+        template<Concepts::FloatingPoint T>
+        [[nodiscard]] TOptional<T>
         TryGetNumber(FStringView I_Key) const noexcept
         {
             const auto It = Root.find(I_Key.GetNative());
             if (It == Root.end() || !It->is_number()) { return NullOpt; }
-            try { return TOptional<Double>(It->get<Double>()); } catch (...) { return NullOpt; }
+            try { return TOptional<T>(It->get<T>()); } catch (...) { return NullOpt; }
         }
 
-        [[nodiscard]] Double
-        GetNumber(const FJSONPath& I_Path, Double I_DefaultValue = 0.0) const noexcept
+        template<Concepts::Integral T>
+        [[nodiscard]] TOptional<T>
+        TryGetNumber(FStringView I_Key) const noexcept
         {
-            const auto Opt = TryGetNumber(I_Path);
+            const auto It = Root.find(I_Key.GetNative());
+            if (It == Root.end() || !It->is_number()) { return NullOpt; }
+            try { return TOptional<T>(It->get<T>()); } catch (...) { return NullOpt; }
+        }
+
+        // Template version: returns the same type as DefaultValue
+        template<Concepts::FloatingPoint T, Concepts::JSONPath TPath>
+        [[nodiscard]] T
+        GetNumber(const TPath& I_Path, T I_DefaultValue = T{0}) const noexcept
+        {
+            const auto Opt = TryGetNumber<T>(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
         }
 
-        [[nodiscard]] TOptional<Double>
-        TryGetNumber(const FJSONPath& I_Path) const noexcept
+        template<Concepts::Integral T, Concepts::JSONPath TPath>
+        [[nodiscard]] T
+        GetNumber(const TPath& I_Path, T I_DefaultValue = T{0}) const noexcept
+        {
+            const auto Opt = TryGetNumber<T>(I_Path);
+            return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
+        }
+
+        template<Concepts::FloatingPoint T, Concepts::JSONPath TPath>
+        [[nodiscard]] TOptional<T>
+        TryGetNumber(const TPath& I_Path) const noexcept
         {
             const Json* p = FindPath(Root, I_Path);
             if (!p || !p->is_number()) { return NullOpt; }
-            try { return TOptional<Double>(p->get<Double>()); } catch (...) { return NullOpt; }
+            try { return TOptional<T>(p->get<T>()); } catch (...) { return NullOpt; }
+        }
+
+        template<Concepts::Integral T, Concepts::JSONPath TPath>
+        [[nodiscard]] TOptional<T>
+        TryGetNumber(const TPath& I_Path) const noexcept
+        {
+            const Json* p = FindPath(Root, I_Path);
+            if (!p || !p->is_number()) { return NullOpt; }
+            try { return TOptional<T>(p->get<T>()); } catch (...) { return NullOpt; }
         }
 
         [[nodiscard]] Bool
@@ -221,15 +256,15 @@ export namespace Visera
             try { return TOptional<Bool>(static_cast<Bool>(It->get<bool>())); } catch (...) { return NullOpt; }
         }
 
-        [[nodiscard]] Bool
-        GetBool(const FJSONPath& I_Path, Bool I_DefaultValue = False) const noexcept
+        template<Concepts::JSONPath TPath> [[nodiscard]] Bool
+        GetBool(const TPath& I_Path, Bool I_DefaultValue = False) const noexcept
         {
             const auto Opt = TryGetBool(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : I_DefaultValue;
         }
 
-        [[nodiscard]] TOptional<Bool>
-        TryGetBool(const FJSONPath& I_Path) const noexcept
+        template<Concepts::JSONPath TPath> [[nodiscard]] TOptional<Bool>
+        TryGetBool(const TPath& I_Path) const noexcept
         {
             const Json* p = FindPath(Root, I_Path);
             if (!p || !p->is_boolean()) { return NullOpt; }
@@ -258,15 +293,15 @@ export namespace Visera
             catch (...) { return NullOpt; }
         }
 
-        [[nodiscard]] FJSON
-        GetObject(const FJSONPath& I_Path) const noexcept
+        template<Concepts::JSONPath TPath> [[nodiscard]] FJSON
+        GetObject(const TPath& I_Path) const noexcept
         {
             const auto Opt = TryGetObject(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : FJSON{};
         }
 
-        [[nodiscard]] TOptional<FJSON>
-        TryGetObject(const FJSONPath& I_Path) const noexcept
+        template<Concepts::JSONPath TPath> [[nodiscard]] TOptional<FJSON>
+        TryGetObject(const TPath& I_Path) const noexcept
         {
             const Json* Ptr = FindPath(Root, I_Path);
             if (!Ptr || !Ptr->is_object()) { return NullOpt; }
@@ -350,17 +385,17 @@ export namespace Visera
             catch (...) { return NullOpt; }
         }
 
-        template<typename T>
+        template<typename T, Concepts::JSONPath TPath>
         [[nodiscard]] TArray<T>
-        GetArray(const FJSONPath& I_Path) const noexcept
+        GetArray(const TPath& I_Path) const noexcept
         {
             const auto Opt = TryGetArray<T>(I_Path);
             return Opt.HasValue() ? std::move(Opt).GetValue() : TArray<T>{};
         }
 
-        template<typename T>
+        template<typename T, Concepts::JSONPath TPath>
         [[nodiscard]] TOptional<TArray<T>>
-        TryGetArray(const FJSONPath& I_Path) const noexcept
+        TryGetArray(const TPath& I_Path) const noexcept
         {
             const Json* Ptr = FindPath(Root, I_Path);
             if (!Ptr || !Ptr->is_array()) { return NullOpt; }
@@ -443,44 +478,165 @@ export namespace Visera
         GetStringFromJsonValue(const Json& I_Value)
         { return FString(I_Value.get<std::string>()); }
 
-        /** Resolves I_Path against I_Root. Returns pointer to the target value, or nullptr if not found or path invalid. */
-        [[nodiscard]] static const Json*
-        FindPath(const Json& I_Root, const FJSONPath& I_Path) noexcept
+        template<Concepts::JSONPath TPath> FJSON&
+        SetPathValue(const TPath& I_Path, Json I_Value)
         {
-            if (!I_Path.IsValid())
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
             {
-                return nullptr;
-            }
-            const Json* Current = std::addressof(I_Root);
-            for (const FJSONPath::FToken& Token : I_Path.GetTokens())
-            {
-                if (Token.Type == FJSONPath::FToken::EType::Key)
+                if (!I_Path.IsValid()) { return *this; }
+                const auto& Tokens = I_Path.GetTokens();
+                if (Tokens.IsEmpty()) { return *this; }
+                if (!Root.is_object()) { Root = Json::object(); }
+                Json* Current = std::addressof(Root);
+                for (UInt64 I = 0; I < Tokens.GetSize() - 1; ++I)
                 {
-                    if (!Current->is_object())
+                    const auto& Token = Tokens[I];
+                    if (Token.Type == FJSONPath::FToken::EType::Key)
                     {
-                        return nullptr;
+                        auto& Next = (*Current)[Token.GetString().GetNative()];
+                        if (!Next.is_object()) { Next = Json::object(); }
+                        Current = std::addressof(Next);
                     }
-                    const auto It = Current->find(Token.Key.GetNative());
-                    if (It == Current->end())
+                    else
                     {
-                        return nullptr;
+                        if (!Current->is_array()) { *Current = Json::array(); }
+                        while (Token.Index >= Current->size()) { Current->push_back(Json{}); }
+                        Current = std::addressof((*Current)[Token.Index]);
                     }
-                    Current = std::addressof(*It);
+                }
+                const auto& Last = Tokens.Back();
+                if (Last.Type == FJSONPath::FToken::EType::Key)
+                {
+                    if (!Current->is_object()) { *Current = Json::object(); }
+                    (*Current)[Last.GetString().GetNative()] = std::move(I_Value);
                 }
                 else
                 {
-                    if (!Current->is_array())
-                    {
-                        return nullptr;
-                    }
-                    if (Token.Index >= Current->size())
-                    {
-                        return nullptr;
-                    }
-                    Current = std::addressof((*Current)[Token.Index]);
+                    if (!Current->is_array()) { *Current = Json::array(); }
+                    while (Last.Index >= Current->size()) { Current->push_back(Json{}); }
+                    (*Current)[Last.Index] = std::move(I_Value);
                 }
             }
-            return Current;
+            else
+            {
+                if (!I_Path.Valid || I_Path.Count == 0 || I_Path.Tokens == nullptr) { return *this; }
+                if (!Root.is_object()) { Root = Json::object(); }
+                Json* Current = std::addressof(Root);
+                for (UInt32 I = 0; I < I_Path.Count - 1; ++I)
+                {
+                    const auto& Token = I_Path.Tokens[I];
+                    if (Token.Type == FStaticJSONPathToken::EType::Key)
+                    {
+                        auto& Next = (*Current)[Token.GetString().GetNative()];
+                        if (!Next.is_object()) { Next = Json::object(); }
+                        Current = std::addressof(Next);
+                    }
+                    else
+                    {
+                        if (!Current->is_array()) { *Current = Json::array(); }
+                        while (Token.Index >= Current->size()) { Current->push_back(Json{}); }
+                        Current = std::addressof((*Current)[Token.Index]);
+                    }
+                }
+                const auto& Last = I_Path.Tokens[I_Path.Count - 1];
+                if (Last.Type == FStaticJSONPathToken::EType::Key)
+                {
+                    if (!Current->is_object()) { *Current = Json::object(); }
+                    (*Current)[Last.GetString().GetNative()] = std::move(I_Value);
+                }
+                else
+                {
+                    if (!Current->is_array()) { *Current = Json::array(); }
+                    while (Last.Index >= Current->size()) { Current->push_back(Json{}); }
+                    (*Current)[Last.Index] = std::move(I_Value);
+                }
+            }
+            return *this;
+        }
+
+        /** Resolves I_Path against I_Root. Returns pointer to the target value, or nullptr if not found or path invalid. */
+        template<Concepts::JSONPath TPath> [[nodiscard]] static const Json*
+        FindPath(const Json& I_Root, const TPath& I_Path) noexcept
+        {
+            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
+            {
+                if (!I_Path.IsValid())
+                {
+                    return nullptr;
+                }
+                const Json* Current = std::addressof(I_Root);
+                for (const FJSONPath::FToken& Token : I_Path.GetTokens())
+                {
+                    if (Token.Type == FJSONPath::FToken::EType::Key)
+                    {
+                        if (!Current->is_object())
+                        {
+                            return nullptr;
+                        }
+                        const auto It = Current->find(Token.GetString().GetNative());
+                        if (It == Current->end())
+                        {
+                            return nullptr;
+                        }
+                        Current = std::addressof(*It);
+                    }
+                    else
+                    {
+                        if (!Current->is_array())
+                        {
+                            return nullptr;
+                        }
+                        if (Token.Index >= Current->size())
+                        {
+                            return nullptr;
+                        }
+                        Current = std::addressof((*Current)[Token.Index]);
+                    }
+                }
+                return Current;
+            }
+            else
+            {
+                if (!I_Path.Valid)
+                {
+                    return nullptr;
+                }
+                if (I_Path.Count > 0 && I_Path.Tokens == nullptr)
+                {
+                    return nullptr;
+                }
+                const Json* Current = std::addressof(I_Root);
+                for (UInt32 I = 0; I < I_Path.Count; ++I)
+                {
+                    const auto& Token = I_Path.Tokens[I];
+                    if (Token.Type == FStaticJSONPathToken::EType::Key)
+                    {
+                        if (!Current->is_object())
+                        {
+                            return nullptr;
+                        }
+                        const auto It = Current->find(Token.GetString().GetNative());
+                        if (It == Current->end())
+                        {
+                            return nullptr;
+                        }
+                        Current = std::addressof(*It);
+                    }
+                    else
+                    {
+                        if (!Current->is_array())
+                        {
+                            return nullptr;
+                        }
+                        if (Token.Index >= Current->size())
+                        {
+                            return nullptr;
+                        }
+                        Current = std::addressof((*Current)[Token.Index]);
+                    }
+                }
+                return Current;
+            }
         }
     };
     static_assert(sizeof(TOptional<FJSON>) == sizeof(FJSON));
