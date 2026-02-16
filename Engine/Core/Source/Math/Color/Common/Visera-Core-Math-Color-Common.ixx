@@ -5,11 +5,11 @@ export module Visera.Core.Math.Color.Common;
 
 export namespace Visera
 {
-        /**
-        * Table for fast FColor -> FLinearColor conversion.
-        *
-        * Color > 0.04045 ? pow( Color * (1.0 / 1.055) + 0.0521327, 2.4 ) : Color * (1.0 / 12.92);
-        */
+    /**
+    * Table for fast FColor -> FLinearColor conversion.
+    *
+    * Color > 0.04045 ? pow( Color * (1.0 / 1.055) + 0.0521327, 2.4 ) : Color * (1.0 / 12.92);
+    */
     inline constexpr Float LUT_sRGBToLinear[256]
     {
         0.0f,
@@ -65,11 +65,12 @@ export namespace Visera
         0.921581853023715f, 0.930110855104312f, 0.938685725169219f, 0.947306533426946f, 0.955973349925421f,
         0.964686244552961f, 0.973445287039244f, 0.982250546956257f, 0.991102093719252f, 1.0f
     };
+    
     /**
-        * Pow table for fast FColor -> FLinearColor conversion.
-        *
-        * FMath::Pow( i / 255.f, 2.2f )
-        */
+    * Pow table for fast FColor -> FLinearColor conversion.
+    *
+    * FMath::Pow( i / 255.f, 2.2f )
+    */
     inline constexpr Float LUT_Pow22over255[256]
     {
         0.0f, 5.07705190066176E-06f, 2.33280046660989E-05f, 5.69217657121931E-05f, 0.000107187362341244f, 0.000175123977503027f, 0.000261543754548491f, 0.000367136269815943f, 0.000492503787191433f,

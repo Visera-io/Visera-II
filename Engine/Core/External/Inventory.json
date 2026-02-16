@@ -1,5 +1,13 @@
 {
-    "Spdlog" : 
+    "Charted" :
+    {
+        "Version" : "1.0.0",
+        "Dependencies" :
+        [
+
+        ],
+        "URL" : "https://github.com/LJYC-ME/Charted"
+    },"Spdlog" :
     {
         "Version" : "1.17.0",
         "Dependencies" : 
@@ -7,15 +15,6 @@
 
         ],
         "URL" : "https://github.com/gabime/spdlog"
-    },
-    "NlohmannJSON" : 
-    {
-        "Version" : "4.32.1 (develop)",
-        "Dependencies" : 
-        [
-
-        ],
-        "URL" : "https://github.com/nlohmann/json"
     },
     "SIMDUTF" :
     {

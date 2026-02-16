@@ -121,14 +121,14 @@ export namespace Visera
                     }
 
                 }
-                auto ExpectedGPU    = GetConfig().GetString(TJSONPath<"RHI.GPU", 2>::Get(), "");
-                auto bVSync = GetConfig().GetBool(TJSONPath<"RHI.VSync", 2>::Get(), True);
+                auto ExpectedGPU    = GetConfig().GetString(TJSONRoute<"RHI.GPU">(), "");
+                auto bVSync = GetConfig().GetBool(TJSONRoute<"RHI.VSync">(), True);
                 vk::PresentModeKHR PresentMode = bVSync?
                     vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
                 UInt32 AppVersion = vk::makeVersion(
-                    GetConfig().GetNumber(TJSONPath<"RHI.Version[0]", 3>::Get(), 1),
-                    GetConfig().GetNumber(TJSONPath<"RHI.Version[1]", 3>::Get(), 0),
-                    GetConfig().GetNumber(TJSONPath<"RHI.Version[2]", 3>::Get(), 0)
+                    GetConfig().GetNumber(TJSONRoute<"RHI.Version[0]">(), 1),
+                    GetConfig().GetNumber(TJSONRoute<"RHI.Version[1]">(), 0),
+                    GetConfig().GetNumber(TJSONRoute<"RHI.Version[2]">(), 0)
                 );
                 Driver = new FVulkanDriver({.Window = Window, .SwapChainPresentMode = PresentMode, .bOffScreenMode = bOffScreenMode, .ApplicationName = GetRuntimeName(), .ApplicationVersion = AppVersion, .GPUName = ExpectedGPU});
 
@@ -140,7 +140,7 @@ export namespace Visera
                 if (ExpectedGPU.IsEmpty())
                 {
                     FString GPUName(Driver->GetGPU().Properties.deviceName.data());
-                    SetConfig(TJSONPath<"RHI.GPU", 2>::Get(), GPUName);
+                    SetConfig(TJSONRoute<"RHI.GPU">(), GPUName);
                 }
 
                 Registry = new FRHIRegistry(Driver);

@@ -10,37 +10,15 @@ using namespace Visera;
 struct FEngine
 {
     TUniquePtr<FRuntime> Runtime;
-    FHiResClock Timer;
 
-    Bool Run()
+    Int32 Run()
     {
-        auto Image = Runtime->AssetHub->LoadImage(FPlatform::GetResourceDirectory() / FPath{"Assets/App/Texture/Bronya.png"})->GetImage();
-        using P = TJSONPath<"A.B.C.D", 4>;
-        
-        static_assert(P::Parsed.Count == 4);
-        static_assert(P::Parsed.Tokens[0].Length == 1);
-        static_assert(P::Parsed.Tokens[1].Length == 1);
-        static_assert(P::Parsed.Tokens[2].Length == 1);
-        static_assert(P::Parsed.Tokens[3].Length == 1);
-        
-        auto A = P::Get();
-        for (UInt32 i = 0; i < A.Count; ++i)
-        {
-            LOG_INFO("{}", A.Tokens[i].GetString());
-        }
-
-        auto JPath = FJSONPath("Asset.Textures[0][1]");
-        for (int i = 0; i < JPath.GetTokenCount(); ++i)
-        {
-            LOG_INFO("{}", JPath[i]);
-        }
-
         LOG_INFO("Visera Engine Run()");
 
         //FRHICommandList Commands;
         FJSON Config = FJSON::Load(FPath{"Assets/App/Configs/config.json"}).GetValue();
 
-        auto TexturePath = Config.GetPath(FJSONPath("Assets.Textures[0]"));
+        auto TexturePath = Config.GetPath(FJSONRoute("Assets.Textures[0]"));
         auto ImgAsset1 = Runtime->AssetHub->LoadImage(TexturePath);
         auto ImgAsset2 = Runtime->AssetHub->LoadImage(TexturePath);
         auto ImgAsset3 = Runtime->AssetHub->LoadImage(TexturePath);
@@ -48,8 +26,7 @@ struct FEngine
         const FImage& SrcImage = ImgAsset1->GetImage();
 
         FJSON Config2;
-        Config2.Set(FJSONPath{"Window.Title"}, "Runtime 2")
-               .Set(FJSONPath{"RHI.GPU"}, "NVIDIA GeForce RTX 4070");
+        Config2.Set(TJSONRoute<"Window.Title">(), "Runtime 2");
 
         auto Runtime2 = FRuntime::Create("Runtime2", EMode::Full, Config2);
         Runtime->Input->GetKeyboard()->OnPressed.Subscribe([](FKeyboard::EKey I_Key)
@@ -66,7 +43,7 @@ struct FEngine
                 LOG_INFO("Runtime 2 Keyboard Space!");
             }
         });
-        Runtime->SetConfig(TJSONPath<"Window.Title", 2>::Get(), "Visera 2nd");
+        Runtime->SetConfig(TJSONRoute<"Window.Title">(), "Visera 2nd");
 
         while (!Runtime->Window->ShouldClose())
         {

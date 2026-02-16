@@ -60,128 +60,53 @@ export namespace Visera
         }
 
         /** Set config value at path and notify all services via OnConfigChange. */
-        template<Concepts::JSONPath TPath> FRuntime&
-        SetConfig(const TPath& I_Path, FStringView I_Value)
+        template<Concepts::JSONRoute RouteType> FRuntime&
+        SetConfig(const RouteType& I_Route, FStringView I_Value)
         {
-            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
-            {
-                LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Path, I_Value);
-            }
-            else
-            {
-                DEBUG_ONLY_FIELD
-                (
-                    FString DebugPath;
-                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
-                    {
-                        DebugPath += I_Path.Tokens[Idx].GetString();
-                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
-                    }
-                    LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, DebugPath, I_Value);
-                )
-            }
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
+
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::JSONPath TPath> FRuntime&
-        SetConfig(const TPath& I_Path, Double I_Value)
+        template<Concepts::JSONRoute RouteType> FRuntime&
+        SetConfig(const RouteType& I_Route, Double I_Value)
         {
-            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
-            {
-                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value);
-            }
-            else
-            {
-                DEBUG_ONLY_FIELD
-                (
-                    FString DebugPath;
-                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
-                    {
-                        DebugPath += I_Path.Tokens[Idx].GetString();
-                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
-                    }
-                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value);
-                )
-            }
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
+
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::Integral T, Concepts::JSONPath TPath> FRuntime&
-        SetConfig(const TPath& I_Path, T I_Value)
+        template<Concepts::Integral T, Concepts::JSONRoute RouteType> FRuntime&
+        SetConfig(const RouteType& I_Route, T I_Value)
         {
-            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
-            {
-                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value);
-            }
-            else
-            {
-                DEBUG_ONLY_FIELD
-                (
-                    FString DebugPath;
-                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
-                    {
-                        DebugPath += I_Path.Tokens[Idx].GetString();
-                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
-                    }
-                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value);
-                )
-            }
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
+
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::Boolean T, Concepts::JSONPath TPath> FRuntime&
-        SetConfig(const TPath& I_Path, T I_Value)
+        template<Concepts::Boolean T, Concepts::JSONRoute RouteType> FRuntime&
+        SetConfig(const RouteType& I_Route, T I_Value)
         {
-            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
-            {
-                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value);
-            }
-            else
-            {
-                DEBUG_ONLY_FIELD
-                (
-                    FString DebugPath;
-                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
-                    {
-                        DebugPath += I_Path.Tokens[Idx].GetString();
-                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
-                    }
-                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value);
-                )
-            }
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
+
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::JSONPath TPath> FRuntime&
-        SetConfig(const TPath& I_Path, const FJSON& I_Value)
+        template<Concepts::JSONRoute RouteType> FRuntime&
+        SetConfig(const RouteType& I_Route, const FJSON& I_Value)
         {
-            if constexpr (std::same_as<std::remove_cvref_t<TPath>, FJSONPath>)
-            {
-                LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, I_Path, I_Value.Dump(False));
-            }
-            else
-            {
-                DEBUG_ONLY_FIELD
-                (
-                    FString DebugPath;
-                    for (UInt32 Idx = 0; Idx < I_Path.Count; ++Idx)
-                    {
-                        DebugPath += I_Path.Tokens[Idx].GetString();
-                        if (Idx + 1 != I_Path.Count) { DebugPath.PushBack('.'); }
-                    }
-                    LOG_DEBUG("({}) SetConfig: {} = {}", RuntimeName, DebugPath, I_Value.Dump(False));
-                )
-            }
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
+
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
@@ -363,13 +288,14 @@ export namespace Visera
             }
         }
 
-        template<Concepts::JSONPath TPath>
+        template<Concepts::JSONRoute RouteType>
         void
-        NotifyConfigChange(const TPath& I_Path)
+        NotifyConfigChange(const RouteType& I_Route)
         {
+            const FJSONRoute DynamicPath{I_Route.GetRouteString()};
             for (auto& [Name, Service] : Registry)
             {
-                Service->NotifyConfigChanged(I_Path);
+                Service->NotifyConfigChanged(DynamicPath);
             }
         }
 

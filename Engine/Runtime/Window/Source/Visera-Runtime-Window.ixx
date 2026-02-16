@@ -51,9 +51,9 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                FString Title  = GetConfig().GetString(TJSONPath<"Window.Title",  2>::Get(), "Visera");
-                UInt32  Width  = GetConfig().GetNumber(TJSONPath<"Window.Width",  2>::Get(), 512);
-                UInt32  Height = GetConfig().GetNumber(TJSONPath<"Window.Height", 2>::Get(), 512);
+                FString Title  = GetConfig().GetString(TJSONRoute<"Window.Title">(), "Visera");
+                UInt32  Width  = GetConfig().GetNumber(TJSONRoute<"Window.Width">(), 512);
+                UInt32  Height = GetConfig().GetNumber(TJSONRoute<"Window.Height">(), 512);
                 
                 PlatformWindow = FPlatform::CreateWindow(Title, Width, Height);
                 if (!PlatformWindow) { return False; }

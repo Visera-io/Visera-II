@@ -96,12 +96,8 @@ export namespace Visera
 
         /** Notify this service of a config change. Called by Runtime or other services. */
         void
-        NotifyConfigChanged(const FJSONPath& I_Path)
-        { OnConfigChange.Invoke(I_Path); }
-        /** Notify this service of a static config-path change. */
-        void
-        NotifyConfigChanged(const FStaticJSONPath& I_Path)
-        { OnConfigChangeStatic.Invoke(I_Path); }
+        NotifyConfigChanged(const FJSONRoute& I_Route)
+        { OnConfigChange.Invoke(I_Route); }
 
         // Public virtual SetStatus: allows subclasses to override state transition behavior
         // Default implementation calls corresponding OnXXX delegates based on the new status
@@ -181,8 +177,7 @@ export namespace Visera
         TSet<FName>                  Dependencies;
         TUnicastDelegate<Bool(void)> OnBootstrap;
         TUnicastDelegate<Bool(void)> OnTerminate;
-        TUnicastDelegate<void(const FJSONPath&)> OnConfigChange;
-        TUnicastDelegate<void(const FStaticJSONPath&)> OnConfigChangeStatic;
+        TUnicastDelegate<void(const FJSONRoute&)> OnConfigChange;
 
         FServiceRegistry* Registry {nullptr}; // Registry pointer set by constructor
         mutable EStatus   Status   {EStatus::Pending};
@@ -191,54 +186,55 @@ export namespace Visera
         GetConfig() const { return Config; }
 
         /** Set config value at path and notify all services in registry via OnConfigChange. For internal use by Service subclasses. */
-        template<Concepts::JSONPath TPath> IGlobalService&
-        SetConfig(const TPath& I_Path, FStringView I_Value)
+        template<Concepts::JSONRoute RouteType> IGlobalService&
+        SetConfig(const RouteType& I_Route, FStringView I_Value)
         {
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::JSONPath TPath> IGlobalService&
-        SetConfig(const TPath& I_Path, Double I_Value)
+        template<Concepts::JSONRoute RouteType> IGlobalService&
+        SetConfig(const RouteType& I_Route, Double I_Value)
         {
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::JSONPath TPath> IGlobalService&
-        SetConfig(const TPath& I_Path, Int64 I_Value)
+        template<Concepts::JSONRoute RouteType> IGlobalService&
+        SetConfig(const RouteType& I_Route, Int64 I_Value)
         {
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::JSONPath TPath> IGlobalService&
-        SetConfig(const TPath& I_Path, Bool I_Value)
+        template<Concepts::JSONRoute RouteType> IGlobalService&
+        SetConfig(const RouteType& I_Route, Bool I_Value)
         {
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
-        template<Concepts::JSONPath TPath> IGlobalService&
-        SetConfig(const TPath& I_Path, const FJSON& I_Value)
+        template<Concepts::JSONRoute RouteType> IGlobalService&
+        SetConfig(const RouteType& I_Route, const FJSON& I_Value)
         {
-            Config.Set(I_Path, I_Value);
-            NotifyConfigChange(I_Path);
+            Config.Set(I_Route, I_Value);
+            NotifyConfigChange(I_Route);
             return *this;
         }
 
     private:
-        template<Concepts::JSONPath TPath>
-        void NotifyConfigChange(const TPath& I_Path)
+        template<Concepts::JSONRoute RouteType>
+        void NotifyConfigChange(const RouteType& I_Route)
         {
             if (!Registry) { return; }
+            const FJSONRoute DynamicPath{I_Route.GetRouteString()};
             for (auto& [Name, Service] : *Registry)
             {
-                Service->NotifyConfigChanged(I_Path);
+                Service->NotifyConfigChanged(DynamicPath);
             }
         }
         FJSON& Config; // Config JSON reference to global config in FRuntime (all services share the same global config)

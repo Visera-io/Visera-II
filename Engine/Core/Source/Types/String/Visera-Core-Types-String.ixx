@@ -15,6 +15,22 @@ export namespace Visera
 
     class FStringView;
     template<> inline constexpr Bool HasIntrusiveUnsetOptionalState<FStringView> = True;
+    
+    template <UInt64 N>
+    struct TStringLiteral
+    {
+        char Data[N]{};
+
+        consteval TStringLiteral(const char (&s)[N])
+        {
+            for (UInt64 i = 0; i < N; ++i) { Data[i] = s[i]; }
+        }
+
+        static consteval UInt64 Size() { return N; } // includes '\0'
+    };
+
+    template <UInt64 N>
+    TStringLiteral(const char (&)[N]) -> TStringLiteral<N>;
 
     /**
      * Wrapper around std::string_view that satisfies std::ranges::range.

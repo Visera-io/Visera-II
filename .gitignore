@@ -2,6 +2,7 @@
 *.vshader
 *.vshader.meta
 
+Apps/
 Agents/
 Build/
 Toolkit/Forge/

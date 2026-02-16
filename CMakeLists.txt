@@ -7,9 +7,9 @@ SET(VISERA_VERSION "${VISERA_VERSION_MAJOR}.${VISERA_VERSION_MINOR}.${VISERA_VER
 
 set(VISERA "Visera")
 project("${VISERA} (${VISERA_VERSION})"
-        VERSION         "${VISERA_VERSION}"
-        HOMEPAGE_URL    "www.visera.io"
-        LANGUAGES       CXX
+    VERSION         "${VISERA_VERSION}"
+    HOMEPAGE_URL    "www.visera.io"
+    LANGUAGES       CXX
 )
 message(STATUS "${PROJECT_NAME}")
 

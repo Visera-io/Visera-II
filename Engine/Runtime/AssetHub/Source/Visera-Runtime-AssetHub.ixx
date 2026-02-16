@@ -114,7 +114,7 @@ export namespace Visera
         FAssetHub(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
             : IGlobalService(I_Name, I_Registry, I_Config)
         {
-            auto GetCapMB = [&](const FStaticJSONPath& I_Path, UInt64 I_Default) -> UInt64
+            auto GetCapMB = [&](const auto& I_Path, UInt64 I_Default) -> UInt64
             {
                 const UInt64 V = I_Config.GetNumber(I_Path, static_cast<UInt64>(I_Default));
                 return V > 0 ? V * 1024 * 1024 : I_Default * 1024 * 1024;
@@ -126,9 +126,9 @@ export namespace Visera
                     {}, {}
                 });
             };
-            ImageCache  = MakeCache(GetCapMB(TJSONPath<"AssetHub.CacheCapacityMB.Image",  3>::Get(),  DefaultImageMB));
-            ShaderCache = MakeCache(GetCapMB(TJSONPath<"AssetHub.CacheCapacityMB.Shader", 3>::Get(), DefaultShaderMB));
-            FontCache   = MakeCache(GetCapMB(TJSONPath<"AssetHub.CacheCapacityMB.Font",   3>::Get(),   DefaultFontMB));
+            ImageCache  = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Image">(),  DefaultImageMB));
+            ShaderCache = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Shader">(), DefaultShaderMB));
+            FontCache   = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Font">(),   DefaultFontMB));
 
             Dependencies = { EName::Tasks };
 

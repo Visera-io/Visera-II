@@ -31,12 +31,9 @@ export namespace Visera
         template<UInt64 InlineBytes>
         using TMonotonicArena = TMonotonicArena<InlineBytes>;
 
-        /** Wraps std::pmr::get_default_resource(). Use this to avoid including <memory_resource> in consuming modules. */
         [[nodiscard]] inline std::pmr::memory_resource*
         GetDefaultResource() noexcept
-        {
-            return std::pmr::get_default_resource();
-        }
+        { return std::pmr::get_default_resource(); }
 
         VISERA_FORCEINLINE auto
         Memset(void* I_Memory, Int32 I_Value, UInt64 I_Size) -> void;

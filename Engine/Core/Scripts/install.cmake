@@ -8,11 +8,11 @@ macro(install_visera_core in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_CORE_SCRIPTS_DIR})
 
+    include(install_charted)
+    link_charted(${in_target})
+
     include(install_spdlog)
     link_spdlog(${in_target})
-
-    include(install_json)
-    link_json(${in_target})
 
     include(install_eigen)
     link_eigen(${in_target})
