@@ -29,30 +29,30 @@ export namespace Visera
     namespace Memory
     {
         template<UInt64 InlineBytes>
-        using TMonotonicArena = TMonotonicArena<InlineBytes>;
+        using TMonotonicArena = Visera::TMonotonicArena<InlineBytes>;
 
-        [[nodiscard]] inline std::pmr::memory_resource*
+        [[nodiscard]] VISERA_CORE_API inline std::pmr::memory_resource*
         GetDefaultResource() noexcept
         { return std::pmr::get_default_resource(); }
 
-        VISERA_FORCEINLINE auto
+        VISERA_CORE_API VISERA_FORCEINLINE auto
         Memset(void* I_Memory, Int32 I_Value, UInt64 I_Size) -> void;
-        VISERA_FORCEINLINE auto
+        VISERA_CORE_API VISERA_FORCEINLINE auto
         Memcpy(void* I_Destination, const void* I_Source, UInt64 I_Size) -> void { std::memcpy(I_Destination, I_Source, I_Size); }
-        [[nodiscard]] VISERA_FORCEINLINE auto
+        [[nodiscard]] VISERA_CORE_API VISERA_FORCEINLINE auto
         Memcmp(const void* I_MemA, const void* I_MemB, UInt64 I_Size) { return std::memcmp(I_MemA, I_MemB, I_Size); }
-        [[nodiscard]] VISERA_FORCEINLINE void*
+        [[nodiscard]] VISERA_CORE_API VISERA_FORCEINLINE void*
         Malloc(UInt64 I_Size, UInt32 I_Alignment);
-        [[nodiscard]] VISERA_FORCEINLINE void*
+        [[nodiscard]] VISERA_CORE_API VISERA_FORCEINLINE void*
         MallocNow(UInt64 I_Size, UInt32 I_Alignment, Int32 I_Value = 0) { void* AllocatedMemory = Malloc(I_Size, I_Alignment); Memset(AllocatedMemory, I_Value, I_Size); return AllocatedMemory; }
-        [[nodiscard]] VISERA_FORCEINLINE void*
+        [[nodiscard]] VISERA_CORE_API VISERA_FORCEINLINE void*
         Realloc(void* I_Memory, UInt64 I_OldSize, UInt32 I_OldAlignment, UInt64 I_NewSize, UInt32 I_NewAlignment);
-        VISERA_FORCEINLINE auto
+        VISERA_CORE_API VISERA_FORCEINLINE auto
         Free(void* I_Memory, UInt32 I_Alignment) -> void;
 
-        [[nodiscard]] VISERA_FORCEINLINE Bool
+        [[nodiscard]] VISERA_CORE_API VISERA_FORCEINLINE Bool
         IsValidAllocation(UInt64 I_Size, UInt32 I_Alignment);
-        [[nodiscard]] VISERA_FORCEINLINE Bool
+        [[nodiscard]] VISERA_CORE_API VISERA_FORCEINLINE Bool
         IsZero(const void* I_Memory, UInt64 I_Size);
         template<typename T> [[nodiscard]] Bool
         IsZero(const T& I_Object) { return IsZero(&I_Object, sizeof(T)); };

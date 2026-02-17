@@ -81,6 +81,17 @@ export namespace Visera
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }
+
+            if (!OnConfigChange.TryBind([this](const FJSONRoute& I_NewConfig)
+            {
+                if (I_NewConfig.GetRouteString() == FStringView("Window.Title").GetNative())
+                {
+                    PlatformWindow->SetTitle(GetConfig().GetString(
+                        TJSONRoute<"Window.Title">(),
+                        PlatformWindow->GetTitle()));
+                }
+            }))
+            { LOG_FATAL("Failed to bind OnConfigChange function!"); }
         }
     };
 }

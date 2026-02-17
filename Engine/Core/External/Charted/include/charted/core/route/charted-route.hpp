@@ -329,9 +329,9 @@ namespace charted
         explicit DynamicRoute(
             std::string_view route,
             std::pmr::memory_resource* upstream = std::pmr::get_default_resource())
-            : Resource(InlineBuffer.data(), InlineBuffer.size(), upstream)
-            , Route(route, &Resource)
-            , Waypoints(&Resource)
+            : Upstream(upstream)
+            , Route(route, upstream)
+            , Waypoints(upstream)
         {
             Waypoints.reserve(detail::EstimateWaypointCapacity(Route));
             Parse();
@@ -340,27 +340,27 @@ namespace charted
         explicit DynamicRoute(
             std::string route,
             std::pmr::memory_resource* upstream = std::pmr::get_default_resource())
-            : Resource(InlineBuffer.data(), InlineBuffer.size(), upstream)
-            , Route(std::move(route), &Resource)
-            , Waypoints(&Resource)
+            : Upstream(upstream)
+            , Route(std::move(route), upstream)
+            , Waypoints(upstream)
         {
             Waypoints.reserve(detail::EstimateWaypointCapacity(Route));
             Parse();
         }
 
         DynamicRoute(const DynamicRoute& other)
-            : Resource(InlineBuffer.data(), InlineBuffer.size(), other.Resource.upstream_resource())
-            , Route(other.Route, &Resource)
-            , Waypoints(&Resource)
+            : Upstream(other.Upstream)
+            , Route(other.Route, other.Upstream)
+            , Waypoints(other.Upstream)
         {
             CopyWaypointsFrom(other);
             Valid = other.Valid;
         }
 
         DynamicRoute(DynamicRoute&& other) noexcept
-            : Resource(InlineBuffer.data(), InlineBuffer.size(), other.Resource.upstream_resource())
-            , Route(std::move(other.Route), &Resource)
-            , Waypoints(&Resource)
+            : Upstream(other.Upstream)
+            , Route(std::move(other.Route), other.Upstream)
+            , Waypoints(other.Upstream)
         {
             Waypoints.reserve(other.Waypoints.size());
             Parse();
@@ -373,7 +373,6 @@ namespace charted
                 return *this;
             }
 
-            Resource.release();
             Route = other.Route;
             CopyWaypointsFrom(other);
             Valid = other.Valid;
@@ -387,7 +386,6 @@ namespace charted
                 return *this;
             }
 
-            Resource.release();
             Route = std::move(other.Route);
             Waypoints.reserve(other.Waypoints.size());
             Parse();
@@ -402,7 +400,7 @@ namespace charted
         [[nodiscard]] Cursor AsCursor() const noexcept;
         [[nodiscard]] std::pmr::memory_resource* GetMemoryResource() const noexcept
         {
-            return Resource.upstream_resource();
+            return Upstream;
         }
 
     private:
@@ -428,12 +426,10 @@ namespace charted
 
         void Parse() { Valid = detail::ParseDynamicRoute(Route, Waypoints); }
 
-        static constexpr std::size_t InlineBufferSize = 4 * sizeof(Waypoint);
-        std::array<std::byte, InlineBufferSize> InlineBuffer{};
-        std::pmr::monotonic_buffer_resource     Resource;
-        std::pmr::string                        Route;
-        std::pmr::vector<Waypoint>              Waypoints;
-        bool                                    Valid{ true };
+        std::pmr::memory_resource* Upstream{ std::pmr::get_default_resource() };
+        std::pmr::string           Route;
+        std::pmr::vector<Waypoint> Waypoints;
+        bool                       Valid{ true };
     };
 
     template <StringLiteral Route, std::size_t MaxTokens = (Route.Size() > 1 ? (Route.Size() - 1) : 1)>

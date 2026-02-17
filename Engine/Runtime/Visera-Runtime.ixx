@@ -34,13 +34,26 @@ export namespace Visera
     class VISERA_RUNTIME_API FRuntime
     {
     public:
-        TSharedPtr<FInput>    Input;
-        TSharedPtr<FWindow>   Window;
-        TSharedPtr<FTasks>    Tasks;
-        TSharedPtr<FRHI>      RHI;
-        TSharedPtr<FAudio>    Audio;
-        TSharedPtr<FGraphics> Graphics;
-        TSharedPtr<FAssetHub> AssetHub;
+        [[nodiscard]] const FInput*
+        GetInput() const { return Input ? Input.Get() : nullptr; }
+
+        [[nodiscard]] const FWindow*
+        GetWindow() const { return Window ? Window.Get() : nullptr; }
+
+        [[nodiscard]] const FTasks*
+        GetTasks() const { return Tasks ? Tasks.Get() : nullptr; }
+
+        [[nodiscard]] const FRHI*
+        GetRHI() const { return RHI ? RHI.Get() : nullptr; }
+
+        [[nodiscard]] const FAudio*
+        GetAudio() const { return Audio ? Audio.Get() : nullptr; }
+
+        [[nodiscard]] const FGraphics*
+        GetGraphics() const { return Graphics ? Graphics.Get() : nullptr; }
+
+        [[nodiscard]] const FAssetHub*
+        GetAssetHub() const { return AssetHub ? AssetHub.Get() : nullptr; }
 
         // Get a service from the registry
         template<typename T> [[nodiscard]] TWeakPtr<T>
@@ -163,6 +176,14 @@ export namespace Visera
         }
 
     private:
+        TSharedPtr<FInput>    Input;
+        TSharedPtr<FWindow>   Window;
+        TSharedPtr<FTasks>    Tasks;
+        TSharedPtr<FRHI>      RHI;
+        TSharedPtr<FAudio>    Audio;
+        TSharedPtr<FGraphics> Graphics;
+        TSharedPtr<FAssetHub> AssetHub;
+
         FServiceRegistry Registry;
         FJSON            Config; // Global config shared by all services
         FString          RuntimeName; // For logging, also in Config["Runtime"]

@@ -102,6 +102,13 @@ export namespace Visera
         [[nodiscard]] FVulkanDescriptorPool
         CreateInforiptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes);
 
+        // Exposed init/destroy steps so FRHI can orchestrate a staged startup.
+        void inline CreateInstance();       void inline DestroyInstance();
+        void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
+        void inline CreateDevice();         void inline DestroyDevice();
+        void inline CreateAllocator();      void inline DestroyAllocator();
+        void inline CreatePipelineCache();  void inline DestroyPipelineCache();
+
         void inline
         WaitIdle() const { auto Result = Device.Context.waitIdle(); }
 
@@ -178,14 +185,9 @@ export namespace Visera
         TMap<FWindow*, FVulkanSwapChainEntry*> SwapChainEntries;
         vk::SurfaceKHR SurfaceForDeviceSelection {nullptr};  // Primary surface for PickPhysicalDevice/CreateDevice
 
-        void inline CreateInstance();       void inline DestroyInstance();
-        void inline CreateDebugMessenger(); void inline DestroyDebugMessenger();
         void inline PickPhysicalDevice();
-        void inline CreateDevice();  void inline DestroyDevice();
-        void inline CreateAllocator();      void inline DestroyAllocator();
         void CreateSwapChainForEntry(FSwapChain& I_SwapChain, vk::SurfaceKHR I_Surface);
         void DestroySwapChainEntry(FSwapChain& I_SwapChain);
-        void inline CreatePipelineCache();  void inline DestroyPipelineCache();
 
         inline FVulkanDriver*
         AddInstanceLayer(const char* I_Layer)           { InstanceLayers.EmplaceBack(I_Layer);         return this; }
@@ -271,41 +273,12 @@ export namespace Visera
         Info = I_CreateInfo;
         bOffScreenMode = Info.bOffScreenMode;
         Loader = new FVulkanLoader();
-        CreateInstance();
-        Loader->Load(Instance);
-        CreateDebugMessenger();
-        
-        if (!Info.bOffScreenMode && Info.Window)
-        {
-            FWindow* Win = Info.Window.Get();
-            VkSurfaceKHR SurfaceHandle {nullptr};
-            if (glfwCreateWindowSurface(*Instance,
-                static_cast<GLFWwindow*>(Win->GetPlatformWindow()->GetHandle()),
-                nullptr, &SurfaceHandle) != VK_SUCCESS)
-            { LOG_FATAL("Failed to create Vulkan Surface!"); }
-            SwapChainEntries[Win] = new FVulkanSwapChainEntry();
-            auto* Entry = SwapChainEntries[Win];
-            Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
-            Entry->SwapChain.Extent = vk::Extent2D{ Win->GetWidth(), Win->GetHeight() };
-            Entry->SwapChain.PresentMode = Info.SwapChainPresentMode;
-            SurfaceForDeviceSelection = *Entry->Surface;
-        }
-        
-        CreateDevice();
-        Loader->Load(Device.Context);
-        CreateAllocator();
-        if (!Info.bOffScreenMode && Info.Window)
-        {
-                auto& Entry = SwapChainEntries[Info.Window.Get()];
-                CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
-        }
-        CreatePipelineCache();
     };
 
     FVulkanDriver::
     ~FVulkanDriver()
     {
-        WaitIdle();
+        if (*Device.Context) { WaitIdle(); }
         DestroyPipelineCache();
         for (auto& [Window, Entry] : SwapChainEntries)
         {
@@ -322,6 +295,7 @@ export namespace Visera
     void FVulkanDriver::
     CreateAllocator()
     {
+        if (Allocator) { return; }
         Allocator = new FVulkanAllocator
         (
             vk::ApiVersion13,
@@ -334,24 +308,29 @@ export namespace Visera
     void FVulkanDriver::
     DestroyAllocator()
     {
+        if (!Allocator) { return; }
         delete Allocator;
+        Allocator = nullptr;
     }
 
     void FVulkanDriver::
     DestroyInstance()
     {
+        if (!*Instance) { return; }
         Instance.clear();
     }
 
     void FVulkanDriver::
     DestroyDebugMessenger()
     {
+        if (!*DebugMessenger) { return; }
         DebugMessenger.clear();
     }
 
     void FVulkanDriver::
     DestroyDevice()
     {
+        if (!*Device.Context) { return; }
         Device.Context.clear();
     }
 
@@ -376,19 +355,39 @@ export namespace Visera
     void FVulkanDriver::
     CreateSwapChain(FWindow* I_Window)
     {
-        if (SwapChainEntries.Find(I_Window) != SwapChainEntries.end()) { return; }
-        VkSurfaceKHR SurfaceHandle {nullptr};
-        if (glfwCreateWindowSurface(*Instance,
-            static_cast<GLFWwindow*>(I_Window->GetPlatformWindow()->GetHandle()),
-            nullptr, &SurfaceHandle) != VK_SUCCESS)
-        { LOG_FATAL("Failed to create Vulkan Surface!"); }
-        SwapChainEntries[I_Window] = new FVulkanSwapChainEntry();
-        auto* Entry = SwapChainEntries[I_Window];
-        Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
-        Entry->SwapChain.Extent = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
+        VISERA_ASSERT(*Instance);
+        if (!I_Window) { return; }
+
+        FVulkanSwapChainEntry* Entry = nullptr;
+        if (auto It = SwapChainEntries.Find(I_Window); It != SwapChainEntries.end())
+        {
+            Entry = It->second;
+        }
+        else
+        {
+            VkSurfaceKHR SurfaceHandle {nullptr};
+            if (glfwCreateWindowSurface(*Instance,
+                static_cast<GLFWwindow*>(I_Window->GetPlatformWindow()->GetHandle()),
+                nullptr, &SurfaceHandle) != VK_SUCCESS)
+            { LOG_FATAL("Failed to create Vulkan Surface!"); }
+            SwapChainEntries[I_Window] = new FVulkanSwapChainEntry();
+            Entry = SwapChainEntries[I_Window];
+            Entry->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
+            Entry->SwapChain.Extent = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
             Entry->SwapChain.PresentMode = Info.SwapChainPresentMode;
-        CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
-        LOG_DEBUG("({}) Created SwapChain for window (title:{})", Info.ApplicationName, I_Window->GetTitle());
+            if (!SurfaceForDeviceSelection)
+            {
+                // Needed for device queue-family suitability during staged init.
+                SurfaceForDeviceSelection = *Entry->Surface;
+            }
+        }
+
+        // Stage 1 may create only surface; stage 2 finalizes swapchain when device is ready.
+        if (*Device.Context && Entry && Entry->SwapChain.Images.IsEmpty())
+        {
+            CreateSwapChainForEntry(Entry->SwapChain, *Entry->Surface);
+            LOG_DEBUG("({}) Created SwapChain for window (title:{})", Info.ApplicationName, I_Window->GetTitle());
+        }
     }
 
     void FVulkanDriver::
@@ -396,8 +395,11 @@ export namespace Visera
     {
         auto It = SwapChainEntries.Find(I_Window);
         if (It == SwapChainEntries.end() || !It->second) { return; }
-        WaitIdle();
-        DestroySwapChainEntry(It->second->SwapChain);
+        if (*Device.Context)
+        {
+            WaitIdle();
+            DestroySwapChainEntry(It->second->SwapChain);
+        }
         delete It->second;
         SwapChainEntries.Erase(I_Window);
     }
@@ -430,12 +432,16 @@ export namespace Visera
     void FVulkanDriver::
     DestroyPipelineCache()
     {
+        if (!PipelineCache) { return; }
         delete PipelineCache;
+        PipelineCache = nullptr;
     }
 
     void FVulkanDriver::
     CreateInstance()
     {
+        VISERA_ASSERT(Loader);
+        if (*Instance) { return; }
         CollectInstanceLayersAndExtensions();
 
         // Check Layers
@@ -498,7 +504,10 @@ export namespace Visera
         if (!Result.has_value())
         { LOG_FATAL("Failed to create Vulkan Instance!"); }
         else
-        { Instance = std::move(*Result); }
+        {
+            Instance = std::move(*Result);
+            Loader->Load(Instance);
+        }
     }
 
     void FVulkanDriver::
@@ -702,6 +711,8 @@ export namespace Visera
     void FVulkanDriver::
     CreateDevice()
     {
+        VISERA_ASSERT(Loader);
+        if (*Device.Context) { return; }
         CollectDeviceLayersAndExtensions();
         PickPhysicalDevice();
 
@@ -915,6 +926,7 @@ export namespace Visera
         Device.GraphicsQueue = Device.Context.getQueue(GraphicsQueueCandidate.Family, GraphicsQueueCandidate.Index);
         Device.TransferQueue = Device.Context.getQueue(TransferQueueCandidate.Family, TransferQueueCandidate.Index);
         Device.ComputeQueue  = Device.Context.getQueue(ComputeQueueCandidate.Family,  ComputeQueueCandidate.Index);
+        Loader->Load(Device.Context);
 
         LOG_DEBUG("({}) Selected Device Queues: "
                   "Graphics(family:{}, idx:{}) "
@@ -1353,6 +1365,7 @@ export namespace Visera
     void FVulkanDriver::
     CreatePipelineCache()
     {
+        if (PipelineCache) { return; }
         FString UUIDString;
         for (size_t i = 0; i < vk::UuidSize; ++i)
         { UUIDString += FString::Format("{:02x}", static_cast<UInt32>(GPU.Properties.pipelineCacheUUID[i])); }

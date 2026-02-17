@@ -49,7 +49,8 @@ export namespace Visera
             FVulkanDriver*                                      I_Driver,
             FVulkanGraphicsCommandPool*   I_GraphicsPool,
             FVulkanTransferCommandPool*   I_TransferPool,
-            FWindow*                                            I_Window);
+            FWindow*                                            I_Window,
+            const TFunction<void(FWindow*, UInt32, UInt32)>& I_OnResizeRequested);
         void UnsubscribeFromResize();
 
     private:
@@ -118,25 +119,20 @@ export namespace Visera
         FVulkanDriver*              I_Driver,
         FVulkanGraphicsCommandPool* I_GraphicsPool,
         FVulkanTransferCommandPool* I_TransferPool,
-        FWindow*                    I_Window)
+        FWindow*                    I_Window,
+        const TFunction<void(FWindow*, UInt32, UInt32)>& I_OnResizeRequested)
     {
         if (!I_Window || ResizeHandle.HasValue()) { return; }
-        auto* Ctx = this;
-        ResizeHandle = I_Window->OnResized.Subscribe([Ctx, I_Driver, I_GraphicsPool, I_TransferPool](FWindow* I_Win)
+        ResizeHandle = I_Window->OnResized.Subscribe([I_OnResizeRequested](FWindow* I_Win)
         {
+            if (!I_OnResizeRequested) { return; }
             if (I_Win->GetWidth() == 0 || I_Win->GetHeight() == 0)
             {
                 LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", I_Win->GetTitle(), I_Win->GetWidth(), I_Win->GetHeight());
                 return;
             }
             LOG_DEBUG("({}) Recreating SwapChain ({}x{}) for window (title:{}).", I_Win->GetTitle(), I_Win->GetWidth(), I_Win->GetHeight(), I_Win->GetTitle());
-            I_Win->OnResized.Unsubscribe(Ctx->ResizeHandle.GetValue());
-            Ctx->ResizeHandle = NullOpt;
-            I_Driver->WaitIdle();
-            *Ctx = FRHISwapChain{};
-            I_Driver->RecreateSwapChain(I_Win, I_Win->GetWidth(), I_Win->GetHeight());
-            Ctx->Initialize(I_Driver, I_GraphicsPool, I_TransferPool, I_Win);
-            Ctx->SubscribeToResize(I_Driver, I_GraphicsPool, I_TransferPool, I_Win);
+            I_OnResizeRequested(I_Win, I_Win->GetWidth(), I_Win->GetHeight());
         });
     }
 

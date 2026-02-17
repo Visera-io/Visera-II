@@ -4,11 +4,10 @@ module;
 #include <AK/SoundEngine/Common/AkSoundEngine.h>
 #include <AK/SoundEngine/Common/AkTypedefs.h>
 export module Visera.Runtime.Audio;
-#define VISERA_MODULE_NAME "Runtime.Audi"
+#define VISERA_MODULE_NAME "Runtime.Audio"
 import Visera.Runtime.Audio.Interface;
 import Visera.Runtime.Audio.Null;
 import Visera.Runtime.Audio.Wwise;
-//import Visera.Runtime.Game.AssetHub.Sound;
 import Visera.Core.Containers.Map;
 import Visera.Core.Types.String;
 import Visera.Core.OS.Time;
