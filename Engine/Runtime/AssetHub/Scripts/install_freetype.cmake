@@ -17,5 +17,5 @@ macro(link_freetype in_target)
         set_target_properties(freetype PROPERTIES FOLDER "Visera/AssetHub/External/FreeType")
     endif()
 
-    target_link_libraries(${in_target} PRIVATE freetype)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:freetype>")
 endmacro()

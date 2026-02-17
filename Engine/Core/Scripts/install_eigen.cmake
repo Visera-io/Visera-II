@@ -12,5 +12,5 @@ macro(link_eigen in_target)
         set_target_properties(Eigen PROPERTIES FOLDER "Visera/Core/External/Eigen")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC Eigen)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:Eigen>")
 endmacro()

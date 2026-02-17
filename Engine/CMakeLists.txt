@@ -13,7 +13,13 @@ if(VISERA_BUILD_FORGE)
 set(VISERA_FORGE_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Toolkit/Forge" CACHE PATH "Forge executable output directory")
 endif()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_CONFIGURATION_TYPES)
+    add_compile_definitions(
+        $<$<CONFIG:Debug>:VISERA_DEBUG_MODE>
+        $<$<CONFIG:Develop>:VISERA_DEVELOP_MODE>
+        $<$<CONFIG:Release>:VISERA_RELEASE_MODE>
+    )
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(VISERA_DEBUG_MODE)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Develop")
     add_compile_definitions(VISERA_DEVELOP_MODE)
@@ -25,32 +31,16 @@ endif()
 
 add_library(${VISERA} SHARED)
 set_target_properties(${VISERA} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${VISERA_ENGINE_FRAMEWORK_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${VISERA_ENGINE_FRAMEWORK_DIR}"
 )
-if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-add_custom_command(
-    TARGET ${VISERA}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "$<TARGET_PDB_FILE:${VISERA}>"
-    "${VISERA_APP_FRAMEWORK_DIR}"
-)
-endif()
-
 add_subdirectory(${VISERA_CORE_DIR})
 add_subdirectory(${VISERA_PLATFORM_DIR})
 add_subdirectory(${VISERA_RUNTIME_DIR})
-if(VISERA_MONOLITHIC_MODE)
-    target_compile_definitions(${VISERA} PRIVATE VISERA_MONOLITHIC_MODE)
-    install_visera_core     (${VISERA})
-    install_visera_platform (${VISERA})
-    install_visera_runtime  (${VISERA})
-else()
-    target_link_libraries(${VISERA} PUBLIC Visera::Core)
-    target_link_libraries(${VISERA} PUBLIC Visera::Platform)
-    target_link_libraries(${VISERA} PUBLIC Visera::Runtime)
-endif()
+target_compile_definitions(${VISERA} PRIVATE VISERA_MONOLITHIC_MODE)
+install_visera_core     (${VISERA})
+install_visera_platform (${VISERA})
+install_visera_runtime  (${VISERA})
 
 if(VISERA_BUILD_FORGE)
     add_subdirectory(${VISERA_FORGE_DIR})

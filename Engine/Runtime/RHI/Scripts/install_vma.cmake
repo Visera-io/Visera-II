@@ -13,5 +13,5 @@ macro(link_vma in_target)
         set_target_properties(VulkanMemoryAllocator PROPERTIES FOLDER "Visera/RHI/External/VMA")
     endif()
 
-    target_link_libraries(${in_target} PRIVATE GPUOpen::VulkanMemoryAllocator)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:GPUOpen::VulkanMemoryAllocator>")
 endmacro()

@@ -42,35 +42,14 @@ macro(install_visera_core in_target)
 
     target_include_directories(${in_target}
         PUBLIC
-        ${VISERA_CORE_INCLUDE_DIR})
+        $<BUILD_INTERFACE:${VISERA_CORE_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${VISERA_CORE_EXTERNAL_DIR}/Spdlog/include>
+        $<BUILD_INTERFACE:${VISERA_CORE_EXTERNAL_DIR}/Ankerl/include>
+        $<BUILD_INTERFACE:${VISERA_CORE_EXTERNAL_DIR}/Charted/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Visera/Core>)
 
     target_sources(${in_target}
         PUBLIC
         FILE_SET "visera_core_modules" TYPE CXX_MODULES
         FILES ${VISERA_CORE_MODULES})
 endmacro()
-
-if(VISERA_MONOLITHIC_MODE)
-    #install_visera_core(...)
-else()
-    add_library(${VISERA_CORE} SHARED)
-    target_compile_definitions(${VISERA_CORE} PRIVATE VISERA_CORE_BUILD_SHARED)
-    add_library(Visera::Core ALIAS ${VISERA_CORE})
-
-    set_target_properties(${VISERA_CORE} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-        LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-    )
-#    if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-#    add_custom_command(
-#        TARGET Visera::Core
-#        POST_BUILD
-#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#        "$<TARGET_PDB_FILE:Visera::Core>"
-#        "${VISERA_APP_FRAMEWORK_DIR}"
-#    )
-#    endif()
-
-    install_visera_core(${VISERA_CORE})
-    set_target_properties(${VISERA_CORE} PROPERTIES FOLDER "Visera/Core")
-endif()

@@ -11,5 +11,5 @@ macro(link_vulkan in_target)
         set_target_properties(VulkanLoader PROPERTIES FOLDER "Visera/Runtime/External/Vulkan")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC VulkanModule)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:VulkanModule>")
 endmacro()

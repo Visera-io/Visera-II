@@ -14,8 +14,14 @@ project("${VISERA} (${VISERA_VERSION})"
 message(STATUS "${PROJECT_NAME}")
 
 option(VISERA_OFFSCREEN_MODE    "Create a headless application"     OFF)
-option(VISERA_MONOLITHIC_MODE   "Create a single Visera.dll"        ON )
 option(VISERA_BUILD_FORGE       "Build Visera-Forge (toolchain)"    ON )
+
+# Monolithic is the only supported build topology.
+if(DEFINED VISERA_MONOLITHIC_MODE AND NOT VISERA_MONOLITHIC_MODE)
+    message(FATAL_ERROR "Non-monolithic builds are no longer supported. Please configure with VISERA_MONOLITHIC_MODE=ON.")
+endif()
+set(VISERA_MONOLITHIC_MODE ON CACHE BOOL "Create a single Visera.dll" FORCE)
+mark_as_advanced(VISERA_MONOLITHIC_MODE)
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
@@ -52,39 +58,20 @@ else()
     set(CMAKE_SHARED_LINKER_FLAGS_DEVELOP "")
 endif()
 
-if(NOT VISERA_APP OR NOT VISERA_APP_DIR)
-    message(FATAL_ERROR "Please specify both VISERA_APP and VISERA_APP_DIR!")
-endif()
-# Keep relative path for build tree (e.g. pre-creating output dirs)
-set(VISERA_APP_BINARY_REL "${VISERA_APP_DIR}")
-# Turn VISERA_APP_DIR into an absolute path
-get_filename_component(
-    VISERA_APP_DIR    ${VISERA_APP_DIR}
-    REALPATH BASE_DIR "${PROJECT_SOURCE_DIR}"
-)
-message(STATUS "App Name  : \"${VISERA_APP}\"")
-message(STATUS "App Author: \"${VISERA_APP_AUTHOR}\"")
-message(STATUS "App Path  : \"${VISERA_APP_DIR}\"")
-
 if(WIN32)
     add_compile_definitions(VISERA_ON_WINDOWS_SYSTEM)
-    set(VISERA_APP_BUNDLE_DIR     "$<TARGET_FILE_DIR:${VISERA_APP}>")
-    set(VISERA_APP_EXECUTABLE_DIR "${VISERA_APP_BUNDLE_DIR}")
-    set(VISERA_APP_FRAMEWORK_DIR  "${VISERA_APP_BUNDLE_DIR}")
-    set(VISERA_APP_RESOURCE_DIR   "${VISERA_APP_BUNDLE_DIR}")
 elseif(APPLE)
     add_compile_definitions(VISERA_ON_APPLE_SYSTEM)
-    set(VISERA_APP_BUNDLE_DIR     "$<TARGET_BUNDLE_DIR:${VISERA_APP}>")
-    set(VISERA_APP_EXECUTABLE_DIR "${VISERA_APP_BUNDLE_DIR}/MacOS")
-    set(VISERA_APP_FRAMEWORK_DIR  "${VISERA_APP_BUNDLE_DIR}/Contents/Frameworks")
-    set(VISERA_APP_RESOURCE_DIR   "${VISERA_APP_BUNDLE_DIR}/Contents/Resources")
 endif()
 
-# Pre-create app output directories for each configuration to avoid MSBuild MSB3191
-# (e.g. when a file named "Develop" exists or the directory is missing)
+# Unified engine output paths (app-independent).
+set(VISERA_ENGINE_OUTPUT_ROOT "${CMAKE_BINARY_DIR}/Engine" CACHE PATH "Engine binary output root directory")
+set(VISERA_ENGINE_FRAMEWORK_DIR "${VISERA_ENGINE_OUTPUT_ROOT}/$<CONFIG>" CACHE STRING "Engine runtime output directory")
+set(VISERA_ENGINE_RESOURCE_DIR "${VISERA_ENGINE_FRAMEWORK_DIR}/Resources" CACHE STRING "Engine runtime resource directory")
+
+# Pre-create engine output directories for each configuration to avoid MSBuild MSB3191.
 foreach(CFG ${CMAKE_CONFIGURATION_TYPES})
-    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/${VISERA_APP_BINARY_REL}/${CFG}")
+    file(MAKE_DIRECTORY "${VISERA_ENGINE_OUTPUT_ROOT}/${CFG}")
 endforeach()
 
 add_subdirectory(Engine)
-add_subdirectory(${VISERA_APP_DIR})

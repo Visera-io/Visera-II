@@ -157,7 +157,7 @@ export namespace Visera
                 {
                     SwapChains.EmplaceBack();
                     SwapChains.Back().Initialize(Driver, &GraphicsCommandPool, &TransferCommandPool, Window.Get());
-                    SwapChains.Back().SubscribeToResize(Driver, &GraphicsCommandPool, &TransferCommandPool, Window.Get(), GetRuntimeName());
+                    SwapChains.Back().SubscribeToResize(Driver, &GraphicsCommandPool, &TransferCommandPool, Window.Get());
                     WindowToSwapChainIndex.Insert(Window.Get(), PrimarySwapChainIndex);
                 }
 
@@ -255,7 +255,7 @@ export namespace Visera
         Driver->CreateSwapChain(I_Window);
         SwapChains.EmplaceBack();
         SwapChains.Back().Initialize(Driver, &GraphicsCommandPool, &TransferCommandPool, I_Window);
-        SwapChains.Back().SubscribeToResize(Driver, &GraphicsCommandPool, &TransferCommandPool, I_Window, GetRuntimeName());
+        SwapChains.Back().SubscribeToResize(Driver, &GraphicsCommandPool, &TransferCommandPool, I_Window);
         WindowToSwapChainIndex.Insert(I_Window, static_cast<UInt8>(SwapChains.GetSize() - 1));
     }
 

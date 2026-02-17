@@ -29,8 +29,8 @@ macro(link_libpng in_target)
         
         # Ensure LibPNG can find the Zlib target from Core
         target_link_libraries(png_static PRIVATE ZLIB::ZLIB)
-        set_target_properties(png_static PROPERTIES FOLDER   "${VISERA_ASSETHUB_EXTERNAL_DIR}/LibPNG")
-        set_target_properties(png_genfiles PROPERTIES FOLDER "${VISERA_ASSETHUB_EXTERNAL_DIR}/LibPNG")
+        set_target_properties(png_static PROPERTIES FOLDER   "Visera/AssetHub/External/LibPNG")
+        set_target_properties(png_genfiles PROPERTIES FOLDER "Visera/AssetHub/External/LibPNG")
     endif()
 
 #    add_custom_command(
@@ -40,5 +40,5 @@ macro(link_libpng in_target)
 #        $<TARGET_FILE:png>
 #        $<TARGET_FILE_DIR:${in_target}>
 #    )
-    target_link_libraries(${in_target} PRIVATE png_static)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:png_static>")
 endmacro()

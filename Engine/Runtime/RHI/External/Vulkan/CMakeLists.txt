@@ -54,7 +54,7 @@ elseif(WIN32)
         IMPORTED_LOCATION_DEVELOP "${VULKAN_LIB}"
     )
 else()
-    mssage(FATAL_ERROR "Unsupported platform!")
+    message(FATAL_ERROR "Unsupported platform!")
 endif()
 
 target_link_libraries(VulkanModule PUBLIC VulkanLoader)
@@ -62,29 +62,29 @@ target_link_libraries(VulkanModule PUBLIC VulkanLoader)
 if(APPLE)
     add_custom_command(TARGET VulkanModule POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${VISERA_APP_FRAMEWORK_DIR}"
-        "${VISERA_APP_RESOURCE_DIR}/Vulkan/"
+        "${VISERA_ENGINE_FRAMEWORK_DIR}"
+        "${VISERA_ENGINE_RESOURCE_DIR}/Vulkan/"
         # Vulkan
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libvulkan.1.dylib" # Note: this is a renamed lib
-        "${VISERA_APP_FRAMEWORK_DIR}/"
+        "${VISERA_ENGINE_FRAMEWORK_DIR}/"
         # MoltenVk
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libMoltenVK.dylib"
-        "${VISERA_APP_FRAMEWORK_DIR}/"
+        "${VISERA_ENGINE_FRAMEWORK_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/MoltenVK_icd.json"
-        "${VISERA_APP_RESOURCE_DIR}/Vulkan/"
+        "${VISERA_ENGINE_RESOURCE_DIR}/Vulkan/"
     )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         add_custom_command(TARGET VulkanModule POST_BUILD
             # Validation Layer
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libVkLayer_khronos_validation.dylib"
-            "${VISERA_APP_FRAMEWORK_DIR}/"
+            "${VISERA_ENGINE_FRAMEWORK_DIR}/"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/VkLayer_khronos_validation.json"
-            "${VISERA_APP_RESOURCE_DIR}/Vulkan/"
+            "${VISERA_ENGINE_RESOURCE_DIR}/Vulkan/"
         )
     endif()
 elseif(WIN32)
@@ -93,18 +93,51 @@ elseif(WIN32)
             # Validation Layer
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.dll"
-            "${VISERA_APP_FRAMEWORK_DIR}"
+            "${VISERA_ENGINE_FRAMEWORK_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.json"
-            "${VISERA_APP_FRAMEWORK_DIR}"
+            "${VISERA_ENGINE_FRAMEWORK_DIR}"
         )
         add_custom_command(TARGET VulkanModule POST_BUILD
             # PDB files
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.pdb"
-            "${VISERA_APP_FRAMEWORK_DIR}"
+            "${VISERA_ENGINE_FRAMEWORK_DIR}"
         )
     endif()
 else()
-    mssage(FATAL_ERROR "Unsupported platform!")
+    message(FATAL_ERROR "Unsupported platform!")
+endif()
+
+if(APPLE)
+    install(FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libvulkan.1.dylib"
+        "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libMoltenVK.dylib"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    )
+    install(FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/MoltenVK_icd.json"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/Visera/Vulkan"
+    )
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        install(FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/libVkLayer_khronos_validation.dylib"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
+        install(FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/MacOS/VkLayer_khronos_validation.json"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/Visera/Vulkan"
+        )
+    endif()
+elseif(WIN32)
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        install(FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.dll"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
+        install(FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/Windows/VkLayer_khronos_validation.json"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/Visera/Vulkan"
+        )
+    endif()
 endif()

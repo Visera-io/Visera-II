@@ -7,13 +7,13 @@ macro(link_wwise in_target)
 
     if(NOT TARGET Wwise)
         add_subdirectory(${VISERA_AUDIO_EXTERNAL_DIR}/Wwise)
-        set_target_properties(Wwise PROPERTIES FOLDER "${VISERA_AUDIO_EXTERNAL_DIR}/Wwise")
-        set_target_properties(WwiseSamples PROPERTIES FOLDER "${VISERA_AUDIO_EXTERNAL_DIR}/Wwise")
+        set_target_properties(Wwise PROPERTIES FOLDER "Visera/Audio/External/Wwise")
+        set_target_properties(WwiseSamples PROPERTIES FOLDER "Visera/Audio/External/Wwise")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC
-        Wwise
-        WwiseSamples
+    target_link_libraries(${in_target} PRIVATE
+        "$<BUILD_INTERFACE:Wwise>"
+        "$<BUILD_INTERFACE:WwiseSamples>"
     )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         if(WIN32)

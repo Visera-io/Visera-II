@@ -14,5 +14,5 @@ macro(link_spdlog in_target)
         set_target_properties(spdlog PROPERTIES FOLDER "Visera/Core/External/Spdlog")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC spdlog::spdlog)
+    target_link_libraries(${in_target} PUBLIC "$<BUILD_INTERFACE:spdlog::spdlog>")
 endmacro()

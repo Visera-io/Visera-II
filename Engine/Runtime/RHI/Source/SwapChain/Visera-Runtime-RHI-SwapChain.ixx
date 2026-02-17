@@ -49,8 +49,7 @@ export namespace Visera
             FVulkanDriver*                                      I_Driver,
             FVulkanGraphicsCommandPool*   I_GraphicsPool,
             FVulkanTransferCommandPool*   I_TransferPool,
-            FWindow*                                            I_Window,
-            FStringView                                         I_RuntimeName = "RHI");
+            FWindow*                                            I_Window);
         void UnsubscribeFromResize();
 
     private:
@@ -116,29 +115,28 @@ export namespace Visera
 
     void FRHISwapChain::
     SubscribeToResize(
-        FVulkanDriver*                                       I_Driver,
-        FVulkanGraphicsCommandPool*    I_GraphicsPool,
-        FVulkanTransferCommandPool*    I_TransferPool,
-        FWindow*                                             I_Window,
-        FStringView                                          I_RuntimeName)
+        FVulkanDriver*              I_Driver,
+        FVulkanGraphicsCommandPool* I_GraphicsPool,
+        FVulkanTransferCommandPool* I_TransferPool,
+        FWindow*                    I_Window)
     {
         if (!I_Window || ResizeHandle.HasValue()) { return; }
         auto* Ctx = this;
-        ResizeHandle = I_Window->OnResized.Subscribe([Ctx, I_Driver, I_GraphicsPool, I_TransferPool, I_RuntimeName](FWindow* I_Win)
+        ResizeHandle = I_Window->OnResized.Subscribe([Ctx, I_Driver, I_GraphicsPool, I_TransferPool](FWindow* I_Win)
         {
             if (I_Win->GetWidth() == 0 || I_Win->GetHeight() == 0)
             {
-                LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", I_RuntimeName, I_Win->GetWidth(), I_Win->GetHeight());
+                LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", I_Win->GetTitle(), I_Win->GetWidth(), I_Win->GetHeight());
                 return;
             }
-            LOG_DEBUG("({}) Recreating SwapChain ({}x{}) for window (title:{}).", I_RuntimeName, I_Win->GetWidth(), I_Win->GetHeight(), I_Win->GetTitle());
+            LOG_DEBUG("({}) Recreating SwapChain ({}x{}) for window (title:{}).", I_Win->GetTitle(), I_Win->GetWidth(), I_Win->GetHeight(), I_Win->GetTitle());
             I_Win->OnResized.Unsubscribe(Ctx->ResizeHandle.GetValue());
             Ctx->ResizeHandle = NullOpt;
             I_Driver->WaitIdle();
             *Ctx = FRHISwapChain{};
             I_Driver->RecreateSwapChain(I_Win, I_Win->GetWidth(), I_Win->GetHeight());
             Ctx->Initialize(I_Driver, I_GraphicsPool, I_TransferPool, I_Win);
-            Ctx->SubscribeToResize(I_Driver, I_GraphicsPool, I_TransferPool, I_Win, I_RuntimeName);
+            Ctx->SubscribeToResize(I_Driver, I_GraphicsPool, I_TransferPool, I_Win);
         });
     }
 

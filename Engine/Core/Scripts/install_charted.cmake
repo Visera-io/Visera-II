@@ -12,5 +12,5 @@ macro(link_charted in_target)
         set_target_properties(charted PROPERTIES FOLDER "Visera/Core/External/Charted")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC charted::charted)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:charted::charted>")
 endmacro()

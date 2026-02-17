@@ -16,6 +16,6 @@ macro(link_imath in_target)
         set_target_properties(Imath PROPERTIES FOLDER "Visera/Core/External/Imath")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC Imath::Imath)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:Imath::Imath>")
     target_include_directories(${in_target} PRIVATE "${VISERA_CORE_EXTERNAL_DIR}/Imath/src")
 endmacro()

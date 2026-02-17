@@ -22,32 +22,3 @@ macro(install_visera_scripting in_target)
         FILE_SET "visera_scripting_modules" TYPE CXX_MODULES
         FILES ${VISERA_SCRIPTING_MODULES})
 endmacro()
-
-if(VISERA_MONOLITHIC_MODE)
-    #install_visera_scripting(...)
-else()
-    add_library(${VISERA_SCRIPTING} SHARED)
-    add_library(Visera::Scripting ALIAS ${VISERA_SCRIPTING})
-
-    set_target_properties(${VISERA_SCRIPTING} PROPERTIES
-        SCRIPTING_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-        LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-    )
-   if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-   add_custom_command(
-       TARGET Visera::Scripting
-       POST_BUILD
-       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-       "$<TARGET_PDB_FILE:Visera::Scripting>"
-       "${VISERA_APP_FRAMEWORK_DIR}"
-   )
-   endif()
-
-    if(NOT TARGET Visera::Scripting)
-        message(FATAL_ERROR "Visera-Scripting is not installed!")
-    endif()
-    target_link_libraries(${VISERA_SCRIPTING} PRIVATE Visera::Scripting)
-
-    install_visera_scripting(${VISERA_SCRIPTING})
-    set_target_properties(${VISERA_SCRIPTING} PROPERTIES FOLDER "Visera/Scripting")
-endif()

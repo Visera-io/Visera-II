@@ -24,6 +24,6 @@ macro(link_imgui in_target)
         set_target_properties(ImGui PROPERTIES FOLDER "Visera/Graphics/External/ImGui")
     endif()
 
-    target_link_libraries(${in_target} PRIVATE ImGui)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:ImGui>")
     target_include_directories(${in_target} PRIVATE "${VISERA_GRAPHICS_EXTERNAL_DIR}/ImGui")
 endmacro()

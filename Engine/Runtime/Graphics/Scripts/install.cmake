@@ -17,49 +17,11 @@ macro(install_visera_graphics in_target)
 
     target_include_directories(${in_target}
         PUBLIC
-        ${VISERA_GRAPHICS_INCLUDE_DIR})
+        $<BUILD_INTERFACE:${VISERA_GRAPHICS_INCLUDE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Visera/Runtime/Graphics>)
 
     target_sources(${in_target}
         PUBLIC
         FILE_SET "visera_graphics_modules" TYPE CXX_MODULES
         FILES ${VISERA_GRAPHICS_MODULES})
 endmacro()
-
-if(VISERA_MONOLITHIC_MODE)
-    #install_visera_graphics(...)
-else()
-    add_library(${VISERA_GRAPHICS} SHARED)
-    add_library(Visera::Graphics ALIAS ${VISERA_GRAPHICS})
-
-    set_target_properties(${VISERA_GRAPHICS} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-        LIBRARY_OUTPUT_DIRECTORY "${VISERA_APP_FRAMEWORK_DIR}"
-    )
-   if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-   add_custom_command(
-       TARGET Visera::Graphics
-       POST_BUILD
-       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-       "$<TARGET_PDB_FILE:Visera::Graphics>"
-       "${VISERA_APP_FRAMEWORK_DIR}"
-   )
-   endif()
-
-    if(NOT TARGET Visera::Global)
-        message(FATAL_ERROR "Visera-Global is not installed!")
-    endif()
-    target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::Global)
-
-    if(NOT TARGET Visera::Platform)
-        message(FATAL_ERROR "Visera-Platform is not installed!")
-    endif()
-    target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::Platform)
-
-    if(NOT TARGET Visera::RHI)
-        message(FATAL_ERROR "Visera-RHI is not installed!")
-    endif()
-    target_link_libraries(${VISERA_GRAPHICS} PRIVATE Visera::RHI)
-
-    install_visera_graphics(${VISERA_GRAPHICS})
-    set_target_properties(${VISERA_GRAPHICS} PROPERTIES FOLDER "Visera/Graphics")
-endif()

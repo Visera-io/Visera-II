@@ -17,5 +17,5 @@ macro(link_libdeflate in_target)
         set_target_properties(libdeflate_static PROPERTIES FOLDER "Visera/Core/External/LibDeflate")
     endif()
 
-    target_link_libraries(${in_target} PUBLIC libdeflate::libdeflate_static)
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:libdeflate::libdeflate_static>")
 endmacro()
