@@ -1,10 +1,10 @@
 #pragma once
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <concepts>
 #include <memory_resource>
 #include <span>
+#include <vector>
 #include <string>
 #include <string_view>
 #include <type_traits>
