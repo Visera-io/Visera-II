@@ -42,7 +42,7 @@ add_custom_command(
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "$<TARGET_FILE:${VISERA}>"
-    "${VISERA_FORGE_OUTPUT_DIR}/$<CONFIG>"
+    "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
 )
 
 if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -51,14 +51,14 @@ if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_PDB_FILE:${VISERA_FORGE}>"
-        "${VISERA_FORGE_OUTPUT_DIR}/$<CONFIG>"
+        "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
     )
     add_custom_command(
         TARGET ${VISERA_FORGE}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_PDB_FILE:${VISERA}>"
-        "${VISERA_FORGE_OUTPUT_DIR}/$<CONFIG>"
+        "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
     )
 endif()
 
