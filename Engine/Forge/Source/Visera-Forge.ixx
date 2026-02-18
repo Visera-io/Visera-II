@@ -89,6 +89,8 @@ namespace Visera::Forge
     {
         LOG_INFO("Compiling shader: {}", I_SourcePath);
 
+        auto AssetHub = I_Runtime->GetAssetHub();
+
         const TArray<FStringView> EntryPoints = {"VertMain", "FragMain"};
         const FPath ShaderDirectory = *I_SourcePath.GetParent();
         FShaderCompiler Compiler;
@@ -142,7 +144,7 @@ namespace Visera::Forge
             OutputName.Append(".vshader");
             OutputPath = *OutputPath.GetParent() / FPath(OutputName);
 
-            if (!I_Runtime->AssetHub->SaveShader({std::move(SPIRV), std::move(Refl)}, OutputPath))
+            if (!AssetHub->SaveShader({std::move(SPIRV), std::move(Refl)}, OutputPath))
             {
                 LOG_ERROR("Failed to save shader: {}", OutputPath);
                 return False;

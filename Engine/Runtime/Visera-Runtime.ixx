@@ -34,25 +34,25 @@ export namespace Visera
     class VISERA_RUNTIME_API FRuntime
     {
     public:
-        [[nodiscard]] const FInput*
+        [[nodiscard]] FInput*
         GetInput() const { return Input ? Input.Get() : nullptr; }
 
-        [[nodiscard]] const FWindow*
+        [[nodiscard]] FWindow*
         GetWindow() const { return Window ? Window.Get() : nullptr; }
 
-        [[nodiscard]] const FTasks*
+        [[nodiscard]] FTasks*
         GetTasks() const { return Tasks ? Tasks.Get() : nullptr; }
 
-        [[nodiscard]] const FRHI*
+        [[nodiscard]] FRHI*
         GetRHI() const { return RHI ? RHI.Get() : nullptr; }
 
-        [[nodiscard]] const FAudio*
+        [[nodiscard]] FAudio*
         GetAudio() const { return Audio ? Audio.Get() : nullptr; }
 
-        [[nodiscard]] const FGraphics*
+        [[nodiscard]] FGraphics*
         GetGraphics() const { return Graphics ? Graphics.Get() : nullptr; }
 
-        [[nodiscard]] const FAssetHub*
+        [[nodiscard]] FAssetHub*
         GetAssetHub() const { return AssetHub ? AssetHub.Get() : nullptr; }
 
         // Get a service from the registry

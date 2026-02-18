@@ -13,6 +13,8 @@ macro(link_libpng in_target)
 
         # Mark ZLIB as found so find_package uses the existing target
         set(ZLIB_FOUND TRUE CACHE BOOL "ZLIB found" FORCE)
+        set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "Use static ZLIB" FORCE)
+        set(ZLIB_LIBRARY ZLIB::ZLIBSTATIC CACHE STRING "Prefer static ZLIB target" FORCE)
 
         set(PNG_SHARED OFF CACHE BOOL " " FORCE)
         set(PNG_STATIC ON  CACHE BOOL " " FORCE)
@@ -28,7 +30,7 @@ macro(link_libpng in_target)
         add_subdirectory(${VISERA_ASSETHUB_EXTERNAL_DIR}/LibPNG)
         
         # Ensure LibPNG can find the Zlib target from Core
-        target_link_libraries(png_static PRIVATE ZLIB::ZLIB)
+        target_link_libraries(png_static PRIVATE ZLIB::ZLIBSTATIC)
         set_target_properties(png_static PROPERTIES FOLDER   "Visera/AssetHub/External/LibPNG")
         set_target_properties(png_genfiles PROPERTIES FOLDER "Visera/AssetHub/External/LibPNG")
     endif()

@@ -30,7 +30,7 @@ endif()
 
 # Pre-create output dirs per config (Debug/Develop/Release) to avoid MSBuild etc. issues
 foreach(CFG ${CMAKE_CONFIGURATION_TYPES})
-    file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/Toolkit/Forge/${CFG}")
+    file(MAKE_DIRECTORY "${VISERA_FORGE_OUTPUT_DIR}/${CFG}")
 endforeach()
 
 #[Install]
