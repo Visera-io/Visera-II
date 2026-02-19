@@ -78,6 +78,17 @@ export namespace Visera
         
         // Move constructor: always available
         TArray(TArray&& I_Other) noexcept = default;
+
+        /** Construct by moving from std::vector<T>. */
+        TArray(ArrayType&& I_Vec) noexcept : Array(std::move(I_Vec)) {}
+
+        /** Construct by moving from std::vector<U> when U is convertible to T (e.g. vector<string> -> TArray<FString>). */
+        template<typename U>
+        TArray(std::vector<U>&& I_Vec) requires (std::convertible_to<U, T> && !std::same_as<U, T>)
+        {
+            Array.reserve(I_Vec.size());
+            for (auto& v : I_Vec) { Array.emplace_back(std::move(v)); }
+        }
         
         // Move assignment: always available  
         TArray& operator=(TArray&& I_Other) noexcept = default;

@@ -3,6 +3,7 @@ module;
 #include <ankerl/unordered_dense.h>
 export module Visera.Core.Containers.Map;
 #define VISERA_MODULE_NAME "Core.Containers"
+import std;
 
 export namespace Visera
 {
@@ -26,30 +27,14 @@ export namespace Visera
         TMap() = default;
         ~TMap() = default;
 
-        // Copy constructor: only if Key and Value are copy constructible
-        TMap(const TMap& I_Other)
-            requires (std::copy_constructible<Key> && std::copy_constructible<Value>)
-            = default;
-        TMap(const TMap&)
-            requires (!(std::copy_constructible<Key> && std::copy_constructible<Value>))
-            = delete;
+        // Explicitly disable copy semantics. This keeps TMap usable with move-only Value
+        // types (e.g. TUniquePtr) and avoids instantiating copy paths in MapType.
+        TMap(const TMap& I_Other) = delete;
 
         // Move constructor
         TMap(TMap&& I_Other) noexcept = default;
 
-        // Copy assignment: only if Key and Value are copyable
-        TMap& operator=(const TMap& I_Other)
-            requires (std::copy_constructible<Key> && std::copy_constructible<Value> && std::is_copy_assignable_v<Pair>)
-        {
-            if (this != &I_Other)
-            {
-                Map = I_Other.Map;
-            }
-            return *this;
-        }
-        TMap& operator=(const TMap&)
-            requires (!(std::copy_constructible<Key> && std::copy_constructible<Value> && std::is_copy_assignable_v<Pair>))
-            = delete;
+        TMap& operator=(const TMap& I_Other) = delete;
 
         // Move assignment
         TMap& operator=(TMap&& I_Other) noexcept = default;

@@ -4,6 +4,7 @@ export module Visera.Core.Types.JSON;
 #define VISERA_MODULE_NAME "Core.Types"
 import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
+import Visera.Core.Containers.Array;
 import Visera.Core.OS.FileSystem;
 import charted.core;
 import charted.json;
@@ -329,6 +330,17 @@ export namespace Visera
         {
             auto Value = TryGetObject(I_Route);
             return Value.HasValue() ? std::move(Value.GetValue()) : FJSON{};
+        }
+
+        /** Get JSON string array as TArray<FString>. Returns NullOpt if key missing or not an array of strings. */
+        [[nodiscard]] TOptional<TArray<FString>>
+        TryGetStringArray(FStringView I_Key) const noexcept
+        {
+            if (auto Vec = Root.TryGet<std::vector<std::string>>(I_Key.GetNative()); Vec.has_value())
+            {
+                return TOptional<TArray<FString>>(TArray<FString>(std::move(Vec.value())));
+            }
+            return NullOpt;
         }
 
         [[nodiscard]] Json& GetNative() noexcept { return Root; }

@@ -50,7 +50,10 @@ export namespace Visera
         SetTitle(FStringView I_Title) = 0;
         virtual void
         SetIcon(const FIconSet& I_IconSet) = 0;
-
+        [[nodiscard]] virtual Int32
+        GetKeyboardKey(Int32 I_Key) const = 0;
+        [[nodiscard]] virtual Int32
+        GetMouseButton(Int32 I_Button) const = 0;
         [[nodiscard]] inline FStringView
         GetTitle() const { return Title; }
         [[nodiscard]] inline UInt32

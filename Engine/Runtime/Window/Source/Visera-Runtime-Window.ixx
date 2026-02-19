@@ -1,6 +1,5 @@
 module;
 #include <Visera-Window.hpp>
-#include <VISERA_ICONS.inl>
 export module Visera.Runtime.Window;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Global;
@@ -14,6 +13,7 @@ export namespace Visera
     class VISERA_RUNTIME_API FWindow : public IGlobalService
     {
     public:
+        using FIconSet = FPlatformWindow::FIconSet;
         TMulticastDelegate<FWindow*>
         OnResized;
 
@@ -33,9 +33,9 @@ export namespace Visera
         GetPlatformWindow() const { return PlatformWindow; }
 
         void
-        PollEvents() const { return PlatformWindow->PollEvents(); }
+        SetIcon(const FIconSet& I_IconSet) { PlatformWindow->SetIcon(I_IconSet); }
         void
-        Resize(UInt32 I_NewWidth, UInt32 I_NewHeight) const { PlatformWindow->SetSize(I_NewWidth, I_NewHeight); }
+        Resize(UInt32 I_NewWidth, UInt32 I_NewHeight) { PlatformWindow->SetSize(I_NewWidth, I_NewHeight); }
 
     private:
         TUniquePtr<FPlatformWindow> PlatformWindow;
@@ -63,15 +63,6 @@ export namespace Visera
                     OnResized.Broadcast(this);
                 })) { LOG_FATAL("Failed to bind resize window event!"); }
 
-                PlatformWindow->SetIcon(
-                {
-                    .Icon16x16   = ViseraIcons[X16],
-                    .Icon32x32   = ViseraIcons[X32],
-                    .Icon48x48   = ViseraIcons[X48],
-                    .Icon64x64   = ViseraIcons[X64],
-                    .Icon128x128 = ViseraIcons[X128],
-                    .Icon256x256 = ViseraIcons[X256],
-                });
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }

@@ -47,14 +47,11 @@ struct FEngine
 
         while (!Runtime->Window->ShouldClose())
         {
-            Runtime->Window->PollEvents();
-
+            Runtime->Input->PollAndSync();
             if (Runtime2 != nullptr)
             {
                 if (!Runtime2->Window->ShouldClose())
-                {
-                    Runtime2->Window->PollEvents();
-                }
+                { Runtime2->Input->PollAndSync(); }
                 else Runtime2.Reset();
             }
 
