@@ -14,7 +14,7 @@ export namespace Visera
         FetchNameString(const FName& I_Name) -> FStringView { return FNamePool::GetInstance().FetchNameString(I_Name.Handle); }
 
         [[nodiscard]] FStringView inline
-        GetName()       const { return FNamePool::GetInstance().FetchNameString(Handle); }
+        GetNameString() const { return FNamePool::GetInstance().FetchNameString(Handle); }
         [[nodiscard]] UInt32 inline
         GetHandle()     const { return Handle; }
         [[nodiscard]] UInt32 inline
@@ -45,4 +45,4 @@ export namespace Visera
 VISERA_MAKE_HASH(Visera::FName, return I_Object.GetIdentifier(); )
 VISERA_MAKE_FORMATTER(Visera::FName, {},
                       "{}({})",
-                      I_Formatee.GetName(), I_Formatee.GetNumber());
+                      I_Formatee.GetNameString(), I_Formatee.GetNumber());

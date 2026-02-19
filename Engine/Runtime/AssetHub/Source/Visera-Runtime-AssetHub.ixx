@@ -321,7 +321,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
-        LOG_DEBUG("({}) LoadImageFromCache: {}.", GetRuntimeName(), I_Name.GetName());
+        LOG_DEBUG("({}) LoadImageFromCache: {}.", GetRuntimeName(), I_Name.GetNameString());
         return Cast<FImageAsset>(S);
     }
 
@@ -332,7 +332,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
-        LOG_DEBUG("({}) LoadShaderFromCache: {}.", GetRuntimeName(), I_Name.GetName());
+        LOG_DEBUG("({}) LoadShaderFromCache: {}.", GetRuntimeName(), I_Name.GetNameString());
         return Cast<FShaderAsset>(S);
     }
 
@@ -343,7 +343,7 @@ export namespace Visera
         if (W.IsExpired()) return nullptr;
         auto S = W.Lock();
         if (!S) return nullptr;
-        LOG_DEBUG("({}) LoadFontFromCache: {}.", GetRuntimeName(), I_Name.GetName());
+        LOG_DEBUG("({}) LoadFontFromCache: {}.", GetRuntimeName(), I_Name.GetNameString());
         return Cast<FFontAsset>(S);
     }
 }

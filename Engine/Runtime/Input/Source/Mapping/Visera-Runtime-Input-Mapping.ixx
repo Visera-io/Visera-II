@@ -8,6 +8,7 @@ import Visera.Core.Types.JSON;
 import Visera.Core.Types.Optional;
 import Visera.Core.Types.String;
 import Visera.Core.Containers.Array;
+import Visera.Core.Log;
 export import Visera.Platform.Cross.GLFW.Keyboard;
        import Visera.Platform.Cross.GLFW.Mouse;
 
@@ -296,6 +297,11 @@ export namespace Visera
                 .Trigger = TriggerType,
                 .Modifiers = Mods,
             });
+#if defined(VISERA_DEBUG_MODE)
+            const auto& An = Out.Back().ActionName;
+            LOG_DEBUG("ParseInputMap: Action='{}' -> Handle={}, GetNameString='{}'",
+                      Action->GetNative(), An.GetHandle(), An.GetNameString());
+#endif
         }
         return TOptional<TArray<FInputMapping>>(std::move(Out));
     }

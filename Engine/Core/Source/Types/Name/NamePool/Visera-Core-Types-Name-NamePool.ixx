@@ -20,8 +20,8 @@ export namespace Visera
             MaxNameNumber       = INT32_MAX,
         };
     public:
-        static inline auto
-        GetInstance() -> FNamePool& { static FNamePool Instance{}; return Instance; }
+        /** Single process-wide instance. Non-inline to avoid multiple static copies across DLL boundaries. */
+        static auto GetInstance() -> FNamePool&;
 
         [[nodiscard]] TPair<UInt32, UInt32> inline //[Handle, Number]
         Register(FString&    I_Name);
@@ -43,6 +43,12 @@ export namespace Visera
         //[Number(<0 means invalid), NameLength]
         auto ParseName(const char* I_Name, UInt32 I_Length) const -> TTuple<Int32, UInt32>;
     };
+
+    auto FNamePool::GetInstance() -> FNamePool&
+    {
+        static FNamePool Instance{};
+        return Instance;
+    }
 
     FNamePool::
     FNamePool()

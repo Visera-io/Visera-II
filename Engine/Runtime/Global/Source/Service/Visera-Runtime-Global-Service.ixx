@@ -69,7 +69,7 @@ export namespace Visera
         {
             if (!Registry)
             {
-                LOG_ERROR("Service {} has no registry!", Name.GetName());
+                LOG_ERROR("Service {} has no registry!", Name.GetNameString());
                 return TWeakPtr<T>();
             }
             auto ServiceIter = Registry->Find(I_ServiceName);
@@ -116,7 +116,7 @@ export namespace Visera
                 if (Status != EStatus::Pending)
                 {
                     LOG_ERROR("Service {} cannot transition to Bootstrapped from current state {}!", 
-                              Name.GetName(), static_cast<Int8>(Status));
+                              Name.GetNameString(), static_cast<Int8>(Status));
                     return False;
                 }
                 
@@ -129,7 +129,7 @@ export namespace Visera
                         if (DepIter == Registry->end())
                         {
                             LOG_ERROR("Service {} depends on {} which is not registered!", 
-                                      Name.GetName(), DepName.GetName());
+                                      Name.GetNameString(), DepName.GetNameString());
                             return False;
                         }
                         
@@ -137,14 +137,14 @@ export namespace Visera
                         if (!DepService->IsBootstrapped())
                         {
                             LOG_ERROR("Service {} depends on {} which is not bootstrapped! (current status: {})", 
-                                      Name.GetName(), DepName.GetName(), static_cast<Int8>(DepService->Status));
+                                      Name.GetNameString(), DepName.GetNameString(), static_cast<Int8>(DepService->Status));
                             return False;
                         }
                     }
                 }
                 else if (!Dependencies.IsEmpty())
                 {
-                    LOG_ERROR("Service {} has dependencies but no registry available!", Name.GetName());
+                    LOG_ERROR("Service {} has dependencies but no registry available!", Name.GetNameString());
                     return False;
                 }
                 
@@ -154,17 +154,17 @@ export namespace Visera
                 if (Status != EStatus::Bootstrapped)
                 {
                     LOG_ERROR("Service {} cannot transition to Terminated from current state {}!", 
-                              Name.GetName(), static_cast<Int8>(Status));
+                              Name.GetNameString(), static_cast<Int8>(Status));
                     return False;
                 }
                 Success = OnTerminate.Invoke().GetValue();
                 break;
             case EStatus::Pending:
-                LOG_WARN("Service {} cannot transition back to Pending!", Name.GetName());
+                LOG_WARN("Service {} cannot transition back to Pending!", Name.GetNameString());
                 return False;
             default:
                 LOG_ERROR("Service {} cannot transition to unknown state {}!", 
-                          Name.GetName(), static_cast<Int8>(I_NewStatus));
+                          Name.GetNameString(), static_cast<Int8>(I_NewStatus));
                 return False;
             }
 
@@ -245,17 +245,17 @@ export namespace Visera
             switch (Status)
             {
             case EStatus::Pending:
-                LOG_WARN("Service {} was NOT bootstrapped!", Name.GetName());
+                LOG_WARN("Service {} was NOT bootstrapped!", Name.GetNameString());
                 break;
             case EStatus::Bootstrapped:
-                LOG_ERROR("Service {} was NOT terminated! -- will try to terminate it!", Name.GetName());
+                LOG_ERROR("Service {} was NOT terminated! -- will try to terminate it!", Name.GetNameString());
                 if (!OnTerminate.Invoke())
-                { LOG_ERROR("Failed to Terminate Service {}！", Name.GetName()); }
+                { LOG_ERROR("Failed to Terminate Service {}！", Name.GetNameString()); }
                 break;
             case EStatus::Terminated:
                 // Service was properly terminated, nothing to do
                 break;
-            default: LOG_ERROR("Service {} is in unknown statue {} !", Name.GetName(), static_cast<Int8>(Status)); break;
+            default: LOG_ERROR("Service {} is in unknown statue {} !", Name.GetNameString(), static_cast<Int8>(Status)); break;
             }
         }
 

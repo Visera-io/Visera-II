@@ -228,7 +228,7 @@ export namespace Visera
         {
             if (Registry.Contains(I_ServiceName))
             {
-                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetName());
+                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetNameString());
                 return TSharedPtr<T>();
             }
             
@@ -246,12 +246,12 @@ export namespace Visera
         {
             if (Registry.Contains(I_ServiceName))
             {
-                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetName());
+                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetNameString());
                 return TSharedPtr<T>();
             }
             if (auto Shared = I_SharedWeak.Lock())
             {
-                LOG_INFO("Service {} already created by another Runtime, sharing instance across Runtime instances.", I_ServiceName.GetName());
+                LOG_INFO("Service {} already created by another Runtime, sharing instance across Runtime instances.", I_ServiceName.GetNameString());
                 SharedServices.Insert(I_ServiceName);
                 Registry.Insert(I_ServiceName, Cast<IGlobalService>(Shared));
                 LOG_TRACE("Registered shared service ({}) : {}.", Registry.GetSize(), I_ServiceName.GetName());
@@ -281,9 +281,9 @@ export namespace Visera
 
             for (const auto& Service : SortedServices)
             {
-                LOG_DEBUG("({}) Bootstrapping {}.", RuntimeName, Service->GetName().GetName());
+                LOG_DEBUG("({}) Bootstrapping {}.", RuntimeName, Service->GetName().GetNameString());
                 if (!Service->SetStatus(IGlobalService::EStatus::Bootstrapped))
-                { LOG_FATAL("({}) Failed to bootstrap {}!", RuntimeName, Service->GetName().GetName()); }
+                { LOG_FATAL("({}) Failed to bootstrap {}!", RuntimeName, Service->GetName().GetNameString()); }
             }
             if (Window && RHI)
             { RHI->CreateSwapChain(Window.Get()); }
@@ -303,9 +303,9 @@ export namespace Visera
                 const auto& Service = *It;
                 if (SharedServices.Contains(Service->GetName()))
                 { continue; } // Shared services are not terminated by this Runtime
-                LOG_DEBUG("({}) Terminating {}.", RuntimeName, Service->GetName().GetName());
+                LOG_DEBUG("({}) Terminating {}.", RuntimeName, Service->GetName().GetNameString());
                 if (!Service->SetStatus(IGlobalService::EStatus::Terminated))
-                { LOG_FATAL("({}) Failed to terminate {}!", RuntimeName, Service->GetName().GetName()); }
+                { LOG_FATAL("({}) Failed to terminate {}!", RuntimeName, Service->GetName().GetNameString()); }
             }
         }
 
@@ -344,7 +344,7 @@ export namespace Visera
                     else
                     {
                         LOG_ERROR("Service {} depends on unregistered service {}!",
-                                  Name.GetName(), DepName.GetName());
+                                  Name.GetNameString(), DepName.GetNameString());
                         bMissingDependency = True;
                     }
                 }
@@ -409,7 +409,7 @@ export namespace Visera
                 FString CycleMsg = "Services involved in cycle: ";
                 for (const FName& Name : CycleServices)
                 {
-                    CycleMsg += FString::Format("{} ", Name.GetName());
+                    CycleMsg += FString::Format("{} ", Name.GetNameString());
                 }
                 LOG_FATAL("{}", CycleMsg);
                 

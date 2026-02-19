@@ -35,6 +35,8 @@ export namespace Visera
         void
         SetIcon(const FIconSet& I_IconSet) { PlatformWindow->SetIcon(I_IconSet); }
         void
+        SetTitle(FStringView I_NewTitle) { PlatformWindow->SetTitle(I_NewTitle); }
+        void
         Resize(UInt32 I_NewWidth, UInt32 I_NewHeight) { PlatformWindow->SetSize(I_NewWidth, I_NewHeight); }
 
     private:
