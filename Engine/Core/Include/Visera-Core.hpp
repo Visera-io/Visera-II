@@ -93,6 +93,12 @@
 #define DEBUG_ONLY_FIELD(I_Content)
 #endif
 
+#if defined(VISERA_PROFILING_MODE)
+#define PROFILING_ONLY_FIELD(I_Content) I_Content
+#else
+#define PROFILING_ONLY_FIELD(I_Content)
+#endif
+
 #define VISERA_UNIMPLEMENTED_API LOG_FATAL("Unimplemented function {}!", __FUNCTION__);
 
 // << PCHs >>

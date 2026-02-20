@@ -121,12 +121,64 @@ export namespace Visera
         TMap<UInt64, TArray<FRHIBufferHandle>>          RecycleBinBuffers;
         TMap<UInt64, TArray<FRHISamplerHandle>>         RecycleBinSamplers;
         TMap<UInt64, TArray<FRHIDescriptorSetHandle>>   RecycleBinDescriptorSets;
+        PROFILING_ONLY_FIELD(
+        struct FProfilingMetrics
+        {
+            UInt64 CreatedTextures {0};
+            UInt64 CreatedBuffers {0};
+            UInt64 CreatedSamplers {0};
+            UInt64 CreatedDescriptorSets {0};
+
+            UInt64 ReusedTextures {0};
+            UInt64 ReusedBuffers {0};
+            UInt64 ReusedSamplers {0};
+            UInt64 ReusedDescriptorSets {0};
+
+            UInt64 GarbageQueuedTextures {0};
+            UInt64 GarbageQueuedBuffers {0};
+            UInt64 GarbageQueuedSamplers {0};
+            UInt64 GarbageQueuedDescriptorSets {0};
+
+            UInt64 GarbageRecycledTextures {0};
+            UInt64 GarbageRecycledBuffers {0};
+            UInt64 GarbageRecycledSamplers {0};
+            UInt64 GarbageRecycledDescriptorSets {0};
+
+            UInt64 DestroyedTextures {0};
+            UInt64 DestroyedBuffers {0};
+            UInt64 DestroyedSamplers {0};
+            UInt64 DestroyedDescriptorSets {0};
+
+            UInt64 PeakGarbageTextures {0};
+            UInt64 PeakGarbageBuffers {0};
+            UInt64 PeakGarbageSamplers {0};
+            UInt64 PeakGarbageDescriptorSets {0};
+
+            UInt64 PeakRecycleTextures {0};
+            UInt64 PeakRecycleBuffers {0};
+            UInt64 PeakRecycleSamplers {0};
+            UInt64 PeakRecycleDescriptorSets {0};
+
+            UInt64 CollectCalls {0};
+            UInt64 ClearCalls {0};
+        } ProfilingMetrics {};
+        );
 
         FVulkanDriver*        Driver;
         FVulkanDescriptorPool  DescriptorSetPool;
         FVulkanFence*         CurrentRetirementFence {nullptr};
 
     private:
+        template<typename HandleType>
+        [[nodiscard]] static UInt64
+        CountRecycleHandles(const TMap<UInt64, TArray<HandleType>>& I_RecycleBin)
+        {
+            UInt64 Count = 0;
+            for (const auto& [_, Handles] : I_RecycleBin)
+            { Count += Handles.GetSize(); }
+            return Count;
+        }
+
         static TArray<vk::DescriptorPoolSize>
         GetDefaultDescriptorPoolSizes();
 
@@ -180,7 +232,41 @@ export namespace Visera
         }
         ~FRHIRegistry()
         {
-
+            PROFILING_ONLY_FIELD(
+            LOG_INFO("[Profiling] RHI.Registry summary: created(T={},B={},S={},D={}) reused(T={},B={},S={},D={}).",
+                ProfilingMetrics.CreatedTextures,
+                ProfilingMetrics.CreatedBuffers,
+                ProfilingMetrics.CreatedSamplers,
+                ProfilingMetrics.CreatedDescriptorSets,
+                ProfilingMetrics.ReusedTextures,
+                ProfilingMetrics.ReusedBuffers,
+                ProfilingMetrics.ReusedSamplers,
+                ProfilingMetrics.ReusedDescriptorSets);
+            LOG_INFO("[Profiling] RHI.Registry summary: garbage_queued(T={},B={},S={},D={}) garbage_recycled(T={},B={},S={},D={}) destroyed(T={},B={},S={},D={}).",
+                ProfilingMetrics.GarbageQueuedTextures,
+                ProfilingMetrics.GarbageQueuedBuffers,
+                ProfilingMetrics.GarbageQueuedSamplers,
+                ProfilingMetrics.GarbageQueuedDescriptorSets,
+                ProfilingMetrics.GarbageRecycledTextures,
+                ProfilingMetrics.GarbageRecycledBuffers,
+                ProfilingMetrics.GarbageRecycledSamplers,
+                ProfilingMetrics.GarbageRecycledDescriptorSets,
+                ProfilingMetrics.DestroyedTextures,
+                ProfilingMetrics.DestroyedBuffers,
+                ProfilingMetrics.DestroyedSamplers,
+                ProfilingMetrics.DestroyedDescriptorSets);
+            LOG_INFO("[Profiling] RHI.Registry peaks: garbage(T={},B={},S={},D={}) recycle(T={},B={},S={},D={}) calls(collect={},clear={}).",
+                ProfilingMetrics.PeakGarbageTextures,
+                ProfilingMetrics.PeakGarbageBuffers,
+                ProfilingMetrics.PeakGarbageSamplers,
+                ProfilingMetrics.PeakGarbageDescriptorSets,
+                ProfilingMetrics.PeakRecycleTextures,
+                ProfilingMetrics.PeakRecycleBuffers,
+                ProfilingMetrics.PeakRecycleSamplers,
+                ProfilingMetrics.PeakRecycleDescriptorSets,
+                ProfilingMetrics.CollectCalls,
+                ProfilingMetrics.ClearCalls);
+            );
         }
     };
 
@@ -276,6 +362,7 @@ export namespace Visera
                 if (Sampler->GetInfo().IsCompatibleWith(I_SamplerDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedSamplers;);
                     return TRHIRegistryEntry<FRHISamplerHandle>(*this, Handle);
                 }
             }
@@ -287,6 +374,7 @@ export namespace Visera
         FRHISamplerHandle Handle = Samplers.Insert(
             FRHISampler{std::move(I_SamplerDesc), std::move(Sampler)},
             False);
+        PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedSamplers;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return TRHIRegistryEntry<FRHISamplerHandle>(*this, Handle);
@@ -311,6 +399,7 @@ export namespace Visera
                 if (Texture->GetInfo().IsCompatibleWith(I_TextureDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedTextures;);
                     return TRHIRegistryEntry<FRHITextureHandle>(*this, Handle);
                 }
             }
@@ -337,6 +426,7 @@ export namespace Visera
         FRHITextureHandle Handle = Textures.Insert(
             FRHITexture{std::move(I_TextureDesc), std::move(Image), std::move(ImageView)},
             True);
+        PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedTextures;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return TRHIRegistryEntry<FRHITextureHandle>(*this, Handle);
@@ -361,6 +451,7 @@ export namespace Visera
                 if (Buffer->GetInfo().IsCompatibleWith(I_BufferDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedBuffers;);
                     return TRHIRegistryEntry<FRHIBufferHandle>(*this, Handle);
                 }
             }
@@ -382,6 +473,7 @@ export namespace Visera
         FRHIBufferHandle  Handle = Buffers.Insert(
             FRHIBuffer{std::move(I_BufferDesc), std::move(Buffer)},
             True);
+        PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedBuffers;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return TRHIRegistryEntry<FRHIBufferHandle>(*this, Handle);
@@ -407,6 +499,7 @@ export namespace Visera
                 if (DescriptorSet->GetInfo().IsCompatibleWith(I_DescriptorSetDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedDescriptorSets;);
                     return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Handle);
                 }
             }
@@ -433,6 +526,7 @@ export namespace Visera
         FRHIDescriptorSetHandle Handle = DescriptorSets.Insert(
             FRHIDescriptorSet{std::move(I_DescriptorSetDesc), std::move(VulkanDescriptorSet)},
             False);
+        PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedDescriptorSets;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
         return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Handle);
@@ -442,24 +536,40 @@ export namespace Visera
     Unregister(FRHITextureHandle I_Handle)
     {
         GarbageBinTextures.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
+        PROFILING_ONLY_FIELD(
+        ++ProfilingMetrics.GarbageQueuedTextures;
+        if (GarbageBinTextures.GetSize() > ProfilingMetrics.PeakGarbageTextures) { ProfilingMetrics.PeakGarbageTextures = GarbageBinTextures.GetSize(); }
+        );
     }
 
     void FRHIRegistry::
     Unregister(FRHIBufferHandle I_Handle)
     {
         GarbageBinBuffers.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
+        PROFILING_ONLY_FIELD(
+        ++ProfilingMetrics.GarbageQueuedBuffers;
+        if (GarbageBinBuffers.GetSize() > ProfilingMetrics.PeakGarbageBuffers) { ProfilingMetrics.PeakGarbageBuffers = GarbageBinBuffers.GetSize(); }
+        );
     }
 
     void FRHIRegistry::
     Unregister(FRHISamplerHandle I_Handle)
     {
         GarbageBinSamplers.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
+        PROFILING_ONLY_FIELD(
+        ++ProfilingMetrics.GarbageQueuedSamplers;
+        if (GarbageBinSamplers.GetSize() > ProfilingMetrics.PeakGarbageSamplers) { ProfilingMetrics.PeakGarbageSamplers = GarbageBinSamplers.GetSize(); }
+        );
     }
 
     void FRHIRegistry::
     Unregister(FRHIDescriptorSetHandle I_Handle)
     {
         GarbageBinDescriptorSets.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
+        PROFILING_ONLY_FIELD(
+        ++ProfilingMetrics.GarbageQueuedDescriptorSets;
+        if (GarbageBinDescriptorSets.GetSize() > ProfilingMetrics.PeakGarbageDescriptorSets) { ProfilingMetrics.PeakGarbageDescriptorSets = GarbageBinDescriptorSets.GetSize(); }
+        );
     }
 
     /**
@@ -468,6 +578,13 @@ export namespace Visera
     void FRHIRegistry::
     CollectGarbage()
     {
+        PROFILING_ONLY_FIELD(
+        ++ProfilingMetrics.CollectCalls;
+        UInt64 RecycledTextures = 0;
+        UInt64 RecycledBuffers = 0;
+        UInt64 RecycledSamplers = 0;
+        UInt64 RecycledDescriptorSets = 0;
+        );
         for (UInt32 Idx = 0; Idx < GarbageBinTextures.GetSize();)
         {
             auto& CurrentItem = GarbageBinTextures[Idx];
@@ -480,6 +597,7 @@ export namespace Visera
             VISERA_ASSERT(Texture != nullptr);
             RecycleBinTextures[Hash(Texture->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
             GarbageBinTextures.RemoveAtSwap(Idx);
+            PROFILING_ONLY_FIELD(++RecycledTextures;);
         }
         for (UInt32 Idx = 0; Idx < GarbageBinBuffers.GetSize();)
         {
@@ -493,6 +611,7 @@ export namespace Visera
             VISERA_ASSERT(Buffer != nullptr);
             RecycleBinBuffers[Hash(Buffer->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
             GarbageBinBuffers.RemoveAtSwap(Idx);
+            PROFILING_ONLY_FIELD(++RecycledBuffers;);
         }
         for (UInt32 Idx = 0; Idx < GarbageBinSamplers.GetSize();)
         {
@@ -506,6 +625,7 @@ export namespace Visera
             VISERA_ASSERT(Sampler != nullptr);
             RecycleBinSamplers[Hash(Sampler->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
             GarbageBinSamplers.RemoveAtSwap(Idx);
+            PROFILING_ONLY_FIELD(++RecycledSamplers;);
         }
         for (UInt32 Idx = 0; Idx < GarbageBinDescriptorSets.GetSize();)
         {
@@ -519,7 +639,22 @@ export namespace Visera
             VISERA_ASSERT(DescriptorSet != nullptr);
             RecycleBinDescriptorSets[Hash(DescriptorSet->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
             GarbageBinDescriptorSets.RemoveAtSwap(Idx);
+            PROFILING_ONLY_FIELD(++RecycledDescriptorSets;);
         }
+        PROFILING_ONLY_FIELD(
+        ProfilingMetrics.GarbageRecycledTextures += RecycledTextures;
+        ProfilingMetrics.GarbageRecycledBuffers += RecycledBuffers;
+        ProfilingMetrics.GarbageRecycledSamplers += RecycledSamplers;
+        ProfilingMetrics.GarbageRecycledDescriptorSets += RecycledDescriptorSets;
+        const UInt64 RecycleTexturesCount = CountRecycleHandles(RecycleBinTextures);
+        const UInt64 RecycleBuffersCount = CountRecycleHandles(RecycleBinBuffers);
+        const UInt64 RecycleSamplersCount = CountRecycleHandles(RecycleBinSamplers);
+        const UInt64 RecycleDescriptorSetsCount = CountRecycleHandles(RecycleBinDescriptorSets);
+        if (RecycleTexturesCount > ProfilingMetrics.PeakRecycleTextures) { ProfilingMetrics.PeakRecycleTextures = RecycleTexturesCount; }
+        if (RecycleBuffersCount > ProfilingMetrics.PeakRecycleBuffers) { ProfilingMetrics.PeakRecycleBuffers = RecycleBuffersCount; }
+        if (RecycleSamplersCount > ProfilingMetrics.PeakRecycleSamplers) { ProfilingMetrics.PeakRecycleSamplers = RecycleSamplersCount; }
+        if (RecycleDescriptorSetsCount > ProfilingMetrics.PeakRecycleDescriptorSets) { ProfilingMetrics.PeakRecycleDescriptorSets = RecycleDescriptorSetsCount; }
+        );
     }
 
     /**
@@ -528,6 +663,7 @@ export namespace Visera
     void FRHIRegistry::
     ClearGarbage()
     {
+        PROFILING_ONLY_FIELD(++ProfilingMetrics.ClearCalls;);
         for (auto& [_, Handles] : RecycleBinTextures)
         {
             for (auto Handle : Handles)
@@ -535,7 +671,10 @@ export namespace Visera
                 if (!Textures.Erase(Handle))
                 { LOG_ERROR("Failed to erase the texture (handle:{})!", Handle); }
                 else
-                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+                {
+                    LOG_DEBUG("Destroyed a resource ({}).", Handle);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.DestroyedTextures;);
+                }
             }
         }
         RecycleBinTextures.Clear();
@@ -546,7 +685,10 @@ export namespace Visera
                 if (!Buffers.Erase(Handle))
                 { LOG_ERROR("Failed to erase the buffer (handle:{})!", Handle); }
                 else
-                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+                {
+                    LOG_DEBUG("Destroyed a resource ({}).", Handle);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.DestroyedBuffers;);
+                }
             }
         }
         RecycleBinBuffers.Clear();
@@ -557,7 +699,10 @@ export namespace Visera
                 if (!Samplers.Erase(Handle))
                 { LOG_ERROR("Failed to erase the sampler (handle:{})!", Handle); }
                 else
-                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+                {
+                    LOG_DEBUG("Destroyed a resource ({}).", Handle);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.DestroyedSamplers;);
+                }
             }
         }
         RecycleBinSamplers.Clear();
@@ -568,7 +713,10 @@ export namespace Visera
                 if (!DescriptorSets.Erase(Handle))
                 { LOG_ERROR("Failed to erase the descriptor set (handle:{})!", Handle); }
                 else
-                { LOG_DEBUG("Destroyed a resource ({}).", Handle); }
+                {
+                    LOG_DEBUG("Destroyed a resource ({}).", Handle);
+                    PROFILING_ONLY_FIELD(++ProfilingMetrics.DestroyedDescriptorSets;);
+                }
             }
         }
         RecycleBinDescriptorSets.Clear();

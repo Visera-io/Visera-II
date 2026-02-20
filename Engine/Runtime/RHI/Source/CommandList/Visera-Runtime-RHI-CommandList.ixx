@@ -36,6 +36,16 @@ export namespace Visera
     class VISERA_RUNTIME_API FRHICommandList
     {
         static constexpr UInt64 CommandAlignment = 8;
+        PROFILING_ONLY_FIELD(
+        struct FProfilingMetrics
+        {
+            UInt64 PeakCommandCount {0};
+            UInt64 PeakBufferSizeBytes {0};
+            UInt64 PeakBufferCapacityBytes {0};
+            UInt64 PeakCommandBytes {0};
+            ECommandType PeakCommandType {ECommandType::ConvertImageLayout};
+        } ProfilingMetrics {};
+        );
 
     public:
         /// Target swap chain / window for execution. Set before Submit/Execute. Thread-safe.
@@ -282,6 +292,36 @@ export namespace Visera
 #endif
 
             ++CommandCount;
+            PROFILING_ONLY_FIELD(
+            if (CommandCount > ProfilingMetrics.PeakCommandCount)
+            {
+                ProfilingMetrics.PeakCommandCount = CommandCount;
+                LOG_INFO("[Profiling] CommandList peak command_count={} (last_type={}).",
+                    ProfilingMetrics.PeakCommandCount,
+                    I_Type);
+            }
+            if (Buffer.GetSize() > ProfilingMetrics.PeakBufferSizeBytes)
+            {
+                ProfilingMetrics.PeakBufferSizeBytes = Buffer.GetSize();
+                LOG_INFO("[Profiling] CommandList peak buffer_size={} bytes (commands={}).",
+                    ProfilingMetrics.PeakBufferSizeBytes,
+                    CommandCount);
+            }
+            if (Buffer.GetCapacity() > ProfilingMetrics.PeakBufferCapacityBytes)
+            {
+                ProfilingMetrics.PeakBufferCapacityBytes = Buffer.GetCapacity();
+                LOG_INFO("[Profiling] CommandList peak buffer_capacity={} bytes.",
+                    ProfilingMetrics.PeakBufferCapacityBytes);
+            }
+            if (TotalBytes > ProfilingMetrics.PeakCommandBytes)
+            {
+                ProfilingMetrics.PeakCommandBytes = TotalBytes;
+                ProfilingMetrics.PeakCommandType  = I_Type;
+                LOG_INFO("[Profiling] CommandList peak command_bytes={} (type={}).",
+                    ProfilingMetrics.PeakCommandBytes,
+                    ProfilingMetrics.PeakCommandType);
+            }
+            );
         }
     };
 

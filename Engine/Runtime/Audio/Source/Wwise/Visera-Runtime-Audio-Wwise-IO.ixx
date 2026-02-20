@@ -21,6 +21,8 @@ namespace Visera
         Initialize(const AkDeviceSettings& I_DeviceSettings) { DefaultIO.Init(I_DeviceSettings); }
         void inline
         Terminate() { DefaultIO.Term(); }
+        [[nodiscard]] AKRESULT
+        AddBasePath(const AkOSChar* I_BasePath) { return DefaultIO.AddBasePath(I_BasePath); }
     private:
         CAkDefaultIOHookDeferred DefaultIO; // Forward to Wwise's default blocking IO hook
     public:

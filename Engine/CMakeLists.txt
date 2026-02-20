@@ -5,6 +5,12 @@ if(VISERA_OFFSCREEN_MODE)
     add_compile_definitions (VISERA_OFFSCREEN_MODE)
 endif()
 
+option(VISERA_PROFILING_MODE "Enable profiling instrumentation" OFF)
+if(VISERA_PROFILING_MODE)
+    message(STATUS "Profiling Mode")
+    add_compile_definitions(VISERA_PROFILING_MODE)
+endif()
+
 set(VISERA_CORE_DIR       "${CMAKE_CURRENT_SOURCE_DIR}/Core")
 set(VISERA_FORGE_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/Forge")
 set(VISERA_PLATFORM_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Platform")
