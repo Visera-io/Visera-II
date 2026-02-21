@@ -3,6 +3,7 @@ module;
 #include <thread>
 #include <atomic>
 export module Visera.Core.OS.Thread;
+import Visera.Core.Types.Function;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.Core.OS.Thread.Sync;
 export import Visera.Core.OS.Thread.Queue;

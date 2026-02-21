@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <memory>
 export module Visera.Core.Meta.Cast;
 #define VISERA_MODULE_NAME "Core.Meta"
 import Visera.Core.Types.Pointer.Shared;

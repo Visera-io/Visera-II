@@ -1,6 +1,7 @@
 module;
-#include <windows.h>
+#include <objbase.h>
 #include <processthreadsapi.h>
+#include <windows.h>
 #undef LoadLibrary
 #undef CreateDirectory
 #undef CreateWindow

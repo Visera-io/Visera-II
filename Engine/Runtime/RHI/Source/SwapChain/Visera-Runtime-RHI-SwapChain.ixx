@@ -8,6 +8,7 @@ export import Visera.Runtime.RHI.Common;
        import Visera.Core.Containers.Array;
        import Visera.Core.Delegate;
        import Visera.Core.Log;
+       import Visera.Core.Types.Function;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.String;
        import vulkan_hpp;

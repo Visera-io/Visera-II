@@ -235,7 +235,7 @@ export namespace Visera
     namespace Math
     {
         constexpr void
-        Clamp(TMutable<FPoint2I> IO_Point, const FPoint2I& I_Min, const FPoint2I& I_Max) noexcept
+        Clamp(FPoint2I* IO_Point, const FPoint2I& I_Min, const FPoint2I& I_Max) noexcept
         {
             Math::Clamp(&IO_Point->X, I_Min.X, I_Max.X);
             Math::Clamp(&IO_Point->Y, I_Min.Y, I_Max.Y);

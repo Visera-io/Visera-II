@@ -10,7 +10,6 @@ import Visera.Platform.MacOS;
 export import Visera.Core.Types.Path;
        import Visera.Core.Types.Optional;
        import Visera.Core.Containers.Array;
-       import Visera.Core.OS.FileSystem;
 
 export namespace Visera
 {
@@ -56,7 +55,11 @@ export namespace Visera
         SetCurrentThreadName(FStringView I_Name) { Get()->SetCurrentThreadName(I_Name); }
 
         [[nodiscard]] static inline Bool
-        Exists(const FPath& I_Path) { return Get()->GetFileSystem().Exists(MakePlatformPath(I_Path)); }
+        ExistsFile(const FPath& I_Path) { return Get()->GetFileSystem().ExistsFile(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline Bool
+        ExistsDirectory(const FPath& I_Path) { return Get()->GetFileSystem().ExistsDirectory(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline TArray<FPath>
+        EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive = False) { return Get()->GetFileSystem().EnumerateFiles(MakePlatformPath(I_Directory), I_bRecursive); }
         [[nodiscard]] static inline EPlatformIOStatus
         CreateDirectories(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().CreateDirectories(MakePlatformPath(I_Path)))); }
         [[nodiscard]] static inline TOptional<TArray<FByte>>
@@ -132,10 +135,10 @@ export namespace Visera
         if (!Cache.HasValue())
         {
             Cache = GetResourceDirectory() / FPath{"Cache"};
-            if (!FFileSystem::Exists(Cache.GetValue()))
+            if (!Get()->GetFileSystem().ExistsDirectory(MakePlatformPath(Cache.GetValue())))
             {
-                const auto Error = FFileSystem::CreateDirectory(Cache.GetValue());
-                VISERA_ASSERT(Error == EIOStatus::Success);
+                const Int32 Err = Get()->GetFileSystem().CreateDirectories(MakePlatformPath(Cache.GetValue()));
+                VISERA_ASSERT(Err == 0);
             }
         }
         return Cache.GetValue();

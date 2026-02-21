@@ -177,7 +177,7 @@ export namespace Visera
     namespace Math
     {
         [[nodiscard]] inline Bool
-        Inverse(TMutable<FQuaternion> IO_Quaternion) noexcept
+        Inverse(FQuaternion* IO_Quaternion) noexcept
         {
             VISERA_ASSERT(IO_Quaternion != nullptr);
             Float SqrNorm = IO_Quaternion->SquaredNorm();

@@ -19,7 +19,6 @@ export import Visera.Runtime.Window;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Types.Optional;
-       import Visera.Core.OS.FileSystem;
        import Visera.Core.Meta.Cast;
        import Visera.Core.Log;
 
@@ -286,7 +285,7 @@ export namespace Visera
                 { LOG_FATAL("({}) Failed to bootstrap {}!", RuntimeName, Service->GetName().GetNameString()); }
             }
             if (Window && RHI)
-            { RHI->CreateSwapChain(Window.Get()); }
+            { RHI->CreateSwapChain(Window); }
         }
 
         void

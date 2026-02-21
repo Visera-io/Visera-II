@@ -8,6 +8,7 @@ import :NameEntryTable;
 
 import Visera.Core.Math.Hash.CityHash;
 import Visera.Core.Types.String;
+import Visera.Core.Types.Tuple;
 import Visera.Core.Log;
 
 export namespace Visera

@@ -37,13 +37,15 @@ set_target_properties(${VISERA_FORGE} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${VISERA_FORGE_OUTPUT_DIR}/$<CONFIG>"
 )
 
-add_custom_command(
-    TARGET ${VISERA_FORGE}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "$<TARGET_FILE:${VISERA}>"
-    "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
-)
+if(NOT VISERA_BUILD_STATIC)
+    add_custom_command(
+        TARGET ${VISERA_FORGE}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:${VISERA}>"
+        "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
+    )
+endif()
 
 if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     add_custom_command(
@@ -53,13 +55,15 @@ if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         "$<TARGET_PDB_FILE:${VISERA_FORGE}>"
         "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
     )
-    add_custom_command(
-        TARGET ${VISERA_FORGE}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_PDB_FILE:${VISERA}>"
-        "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
-    )
+    if(NOT VISERA_BUILD_STATIC)
+        add_custom_command(
+            TARGET ${VISERA_FORGE}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_PDB_FILE:${VISERA}>"
+            "$<TARGET_FILE_DIR:${VISERA_FORGE}>"
+        )
+    endif()
 endif()
 
 target_link_libraries(${VISERA_FORGE} PRIVATE Visera)

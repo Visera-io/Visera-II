@@ -2,8 +2,8 @@ module;
 #include <Visera-Core.hpp>
 #include <ankerl/unordered_dense.h>
 export module Visera.Core.Containers.Map;
+import Visera.Core.Types.Tuple;
 #define VISERA_MODULE_NAME "Core.Containers"
-import std;
 
 export namespace Visera
 {

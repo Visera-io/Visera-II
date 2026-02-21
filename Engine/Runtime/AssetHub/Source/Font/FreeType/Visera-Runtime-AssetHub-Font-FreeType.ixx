@@ -11,7 +11,6 @@ import Visera.Core.Types.Path;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
 import Visera.Core.Log;
-import Visera.Core.OS.FileSystem;
 
 export namespace Visera
 {

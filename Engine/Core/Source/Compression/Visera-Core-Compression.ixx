@@ -19,7 +19,7 @@ export namespace Visera
     };
 
     [[nodiscard]] VISERA_CORE_API ECompressionStatue
-    Compress(FStringView I_Buffer, TMutable<TArray<FByte>> O_Buffer)
+    Compress(FStringView I_Buffer, TArray<FByte>* O_Buffer)
     {
         const FByte* SourceData = reinterpret_cast<const FByte*>(I_Buffer.Data());
         const UInt32 SourceSize = static_cast<UInt32>(I_Buffer.GetSize());

@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <memory>
 export module Visera.Core.Types.Pointer.Shared;
 #define VISERA_MODULE_NAME "Core.Types"
 

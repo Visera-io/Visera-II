@@ -1,8 +1,6 @@
 module;
 #include <Visera-Core.hpp>
 #include <fstream>
-#include <filesystem>
-#include <system_error>
 export module Visera.Core.OS.FileSystem;
 #define VISERA_MODULE_NAME "Core.OS"
 export import Visera.OS.FileSystem.File;
@@ -22,19 +20,6 @@ export namespace Visera
         PermissionDenied = 2,
         Other            = 3,
     };
-
-    [[nodiscard]] inline EIOStatus ToEIOError(const std::error_code& I_Ec) noexcept
-    {
-        if (!I_Ec) return EIOStatus::Success;
-        if (I_Ec == std::errc::no_such_file_or_directory) return EIOStatus::NotFound;
-        if (I_Ec == std::errc::permission_denied) return EIOStatus::PermissionDenied;
-        return EIOStatus::Other;
-    }
-
-    inline std::filesystem::path ToFilesystemPath(const FPath& I_Path) noexcept
-    {
-        return std::filesystem::path(I_Path.GetString().GetNative());
-    }
 
     enum class EStreamMode : Int32
     {
@@ -58,30 +43,15 @@ export namespace Visera
     class VISERA_CORE_API FFileSystem
     {
     public:
-        [[nodiscard]] EIOStatus static inline
-        CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath);
-        [[nodiscard]] Bool static inline
-        IsDirectory(const FPath& I_Path) { return std::filesystem::is_directory(ToFilesystemPath(I_Path)); }
-        [[nodiscard]] EIOStatus static inline
-        CreateDirectory(const FPath& I_Path);
-        [[nodiscard]] EIOStatus static inline
-        DeleteDirectory(const FPath& I_Path, Bool I_bForce = False);
-        /** Delete a single file. Best-effort; logs on failure. */
-        [[nodiscard]] EIOStatus static inline
-        DeleteFile(const FPath& I_Path);
-        [[nodiscard]] Bool static inline
-        Exists(const FPath& I_Path) { return std::filesystem::exists(ToFilesystemPath(I_Path)); }
         [[nodiscard]] TUniquePtr<std::ifstream> static inline
         OpenIStream(const FPath& I_Path, EStreamMode I_Mode = EStreamMode::None);
         [[nodiscard]] TUniquePtr<std::ofstream> static inline
         OpenOStream(const FPath& I_Path, EStreamMode I_Mode = EStreamMode::None);
         [[nodiscard]] TUniquePtr<FFile> static inline
         OpenFile(const FPath& I_Path, EFileMode I_Mode);
-        [[nodiscard]] static TArray<FPath>
-        EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive = False);
 
     public:
-        explicit FFileSystem() = default; // Must have a default constructor
+        explicit FFileSystem() = default;
         explicit FFileSystem(const FFileSystem& I_Another)       = default;
         explicit FFileSystem(FFileSystem&& I_Another)   noexcept = default;
         FFileSystem& operator=(const FFileSystem& I_Another)     = default;
@@ -92,72 +62,14 @@ export namespace Visera
         GetFileModeString(EFileMode I_Mode);
     };
 
-    EIOStatus FFileSystem::
-    CreateDirectory(const FPath& I_Path)
-    {
-        const auto Path = ToFilesystemPath(I_Path);
-        std::error_code Ec;
-        if (!std::filesystem::exists(Path, Ec))
-        {
-            std::filesystem::create_directories(Path, Ec);
-        }
-        if (Ec) { LOG_DEBUG("CreateDirectory failed: {} - {}", Path.generic_string(), Ec.message()); }
-        return ToEIOError(Ec);
-    }
-
-    EIOStatus FFileSystem::
-    DeleteDirectory(const FPath& I_Path, Bool I_bForce/* = False*/)
-    {
-        const auto Path = ToFilesystemPath(I_Path);
-        std::error_code Ec;
-        if (std::filesystem::exists(Path, Ec) && std::filesystem::is_directory(Path, Ec))
-        {
-            if (I_bForce)
-            { std::filesystem::remove_all(Path, Ec); }
-            else
-            {
-                if (std::filesystem::is_empty(Path, Ec))
-                { std::filesystem::remove(Path, Ec); }
-            }
-        }
-        if (Ec) { LOG_DEBUG("DeleteDirectory failed: {} - {}", Path.generic_string(), Ec.message()); }
-        return ToEIOError(Ec);
-    }
-
-    EIOStatus FFileSystem::
-    DeleteFile(const FPath& I_Path)
-    {
-        const auto Path = ToFilesystemPath(I_Path);
-        std::error_code Ec;
-        if (std::filesystem::exists(Path, Ec) && std::filesystem::is_regular_file(Path, Ec))
-        { std::filesystem::remove(Path, Ec); }
-        if (Ec) { LOG_DEBUG("DeleteFile failed: {} - {}", Path.generic_string(), Ec.message()); }
-        return ToEIOError(Ec);
-    }
-
-    EIOStatus FFileSystem::
-    CreateSoftLink(const FPath& I_SourcePath, const FPath& I_TargetPath)
-    {
-        const auto SourcePath = ToFilesystemPath(I_SourcePath);
-        const auto TargetPath = ToFilesystemPath(I_TargetPath);
-        std::error_code Ec;
-        if (!std::filesystem::exists(TargetPath, Ec))
-        { return ToEIOError(Ec); }
-        if (std::filesystem::exists(SourcePath, Ec))
-        { return ToEIOError(Ec); }
-        std::filesystem::create_symlink(TargetPath, SourcePath, Ec);
-        if (Ec) { LOG_DEBUG("CreateSoftLink failed: {} -> {} - {}", SourcePath.generic_string(), TargetPath.generic_string(), Ec.message()); }
-        return ToEIOError(Ec);
-    }
-
     TUniquePtr<std::ifstream> FFileSystem::
     OpenIStream(const FPath& I_Path, EStreamMode I_Mode)
     {
-        const auto Path = ToFilesystemPath(I_Path);
-        auto IStream = MakeUnique<std::ifstream>(Path, ToUnderlying(I_Mode));
+        const auto& PathStr = I_Path.GetString().GetNative();
+        auto IStream = MakeUnique<std::ifstream>(PathStr, ToUnderlying(I_Mode));
         if (!IStream->is_open())
         {
-            LOG_DEBUG("Failed to open input stream: {}", Path.generic_string());
+            LOG_DEBUG("Failed to open input stream: {}", PathStr);
             return nullptr;
         }
         return std::move(IStream);
@@ -166,11 +78,11 @@ export namespace Visera
     TUniquePtr<std::ofstream> FFileSystem::
     OpenOStream(const FPath& I_Path, EStreamMode I_Mode)
     {
-        const auto Path = ToFilesystemPath(I_Path);
-        auto OStream = MakeUnique<std::ofstream>(Path, ToUnderlying(I_Mode));
+        const auto& PathStr = I_Path.GetString().GetNative();
+        auto OStream = MakeUnique<std::ofstream>(PathStr, ToUnderlying(I_Mode));
         if (!OStream->is_open())
         {
-            LOG_DEBUG("Failed to open output stream: {}", Path.generic_string());
+            LOG_DEBUG("Failed to open output stream: {}", PathStr);
             return nullptr;
         }
         return std::move(OStream);
@@ -202,51 +114,14 @@ export namespace Visera
     OpenFile(const FPath& I_Path, EFileMode I_Mode)
     {
         const char* ModeStr = GetFileModeString(I_Mode);
-        const auto Path = ToFilesystemPath(I_Path);
-        const std::string PathString = Path.generic_string();
-        FILE* Handle = std::fopen(PathString.c_str(), ModeStr);
+        const auto& PathStr = I_Path.GetString().GetNative();
+        FILE* Handle = std::fopen(PathStr.c_str(), ModeStr);
         if (Handle == nullptr)
         {
-            LOG_DEBUG("Failed to open file: {}", PathString);
+            LOG_DEBUG("Failed to open file: {}", PathStr);
             return nullptr;
         }
         return MakeUnique<FFile>(Handle);
-    }
-
-    TArray<FPath> FFileSystem::
-    EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive)
-    {
-        TArray<FPath> Results;
-        const auto DirPath = ToFilesystemPath(I_Directory);
-        std::error_code Ec;
-        if (!std::filesystem::exists(DirPath, Ec) || !std::filesystem::is_directory(DirPath, Ec))
-        { return Results; }
-
-        try
-        {
-            if (I_bRecursive)
-            {
-                for (const auto& Entry : std::filesystem::recursive_directory_iterator(DirPath, Ec))
-                {
-                    if (Entry.is_regular_file(Ec))
-                    { Results.PushBack(FPath(Entry.path().u8string())); }
-                }
-            }
-            else
-            {
-                for (const auto& Entry : std::filesystem::directory_iterator(DirPath, Ec))
-                {
-                    if (Entry.is_regular_file(Ec))
-                    { Results.PushBack(FPath(Entry.path().u8string())); }
-                }
-            }
-        }
-        catch (const std::filesystem::filesystem_error& I_Err)
-        {
-            LOG_DEBUG("EnumerateFiles failed: {}", I_Err.what());
-        }
-
-        return Results;
     }
 }
 

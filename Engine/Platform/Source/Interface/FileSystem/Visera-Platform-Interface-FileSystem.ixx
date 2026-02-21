@@ -7,36 +7,49 @@ export import Visera.Platform.Interface.Path;
        import Visera.Core.Containers.Array;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.String;
+       import Visera.Core.Types.Tuple;
        import Visera.Core.Types.Pointer.Unique;
 
 export namespace Visera
 {
     /**
      * Platform-enhanced file system abstraction.
-     * Extends Core.OS.FileSystem with platform-specific features (atomic write, temp file, etc.).
+     * Platform-native implementations (no std::filesystem).
      */
     class VISERA_PLATFORM_API IPlatformFileSystem
     {
     public:
-        /** @return True if path exists. */
+        /** @return True if path exists and is a regular file. */
         [[nodiscard]] virtual Bool
-        Exists(const IPlatformPath& I_Path) const { return FFileSystem::Exists(I_Path.ToPath()); }
+        ExistsFile(const IPlatformPath& I_Path) const = 0;
+
+        /** @return True if path exists and is a directory. */
+        [[nodiscard]] virtual Bool
+        ExistsDirectory(const IPlatformPath& I_Path) const = 0;
 
         /** Create directory and all parents. Returns 0=Success, 1=NotFound, 2=PermissionDenied, 3=Other. */
         [[nodiscard]] virtual Int32
-        CreateDirectories(const IPlatformPath& I_Path) const { return static_cast<Int32>(static_cast<UInt8>(FFileSystem::CreateDirectory(I_Path.ToPath()))); }
+        CreateDirectories(const IPlatformPath& I_Path) const = 0;
 
         /** Read entire file. Returns NullOpt on error. */
         [[nodiscard]] virtual TOptional<TArray<FByte>>
-        ReadFile(const IPlatformPath& I_Path) const;
+        ReadFile(const IPlatformPath& I_Path) const = 0;
 
         /** Write data to file (overwrites). Returns 0=Success, 1=NotFound, 2=PermissionDenied, 3=Other. */
         [[nodiscard]] virtual Int32
-        WriteFile(const IPlatformPath& I_Path, const void* I_Data, UInt64 I_Size) const;
+        WriteFile(const IPlatformPath& I_Path, const void* I_Data, UInt64 I_Size) const = 0;
 
         /** Delete a single file. Best-effort; logs on failure. Returns 0=Success, 1=NotFound, 2=PermissionDenied, 3=Other. */
         [[nodiscard]] virtual Int32
-        DeleteFile(const IPlatformPath& I_Path) const;
+        DeleteFile(const IPlatformPath& I_Path) const = 0;
+
+        /** Enumerate regular files in directory. I_bRecursive = true for subdirectories. */
+        [[nodiscard]] virtual TArray<FPath>
+        EnumerateFiles(const IPlatformPath& I_Directory, Bool I_bRecursive) const = 0;
+
+        /** Open file for read/write. Returns nullptr on error. */
+        [[nodiscard]] virtual TUniquePtr<FFile>
+        OpenFile(const IPlatformPath& I_Path, EFileMode I_Mode) const = 0;
 
         /** Atomically replace I_Target with I_Source. Source is removed, target gets source content. */
         [[nodiscard]] virtual Int32
@@ -55,31 +68,4 @@ export namespace Visera
 
         virtual ~IPlatformFileSystem() = default;
     };
-
-    inline TOptional<TArray<FByte>> IPlatformFileSystem::
-    ReadFile(const IPlatformPath& I_Path) const
-    {
-        auto F = FFileSystem::OpenFile(I_Path.ToPath(), EFileMode::Read | EFileMode::Binary);
-        if (!F || !F->IsOpen()) return NullOpt;
-        return F->ReadAll();
-    }
-
-    inline Int32 IPlatformFileSystem::
-    WriteFile(const IPlatformPath& I_Path, const void* I_Data, UInt64 I_Size) const
-    {
-        auto F = FFileSystem::OpenFile(I_Path.ToPath(), EFileMode::Write | EFileMode::Binary);
-        if (!F || !F->IsOpen()) return 3; // Other
-        if (I_Size > 0 && I_Data != nullptr)
-        {
-            const UInt64 Written = F->Write(I_Data, I_Size, 1);
-            if (Written != 1) return 3; // Other
-        }
-        return 0; // Success
-    }
-
-    inline Int32 IPlatformFileSystem::
-    DeleteFile(const IPlatformPath& I_Path) const
-    {
-        return static_cast<Int32>(static_cast<UInt8>(FFileSystem::DeleteFile(I_Path.ToPath())));
-    }
 }

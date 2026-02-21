@@ -1,6 +1,5 @@
 module;
 #include <Visera-RHI.hpp>
-#include <cstring>
 export module Visera.Runtime.RHI.CommandList;
 #define VISERA_MODULE_NAME "RHI.CommandList"
 import Visera.Runtime.RHI.Common;
@@ -23,6 +22,10 @@ export namespace Visera
         SetViewport,
         SetScissor,
         LeaveRenderPass,
+        BindVertexBuffer,
+        BindDescriptorSet,
+        Draw,
+        DrawIndexed,
     };
 
     // Command view returned by iterator
@@ -36,6 +39,7 @@ export namespace Visera
     class VISERA_RUNTIME_API FRHICommandList
     {
         static constexpr UInt64 CommandAlignment = 8;
+        static inline constexpr UInt64 InlineArenaBytes = 32_KB;
         PROFILING_ONLY_FIELD(
         struct FProfilingMetrics
         {
@@ -44,11 +48,14 @@ export namespace Visera
             UInt64 PeakBufferCapacityBytes {0};
             UInt64 PeakCommandBytes {0};
             ECommandType PeakCommandType {ECommandType::ConvertImageLayout};
+            UInt64 InlineOverflowEvents {0};
+            UInt64 PeakOverInlineBytes {0};
+            UInt64 RecommendedInlineBytes {InlineArenaBytes};
         } ProfilingMetrics {};
         );
 
     public:
-        /// Target swap chain / window for execution. Set before Submit/Execute. Thread-safe.
+        /// Target swap chain for execution. Set by FRHI::Execute(); do not set directly.
         FRHISwapChainID TargetSwapChain { 0 };  // Index into FRHI's swap chain array; 0 = primary
 
     private:
@@ -74,17 +81,55 @@ export namespace Visera
 
         struct FEnterRenderPass
         {
-
+            FRHIRenderPassHandle RenderPass;
         };
         void inline
-        EnterRenderPass(FRHIRenderPassHandle I_RenderPass) {}
+        EnterRenderPass(const FRHIRenderPassID& I_RenderPass);
 
         struct FLeaveRenderPass
         {
-
+            UInt8 _ {0};  // Minimal payload for RecordCommand
         };
         void inline
-        LeaveRenderPass() {}
+        LeaveRenderPass();
+
+        struct FBindVertexBuffer
+        {
+            FRHIBufferHandle Buffer;
+            UInt8            Binding   {0};
+            UInt64           Offset    {0};
+        };
+        void inline
+        BindVertexBuffer(const FRHIBufferID& I_Buffer, UInt8 I_Binding = 0, UInt64 I_Offset = 0);
+
+        struct FBindDescriptorSet
+        {
+            FRHIDescriptorSetHandle DescriptorSet;
+            UInt32                  SetIndex {0};
+        };
+        void inline
+        BindDescriptorSet(const FRHIDescriptorSetID& I_DescriptorSet, UInt32 I_SetIndex = 0);
+
+        struct FDraw
+        {
+            UInt32 VertexCount   {0};
+            UInt32 InstanceCount {1};
+            UInt32 FirstVertex   {0};
+            UInt32 FirstInstance {0};
+        };
+        void inline
+        Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount = 1, UInt32 I_FirstVertex = 0, UInt32 I_FirstInstance = 0);
+
+        struct FDrawIndexed
+        {
+            UInt32 IndexCount    {0};
+            UInt32 InstanceCount {1};
+            UInt32 FirstIndex    {0};
+            Int32  VertexOffset  {0};
+            UInt32 FirstInstance {0};
+        };
+        void inline
+        DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount = 1, UInt32 I_FirstIndex = 0, Int32 I_VertexOffset = 0, UInt32 I_FirstInstance = 0);
 
         struct FCopyBufferToImage
         {
@@ -229,7 +274,7 @@ export namespace Visera
         }
 
     private:
-        Memory::TMonotonicArena<32_KB> MemoryCache;
+        Memory::TMonotonicArena<InlineArenaBytes> MemoryCache;
         TPMRArray<FByte>               Buffer;
         UInt64                         CommandCount = 0;
 
@@ -239,7 +284,6 @@ export namespace Visera
         FRHICommandList(const FRHICommandList& I_Other)
             : MemoryCache(), Buffer(&MemoryCache.Get()), CommandCount(I_Other.CommandCount)
         {
-            TargetSwapChain = I_Other.TargetSwapChain;
             Buffer.Resize(I_Other.Buffer.GetSize());
             if (I_Other.Buffer.GetSize() > 0)
             { Memory::Memcpy(Buffer.Data(), I_Other.Buffer.Data(), I_Other.Buffer.GetSize()); }
@@ -283,14 +327,6 @@ export namespace Visera
             Memory::Memcpy(Buffer.Data() + HeaderOffset, &Header, sizeof(FCommandHeader));
             Memory::Memcpy(Buffer.Data() + PayloadStart, &I_Payload, sizeof(Payload));
 
-#if !defined(VISERA_RELEASE_MODE)
-            // Zero padding for debug-friendly buffer dumps
-            if (PayloadEnd < CommandEnd)
-            {
-                Memory::Memset(Buffer.Data() + PayloadEnd, 0, CommandEnd - PayloadEnd);
-            }
-#endif
-
             ++CommandCount;
             PROFILING_ONLY_FIELD(
             if (CommandCount > ProfilingMetrics.PeakCommandCount)
@@ -312,6 +348,19 @@ export namespace Visera
                 ProfilingMetrics.PeakBufferCapacityBytes = Buffer.GetCapacity();
                 LOG_INFO("[Profiling] CommandList peak buffer_capacity={} bytes.",
                     ProfilingMetrics.PeakBufferCapacityBytes);
+                if (ProfilingMetrics.PeakBufferCapacityBytes > InlineArenaBytes)
+                {
+                    const UInt64 OverInlineBytes = ProfilingMetrics.PeakBufferCapacityBytes - InlineArenaBytes;
+                    ++ProfilingMetrics.InlineOverflowEvents;
+                    if (OverInlineBytes > ProfilingMetrics.PeakOverInlineBytes)
+                    { ProfilingMetrics.PeakOverInlineBytes = OverInlineBytes; }
+                    ProfilingMetrics.RecommendedInlineBytes = ProfilingMetrics.PeakBufferCapacityBytes;
+                    LOG_WARN("[Profiling] CommandList inline arena pressure: inline={} bytes, peak_capacity={} bytes, over_by={} bytes, recommended_inline={} bytes.",
+                        InlineArenaBytes,
+                        ProfilingMetrics.PeakBufferCapacityBytes,
+                        OverInlineBytes,
+                        ProfilingMetrics.RecommendedInlineBytes);
+                }
             }
             if (TotalBytes > ProfilingMetrics.PeakCommandBytes)
             {
@@ -421,6 +470,73 @@ export namespace Visera
             .Filter = I_Filter,
         });
     }
+
+    void FRHICommandList::
+    EnterRenderPass(const FRHIRenderPassID& I_RenderPass)
+    {
+        const auto Handle = I_RenderPass.GetHandle();
+        VISERA_ASSERT(Handle != FRHIRenderPassHandle{});
+        RecordCommand(ECommandType::EnterRenderPass, FEnterRenderPass
+        {
+            .RenderPass = Handle,
+        });
+    }
+
+    void FRHICommandList::
+    LeaveRenderPass()
+    {
+        RecordCommand(ECommandType::LeaveRenderPass, FLeaveRenderPass{});
+    }
+
+    void FRHICommandList::
+    BindVertexBuffer(const FRHIBufferID& I_Buffer, UInt8 I_Binding, UInt64 I_Offset)
+    {
+        const auto Handle = I_Buffer.GetHandle();
+        VISERA_ASSERT(Handle != FRHIBufferHandle{});
+        RecordCommand(ECommandType::BindVertexBuffer, FBindVertexBuffer
+        {
+            .Buffer   = Handle,
+            .Binding  = I_Binding,
+            .Offset   = I_Offset,
+        });
+    }
+
+    void FRHICommandList::
+    BindDescriptorSet(const FRHIDescriptorSetID& I_DescriptorSet, UInt32 I_SetIndex)
+    {
+        const auto Handle = I_DescriptorSet.GetHandle();
+        VISERA_ASSERT(Handle != FRHIDescriptorSetHandle{});
+        RecordCommand(ECommandType::BindDescriptorSet, FBindDescriptorSet
+        {
+            .DescriptorSet = Handle,
+            .SetIndex      = I_SetIndex,
+        });
+    }
+
+    void FRHICommandList::
+    Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount, UInt32 I_FirstVertex, UInt32 I_FirstInstance)
+    {
+        RecordCommand(ECommandType::Draw, FDraw
+        {
+            .VertexCount   = I_VertexCount,
+            .InstanceCount = I_InstanceCount,
+            .FirstVertex   = I_FirstVertex,
+            .FirstInstance = I_FirstInstance,
+        });
+    }
+
+    void FRHICommandList::
+    DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount, UInt32 I_FirstIndex, Int32 I_VertexOffset, UInt32 I_FirstInstance)
+    {
+        RecordCommand(ECommandType::DrawIndexed, FDrawIndexed
+        {
+            .IndexCount    = I_IndexCount,
+            .InstanceCount = I_InstanceCount,
+            .FirstIndex    = I_FirstIndex,
+            .VertexOffset  = I_VertexOffset,
+            .FirstInstance = I_FirstInstance,
+        });
+    }
 }
 VISERA_MAKE_FORMATTER(Visera::ECommandType,
     const char* CommandName = "Unknown";
@@ -433,7 +549,13 @@ VISERA_MAKE_FORMATTER(Visera::ECommandType,
     case Visera::ECommandType::BlitImage:           CommandName = "\"BlitImage\""; break;
     case Visera::ECommandType::BlitToSwapChain:     CommandName = "\"BlitToSwapChain\""; break;
     case Visera::ECommandType::EnterRenderPass:     CommandName = "\"EnterRenderPass\""; break;
-    case Visera::ECommandType::LeaveRenderPass:     CommandName = "\"LeaveRenderPass\""; break;
+    case Visera::ECommandType::SetViewport:        CommandName = "\"SetViewport\""; break;
+    case Visera::ECommandType::SetScissor:         CommandName = "\"SetScissor\""; break;
+    case Visera::ECommandType::LeaveRenderPass:    CommandName = "\"LeaveRenderPass\""; break;
+    case Visera::ECommandType::BindVertexBuffer:   CommandName = "\"BindVertexBuffer\""; break;
+    case Visera::ECommandType::BindDescriptorSet:  CommandName = "\"BindDescriptorSet\""; break;
+    case Visera::ECommandType::Draw:               CommandName = "\"Draw\""; break;
+    case Visera::ECommandType::DrawIndexed:        CommandName = "\"DrawIndexed\""; break;
     default: break;
     }
 , "{}", CommandName);

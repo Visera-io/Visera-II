@@ -14,7 +14,6 @@ export import Visera.Core.Types.JSON;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Meta.Cast;
-       import Visera.Core.OS.FileSystem;
        import Visera.Core.Delegate.Unicast;
 
 export namespace Visera

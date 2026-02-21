@@ -8,7 +8,7 @@ import Visera.Runtime.Scripting.Log;
 import Visera.Core.Types.Path;
 import Visera.Core.Containers.Map;
 import Visera.Core.Containers.Array;
-import Visera.Core.OS.FileSystem;
+import Visera.Platform;
 import Visera.Runtime.Scripting.Platform;
 
 namespace Visera
@@ -200,8 +200,8 @@ namespace Visera
     : DLLPath           (I_DLLPath),
       ScriptingConfigPath (I_ScriptingConfigPath)
     {
-        VISERA_ASSERT(FFileSystem::Exists(DLLPath));
-        VISERA_ASSERT(FFileSystem::Exists(ScriptingConfigPath));
+        VISERA_ASSERT(FPlatform::ExistsFile(DLLPath));
+        VISERA_ASSERT(FPlatform::ExistsFile(ScriptingConfigPath));
 
         auto HostFXRInitInfo = hostfxr_initialize_parameters
         {

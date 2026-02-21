@@ -39,7 +39,7 @@ export namespace Visera::Graphics
         VISERA_NOINLINE Bool
         Button(FStringView I_Label) const { return ImGui::Button(I_Label.Data()); }
         VISERA_NOINLINE Bool
-        Slider(FStringView I_Label, TMutable<Float> I_Value, Float I_Min, Float I_Max) const { return ImGui::SliderFloat(I_Label.Data(), I_Value, I_Min, I_Max); }
+        Slider(FStringView I_Label, Float* I_Value, Float I_Min, Float I_Max) const { return ImGui::SliderFloat(I_Label.Data(), I_Value, I_Min, I_Max); }
 #endif
         void inline
         BeginFrame()

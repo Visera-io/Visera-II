@@ -5,12 +5,10 @@ export module Visera.Core.Types.Name.NamePool:NameTokenTable;
 import :Common;
 import :NameEntryTable;
 
-#if defined(VISERA_DEBUG_MODE)
-import Visera.Core.Math.Arithmetic.Operation;
-#endif
 import Visera.Core.OS.Memory;
 import Visera.Core.OS.Thread.Sync.RWLock;
 import Visera.Core.Math.Bit;
+import Visera.Core.Types.Function;
 
 export namespace Visera
 {
@@ -38,7 +36,7 @@ export namespace Visera
             };
             static constexpr float GrowingThresh = 0.9;
 
-			auto ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> I_Prediction) const -> const FNameToken&;
+			auto ProbeToken(FNameHash I_NameHash, TFunction<Bool(FNameToken)> I_Prediction) const -> const FNameToken&;
 			auto ClaimToken(const FNameToken* I_Token, FNameToken I_Value) { 
                 VISERA_ASSERT(!RWLock.TryToWrite() && !I_Token->IsClaimed());
                 const_cast<FNameToken*>(I_Token)->HashAndID = I_Value.HashAndID; 
@@ -164,7 +162,7 @@ export namespace Visera
     }
 
     const FNameToken& FNameTokenTable::FNameTokenTableSection::
-    ProbeToken(FNameHash I_NameHash, std::function<Bool(FNameToken)> I_Prediction) const
+    ProbeToken(FNameHash I_NameHash, TFunction<Bool(FNameToken)> I_Prediction) const
     {
         VISERA_ASSERT(UseCount <= Capacity && "Curreny FNamePoolShard is full! Try to call FNamePool::GrowAndRehash(...)");
         VISERA_ASSERT(Math::IsPowerOfTwo(Capacity));

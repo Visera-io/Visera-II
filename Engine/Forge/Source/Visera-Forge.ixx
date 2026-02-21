@@ -49,13 +49,13 @@ namespace Visera::Forge
         else
         {
             // No wildcard, treat as exact file path
-            if (FFileSystem::Exists(I_PathWithPattern) && !FFileSystem::IsDirectory(I_PathWithPattern))
+            if (FPlatform::ExistsFile(I_PathWithPattern))
             {
                 Results.PushBack(I_PathWithPattern);
                 return Results;
             }
             // If it's a directory, search all files in it
-            if (FFileSystem::IsDirectory(I_PathWithPattern))
+            if (FPlatform::ExistsDirectory(I_PathWithPattern))
             {
                 SearchDir = I_PathWithPattern;
                 Pattern = "*";
@@ -66,12 +66,12 @@ namespace Visera::Forge
             }
         }
 
-        if (!FFileSystem::Exists(SearchDir) || !FFileSystem::IsDirectory(SearchDir))
+        if (!FPlatform::ExistsDirectory(SearchDir))
         {
             return Results;
         }
 
-        auto AllFiles = FFileSystem::EnumerateFiles(SearchDir, True);
+        auto AllFiles = FPlatform::EnumerateFiles(SearchDir, True);
         for (const auto& FilePath : AllFiles)
         {
             if (auto FileNameOpt = FilePath.GetFileName(); FileNameOpt.HasValue() && WildcardMatch(*FileNameOpt, Pattern))

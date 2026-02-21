@@ -9,7 +9,7 @@
 // #if defined(VISERA_ON_WINDOWS_SYSTEM)
 //   #if defined(VISERA_FORGE_BUILD_STATIC)
 //     #define VISERA_FORGE_API
-//   #elif defined(VISERA_FORGE_BUILD_SHARED) || defined(VISERA_MONOLITHIC_MODE)
+//   #elif defined(VISERA_FORGE_BUILD_SHARED)
 //     #define VISERA_FORGE_API __declspec(dllexport)
 //   #else
 //     #define VISERA_FORGE_API __declspec(dllimport)

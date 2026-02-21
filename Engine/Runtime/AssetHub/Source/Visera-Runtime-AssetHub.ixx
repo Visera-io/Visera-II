@@ -287,16 +287,14 @@ export namespace Visera
             if (!OnTerminate.TryBind([this]
             {
                 PROFILING_ONLY_FIELD(
-                LOG_INFO("({}) [Profiling] AssetHub loads: image={}, shader={}, font={}; cache_loads: image={}, shader={}, font={}.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] AssetHub loads: image={}, shader={}, font={}; cache_loads: image={}, shader={}, font={}.",
                     ProfilingMetrics.LoadImageCalls,
                     ProfilingMetrics.LoadShaderCalls,
                     ProfilingMetrics.LoadFontCalls,
                     ProfilingMetrics.LoadImageFromCacheCalls,
                     ProfilingMetrics.LoadShaderFromCacheCalls,
                     ProfilingMetrics.LoadFontFromCacheCalls);
-                LOG_INFO("({}) [Profiling] AssetHub cache hits: hot(I={},S={},F={}) promote(I={},S={},F={}) miss(I={},S={},F={}) pruned(I={},S={},F={}).",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] AssetHub cache hits: hot(I={},S={},F={}) promote(I={},S={},F={}) miss(I={},S={},F={}) pruned(I={},S={},F={}).",
                     ProfilingMetrics.CacheHitHotImage,
                     ProfilingMetrics.CacheHitHotShader,
                     ProfilingMetrics.CacheHitHotFont,
@@ -309,8 +307,7 @@ export namespace Visera
                     ProfilingMetrics.CacheColdExpiredPrunedImage,
                     ProfilingMetrics.CacheColdExpiredPrunedShader,
                     ProfilingMetrics.CacheColdExpiredPrunedFont);
-                LOG_INFO("({}) [Profiling] AssetHub cache peaks: hot_entries(I={},S={},F={}) cold_entries(I={},S={},F={}) hot_weight_bytes(I={},S={},F={}).",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] AssetHub cache peaks: hot_entries(I={},S={},F={}) cold_entries(I={},S={},F={}) hot_weight_bytes(I={},S={},F={}).",
                     ProfilingMetrics.PeakHotEntriesImage,
                     ProfilingMetrics.PeakHotEntriesShader,
                     ProfilingMetrics.PeakHotEntriesFont,
@@ -320,8 +317,7 @@ export namespace Visera
                     ProfilingMetrics.PeakHotWeightBytesImage,
                     ProfilingMetrics.PeakHotWeightBytesShader,
                     ProfilingMetrics.PeakHotWeightBytesFont);
-                LOG_INFO("({}) [Profiling] AssetHub stores: image={}, shader={}, font={}; saves: image {}/{} shader {}/{}.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] AssetHub stores: image={}, shader={}, font={}; saves: image {}/{} shader {}/{}.",
                     ProfilingMetrics.StoreImageCalls,
                     ProfilingMetrics.StoreShaderCalls,
                     ProfilingMetrics.StoreFontCalls,
@@ -329,8 +325,7 @@ export namespace Visera
                     ProfilingMetrics.SaveImageCalls,
                     ProfilingMetrics.SaveShaderSuccess,
                     ProfilingMetrics.SaveShaderCalls);
-                LOG_INFO("({}) [Profiling] AssetHub cache clears: all_calls={}, image_calls={}, shader_calls={}, font_calls={}.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] AssetHub cache clears: all_calls={}, image_calls={}, shader_calls={}, font_calls={}.",
                     ProfilingMetrics.CacheClearCalls,
                     ProfilingMetrics.CacheClearImageCalls,
                     ProfilingMetrics.CacheClearShaderCalls,
@@ -571,17 +566,17 @@ export namespace Visera
         case ECacheClearTarget::Image:
             ClearCachePair(*ImageCache);
             PROFILING_ONLY_FIELD(++ProfilingMetrics.CacheClearImageCalls;);
-            LOG_INFO("({}) [Profiling] AssetHub cache cleared: Image.", GetRuntimeName());
+            LOG_INFO("[Profiling] AssetHub cache cleared: Image.");
             break;
         case ECacheClearTarget::Shader:
             ClearCachePair(*ShaderCache);
             PROFILING_ONLY_FIELD(++ProfilingMetrics.CacheClearShaderCalls;);
-            LOG_INFO("({}) [Profiling] AssetHub cache cleared: Shader.", GetRuntimeName());
+            LOG_INFO("[Profiling] AssetHub cache cleared: Shader.");
             break;
         case ECacheClearTarget::Font:
             ClearCachePair(*FontCache);
             PROFILING_ONLY_FIELD(++ProfilingMetrics.CacheClearFontCalls;);
-            LOG_INFO("({}) [Profiling] AssetHub cache cleared: Font.", GetRuntimeName());
+            LOG_INFO("[Profiling] AssetHub cache cleared: Font.");
             break;
         case ECacheClearTarget::All:
         default:
@@ -593,7 +588,7 @@ export namespace Visera
             ++ProfilingMetrics.CacheClearShaderCalls;
             ++ProfilingMetrics.CacheClearFontCalls;
             );
-            LOG_INFO("({}) [Profiling] AssetHub cache cleared: All.", GetRuntimeName());
+            LOG_INFO("[Profiling] AssetHub cache cleared: All.");
             break;
         }
     }

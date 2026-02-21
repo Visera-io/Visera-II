@@ -1,8 +1,7 @@
 # Runtime root: unified paths and subdirectory for all Runtime modules.
 # Included via Engine/CMakeLists.txt add_subdirectory(Runtime).
 #
-# VISERA_RUNTIME_API: defined in Global/Include/Visera-Global.hpp from CMake-set macros (PRIVATE, not propagated to App).
-# VISERA_MONOLITHIC_MODE: set by Engine when building the monolithic lib.
+# VISERA_RUNTIME_API: defined in Global/Include/Visera-Global.hpp from CMake VISERA_RUNTIME_BUILD_STATIC/SHARED.
 
 set(VISERA_RUNTIME_DIR             "${CMAKE_CURRENT_SOURCE_DIR}")
 set(VISERA_RUNTIME_GLOBAL_DIR      "${VISERA_RUNTIME_DIR}/Global")
@@ -60,7 +59,6 @@ macro(install_visera_runtime in_target)
     install_visera_runtime_audio    (${in_target})
     install_visera_runtime_assethub (${in_target})
     install_visera_runtime_input    (${in_target})
-    # Umbrella module Visera.Runtime (single import for apps)
     target_sources(${in_target}
         PUBLIC
         FILE_SET "visera_runtime_modules" TYPE CXX_MODULES

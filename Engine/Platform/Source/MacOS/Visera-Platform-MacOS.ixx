@@ -14,7 +14,6 @@ export import Visera.Platform.MacOS.Library;
 export import Visera.Platform.MacOS.FileSystem;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
-       import Visera.Core.OS.FileSystem;
        import Visera.Core.Log;
 
 export namespace Visera

@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <memory>
 export module Visera.Core.Types.Pointer.Unique;
 #define VISERA_MODULE_NAME "Core.Types"
 
@@ -24,7 +25,7 @@ export namespace Visera
 
         [[nodiscard]] T& operator*()  const noexcept { return *Self; }
         [[nodiscard]] T* operator->() const noexcept { return Self.get(); }
-        [[nodiscard]] explicit operator bool() const noexcept { return Self != nullptr; }
+        [[nodiscard]] explicit operator bool() const noexcept { return Self.get() != nullptr; }
 
         [[nodiscard]] friend Bool operator==(const TUniquePtr& I_Lhs, const TUniquePtr& I_Rhs) noexcept
         { return I_Lhs.Get() == I_Rhs.Get(); }

@@ -5,7 +5,7 @@ export module Visera.Forge.Shader.Validator;
 import Visera.Core.Types.Path;
 import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
-import Visera.Core.OS.FileSystem;
+import Visera.Platform;
 import Visera.Runtime.AssetHub.Shader;
 import Visera.Runtime.RHI.Common;
 import Visera.Core.Log;
@@ -93,9 +93,9 @@ export namespace Visera::Forge
     {
         FShaderValidationResult Result;
 
-        if (!FFileSystem::Exists(I_VshaderPath))
+        if (!FPlatform::ExistsFile(I_VshaderPath))
         { Result.AddError("File does not exist."); return Result; }
-        if (FFileSystem::IsDirectory(I_VshaderPath))
+        if (FPlatform::ExistsDirectory(I_VshaderPath))
         { Result.AddError("Path is a directory, expected .vshader file."); return Result; }
 
         TArray<FByte> SPIRVChunk, ReflectionChunk;
@@ -227,8 +227,8 @@ export namespace Visera::Forge
             FString MetaFileName(*I_VshaderPath.GetFileName());
             MetaFileName += ".meta";
             const FPath MetaPath = *I_VshaderPath.GetParent() / FPath(MetaFileName);
-            if (auto Stream = FFileSystem::OpenOStream(MetaPath); Stream)
-            { *Stream << Meta.GetNative(); }
+            const auto& MetaStr = Meta.GetNative();
+            (void)FPlatform::WriteFile(MetaPath, MetaStr.data(), MetaStr.size());
         }
 
         return Result;

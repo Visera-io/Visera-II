@@ -81,7 +81,7 @@ export namespace Visera::Math
 	}
 
 	template<Concepts::Arithmetical NumT> constexpr void
-	Clamp(TMutable<NumT> IO_Value, NumT I_Min, NumT I_Max) noexcept
+	Clamp(NumT* IO_Value, NumT I_Min, NumT I_Max) noexcept
 	{
 		if (I_Min > *IO_Value) { *IO_Value = I_Min; return; }
 		if (I_Max < *IO_Value) { *IO_Value = I_Max; return; }

@@ -4,6 +4,7 @@ export module Visera.Runtime.RHI.Resource.RenderPass;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Containers.Array;
 import Visera.Runtime.RHI.Common;
+import Visera.Runtime.RHI.Registry.Handle;
 import Visera.Runtime.RHI.Registry.Item;
 import Visera.Runtime.RHI.Vulkan.Pipeline.Render;
 export namespace Visera
@@ -27,16 +28,6 @@ export namespace Visera
     class VISERA_RUNTIME_API FRHIRenderPassDesc
     {
     public:
-        struct
-        {
-
-        }VertexShader;
-
-        struct
-        {
-
-        }FragmentShader;
-
         struct
         {
             TArray<FRHIVertexAttribute> Attributes;
@@ -84,7 +75,14 @@ export namespace Visera
     class VISERA_RUNTIME_API FRHIRenderPass : public IRHIRegistryItem
     {
     public:
-        using FCreateInfo = FRHIRenderPassDesc;
+        struct VISERA_RUNTIME_API FCreateInfo
+        {
+            FRHIShaderHandle   VertexShader;
+            FRHIShaderHandle   FragmentShader;
+            FRHIRenderPassDesc Desc;
+
+            Bool operator==(const FCreateInfo&) const = default;
+        };
 
         [[nodiscard]] const FCreateInfo&
         GetInfo() const { return Info; }
@@ -92,13 +90,15 @@ export namespace Visera
         GetVulkanRenderPipeline() { return &Pipeline; }
 
     private:
-        FCreateInfo           Info;
+        const FCreateInfo     Info;
         FVulkanRenderPipeline Pipeline;
 
     public:
         FRHIRenderPass() = delete;
-        FRHIRenderPass(FCreateInfo&& I_Desc, FVulkanRenderPipeline&& I_Pipeline)
-        : Info    {std::move(I_Desc)},
+        FRHIRenderPass(FCreateInfo&& I_CreateInfo, FVulkanRenderPipeline&& I_Pipeline)
+        : Info    {std::move(I_CreateInfo)},
           Pipeline{std::move(I_Pipeline)} {}
     };
+
+    using FRHIRenderPassCreateInfo = FRHIRenderPass::FCreateInfo;
 }

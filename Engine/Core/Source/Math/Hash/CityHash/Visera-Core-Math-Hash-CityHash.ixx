@@ -130,6 +130,7 @@ module;
 #define VISERA_MODULE_NAME "Core.Math"
 export module Visera.Core.Math.Hash.CityHash;
 import Visera.Core.Types.String;
+import Visera.Core.Types.Tuple;
 
 namespace Google
 {
@@ -138,7 +139,7 @@ namespace Google
 	typedef uint8_t uint8;
 	typedef uint32_t uint32;
 	typedef uint64_t uint64;
-	export typedef std::pair<uint64, uint64> uint128;
+	export typedef Visera::TPair<uint64, uint64> uint128;
 
     static uint64 UNALIGNED_LOAD64(const char *p)
     {
@@ -312,7 +313,7 @@ namespace Google
 
     // Return a 16-byte hash for 48 bytes.  Quick and dirty.
     // Callers do best to use "random-looking" values for a and b.
-    static pair<uint64, uint64> WeakHashLen32WithSeeds(
+    static Visera::TPair<uint64, uint64> WeakHashLen32WithSeeds(
         uint64 w, uint64 x, uint64 y, uint64 z, uint64 a, uint64 b) {
       a += w;
       b = Rotate(b + a + z, 21);
@@ -320,11 +321,11 @@ namespace Google
       a += x;
       a += y;
       b += Rotate(a, 44);
-      return make_pair(a + z, b + c);
+      return Visera::MakePair(a + z, b + c);
     }
 
     // Return a 16-byte hash for s[0] ... s[31], a, and b.  Quick and dirty.
-    static pair<uint64, uint64> WeakHashLen32WithSeeds(
+    static Visera::TPair<uint64, uint64> WeakHashLen32WithSeeds(
         const char* s, uint64 a, uint64 b) {
       return WeakHashLen32WithSeeds(Fetch64(s),
                                     Fetch64(s + 8),
@@ -429,8 +430,8 @@ export namespace Google
       uint64 x = Fetch64(s + len - 40);
       uint64 y = Fetch64(s + len - 16) + Fetch64(s + len - 56);
       uint64 z = HashLen16(Fetch64(s + len - 48) + len, Fetch64(s + len - 24));
-      pair<uint64, uint64> v = WeakHashLen32WithSeeds(s + len - 64, len, z);
-      pair<uint64, uint64> w = WeakHashLen32WithSeeds(s + len - 32, y + k1, x);
+      Visera::TPair<uint64, uint64> v = WeakHashLen32WithSeeds(s + len - 64, len, z);
+      Visera::TPair<uint64, uint64> w = WeakHashLen32WithSeeds(s + len - 32, y + k1, x);
       x = x * k1 + Fetch64(s);
 
       // Decrease len to the nearest multiple of 64, and operate on 64-byte chunks.
@@ -536,7 +537,7 @@ export namespace Google
 
       // We expect len >= 128 to be the common case.  Keep 56 bytes of state:
       // v, w, x, y, and z.
-      pair<uint64, uint64> v, w;
+      Visera::TPair<uint64, uint64> v, w;
       uint64 x = Uint128Low64(seed);
       uint64 y = Uint128High64(seed);
       uint64 z = len * k1;

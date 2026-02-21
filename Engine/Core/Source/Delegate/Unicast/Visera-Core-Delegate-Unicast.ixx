@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Delegate.Unicast;
 #define VISERA_MODULE_NAME "Core.Delegate"
 import Visera.Core.Types.Optional;
+import Visera.Core.Types.Function;
 
 export namespace Visera
 {
@@ -47,7 +48,7 @@ export namespace Visera
         }
 
         [[nodiscard]] inline Bool
-        IsBind() const { return Callback != nullptr; }
+        IsBind() const { return static_cast<bool>(Callback); }
 
     private:
         FCallback Callback;
@@ -74,7 +75,7 @@ export namespace Visera
             if (!Callback)
             {
                 if constexpr (std::is_void_v<R>) return;
-                else return std::nullopt;
+                else return NullOpt;
             }
             if constexpr (std::is_void_v<R>)
             {
@@ -88,7 +89,7 @@ export namespace Visera
         }
 
         [[nodiscard]] inline Bool
-        IsBind() const { return Callback != nullptr; }
+        IsBind() const { return static_cast<bool>(Callback); }
 
     private:
         FCallback Callback;

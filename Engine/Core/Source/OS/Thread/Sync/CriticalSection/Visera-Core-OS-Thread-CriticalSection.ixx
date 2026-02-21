@@ -20,7 +20,7 @@ export namespace Visera
     class VISERA_CORE_API FScopeLock
     {
     public:
-        explicit FScopeLock(TMutable<FCriticalSection> I_CriticalSection) : CriticalSection(I_CriticalSection)
+        explicit FScopeLock(FCriticalSection* I_CriticalSection) : CriticalSection(I_CriticalSection)
         {
             VISERA_ASSERT(CriticalSection != nullptr);
             CriticalSection->Lock();
@@ -37,6 +37,6 @@ export namespace Visera
         FScopeLock& operator=(FScopeLock&&)        = delete;
 
     private:
-        TMutable<FCriticalSection> CriticalSection;
+        FCriticalSection* CriticalSection;
     };
 }

@@ -30,7 +30,7 @@ export namespace Visera
     class VISERA_CORE_API FScopeReadLock
     {
     public:
-        explicit FScopeReadLock(TMutable<FRWLock> I_RWLock) : RWLock(I_RWLock)
+        explicit FScopeReadLock(FRWLock* I_RWLock) : RWLock(I_RWLock)
         {
             VISERA_ASSERT(RWLock != nullptr);
             RWLock->StartReading();
@@ -47,13 +47,13 @@ export namespace Visera
         FScopeReadLock& operator=(FScopeReadLock&&)        = delete;
 
     private:
-        TMutable<FRWLock> RWLock {nullptr};
+        FRWLock* RWLock {nullptr};
     };
 
     class VISERA_CORE_API FScopeWriteLock
     {
     public:
-        explicit FScopeWriteLock(TMutable<FRWLock> I_RWLock) : RWLock(I_RWLock)
+        explicit FScopeWriteLock(FRWLock* I_RWLock) : RWLock(I_RWLock)
         {
             VISERA_ASSERT(RWLock != nullptr);
             RWLock->StartWriting();
@@ -70,6 +70,6 @@ export namespace Visera
         FScopeWriteLock& operator=(FScopeWriteLock&&)        = delete;
 
     private:
-        TMutable<FRWLock> RWLock {nullptr};
+        FRWLock* RWLock {nullptr};
     };
 }

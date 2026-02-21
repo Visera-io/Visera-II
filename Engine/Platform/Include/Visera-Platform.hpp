@@ -4,10 +4,10 @@
 #undef VISERA_GLOBAL_API
 #endif
 
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-  #if defined(VISERA_PLATFORM_BUILD_STATIC)
-    #define VISERA_PLATFORM_API
-  #elif defined(VISERA_PLATFORM_BUILD_SHARED) || defined(VISERA_MONOLITHIC_MODE)
+#if defined(VISERA_PLATFORM_BUILD_STATIC)
+  #define VISERA_PLATFORM_API
+#elif defined(VISERA_ON_WINDOWS_SYSTEM)
+  #if defined(VISERA_PLATFORM_BUILD_SHARED)
     #define VISERA_PLATFORM_API __declspec(dllexport)
   #else
     #define VISERA_PLATFORM_API __declspec(dllimport)

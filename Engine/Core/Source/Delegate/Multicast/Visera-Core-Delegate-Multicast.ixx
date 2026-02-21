@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Delegate.Multicast;
 #define VISERA_MODULE_NAME "Core.Delegate"
 import Visera.Core.Containers.Array;
+import Visera.Core.Types.Function;
 
 export namespace Visera
 {

@@ -1,9 +1,9 @@
 #pragma once
 
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
-  #if defined(VISERA_CORE_BUILD_STATIC)
-    #define VISERA_CORE_API
-  #elif defined(VISERA_CORE_BUILD_SHARED) || defined(VISERA_MONOLITHIC_MODE)
+#if defined(VISERA_CORE_BUILD_STATIC)
+  #define VISERA_CORE_API
+#elif defined(VISERA_ON_WINDOWS_SYSTEM)
+  #if defined(VISERA_CORE_BUILD_SHARED)
     #define VISERA_CORE_API __declspec(dllexport)
   #else
     #define VISERA_CORE_API __declspec(dllimport)
@@ -104,8 +104,6 @@
 // << PCHs >>
 #include <cassert>
 #include <chrono>
-#include <functional>
-#include <type_traits>
 #include <spdlog/fmt/fmt.h>
 
 
@@ -271,19 +269,6 @@ namespace Visera
 			{ std::invoke(std::forward<F>(I_Fn), std::forward<Args>(I_Args)...) } -> std::same_as<R>;
 		};
 	}
-
-	template <Concepts::Mutable T>
-	using TMutable  = T*;
-
-    template<typename T1, typename T2>
-    using TPair     = std::pair<T1, T2>;
-
-    template <typename... Args>
-	using TTuple    = std::tuple<Args...>;
-
-	template<typename Signature>
-	using TFunction = std::function<Signature>;
-
 	constexpr bool operator==(const UInt128& I_A, const UInt128& I_B)
 	{ return I_A.first == I_B.first && I_A.second == I_B.second; }
 

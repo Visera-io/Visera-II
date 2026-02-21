@@ -10,6 +10,7 @@ export import Visera.Runtime.RHI.Registry.Handle;
        import Visera.Core.Containers.SlotMap;
        import Visera.Core.Containers.Map;
        import Visera.Core.Containers.Array;
+       import Visera.Core.Algorithm.Ranges;
        import Visera.Core.Math.Hash.GoldenRatio;
        import Visera.Core.Log;
        import vulkan_hpp;
@@ -49,6 +50,8 @@ export namespace Visera
     using FRHISamplerID       = TRHIRegistryEntry<FRHISamplerHandle>;
     using FRHIBufferID        = TRHIRegistryEntry<FRHIBufferHandle>;
     using FRHIDescriptorSetID = TRHIRegistryEntry<FRHIDescriptorSetHandle>;
+    using FRHIShaderID        = TRHIRegistryEntry<FRHIShaderHandle>;
+    using FRHIRenderPassID    = TRHIRegistryEntry<FRHIRenderPassHandle>;
 
     class VISERA_RUNTIME_API FRHIRegistry
     {
@@ -61,6 +64,10 @@ export namespace Visera
         Get(FRHISamplerHandle I_Handle) { return Samplers.Get(I_Handle); }
         [[nodiscard]] FRHIDescriptorSet*
         Get(FRHIDescriptorSetHandle I_Handle) { return DescriptorSets.Get(I_Handle); }
+        [[nodiscard]] FRHIShader*
+        Get(FRHIShaderHandle I_Handle) { return Shaders.Get(I_Handle); }
+        [[nodiscard]] FRHIRenderPass*
+        Get(FRHIRenderPassHandle I_Handle) { return RenderPasses.Get(I_Handle); }
         [[nodiscard]] const FRHITexture*
         Get(FRHITextureHandle I_Handle) const { return Textures.Get(I_Handle); }
         [[nodiscard]] const FRHIBuffer*
@@ -69,6 +76,10 @@ export namespace Visera
         Get(FRHISamplerHandle I_Handle) const { return Samplers.Get(I_Handle); }
         [[nodiscard]] const FRHIDescriptorSet*
         Get(FRHIDescriptorSetHandle I_Handle) const { return DescriptorSets.Get(I_Handle); }
+        [[nodiscard]] const FRHIShader*
+        Get(FRHIShaderHandle I_Handle) const { return Shaders.Get(I_Handle); }
+        [[nodiscard]] const FRHIRenderPass*
+        Get(FRHIRenderPassHandle I_Handle) const { return RenderPasses.Get(I_Handle); }
         [[nodiscard]] FRHITextureID
         Register(FRHITextureCreateInfo&& I_TextureDesc);
         [[nodiscard]] FRHIBufferID
@@ -77,6 +88,10 @@ export namespace Visera
         Register(FRHISamplerCreateInfo&& I_SamplerDesc);
         [[nodiscard]] FRHIDescriptorSetID
         Register(FRHIDescriptorSetCreateInfo&& I_DescriptorSetDesc);
+        [[nodiscard]] FRHIShaderID
+        Register(FRHIShaderCreateInfo&& I_ShaderDesc);
+        [[nodiscard]] FRHIRenderPassID
+        Register(FRHIRenderPassCreateInfo&& I_RenderPassDesc);
         void
         Unregister(FRHITextureHandle I_Handle);
         void
@@ -85,6 +100,10 @@ export namespace Visera
         Unregister(FRHISamplerHandle I_Handle);
         void
         Unregister(FRHIDescriptorSetHandle I_Handle);
+        void
+        Unregister(FRHIShaderHandle I_Handle);
+        void
+        Unregister(FRHIRenderPassHandle I_Handle);
 
         void
         SetCurrentRetirementFence(FVulkanFence* I_Fence) { CurrentRetirementFence = I_Fence; }
@@ -103,6 +122,8 @@ export namespace Visera
         TSlotMap<FRHISampler,                FRHISamplerHandle>             Samplers;
         TSlotMap<FRHIBuffer,                 FRHIBufferHandle>              Buffers;
         TSlotMap<FRHIDescriptorSet,          FRHIDescriptorSetHandle>       DescriptorSets;
+        TSlotMap<FRHIShader,                 FRHIShaderHandle>               Shaders;
+        TSlotMap<FRHIRenderPass,             FRHIRenderPassHandle>            RenderPasses;
         TSlotMap<FVulkanDescriptorSetLayout, FRHIDescriptorSetLayoutHandle> DescriptorSetLayouts;
 
 
@@ -116,6 +137,8 @@ export namespace Visera
         TArray<FGarbageItem<FRHIBufferHandle>>          GarbageBinBuffers;
         TArray<FGarbageItem<FRHISamplerHandle>>         GarbageBinSamplers;
         TArray<FGarbageItem<FRHIDescriptorSetHandle>>   GarbageBinDescriptorSets;
+        TArray<FGarbageItem<FRHIShaderHandle>>          GarbageBinShaders;
+        TArray<FGarbageItem<FRHIRenderPassHandle>>      GarbageBinRenderPasses;
 
         TMap<UInt64, TArray<FRHITextureHandle>>         RecycleBinTextures;
         TMap<UInt64, TArray<FRHIBufferHandle>>          RecycleBinBuffers;
@@ -532,6 +555,107 @@ export namespace Visera
         return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Handle);
     }
 
+    FRHIShaderID FRHIRegistry::
+    Register(FRHIShaderCreateInfo&& I_ShaderDesc)
+    {
+        VISERA_ASSERT(!I_ShaderDesc.SPIRV.IsEmpty());
+        FVulkanShaderModule ShaderModule = Driver->CreateShaderModule(I_ShaderDesc.SPIRV);
+        FRHIShaderHandle Handle = Shaders.Insert(
+            FRHIShader{std::move(I_ShaderDesc), std::move(ShaderModule)},
+            False);
+        LOG_DEBUG("Registered Shader ({}).", Handle);
+        return TRHIRegistryEntry<FRHIShaderHandle>(*this, Handle);
+    }
+
+    FRHIRenderPassID FRHIRegistry::
+    Register(FRHIRenderPassCreateInfo&& I_Info)
+    {
+        FRHIShader* pVS = Get(I_Info.VertexShader);
+        FRHIShader* pFS = Get(I_Info.FragmentShader);
+        VISERA_ASSERT(pVS != nullptr && pFS != nullptr);
+
+        const FRHIShaderLayout& VSRefl = pVS->GetLayout();
+        const FRHIShaderLayout& FSRefl = pFS->GetLayout();
+
+        TMap<UInt32, TArray<vk::DescriptorSetLayoutBinding>> SetToBindings;
+        for (const auto& R : VSRefl.Resources)
+        {
+            auto& Binds = SetToBindings[R.Set];
+            Binds.EmplaceBack(vk::DescriptorSetLayoutBinding{}
+                .setBinding        (R.Binding)
+                .setDescriptorType (TypeCast(R.Type))
+                .setDescriptorCount(R.ArrayCount)
+                .setStageFlags     (TypeCast(R.Stages)));
+        }
+        for (const auto& R : FSRefl.Resources)
+        {
+            auto& Binds = SetToBindings[R.Set];
+            auto It = Algorithm::FindIf(Binds, [&R](const vk::DescriptorSetLayoutBinding& B) { return B.binding == R.Binding; });
+            if (It != Binds.End())
+            { It->stageFlags |= TypeCast(R.Stages); }
+            else
+            {
+                Binds.EmplaceBack(vk::DescriptorSetLayoutBinding{}
+                    .setBinding        (R.Binding)
+                    .setDescriptorType (TypeCast(R.Type))
+                    .setDescriptorCount(R.ArrayCount)
+                    .setStageFlags     (TypeCast(R.Stages)));
+            }
+        }
+
+        TArray<UInt32> SetIndices;
+        for (const auto& [SetIdx, _] : SetToBindings)
+        { SetIndices.PushBack(SetIdx); }
+        Algorithm::Sort(SetIndices);
+
+        TArray<vk::DescriptorSetLayout> DSLHandles;
+        TArray<FVulkanDescriptorSetLayout> DSLStorage;
+        for (UInt32 SetIdx : SetIndices)
+        {
+            auto& Binds = SetToBindings[SetIdx];
+            Algorithm::Sort(Binds, [](const auto& A, const auto& B) { return A.binding < B.binding; });
+            DSLStorage.PushBack(Driver->CreateInforiptorSetLayout(Binds));
+            DSLHandles.PushBack(DSLStorage.Back().GetHandle());
+        }
+
+        TArray<vk::PushConstantRange> PCRanges;
+        UInt32 Offset = 0;
+        for (const auto& PC : VSRefl.PushConstants)
+        {
+            if (PC.Size > 0)
+            {
+                PCRanges.EmplaceBack(vk::PushConstantRange{}
+                    .setOffset    (Offset)
+                    .setSize     (PC.Size)
+                    .setStageFlags(TypeCast(PC.Stages)));
+                Offset += PC.Size;
+            }
+        }
+        for (const auto& PC : FSRefl.PushConstants)
+        {
+            if (PC.Size > 0)
+            {
+                PCRanges.EmplaceBack(vk::PushConstantRange{}
+                    .setOffset    (Offset)
+                    .setSize     (PC.Size)
+                    .setStageFlags(TypeCast(PC.Stages)));
+                Offset += PC.Size;
+            }
+        }
+
+        FVulkanPipelineLayout PL = Driver->CreatePipelineLayout(DSLHandles, PCRanges);
+        FVulkanShaderModule VSM = Driver->CreateShaderModule(pVS->GetInfo().SPIRV);
+        FVulkanShaderModule FSM = Driver->CreateShaderModule(pFS->GetInfo().SPIRV);
+
+        FVulkanRenderPipeline Pipeline = Driver->CreateRenderPipeline(&PL, &VSM, &FSM);
+
+        FRHIRenderPassHandle Handle = RenderPasses.Insert(
+            FRHIRenderPass{std::move(I_Info), std::move(Pipeline)},
+            False);
+        LOG_DEBUG("Registered RenderPass ({}).", Handle);
+        return TRHIRegistryEntry<FRHIRenderPassHandle>(*this, Handle);
+    }
+
     void FRHIRegistry::
     Unregister(FRHITextureHandle I_Handle)
     {
@@ -570,6 +694,18 @@ export namespace Visera
         ++ProfilingMetrics.GarbageQueuedDescriptorSets;
         if (GarbageBinDescriptorSets.GetSize() > ProfilingMetrics.PeakGarbageDescriptorSets) { ProfilingMetrics.PeakGarbageDescriptorSets = GarbageBinDescriptorSets.GetSize(); }
         );
+    }
+
+    void FRHIRegistry::
+    Unregister(FRHIShaderHandle I_Handle)
+    {
+        GarbageBinShaders.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
+    }
+
+    void FRHIRegistry::
+    Unregister(FRHIRenderPassHandle I_Handle)
+    {
+        GarbageBinRenderPasses.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
     }
 
     /**
@@ -640,6 +776,30 @@ export namespace Visera
             RecycleBinDescriptorSets[Hash(DescriptorSet->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
             GarbageBinDescriptorSets.RemoveAtSwap(Idx);
             PROFILING_ONLY_FIELD(++RecycledDescriptorSets;);
+        }
+        for (UInt32 Idx = 0; Idx < GarbageBinShaders.GetSize();)
+        {
+            auto& CurrentItem = GarbageBinShaders[Idx];
+            if (CurrentItem.RetiredFence && !CurrentItem.RetiredFence->IsSignaled())
+            {
+                Idx += 1;
+                continue;
+            }
+            if (Shaders.Erase(CurrentItem.ResourceHandle))
+            { LOG_DEBUG("Destroyed Shader ({}).", CurrentItem.ResourceHandle); }
+            GarbageBinShaders.RemoveAtSwap(Idx);
+        }
+        for (UInt32 Idx = 0; Idx < GarbageBinRenderPasses.GetSize();)
+        {
+            auto& CurrentItem = GarbageBinRenderPasses[Idx];
+            if (CurrentItem.RetiredFence && !CurrentItem.RetiredFence->IsSignaled())
+            {
+                Idx += 1;
+                continue;
+            }
+            if (RenderPasses.Erase(CurrentItem.ResourceHandle))
+            { LOG_DEBUG("Destroyed RenderPass ({}).", CurrentItem.ResourceHandle); }
+            GarbageBinRenderPasses.RemoveAtSwap(Idx);
         }
         PROFILING_ONLY_FIELD(
         ProfilingMetrics.GarbageRecycledTextures += RecycledTextures;

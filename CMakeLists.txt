@@ -15,13 +15,7 @@ message(STATUS "${PROJECT_NAME}")
 
 option(VISERA_OFFSCREEN_MODE    "Create a headless application"     OFF)
 option(VISERA_BUILD_FORGE       "Build Visera-Forge (toolchain)"    ON )
-
-# Monolithic is the only supported build topology.
-if(DEFINED VISERA_MONOLITHIC_MODE AND NOT VISERA_MONOLITHIC_MODE)
-    message(FATAL_ERROR "Non-monolithic builds are no longer supported. Please configure with VISERA_MONOLITHIC_MODE=ON.")
-endif()
-set(VISERA_MONOLITHIC_MODE ON CACHE BOOL "Create a single Visera.dll" FORCE)
-mark_as_advanced(VISERA_MONOLITHIC_MODE)
+option(VISERA_BUILD_STATIC      "Build Visera as static library (single exe, no DLL)" ON)
 
 set(CMAKE_CXX_STANDARD          23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Explicitly require the standard
@@ -41,7 +35,7 @@ add_compile_options(
 endif()
 
 if(MSVC)
-    add_compile_definitions (NOMINMAX)
+    add_compile_definitions (WIN32_LEAN_AND_MEAN NOMINMAX)
     add_compile_options     (/utf-8)
 endif()
 

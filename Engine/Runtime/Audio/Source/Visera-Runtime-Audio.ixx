@@ -22,6 +22,7 @@ export namespace Visera
 
     class VISERA_RUNTIME_API FAudio : public IGlobalService
     {
+        static constexpr VISERA_RUNTIME_API UInt64 AudioPumpInlineArenaBytes = 64_KB;
     public:
         using FObjectID  = IAudioEngine::FObjectID;
         using FPlayingID = IAudioEngine::FPlayingID;
@@ -40,7 +41,6 @@ export namespace Visera
         };
 
     private:
-        static constexpr UInt64 PumpInlineArenaBytes = 64_KB;
         struct FAudioCommand
         {
             enum class EType : UInt8
@@ -81,6 +81,9 @@ export namespace Visera
             UInt64 PeakCoalescedRTPC {0};
             UInt64 PeakCoalescedPosition {0};
             UInt64 PeakAggregatedImpact {0};
+            UInt64 InlineOverflowEvents {0};
+            UInt64 PeakOverInlineBytes {0};
+            UInt64 RecommendedInlineBytes {AudioPumpInlineArenaBytes};
         } ProfilingMetrics {};
         );
     public:
@@ -307,7 +310,23 @@ export namespace Visera
             { DropSpamOverflow(SpamDropPerTick); }
             PROFILING_ONLY_FIELD(
             if (PumpBatch.GetSize() > ProfilingMetrics.PeakPumpBatchSize) { ProfilingMetrics.PeakPumpBatchSize = PumpBatch.GetSize(); }
-            if (PumpBatch.GetCapacity() > ProfilingMetrics.PeakPumpBatchCapacity) { ProfilingMetrics.PeakPumpBatchCapacity = PumpBatch.GetCapacity(); }
+            if (PumpBatch.GetCapacity() > ProfilingMetrics.PeakPumpBatchCapacity)
+            {
+                ProfilingMetrics.PeakPumpBatchCapacity = PumpBatch.GetCapacity();
+                const UInt64 PeakCapacityBytes = ProfilingMetrics.PeakPumpBatchCapacity * sizeof(FAudioCommand);
+                if (PeakCapacityBytes > AudioPumpInlineArenaBytes)
+                {
+                    const UInt64 OverInlineBytes = PeakCapacityBytes - AudioPumpInlineArenaBytes;
+                    ++ProfilingMetrics.InlineOverflowEvents;
+                    if (OverInlineBytes > ProfilingMetrics.PeakOverInlineBytes) { ProfilingMetrics.PeakOverInlineBytes = OverInlineBytes; }
+                    ProfilingMetrics.RecommendedInlineBytes = PeakCapacityBytes;
+                    LOG_WARN("[Profiling] Audio pump inline arena pressure: inline={} bytes, peak_capacity={} bytes, over_by={} bytes, recommended_inline={} bytes.",
+                        AudioPumpInlineArenaBytes,
+                        PeakCapacityBytes,
+                        OverInlineBytes,
+                        ProfilingMetrics.RecommendedInlineBytes);
+                }
+            }
             );
 
             CoalescedRTPCByKey.Clear();
@@ -371,7 +390,7 @@ export namespace Visera
         TMPSCQueue<FAudioCommand> NormalQueue {};
         TMPSCQueue<FAudioCommand> SpamQueue {};
         TMap<FObjectID, FName>    Playlist {};
-        Memory::TMonotonicArena<PumpInlineArenaBytes> PumpArena {};
+        Memory::TMonotonicArena<AudioPumpInlineArenaBytes> PumpArena {};
         TPMRArray<FAudioCommand>  PumpBatch;
         TMap<UInt64, FAudioCommand> CoalescedRTPCByKey {};
         TMap<UInt64, FAudioCommand> CoalescedPositionByEmitter {};
@@ -446,38 +465,34 @@ export namespace Visera
             {
                 if (!Engine) { return True; }
                 PROFILING_ONLY_FIELD(
-                const UInt64 RecommendedInlineBytes = ProfilingMetrics.PeakPumpBatchCapacity * static_cast<UInt64>(sizeof(FAudioCommand));
-                const Bool InlineArenaMayOverflow = RecommendedInlineBytes > PumpInlineArenaBytes;
-                LOG_INFO("({}) [Profiling] Enqueued counts: critical={}, normal={}, spam={}.",
-                    GetRuntimeName(),
+                const Bool InlineArenaMayOverflow = ProfilingMetrics.RecommendedInlineBytes > AudioPumpInlineArenaBytes;
+                LOG_INFO("[Profiling] Enqueued counts: critical={}, normal={}, spam={}.",
                     ProfilingMetrics.EnqueuedCritical,
                     ProfilingMetrics.EnqueuedNormal,
                     ProfilingMetrics.EnqueuedSpam);
-                LOG_INFO("({}) [Profiling] Queue peaks: critical={}, normal={}, spam={}, spam_limit={}.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] Queue peaks: critical={}, normal={}, spam={}, spam_limit={}.",
                     ProfilingMetrics.PeakPendingCritical,
                     ProfilingMetrics.PeakPendingNormal,
                     ProfilingMetrics.PeakPendingSpam,
                     MaxPendingSpam);
-                LOG_INFO("({}) [Profiling] Spam drops: limit_rejects={}, overflow_drops={}, enqueued_spam={}.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] Spam drops: limit_rejects={}, overflow_drops={}, enqueued_spam={}.",
                     ProfilingMetrics.DroppedSpamDueToLimit,
                     ProfilingMetrics.DroppedSpamByOverflow,
                     ProfilingMetrics.EnqueuedSpam);
-                LOG_INFO("({}) [Profiling] Pump batch: peak_size={}, peak_capacity={}, inline_arena={} bytes, estimated_needed_inline={} bytes.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] Pump batch: peak_size={}, peak_capacity={}, inline_arena={} bytes, estimated_needed_inline={} bytes.",
                     ProfilingMetrics.PeakPumpBatchSize,
                     ProfilingMetrics.PeakPumpBatchCapacity,
-                    PumpInlineArenaBytes,
-                    RecommendedInlineBytes);
+                    AudioPumpInlineArenaBytes,
+                    ProfilingMetrics.PeakPumpBatchSize * sizeof(FAudioCommand));
+                LOG_INFO("[Profiling] Pump inline overflow: events={}, peak_over_by={} bytes.",
+                    ProfilingMetrics.InlineOverflowEvents,
+                    ProfilingMetrics.PeakOverInlineBytes);
                 if (InlineArenaMayOverflow)
                 {
-                    LOG_WARN("({}) [Profiling] Pump inline arena may be too small. Consider >= {} bytes.",
-                        GetRuntimeName(),
-                        RecommendedInlineBytes);
+                    LOG_WARN("[Profiling] Pump inline arena may be too small. Consider >= {} bytes.",
+                        ProfilingMetrics.RecommendedInlineBytes);
                 }
-                LOG_INFO("({}) [Profiling] Coalescing peaks: rtpc={}, position={}, impact={}.",
-                    GetRuntimeName(),
+                LOG_INFO("[Profiling] Coalescing peaks: rtpc={}, position={}, impact={}.",
                     ProfilingMetrics.PeakCoalescedRTPC,
                     ProfilingMetrics.PeakCoalescedPosition,
                     ProfilingMetrics.PeakAggregatedImpact);
