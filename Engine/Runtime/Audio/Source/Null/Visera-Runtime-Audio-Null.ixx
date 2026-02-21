@@ -4,6 +4,7 @@ export module Visera.Runtime.Audio.Null;
 #define VISERA_MODULE_NAME "Runtime.Audio"
 import Visera.Runtime.Audio.Interface;
 import Visera.Core.Types.Path;
+import Visera.Core.Types.String;
 import Visera.Core.Log;
 
 namespace Visera

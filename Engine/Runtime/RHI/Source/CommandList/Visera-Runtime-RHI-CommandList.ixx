@@ -28,6 +28,29 @@ export namespace Visera
         DrawIndexed,
     };
 
+    [[nodiscard]] constexpr const char*
+    CommandTypeName(ECommandType I_Type) noexcept
+    {
+        switch (I_Type)
+        {
+        case ECommandType::ConvertImageLayout:  return "ConvertImageLayout";
+        case ECommandType::WriteBuffer:         return "WriteBuffer";
+        case ECommandType::CopyBufferToImage:   return "CopyBufferToImage";
+        case ECommandType::ClearColorImage:     return "ClearColorImage";
+        case ECommandType::BlitImage:           return "BlitImage";
+        case ECommandType::BlitToSwapChain:     return "BlitToSwapChain";
+        case ECommandType::EnterRenderPass:     return "EnterRenderPass";
+        case ECommandType::SetViewport:         return "SetViewport";
+        case ECommandType::SetScissor:          return "SetScissor";
+        case ECommandType::LeaveRenderPass:     return "LeaveRenderPass";
+        case ECommandType::BindVertexBuffer:    return "BindVertexBuffer";
+        case ECommandType::BindDescriptorSet:   return "BindDescriptorSet";
+        case ECommandType::Draw:                return "Draw";
+        case ECommandType::DrawIndexed:         return "DrawIndexed";
+        default: return "Unknown";
+        }
+    }
+
     // Command view returned by iterator
     struct FRHICommandView
     {
@@ -334,7 +357,7 @@ export namespace Visera
                 ProfilingMetrics.PeakCommandCount = CommandCount;
                 LOG_INFO("[Profiling] CommandList peak command_count={} (last_type={}).",
                     ProfilingMetrics.PeakCommandCount,
-                    I_Type);
+                    CommandTypeName(I_Type));
             }
             if (Buffer.GetSize() > ProfilingMetrics.PeakBufferSizeBytes)
             {
@@ -368,7 +391,7 @@ export namespace Visera
                 ProfilingMetrics.PeakCommandType  = I_Type;
                 LOG_INFO("[Profiling] CommandList peak command_bytes={} (type={}).",
                     ProfilingMetrics.PeakCommandBytes,
-                    ProfilingMetrics.PeakCommandType);
+                    CommandTypeName(ProfilingMetrics.PeakCommandType));
             }
             );
         }
@@ -549,13 +572,13 @@ VISERA_MAKE_FORMATTER(Visera::ECommandType,
     case Visera::ECommandType::BlitImage:           CommandName = "\"BlitImage\""; break;
     case Visera::ECommandType::BlitToSwapChain:     CommandName = "\"BlitToSwapChain\""; break;
     case Visera::ECommandType::EnterRenderPass:     CommandName = "\"EnterRenderPass\""; break;
-    case Visera::ECommandType::SetViewport:        CommandName = "\"SetViewport\""; break;
-    case Visera::ECommandType::SetScissor:         CommandName = "\"SetScissor\""; break;
-    case Visera::ECommandType::LeaveRenderPass:    CommandName = "\"LeaveRenderPass\""; break;
-    case Visera::ECommandType::BindVertexBuffer:   CommandName = "\"BindVertexBuffer\""; break;
-    case Visera::ECommandType::BindDescriptorSet:  CommandName = "\"BindDescriptorSet\""; break;
-    case Visera::ECommandType::Draw:               CommandName = "\"Draw\""; break;
-    case Visera::ECommandType::DrawIndexed:        CommandName = "\"DrawIndexed\""; break;
+    case Visera::ECommandType::SetViewport:         CommandName = "\"SetViewport\""; break;
+    case Visera::ECommandType::SetScissor:          CommandName = "\"SetScissor\""; break;
+    case Visera::ECommandType::LeaveRenderPass:     CommandName = "\"LeaveRenderPass\""; break;
+    case Visera::ECommandType::BindVertexBuffer:    CommandName = "\"BindVertexBuffer\""; break;
+    case Visera::ECommandType::BindDescriptorSet:   CommandName = "\"BindDescriptorSet\""; break;
+    case Visera::ECommandType::Draw:                CommandName = "\"Draw\""; break;
+    case Visera::ECommandType::DrawIndexed:         CommandName = "\"DrawIndexed\""; break;
     default: break;
     }
 , "{}", CommandName);

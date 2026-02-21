@@ -67,7 +67,7 @@ export namespace Visera
     private:
         struct VISERA_RUNTIME_API FRHIThread
         {
-            using FImmediateTask = TUniqueFunction<void()>;
+            using FImmediateTask = TUniqueFunction<void(), 32>;
 
             struct FImmediateCommandQueue
             {

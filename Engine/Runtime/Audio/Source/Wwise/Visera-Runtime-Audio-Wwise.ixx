@@ -250,21 +250,18 @@ namespace Visera
     InitializeBanks(const FPath& I_BasePath, FStringView I_InitBankName, FStringView I_MainBankName)
     {
         const FPlatformPath BasePlatformPath = FPlatform::MakePlatformPath(I_BasePath);
-        const std::wstring_view BaseWsv{BasePlatformPath};
-        if (!BaseWsv.empty() && IO.AddBasePath(reinterpret_cast<const AkOSChar*>(BaseWsv.data())) != AK_Success)
+        if (!BasePlatformPath.IsEmpty() && IO.AddBasePath(BasePlatformPath.GetPathString()) != AK_Success)
         { LOG_WARN("Failed to add bank base path: {}", I_BasePath); }
 
         AkBankID InitBankID = AK_INVALID_BANK_ID;
         AkBankID MainBankID = AK_INVALID_BANK_ID;
 
-        const FPlatformPath InitBankPlatformPath = FPlatform::MakePlatformPath(FPath{FString{I_InitBankName}});
-        const std::wstring_view InitWsv{InitBankPlatformPath};
-        if (InitWsv.empty() || AK::SoundEngine::LoadBank(reinterpret_cast<const AkOSChar*>(InitWsv.data()), InitBankID) != AK_Success)
+        const FPlatformPath InitBankPlatformPath = FPlatform::MakePlatformPath(FPath{I_InitBankName});
+        if (InitBankPlatformPath.IsEmpty() || AK::SoundEngine::LoadBank(InitBankPlatformPath.GetPathString(), InitBankID) != AK_Success)
         { LOG_WARN("Failed to load Init bank ({}). Events may fail.", I_InitBankName); return False; }
 
-        const FPlatformPath MainBankPlatformPath = FPlatform::MakePlatformPath(FPath{FString{I_MainBankName}});
-        const std::wstring_view MainWsv{MainBankPlatformPath};
-        if (MainWsv.empty() || AK::SoundEngine::LoadBank(reinterpret_cast<const AkOSChar*>(MainWsv.data()), MainBankID) != AK_Success)
+        const FPlatformPath MainBankPlatformPath = FPlatform::MakePlatformPath(FPath{I_MainBankName});
+        if (MainBankPlatformPath.IsEmpty() || AK::SoundEngine::LoadBank(MainBankPlatformPath.GetPathString(), MainBankID) != AK_Success)
         { LOG_ERROR("Failed to load Main bank ({}). BGM and SFX will not play.", I_MainBankName); return False; }
 
         return True;

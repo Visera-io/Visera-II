@@ -561,8 +561,7 @@ export namespace Visera
         VISERA_ASSERT(!I_ShaderDesc.SPIRV.IsEmpty());
         FVulkanShaderModule ShaderModule = Driver->CreateShaderModule(I_ShaderDesc.SPIRV);
         FRHIShaderHandle Handle = Shaders.Insert(
-            FRHIShader{std::move(I_ShaderDesc), std::move(ShaderModule)},
-            False);
+            FRHIShader{std::move(I_ShaderDesc), std::move(ShaderModule)});
         LOG_DEBUG("Registered Shader ({}).", Handle);
         return TRHIRegistryEntry<FRHIShaderHandle>(*this, Handle);
     }
@@ -591,7 +590,7 @@ export namespace Visera
         {
             auto& Binds = SetToBindings[R.Set];
             auto It = Algorithm::FindIf(Binds, [&R](const vk::DescriptorSetLayoutBinding& B) { return B.binding == R.Binding; });
-            if (It != Binds.End())
+            if (It != Binds.end())
             { It->stageFlags |= TypeCast(R.Stages); }
             else
             {
@@ -650,8 +649,7 @@ export namespace Visera
         FVulkanRenderPipeline Pipeline = Driver->CreateRenderPipeline(&PL, &VSM, &FSM);
 
         FRHIRenderPassHandle Handle = RenderPasses.Insert(
-            FRHIRenderPass{std::move(I_Info), std::move(Pipeline)},
-            False);
+            FRHIRenderPass{std::move(I_Info), std::move(Pipeline)});
         LOG_DEBUG("Registered RenderPass ({}).", Handle);
         return TRHIRegistryEntry<FRHIRenderPassHandle>(*this, Handle);
     }

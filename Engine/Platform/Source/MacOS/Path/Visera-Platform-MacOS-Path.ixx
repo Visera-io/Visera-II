@@ -9,16 +9,17 @@ import Visera.Core.Types.Pointer.Unique;
 
 namespace Visera
 {
-#if defined(VISERA_ON_APPLE_SYSTEM)
     export class VISERA_PLATFORM_API FMacOSPath : public IPlatformPath
     {
     public:
+        using FPathChar = char;
         explicit FMacOSPath(const FPath& I_Path) : Native(I_Path.GetString().GetNative())
         {
             VISERA_ASSERT(I_Path.IsNormalized());
         }
         explicit FMacOSPath(FStringView I_Native) : Native(I_Native) {}
         [[nodiscard]] FStringView GetView() const noexcept { return Native; }
+        [[nodiscard]] const FPathChar* GetPathString() const noexcept { return Native.Data(); }
         [[nodiscard]] Bool IsEmpty() const override { return Native.IsEmpty(); }
         [[nodiscard]] TUniquePtr<IPlatformPath> GetParent() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath> GetFileName() const override;
@@ -59,5 +60,4 @@ namespace Visera
         Result.Append(I_Suffix);
         return MakeUnique<FMacOSPath>(std::move(Result));
     }
-#endif
 }

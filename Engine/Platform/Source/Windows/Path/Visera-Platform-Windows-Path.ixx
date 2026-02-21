@@ -13,9 +13,11 @@ namespace Visera
     export class VISERA_PLATFORM_API FWindowsPath : public IPlatformPath
     {
     public:
+        using FPathChar = wchar_t;
         explicit FWindowsPath(const FPath& I_Path);
         explicit FWindowsPath(std::wstring_view I_Native) : Native(I_Native) {}
         [[nodiscard]] operator std::wstring_view() const noexcept { return Native; }
+        [[nodiscard]] const FPathChar* GetPathString() const noexcept { return Native.c_str(); }
         [[nodiscard]] Bool IsEmpty() const override { return Native.empty(); }
         [[nodiscard]] TUniquePtr<IPlatformPath> GetParent() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath> GetFileName() const override;
