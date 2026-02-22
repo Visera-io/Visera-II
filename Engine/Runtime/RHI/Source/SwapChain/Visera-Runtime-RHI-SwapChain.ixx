@@ -3,9 +3,11 @@ module;
 export module Visera.Runtime.RHI.SwapChain;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
+       import Visera.Runtime.RHI.Registry;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Window;
        import Visera.Core.Containers.Array;
+       import Visera.Core.Types.Pointer;
        import Visera.Core.Delegate;
        import Visera.Core.Log;
        import Visera.Core.Types.Function;
@@ -15,35 +17,36 @@ export import Visera.Runtime.RHI.Common;
 
 export namespace Visera
 {
-    using FRHIDrawCalls     = FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>;
-    using FRHITransferCalls = FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>;
-
     /// Per-frame resources for a swap chain.
     struct VISERA_RUNTIME_API FRHIInFlightFrame
     {
         FVulkanFence      ExecuteFence;
         FVulkanSemaphore  SwapChainReadySemaphore;
+        FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>
+        GraphicsCalls;
         FVulkanSemaphore  RenderFinishedSemaphore;    // Offscreen only
-        FRHIDrawCalls     DrawCalls;
+        FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>
+        TransferCalls;
         FVulkanSemaphore  TransferFinishedSemaphore;
-        FRHITransferCalls TransferCalls;
     };
 
     /// RHI-level swap chain context: frame resources and synchronization state.
     struct VISERA_RUNTIME_API FRHISwapChain
     {
-        FWindow*                     Window { nullptr };  // For Driver lookup; nullptr = offscreen
+        TWeakPtr<FWindow>            Window;  // For Driver lookup; empty = offscreen
         TArray<FRHIInFlightFrame>    InFlightFrames;
         TArray<FVulkanSemaphore>     RenderFinishedSemaphores;
         UInt8                        FrameIndex = 0;
         UInt8                        LastSubmittedImageIndex = 0;
+        Bool                         bFrameActive {False};
+        FRHITextureID                CachedProxyTextureID;
 
         /// Initialize context. I_Window=nullptr: offscreen (1 frame). I_Window non-null: from window swap chain.
         void Initialize(
             FVulkanDriver*                                      I_Driver,
             FVulkanGraphicsCommandPool*   I_GraphicsPool,
             FVulkanTransferCommandPool*   I_TransferPool,
-            FWindow*                                            I_Window);
+            TSharedPtr<FWindow>                                 I_Window);
 
         /// Subscribe to window resize; reinitializes this swap chain on resize.
         void SubscribeToResize(
@@ -64,9 +67,9 @@ export namespace Visera
         FVulkanDriver*                                       I_Driver,
         FVulkanGraphicsCommandPool*    I_GraphicsPool,
         FVulkanTransferCommandPool*    I_TransferPool,
-        FWindow*                                             I_Window)
+        TSharedPtr<FWindow>                                  I_Window)
     {
-        Window = I_Window;
+        if (I_Window) { Window = I_Window; }
         if (!I_Window)
         {
             InFlightFrames.Resize(1);
@@ -75,13 +78,13 @@ export namespace Visera
             {
                 Frame.ExecuteFence = I_Driver->CreateFence(True);
                 Frame.RenderFinishedSemaphore = I_Driver->CreateSemaphore();
-                Frame.DrawCalls = I_GraphicsPool->CreateCommandBuffer(True);
+                Frame.GraphicsCalls = I_GraphicsPool->CreateCommandBuffer(True);
                 Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
                 Frame.TransferCalls = I_TransferPool->CreateCommandBuffer(True);
             }
             return;
         }
-        auto* SC = I_Driver->GetSwapChain(I_Window);
+        auto* SC = I_Driver->GetSwapChain(I_Window.Get());
         if (!SC) { return; }
         InFlightFrames.Resize(SC->Images.GetSize());
         RenderFinishedSemaphores.Clear();
@@ -93,15 +96,16 @@ export namespace Visera
         {
             Frame.ExecuteFence = I_Driver->CreateFence(True);
             Frame.SwapChainReadySemaphore = I_Driver->CreateSemaphore();
-            Frame.DrawCalls = I_GraphicsPool->CreateCommandBuffer(True);
+            Frame.GraphicsCalls = I_GraphicsPool->CreateCommandBuffer(True);
             Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
             Frame.TransferCalls = I_TransferPool->CreateCommandBuffer(True);
         }
-        FRHIDrawCalls Cmd = I_GraphicsPool->CreateCommandBuffer(True);
+        auto Cmd = I_GraphicsPool->CreateCommandBuffer(True);
         Cmd.Begin();
         for (auto& Image : SC->Images)
         {
             Cmd.ConvertImageLayout(&Image,
+                vk::ImageLayout::eUndefined,
                 vk::ImageLayout::ePresentSrcKHR,
                 EVulkanGraphicsStage::TopOfPipe,
                 EVulkanGraphicsAccess::None,
@@ -140,9 +144,9 @@ export namespace Visera
     void FRHISwapChain::
     UnsubscribeFromResize()
     {
-        if (Window && ResizeHandle.HasValue())
+        if (auto Win = Window.Lock(); Win && ResizeHandle.HasValue())
         {
-            Window->OnResized.Unsubscribe(ResizeHandle.GetValue());
+            Win->OnResized.Unsubscribe(ResizeHandle.GetValue());
             ResizeHandle = NullOpt;
         }
     }

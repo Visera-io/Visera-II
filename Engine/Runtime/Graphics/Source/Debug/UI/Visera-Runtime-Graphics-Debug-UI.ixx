@@ -148,8 +148,8 @@ export namespace Visera::Graphics
             if (!ImGui_ImplVulkan_Init(&CreateInfo))
             { LOG_FATAL("Failed to initialize Dear ImGUI Vulkan backend!"); }
 
-            // if (!GRHI->DebugUIDrawCalls.TryBind([&I_Window]
-            // (FRHIDrawCalls* I_CommandBuffer, FRHIImageView* I_ColorRT)
+            // if (!GRHI->DebugUIGraphicsCalls.TryBind([&I_Window]
+            // (FRHIGraphicsCalls* I_CommandBuffer, FRHIImageView* I_ColorRT)
             // {
             //     ImGui::Render();
             //
@@ -177,7 +177,7 @@ export namespace Visera::Graphics
             //
             //     vkCmdEndRendering(Cmds);
             // }))
-            // { LOG_FATAL("Failed to bind ImGui drawcalls to backend!"); }
+            // { LOG_FATAL("Failed to bind ImGui GraphicsCalls to backend!"); }
 #endif
         }
 

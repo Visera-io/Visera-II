@@ -19,7 +19,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["Vert", "Frag"],
-      "description": "Vertex and fragment shader .vshader assets. Use filename only (e.g. Sprite.VertMain.vshader); AssetHub resolves via VFS.",
+      "description": "Vertex and fragment shader .vshader assets.",
       "properties": {
         "Vert": {
           "type": "string",
@@ -34,9 +34,40 @@
       }
     },
     "Surface": {
-      "type": "string",
-      "enum": ["Opaque", "Masked", "Transparent"],
-      "description": "High-level surface type."
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["Type"],
+          "description": "Surface type and render target format.",
+          "properties": {
+            "Type": {
+              "type": "string",
+              "enum": ["Opaque", "Masked", "Transparent"],
+              "description": "High-level surface type."
+            },
+            "Format": {
+              "type": "string",
+              "enum": [
+                "R8G8B8_sRGB", "R8G8B8_UNorm",
+                "B8G8R8_sRGB", "B8G8R8_UNorm",
+                "R8G8B8A8_sRGB", "R8G8B8A8_UNorm",
+                "B8G8R8A8_sRGB", "B8G8R8A8_UNorm",
+                "R16G16B16A16_Float",
+                "R32G32_Float", "R32G32B32_Float", "R32G32B32A32_Float"
+              ],
+              "default": "B8G8R8A8_sRGB",
+              "description": "Color attachment format for pipeline (must match render target, e.g. swap chain B8G8R8A8_sRGB)."
+            }
+          }
+        },
+        {
+          "type": "string",
+          "enum": ["Opaque", "Masked", "Transparent"],
+          "description": "Legacy: Surface type only (Format defaults to B8G8R8A8_sRGB)."
+        }
+      ],
+      "description": "Surface type and optional format. Use object { Type, Format } or legacy string."
     },
     "Textures": {
       "type": "object",

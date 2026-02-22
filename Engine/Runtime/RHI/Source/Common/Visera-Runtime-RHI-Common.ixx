@@ -11,8 +11,7 @@ export import Visera.Core.Traits.Flags;
 
 export namespace Visera
 {
-    /// Swap chain index (into FRHI's TArray). Set on FRHICommandList before Submit/Execute.
-    using FRHISwapChainID = UInt8;
+    using FRHISwapChainID   = UInt8;
 
     enum class ERHIFormat : UInt32
     {
@@ -133,10 +132,18 @@ export namespace Visera
     {
         Load     = static_cast<UInt8>(vk::AttachmentLoadOp::eLoad),
         Clear    = static_cast<UInt8>(vk::AttachmentLoadOp::eClear),
-        Whatever = static_cast<UInt8>(vk::AttachmentLoadOp::eDontCare),
+        DontCare = static_cast<UInt8>(vk::AttachmentLoadOp::eDontCare),
     };
     [[nodiscard]] constexpr vk::AttachmentLoadOp
     TypeCast(ERHIAttachmentLoadOp I_AttachmentLoadOp) { return static_cast<vk::AttachmentLoadOp>(I_AttachmentLoadOp); }
+
+    enum class ERHIAttachmentStoreOp : UInt8
+    {
+        Store    = static_cast<UInt8>(vk::AttachmentStoreOp::eStore),
+        DontCare = static_cast<UInt8>(vk::AttachmentStoreOp::eDontCare),
+    };
+    [[nodiscard]] constexpr vk::AttachmentStoreOp
+    TypeCast(ERHIAttachmentStoreOp I_AttachmentStoreOp) { return static_cast<vk::AttachmentStoreOp>(I_AttachmentStoreOp); }
 
     enum class ERHIPrimitiveTopology : UInt8
     {
@@ -471,10 +478,21 @@ VISERA_MAKE_FORMATTER(Visera::ERHIAttachmentLoadOp,
     {
         case Visera::ERHIAttachmentLoadOp::Load:      LoadOpName = "Load";     break;
         case Visera::ERHIAttachmentLoadOp::Clear:     LoadOpName = "Clear";    break;
-        case Visera::ERHIAttachmentLoadOp::Whatever:  LoadOpName = "Whatever"; break;
+        case Visera::ERHIAttachmentLoadOp::DontCare:  LoadOpName = "DontCare"; break;
         default: break;
     },
     "{}", LoadOpName
+);
+
+VISERA_MAKE_FORMATTER(Visera::ERHIAttachmentStoreOp,
+    const char* StoreOpName = "None";
+    switch (I_Formatee)
+    {
+        case Visera::ERHIAttachmentStoreOp::Store:    StoreOpName = "Store";    break;
+        case Visera::ERHIAttachmentStoreOp::DontCare: StoreOpName = "DontCare"; break;
+        default: break;
+    },
+    "{}", StoreOpName
 );
 
 VISERA_MAKE_FORMATTER(Visera::ERHIPrimitiveTopology,

@@ -21,10 +21,12 @@ namespace Visera
         WriteCombinedImageSampler(UInt32                 I_Binding,
                                   FVulkanImageView*      I_ImageView,
                                   FVulkanSampler*        I_Sampler,
+                                  vk::ImageLayout        I_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
                                   UInt32                 I_ArrayElement = 0);
         VISERA_NOINLINE void
         WriteSampledImage(UInt32                 I_Binding,
                           FVulkanImageView*      I_ImageView,
+                          vk::ImageLayout        I_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
                           UInt32                 I_ArrayElement = 0);
         VISERA_NOINLINE void
         WriteSampler(UInt32                 I_Binding,
@@ -33,6 +35,7 @@ namespace Visera
         VISERA_NOINLINE void
         WriteStorageImage(UInt32                 I_Binding,
                           FVulkanImageView*      I_ImageView,
+                          vk::ImageLayout        I_ImageLayout = vk::ImageLayout::eGeneral,
                           UInt32                 I_ArrayElement = 0);
         VISERA_NOINLINE void
         WriteUniformBuffer(UInt32                 I_Binding,
@@ -46,10 +49,12 @@ namespace Visera
         WriteCombinedImageSamplerArray(UInt32                         I_Binding,
                                        const TArray<FVulkanImageView*>& I_ImageViews,
                                        const TArray<FVulkanSampler*>&   I_Samplers,
+                                       vk::ImageLayout                I_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
                                        UInt32                          I_FirstArrayElement = 0);
         VISERA_NOINLINE void
         WriteStorageImageArray(UInt32                         I_Binding,
                                const TArray<FVulkanImageView*>& I_ImageViews,
+                               vk::ImageLayout                I_ImageLayout = vk::ImageLayout::eGeneral,
                                UInt32                         I_FirstArrayElement = 0);
         VISERA_NOINLINE void
         WriteStorageBufferArray(UInt32                         I_Binding,
@@ -82,6 +87,7 @@ namespace Visera
     WriteCombinedImageSampler(UInt32                 I_Binding,
                               FVulkanImageView*      I_ImageView,
                               FVulkanSampler*        I_Sampler,
+                              vk::ImageLayout        I_ImageLayout,
                               UInt32                 I_ArrayElement /* = 0 */)
     {
         if (!I_ImageView || !I_Sampler)
@@ -90,13 +96,12 @@ namespace Visera
             return;
         }
 
-        auto* Image = I_ImageView->GetImage();
-        VISERA_ASSERT(Image != nullptr);
+        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
 
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (I_Sampler->GetHandle())
             .setImageView   (I_ImageView->GetHandle())
-            .setImageLayout (Image->GetLayout())
+            .setImageLayout (I_ImageLayout)
         ;
         auto WriteInfo = vk::WriteDescriptorSet{}
             .setDescriptorCount (1)
@@ -115,6 +120,7 @@ namespace Visera
     void FVulkanDescriptorSet::
     WriteSampledImage(UInt32                 I_Binding,
                       FVulkanImageView*      I_ImageView,
+                      vk::ImageLayout        I_ImageLayout,
                       UInt32                 I_ArrayElement /* = 0 */)
     {
         if (!I_ImageView)
@@ -123,13 +129,12 @@ namespace Visera
             return;
         }
 
-        auto* Image = I_ImageView->GetImage();
-        VISERA_ASSERT(Image != nullptr);
+        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
 
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (nullptr)
             .setImageView   (I_ImageView->GetHandle())
-            .setImageLayout (Image->GetLayout())
+            .setImageLayout (I_ImageLayout)
         ;
         auto WriteInfo = vk::WriteDescriptorSet{}
             .setDescriptorCount (1)
@@ -180,6 +185,7 @@ namespace Visera
     void FVulkanDescriptorSet::
     WriteStorageImage(UInt32                 I_Binding,
                       FVulkanImageView*      I_ImageView,
+                      vk::ImageLayout        I_ImageLayout,
                       UInt32                 I_ArrayElement /* = 0 */)
     {
         if (!I_ImageView)
@@ -188,13 +194,12 @@ namespace Visera
             return;
         }
 
-        auto* Image = I_ImageView->GetImage();
-        VISERA_ASSERT(Image != nullptr);
+        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
 
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (nullptr)
             .setImageView   (I_ImageView->GetHandle())
-            .setImageLayout (Image->GetLayout())
+            .setImageLayout (I_ImageLayout)
         ;
         auto WriteInfo = vk::WriteDescriptorSet{}
             .setDescriptorCount (1)
@@ -277,6 +282,7 @@ namespace Visera
     WriteCombinedImageSamplerArray(UInt32                         I_Binding,
                                    const TArray<FVulkanImageView*>& I_ImageViews,
                                    const TArray<FVulkanSampler*>&   I_Samplers,
+                                   vk::ImageLayout                I_ImageLayout,
                                    UInt32                          I_FirstArrayElement /* = 0 */)
     {
         VISERA_ASSERT(I_ImageViews.GetSize() == I_Samplers.GetSize());
@@ -295,13 +301,12 @@ namespace Visera
                 continue;
             }
 
-            auto* Image = I_ImageViews[Idx]->GetImage();
-            VISERA_ASSERT(Image != nullptr);
+            VISERA_ASSERT(I_ImageViews[Idx]->GetImage() != nullptr);
 
             ImageInfos.EmplaceBack(vk::DescriptorImageInfo{}
                 .setSampler     (I_Samplers[Idx]->GetHandle())
                 .setImageView   (I_ImageViews[Idx]->GetHandle())
-                .setImageLayout (Image->GetLayout())
+                .setImageLayout (I_ImageLayout)
             );
         }
 
@@ -325,6 +330,7 @@ namespace Visera
     void FVulkanDescriptorSet::
     WriteStorageImageArray(UInt32                         I_Binding,
                            const TArray<FVulkanImageView*>& I_ImageViews,
+                           vk::ImageLayout                I_ImageLayout,
                            UInt32                         I_FirstArrayElement /* = 0 */)
     {
         const auto Count = I_ImageViews.GetSize();
@@ -341,13 +347,12 @@ namespace Visera
                 continue;
             }
 
-            auto* Image = I_ImageViews[Idx]->GetImage();
-            VISERA_ASSERT(Image != nullptr);
+            VISERA_ASSERT(I_ImageViews[Idx]->GetImage() != nullptr);
 
             ImageInfos.EmplaceBack(vk::DescriptorImageInfo{}
                 .setSampler     (nullptr)
                 .setImageView   (I_ImageViews[Idx]->GetHandle())
-                .setImageLayout (Image->GetLayout())
+                .setImageLayout (I_ImageLayout)
             );
         }
 

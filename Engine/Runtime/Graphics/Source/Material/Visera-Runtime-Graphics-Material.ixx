@@ -11,7 +11,6 @@ export import Visera.Core.Types.Pointer;
 
 export namespace Visera
 {
-	/** High-level surface type for material; matches Engine/Schemas/Material.schema.json "Surface" enum. */
 	enum class ESurfaceType : UInt8
 	{
 		Opaque,
@@ -19,26 +18,43 @@ export namespace Visera
 		Transparent,
 	};
 
-	/** Visera Material (minimal). Loads from .vmaterial JSON; supports Sprite Renderer via Shader + BaseColor.
-	 *  See Engine/Schemas/Material.schema.json and Documents/docs/Fundamentals/Material.md.
-	 */
 	class VISERA_RUNTIME_API FMaterial
 	{
 	public:
+		[[nodiscard]] const FRHIRenderPassID&
+		GetRenderPass() const noexcept { return RenderPass; }
+		[[nodiscard]] const FRHIDescriptorSetID&
+		GetDescriptorSet() const noexcept { return DescriptorSet; }
+		[[nodiscard]] ESurfaceType
+		GetSurface() const noexcept { return Surface; }
 		[[nodiscard]] Bool
-		IsValid() const noexcept { return !Shader.IsEmpty() && !BaseColorPath.IsEmpty(); }
+		IsValid() const noexcept { return bValid; }
+
+		FMaterial(FRHIRenderPassID    I_RenderPass,
+		          FRHIDescriptorSetID I_DescriptorSet,
+		          FRHISamplerID       I_Sampler,
+		          FRHITextureID       I_BaseColor,
+		          ESurfaceType        I_Surface)
+			: RenderPass    (std::move(I_RenderPass))
+			, DescriptorSet (std::move(I_DescriptorSet))
+			, Sampler       (std::move(I_Sampler))
+			, BaseColor     (std::move(I_BaseColor))
+			, Surface       (I_Surface)
+		{}
 
 	private:
-		UInt8             Version         {1};
-		FString           Shader          {};
-		ESurfaceType      Surface         {ESurfaceType::Opaque};
-		FString           BaseColorPath   {};
+		FRHIRenderPassID    RenderPass;
+		FRHIDescriptorSetID DescriptorSet;
+		FRHISamplerID       Sampler;
+		FRHITextureID       BaseColor;
+		ESurfaceType        Surface {ESurfaceType::Opaque};
+		Bool                bValid  {True};
 
 	public:
-		FMaterial() = default;
-		FMaterial(const FJSON& I_Description)
-		{
-
-		}
+		~FMaterial() = default;
+		FMaterial(const FMaterial&) = default;
+		FMaterial& operator=(const FMaterial&) = default;
+		FMaterial(FMaterial&&) = default;
+		FMaterial& operator=(FMaterial&&) = default;
 	};
 }

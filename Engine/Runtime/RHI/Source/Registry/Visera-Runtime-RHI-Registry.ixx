@@ -10,6 +10,8 @@ export import Visera.Runtime.RHI.Registry.Handle;
        import Visera.Core.Containers.SlotMap;
        import Visera.Core.Containers.Map;
        import Visera.Core.Containers.Array;
+       import Visera.Core.Types.Tuple;
+       import Visera.Core.OS.Thread.Queue.SPSC;
        import Visera.Core.Algorithm.Ranges;
        import Visera.Core.Math.Hash.GoldenRatio;
        import Visera.Core.Log;
@@ -30,16 +32,27 @@ export namespace Visera
         };
 
     public:
+        [[nodiscard]] constexpr Bool
+        IsNull() const { return Block == nullptr; }
         [[nodiscard]] RHIHandle
         GetHandle() const { return Block ? Block->Handle : RHIHandle{}; }
 
-        TRHIRegistryEntry() = delete;
+        TRHIRegistryEntry() = default;
         TRHIRegistryEntry(FRHIRegistry& I_Registry, RHIHandle I_Handle);
         TRHIRegistryEntry(const TRHIRegistryEntry& I_Other);
         TRHIRegistryEntry(TRHIRegistryEntry&& I_Other) noexcept;
         TRHIRegistryEntry& operator=(const TRHIRegistryEntry& I_Other);
         TRHIRegistryEntry& operator=(TRHIRegistryEntry&& I_Other) noexcept;
         ~TRHIRegistryEntry();
+
+        constexpr operator bool() const { return !IsNull(); }
+
+        static TRHIRegistryEntry CreateUnmanaged(RHIHandle I_Handle)
+        {
+            TRHIRegistryEntry Entry;
+            Entry.Block = new FControlBlock{nullptr, I_Handle, 1};
+            return Entry;
+        }
 
     private:
         FControlBlock* Block {nullptr};
@@ -105,6 +118,14 @@ export namespace Visera
         void
         Unregister(FRHIRenderPassHandle I_Handle);
 
+        /// Enqueue Unregister for RHI thread (thread-safe, callable from any thread).
+        void EnqueueUnregister(FRHITextureHandle I_Handle);
+        void EnqueueUnregister(FRHIBufferHandle I_Handle);
+        void EnqueueUnregister(FRHISamplerHandle I_Handle);
+        void EnqueueUnregister(FRHIDescriptorSetHandle I_Handle);
+        void EnqueueUnregister(FRHIShaderHandle I_Handle);
+        void EnqueueUnregister(FRHIRenderPassHandle I_Handle);
+
         void
         SetCurrentRetirementFence(FVulkanFence* I_Fence) { CurrentRetirementFence = I_Fence; }
         void
@@ -122,16 +143,16 @@ export namespace Visera
         TSlotMap<FRHISampler,                FRHISamplerHandle>             Samplers;
         TSlotMap<FRHIBuffer,                 FRHIBufferHandle>              Buffers;
         TSlotMap<FRHIDescriptorSet,          FRHIDescriptorSetHandle>       DescriptorSets;
-        TSlotMap<FRHIShader,                 FRHIShaderHandle>               Shaders;
-        TSlotMap<FRHIRenderPass,             FRHIRenderPassHandle>            RenderPasses;
+        TSlotMap<FRHIShader,                 FRHIShaderHandle>              Shaders;
+        TSlotMap<FRHIRenderPass,             FRHIRenderPassHandle>          RenderPasses;
         TSlotMap<FVulkanDescriptorSetLayout, FRHIDescriptorSetLayoutHandle> DescriptorSetLayouts;
-
 
         template<typename HandleType>
         struct FGarbageItem
         {
             HandleType       ResourceHandle {};
             FVulkanFence*    RetiredFence   {nullptr};
+            UInt8            TimeToLive     {4};
         };
         TArray<FGarbageItem<FRHITextureHandle>>         GarbageBinTextures;
         TArray<FGarbageItem<FRHIBufferHandle>>          GarbageBinBuffers;
@@ -144,6 +165,16 @@ export namespace Visera
         TMap<UInt64, TArray<FRHIBufferHandle>>          RecycleBinBuffers;
         TMap<UInt64, TArray<FRHISamplerHandle>>         RecycleBinSamplers;
         TMap<UInt64, TArray<FRHIDescriptorSetHandle>>   RecycleBinDescriptorSets;
+
+        /// Hash(Canonicalized CreateInfo) -> candidates for hash collision (Scheme A)
+        TMap<UInt64, TArray<TPair<FRHIDescriptorSetCreateInfo, FRHIDescriptorSetLayoutHandle>>> DescriptorSetLayoutCache;
+
+        TSPSCQueue<FRHITextureHandle>        PendingUnregisterTextures;
+        TSPSCQueue<FRHIBufferHandle>         PendingUnregisterBuffers;
+        TSPSCQueue<FRHISamplerHandle>        PendingUnregisterSamplers;
+        TSPSCQueue<FRHIDescriptorSetHandle>  PendingUnregisterDescriptorSets;
+        TSPSCQueue<FRHIShaderHandle>         PendingUnregisterShaders;
+        TSPSCQueue<FRHIRenderPassHandle>     PendingUnregisterRenderPasses;
         PROFILING_ONLY_FIELD(
         struct FProfilingMetrics
         {
@@ -192,6 +223,11 @@ export namespace Visera
         FVulkanFence*         CurrentRetirementFence {nullptr};
 
     private:
+        void DrainPendingUnregisters();
+        void ForceDestroyAll();
+        static TArray<vk::DescriptorPoolSize>
+        GetDefaultDescriptorPoolSizes();
+
         template<typename HandleType>
         [[nodiscard]] static UInt64
         CountRecycleHandles(const TMap<UInt64, TArray<HandleType>>& I_RecycleBin)
@@ -202,10 +238,6 @@ export namespace Visera
             return Count;
         }
 
-        static TArray<vk::DescriptorPoolSize>
-        GetDefaultDescriptorPoolSizes();
-
-    private:
         [[nodiscard]] UInt64
         Hash(const FRHITextureCreateInfo& I_TextureDesc) const
         {
@@ -251,10 +283,11 @@ export namespace Visera
         FRHIRegistry(FVulkanDriver* I_Driver)
         : Driver(I_Driver)
         {
-            DescriptorSetPool = Driver->CreateInforiptorPool(GetDefaultDescriptorPoolSizes());
+            DescriptorSetPool = Driver->CreateDescriptorPool(GetDefaultDescriptorPoolSizes());
         }
         ~FRHIRegistry()
         {
+            ForceDestroyAll();
             PROFILING_ONLY_FIELD(
             LOG_INFO("[Profiling] RHI.Registry summary: created(T={},B={},S={},D={}) reused(T={},B={},S={},D={}).",
                 ProfilingMetrics.CreatedTextures,
@@ -304,7 +337,6 @@ export namespace Visera
         };
     }
 
-
     template<Concepts::RHIHandle RHIHandle>
     void TRHIRegistryEntry<RHIHandle>::Release()
     {
@@ -315,12 +347,9 @@ export namespace Visera
             auto  Hdl = Block->Handle;
             delete Block;
             Block = nullptr;
-            if (Reg) { Reg->Unregister(Hdl); }
+            if (Reg) { Reg->EnqueueUnregister(Hdl); }
         }
-        else
-        {
-            Block = nullptr;
-        }
+        else { Block = nullptr; }
     }
 
     template<Concepts::RHIHandle RHIHandle>
@@ -506,43 +535,63 @@ export namespace Visera
     Register(FRHIDescriptorSetCreateInfo&& I_DescriptorSetDesc)
     {
         VISERA_ASSERT(!I_DescriptorSetDesc.Bindings.IsEmpty());
+        // Canonicalize: sort bindings by Binding index so that Hash and IsCompatibleWith are order-independent
+        Algorithm::Sort(I_DescriptorSetDesc.Bindings,
+            [](const auto& A, const auto& B) { return A.Binding < B.Binding; });
         const UInt64 Key = Hash(I_DescriptorSetDesc);
 
         auto RecycleBinIter = RecycleBinDescriptorSets.Find(Key);
         if (RecycleBinIter != RecycleBinDescriptorSets.end())
         {
-            auto& Handles = RecycleBinIter->second;
-
-            for (UInt32 Idx = 0; Idx < Handles.GetSize(); ++Idx)
+            auto& CandidateHandles = RecycleBinIter->second;
+            for (UInt32 Idx = 0; Idx < CandidateHandles.GetSize(); ++Idx)
             {
-                const FRHIDescriptorSetHandle Handle = Handles[Idx];
-                const auto* DescriptorSet = DescriptorSets.Get(Handle);
-                if (DescriptorSet == nullptr) { continue; }
-
-                if (DescriptorSet->GetInfo().IsCompatibleWith(I_DescriptorSetDesc))
+                const FRHIDescriptorSetHandle Hdl = CandidateHandles[Idx];
+                const auto* DS = DescriptorSets.Get(Hdl);
+                if (DS && DS->GetInfo().IsCompatibleWith(I_DescriptorSetDesc))
                 {
-                    Handles.RemoveAtSwap(Idx);
+                    CandidateHandles.RemoveAtSwap(Idx);
                     PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedDescriptorSets;);
-                    return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Handle);
+                    return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Hdl);
                 }
             }
         }
-        // Convert FRHIDescriptorSetLayoutBinding to vk::DescriptorSetLayoutBinding
-        TArray<vk::DescriptorSetLayoutBinding> VulkanBindings;
-        VulkanBindings.Reserve(I_DescriptorSetDesc.Bindings.GetSize());
-        for (const auto& Binding : I_DescriptorSetDesc.Bindings)
+
+        FRHIDescriptorSetLayoutHandle LayoutHandle;
+        auto LayoutCacheIter = DescriptorSetLayoutCache.Find(Key);
+        Bool bFoundInCache = False;
+        if (LayoutCacheIter != DescriptorSetLayoutCache.end())
         {
-            VulkanBindings.EmplaceBack(vk::DescriptorSetLayoutBinding{}
-                .setBinding         (static_cast<UInt32>(Binding.Binding))
-                .setDescriptorType  (TypeCast(Binding.Type))
-                .setDescriptorCount (Binding.Count)
-                .setStageFlags      (TypeCast(Binding.Stages))
-            );
+            for (const auto& [CachedInfo, CachedHdl] : LayoutCacheIter->second)
+            {
+                if (CachedInfo.IsCompatibleWith(I_DescriptorSetDesc))
+                {
+                    LayoutHandle = CachedHdl;
+                    bFoundInCache = True;
+                    break;
+                }
+            }
         }
-        FVulkanDescriptorSetLayout Layout =
-            Driver->CreateInforiptorSetLayout(VulkanBindings);
-        FRHIDescriptorSetLayoutHandle LayoutHandle =
-            DescriptorSetLayouts.Insert(std::move(Layout), False);
+
+        if (!bFoundInCache)
+        {
+            TArray<vk::DescriptorSetLayoutBinding> VulkanBindings;
+            VulkanBindings.Reserve(I_DescriptorSetDesc.Bindings.GetSize());
+            for (const auto& Binding : I_DescriptorSetDesc.Bindings)
+            {
+                VulkanBindings.EmplaceBack(vk::DescriptorSetLayoutBinding{}
+                    .setBinding         (static_cast<UInt32>(Binding.Binding))
+                    .setDescriptorType  (TypeCast(Binding.Type))
+                    .setDescriptorCount (Binding.Count)
+                    .setStageFlags      (TypeCast(Binding.Stages))
+                );
+            }
+            FVulkanDescriptorSetLayout Layout =
+                Driver->CreateDescriptorSetLayout(VulkanBindings);
+            LayoutHandle = DescriptorSetLayouts.Insert(std::move(Layout), False);
+            DescriptorSetLayoutCache[Key].EmplaceBack(MakePair(FRHIDescriptorSetCreateInfo{I_DescriptorSetDesc}, LayoutHandle));
+        }
+
         FVulkanDescriptorSetLayout* LayoutPtr = DescriptorSetLayouts.Get(LayoutHandle);
         VISERA_ASSERT(LayoutPtr != nullptr);
         FVulkanDescriptorSet VulkanDescriptorSet = DescriptorSetPool.CreateInforiptorSet(*LayoutPtr);
@@ -613,7 +662,7 @@ export namespace Visera
         {
             auto& Binds = SetToBindings[SetIdx];
             Algorithm::Sort(Binds, [](const auto& A, const auto& B) { return A.binding < B.binding; });
-            DSLStorage.PushBack(Driver->CreateInforiptorSetLayout(Binds));
+            DSLStorage.PushBack(Driver->CreateDescriptorSetLayout(Binds));
             DSLHandles.PushBack(DSLStorage.Back().GetHandle());
         }
 
@@ -646,7 +695,8 @@ export namespace Visera
         FVulkanShaderModule VSM = Driver->CreateShaderModule(pVS->GetInfo().SPIRV);
         FVulkanShaderModule FSM = Driver->CreateShaderModule(pFS->GetInfo().SPIRV);
 
-        FVulkanRenderPipeline Pipeline = Driver->CreateRenderPipeline(&PL, &VSM, &FSM);
+        FVulkanRenderPipeline Pipeline = Driver->CreateRenderPipeline(
+            &PL, &VSM, &FSM, TypeCast(I_Info.Desc.ColorFormat));
 
         FRHIRenderPassHandle Handle = RenderPasses.Insert(
             FRHIRenderPass{std::move(I_Info), std::move(Pipeline)});
@@ -706,12 +756,118 @@ export namespace Visera
         GarbageBinRenderPasses.PushBack({.ResourceHandle = I_Handle, .RetiredFence = CurrentRetirementFence});
     }
 
+    void FRHIRegistry::
+    EnqueueUnregister(FRHITextureHandle I_Handle)
+    {
+        PendingUnregisterTextures.Enqueue(I_Handle);
+    }
+
+    void FRHIRegistry::
+    EnqueueUnregister(FRHIBufferHandle I_Handle)
+    {
+        PendingUnregisterBuffers.Enqueue(I_Handle);
+    }
+
+    void FRHIRegistry::
+    EnqueueUnregister(FRHISamplerHandle I_Handle)
+    {
+        PendingUnregisterSamplers.Enqueue(I_Handle);
+    }
+
+    void FRHIRegistry::
+    EnqueueUnregister(FRHIDescriptorSetHandle I_Handle)
+    {
+        PendingUnregisterDescriptorSets.Enqueue(I_Handle);
+    }
+
+    void FRHIRegistry::
+    EnqueueUnregister(FRHIShaderHandle I_Handle)
+    {
+        PendingUnregisterShaders.Enqueue(I_Handle);
+    }
+
+    void FRHIRegistry::
+    EnqueueUnregister(FRHIRenderPassHandle I_Handle)
+    {
+        PendingUnregisterRenderPasses.Enqueue(I_Handle);
+    }
+
+    void FRHIRegistry::
+    ForceDestroyAll()
+    {
+        DrainPendingUnregisters();
+
+        for (auto& CurrentItem : GarbageBinTextures)
+        {
+            const auto* Texture = Textures.Get(CurrentItem.ResourceHandle);
+            if (Texture) { RecycleBinTextures[Hash(Texture->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
+        }
+        GarbageBinTextures.Clear();
+        for (auto& CurrentItem : GarbageBinBuffers)
+        {
+            const auto* Buffer = Buffers.Get(CurrentItem.ResourceHandle);
+            if (Buffer) { RecycleBinBuffers[Hash(Buffer->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
+        }
+        GarbageBinBuffers.Clear();
+        for (auto& CurrentItem : GarbageBinSamplers)
+        {
+            const auto* Sampler = Samplers.Get(CurrentItem.ResourceHandle);
+            if (Sampler) { RecycleBinSamplers[Hash(Sampler->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
+        }
+        GarbageBinSamplers.Clear();
+        for (auto& CurrentItem : GarbageBinDescriptorSets)
+        {
+            const auto* DescriptorSet = DescriptorSets.Get(CurrentItem.ResourceHandle);
+            if (DescriptorSet) { RecycleBinDescriptorSets[Hash(DescriptorSet->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
+        }
+        GarbageBinDescriptorSets.Clear();
+        for (auto& CurrentItem : GarbageBinShaders)
+        {
+            (void)Shaders.Erase(CurrentItem.ResourceHandle);
+        }
+        GarbageBinShaders.Clear();
+        for (auto& CurrentItem : GarbageBinRenderPasses)
+        {
+            (void)RenderPasses.Erase(CurrentItem.ResourceHandle);
+        }
+        GarbageBinRenderPasses.Clear();
+
+        ClearGarbage();
+
+        DescriptorSets.Clear();
+        DescriptorSetLayouts.Clear();
+        Textures.Clear();
+        Buffers.Clear();
+        Samplers.Clear();
+        Shaders.Clear();
+        RenderPasses.Clear();
+        DescriptorSetLayoutCache.Clear();
+    }
+
+    void FRHIRegistry::
+    DrainPendingUnregisters()
+    {
+        while (auto H = PendingUnregisterTextures.Dequeue())
+        { Unregister(*H); }
+        while (auto H = PendingUnregisterBuffers.Dequeue())
+        { Unregister(*H); }
+        while (auto H = PendingUnregisterSamplers.Dequeue())
+        { Unregister(*H); }
+        while (auto H = PendingUnregisterDescriptorSets.Dequeue())
+        { Unregister(*H); }
+        while (auto H = PendingUnregisterShaders.Dequeue())
+        { Unregister(*H); }
+        while (auto H = PendingUnregisterRenderPasses.Dequeue())
+        { Unregister(*H); }
+    }
+
     /**
      * Call this function at the BEGIN of the frame (after Wait on SubmitFence)
      */
     void FRHIRegistry::
     CollectGarbage()
     {
+        DrainPendingUnregisters();
         PROFILING_ONLY_FIELD(
         ++ProfilingMetrics.CollectCalls;
         UInt64 RecycledTextures = 0;
@@ -724,6 +880,12 @@ export namespace Visera
             auto& CurrentItem = GarbageBinTextures[Idx];
             if (CurrentItem.RetiredFence && !CurrentItem.RetiredFence->IsSignaled())
             {
+                Idx += 1;
+                continue;
+            }
+            if (CurrentItem.TimeToLive > 0)
+            {
+                --CurrentItem.TimeToLive;
                 Idx += 1;
                 continue;
             }
@@ -741,6 +903,12 @@ export namespace Visera
                 Idx += 1;
                 continue;
             }
+            if (CurrentItem.TimeToLive > 0)
+            {
+                --CurrentItem.TimeToLive;
+                Idx += 1;
+                continue;
+            }
             const auto* Buffer = Buffers.Get(CurrentItem.ResourceHandle);
             VISERA_ASSERT(Buffer != nullptr);
             RecycleBinBuffers[Hash(Buffer->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
@@ -752,6 +920,12 @@ export namespace Visera
             auto& CurrentItem = GarbageBinSamplers[Idx];
             if (CurrentItem.RetiredFence && !CurrentItem.RetiredFence->IsSignaled())
             {
+                Idx += 1;
+                continue;
+            }
+            if (CurrentItem.TimeToLive > 0)
+            {
+                --CurrentItem.TimeToLive;
                 Idx += 1;
                 continue;
             }
@@ -769,6 +943,12 @@ export namespace Visera
                 Idx += 1;
                 continue;
             }
+            if (CurrentItem.TimeToLive > 0)
+            {
+                --CurrentItem.TimeToLive;
+                Idx += 1;
+                continue;
+            }
             const auto* DescriptorSet = DescriptorSets.Get(CurrentItem.ResourceHandle);
             VISERA_ASSERT(DescriptorSet != nullptr);
             RecycleBinDescriptorSets[Hash(DescriptorSet->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle);
@@ -783,6 +963,12 @@ export namespace Visera
                 Idx += 1;
                 continue;
             }
+            if (CurrentItem.TimeToLive > 0)
+            {
+                --CurrentItem.TimeToLive;
+                Idx += 1;
+                continue;
+            }
             if (Shaders.Erase(CurrentItem.ResourceHandle))
             { LOG_DEBUG("Destroyed Shader ({}).", CurrentItem.ResourceHandle); }
             GarbageBinShaders.RemoveAtSwap(Idx);
@@ -792,6 +978,12 @@ export namespace Visera
             auto& CurrentItem = GarbageBinRenderPasses[Idx];
             if (CurrentItem.RetiredFence && !CurrentItem.RetiredFence->IsSignaled())
             {
+                Idx += 1;
+                continue;
+            }
+            if (CurrentItem.TimeToLive > 0)
+            {
+                --CurrentItem.TimeToLive;
                 Idx += 1;
                 continue;
             }

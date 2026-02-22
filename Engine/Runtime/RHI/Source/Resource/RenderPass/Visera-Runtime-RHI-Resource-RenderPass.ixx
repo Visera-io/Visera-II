@@ -69,6 +69,9 @@ export namespace Visera
             ERHIBlendOp Mode { ERHIBlendOp::Add }; // None == Disable
         }AlphaBlend;
 
+        /** Color attachment format for pipeline (must match render target, e.g. swap chain B8G8R8A8_sRGB). */
+        ERHIFormat ColorFormat { ERHIFormat::B8G8R8A8_sRGB };
+
         Bool operator==(const FRHIRenderPassDesc&) const = default;
     };
 

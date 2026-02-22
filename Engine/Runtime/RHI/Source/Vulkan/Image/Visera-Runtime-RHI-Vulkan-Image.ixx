@@ -48,8 +48,6 @@ namespace Visera
         GetExtent() const { return Info.extent; }
         [[nodiscard]] inline vk::ImageType
         GetType() const { return Info.imageType; }
-        [[nodiscard]] inline vk::ImageLayout
-        GetLayout() const { return CurrentLayout; }
         [[nodiscard]] inline vk::Format
         GetFormat() const { return Info.format; }
         [[nodiscard]] inline UInt8
@@ -73,7 +71,6 @@ namespace Visera
     protected:
         vk::Image           Handle {nullptr};
         vk::ImageCreateInfo Info;
-        vk::ImageLayout     CurrentLayout {vk::ImageLayout::eUndefined};
 
     public:
         FVulkanImage() : IVulkanResource{nullptr, EType::Image} {}
@@ -173,8 +170,7 @@ namespace Visera
                  const vk::ImageCreateInfo&   I_CreateInfo,
                  EVMAMemoryProperty           I_MemoryProperties)
     : IVulkanResource   {I_Allocator, EType::Image},
-      Info              { I_CreateInfo },
-      CurrentLayout     { I_CreateInfo.initialLayout }
+      Info              { I_CreateInfo }
     {
         VISERA_ASSERT(Info.initialLayout == vk::ImageLayout::eUndefined);
         Allocate(&Handle, &Info, nullptr, I_MemoryProperties);
@@ -224,8 +220,6 @@ namespace Visera
             .setPImageMemoryBarriers    (&I_MemoryBarrier)
         ;
         I_CommandBuffer.pipelineBarrier2(DependencyInfo);
-
-        CurrentLayout = I_MemoryBarrier.newLayout;
     }
     
     Bool FVulkanImage::

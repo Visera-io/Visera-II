@@ -68,7 +68,8 @@ export namespace Visera
         [[nodiscard]] FVulkanRenderPipeline
         CreateRenderPipeline(FVulkanPipelineLayout* I_PipelineLayout,
                              FVulkanShaderModule*   I_VertexShader,
-                             FVulkanShaderModule*   I_FragmentShader);
+                             FVulkanShaderModule*   I_FragmentShader,
+                             vk::Format             I_ColorFormat = vk::Format::eB8G8R8A8Srgb);
         [[nodiscard]] FVulkanComputePipeline
         CreateComputePipeline(FVulkanPipelineLayout* I_PipelineLayout,
                               FVulkanShaderModule*   I_ComputeShader);
@@ -98,9 +99,9 @@ export namespace Visera
         CreateBuffer(const vk::BufferCreateInfo& I_CreateInfo,
                      EVulkanMemoryProperty       I_MemoryProperties);
         [[nodiscard]] FVulkanDescriptorSetLayout
-        CreateInforiptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
+        CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings);
         [[nodiscard]] FVulkanDescriptorPool
-        CreateInforiptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes);
+        CreateDescriptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes);
 
         // Exposed init/destroy steps so FRHI can orchestrate a staged startup.
         void inline CreateInstance();       void inline DestroyInstance();
@@ -1285,19 +1286,18 @@ export namespace Visera
     FVulkanRenderPipeline FVulkanDriver::
     CreateRenderPipeline(FVulkanPipelineLayout* I_PipelineLayout,
                          FVulkanShaderModule*   I_VertexShader,
-                         FVulkanShaderModule*   I_FragmentShader)
+                         FVulkanShaderModule*   I_FragmentShader,
+                         vk::Format             I_ColorFormat)
     {
         LOG_TRACE("Creating a Vulkan Render Pipeline.");
         VISERA_ASSERT(I_PipelineLayout != nullptr);
         VISERA_ASSERT(I_VertexShader != nullptr);
         VISERA_ASSERT(I_FragmentShader != nullptr);
-        // Move the resources from storage arrays into the pipeline
-        // Note: This invalidates the pointers, but that's OK since Pipeline owns them now
         auto NewRenderPipeline = FVulkanRenderPipeline(
                std::move(*I_PipelineLayout),
                std::move(*I_VertexShader),
                std::move(*I_FragmentShader));
-        // Call Create() to actually create the Vulkan pipeline
+        NewRenderPipeline.Settings.ColorRTFormat = I_ColorFormat;
         NewRenderPipeline.Create(Device.Context, PipelineCache);
         return NewRenderPipeline;
     }
@@ -1374,13 +1374,13 @@ export namespace Visera
     }
 
     FVulkanDescriptorSetLayout FVulkanDriver::
-    CreateInforiptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
+    CreateDescriptorSetLayout(const TArray<vk::DescriptorSetLayoutBinding>& I_Bindings)
     {
         return FVulkanDescriptorSetLayout{Device.Context, I_Bindings};
     }
 
     FVulkanDescriptorPool FVulkanDriver::
-    CreateInforiptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes)
+    CreateDescriptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes)
     {
         return FVulkanDescriptorPool(Device.Context, I_PoolSizes, GPU.Properties.limits.maxBoundDescriptorSets);
     }

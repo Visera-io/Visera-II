@@ -30,7 +30,7 @@ namespace Visera
         SetClearColor(const vk::ClearColorValue& I_ClearColor) { ClearColor = I_ClearColor; return *this; }
 
         vk::RenderingAttachmentInfo
-        GetAttachmentInfo() const;
+        GetAttachmentInfo(vk::ImageLayout I_ImageLayout) const;
         [[nodiscard]] Bool
         HasDepth()      const { return ImageView->GetImage()->HasDepth();   }
         [[nodiscard]] Bool
@@ -62,12 +62,11 @@ namespace Visera
     }
 
     vk::RenderingAttachmentInfo FVulkanRenderTarget::
-    GetAttachmentInfo() const
+    GetAttachmentInfo(vk::ImageLayout I_ImageLayout) const
     {
-        const auto* Image = ImageView->GetImage();
         return vk::RenderingAttachmentInfo{}
         .setImageView   (ImageView->GetHandle())
-        .setImageLayout (Image->GetLayout())
+        .setImageLayout (I_ImageLayout)
         .setLoadOp      (GetLoadOp())
         .setStoreOp     (GetStoreOp())
         .setClearValue  (GetClearColor());

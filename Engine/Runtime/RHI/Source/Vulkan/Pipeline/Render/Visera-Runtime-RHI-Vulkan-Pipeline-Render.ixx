@@ -28,6 +28,8 @@ namespace Visera
         GetColorRT() const { return CurrentColorRT; }
         inline FVulkanRenderPipeline*
         SetColorRT(FVulkanRenderTarget* I_ColorRT);
+        inline FVulkanRenderPipeline*
+        SetColorRTs(FVulkanRenderTarget* const* I_ColorRTs, UInt32 I_Count);
         [[nodiscard]] inline FVulkanRenderTarget*
         GetDepthRT() const { return CurrentDepthRT; }
         inline FVulkanRenderPipeline*
@@ -58,7 +60,7 @@ namespace Visera
             vk::PipelineColorBlendAttachmentState
             ColorBlendAttachment{};
             vk::Format
-            ColorRTFormat    {vk::Format::eR16G16B16A16Sfloat};
+            ColorRTFormat    {vk::Format::eB8G8R8A8Srgb};
             vk::Format
             DepthRTFormat    {vk::Format::eUndefined};
             vk::Format
@@ -202,14 +204,20 @@ namespace Visera
     FVulkanRenderPipeline* FVulkanRenderPipeline::
     SetColorRT(FVulkanRenderTarget* I_ColorRT)
     {
-        VISERA_ASSERT(I_ColorRT != nullptr);
-        static vk::RenderingAttachmentInfo ColorInfo{};
+        return SetColorRTs(&I_ColorRT, 1);
+    }
 
-        CurrentColorRT = I_ColorRT;
-        ColorInfo = CurrentColorRT->GetAttachmentInfo();
+    FVulkanRenderPipeline* FVulkanRenderPipeline::
+    SetColorRTs(FVulkanRenderTarget* const* I_ColorRTs, UInt32 I_Count)
+    {
+        VISERA_ASSERT(I_ColorRTs != nullptr && I_Count > 0);
+        static vk::RenderingAttachmentInfo ColorInfos[8];
+        for (UInt32 i = 0; i < I_Count && i < 8; ++i)
+        { ColorInfos[i] = I_ColorRTs[i]->GetAttachmentInfo(vk::ImageLayout::eColorAttachmentOptimal); }
+        CurrentColorRT = I_Count > 0 ? I_ColorRTs[0] : nullptr;
         CurrentRenderingInfo
-        .setColorAttachmentCount (1)
-        .setPColorAttachments    (&ColorInfo);
+            .setColorAttachmentCount(I_Count)
+            .setPColorAttachments(ColorInfos);
         return this;
     }
 
@@ -220,7 +228,7 @@ namespace Visera
         static vk::RenderingAttachmentInfo DepthInfo{};
 
         CurrentDepthRT = I_DepthRT;
-        DepthInfo = CurrentDepthRT->GetAttachmentInfo();
+        DepthInfo = CurrentDepthRT->GetAttachmentInfo(vk::ImageLayout::eDepthStencilAttachmentOptimal);
         CurrentRenderingInfo
         .setPDepthAttachment(&DepthInfo);
         return this;
@@ -233,7 +241,7 @@ namespace Visera
         static vk::RenderingAttachmentInfo StencilInfo{};
 
         CurrentStencilRT = I_StencilRT;
-        StencilInfo = CurrentStencilRT->GetAttachmentInfo();
+        StencilInfo = CurrentStencilRT->GetAttachmentInfo(vk::ImageLayout::eDepthStencilAttachmentOptimal);
         CurrentRenderingInfo
         .setPStencilAttachment(&StencilInfo);
         return this;

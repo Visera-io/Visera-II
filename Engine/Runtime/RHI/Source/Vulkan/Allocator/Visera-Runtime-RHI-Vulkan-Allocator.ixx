@@ -97,6 +97,8 @@ export namespace Visera
         IsEmpty() const { return GetMemorySize() == 0; }
         [[nodiscard]] inline Bool
         IsMapped()      const { return Allocation->GetMappedData() != nullptr; }
+        [[nodiscard]] inline void*
+        GetMappedPtr()  const { return Allocation ? Allocation->GetMappedData() : nullptr; }
         [[nodiscard]] inline Bool
         IsAliased() const { return !Properties.bOwnsAllocation; }
         [[nodiscard]] inline Bool

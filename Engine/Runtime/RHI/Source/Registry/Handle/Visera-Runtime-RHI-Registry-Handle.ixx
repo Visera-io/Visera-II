@@ -63,6 +63,11 @@ export namespace Visera
         : FRHIResourceHandle(I_Generation, I_Index, EType::Texture, False) {}
         FRHITextureHandle(UInt32 I_Generation, UInt32 I_Index, Bool I_bWritable)
         : FRHIResourceHandle(I_Generation, I_Index, EType::Texture, I_bWritable) {}
+
+        static FRHITextureHandle CreateSwapChainProxy(UInt8 I_SwapChainIndex)
+        { return FRHITextureHandle(0, I_SwapChainIndex, True); }
+        [[nodiscard]] constexpr Bool IsSwapChainProxy() const
+        { return GetGeneration() == 0 && GetType() == EType::Texture; }
     };
 
     struct VISERA_RUNTIME_API FRHIBufferHandle : FRHIResourceHandle

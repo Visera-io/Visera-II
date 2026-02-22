@@ -3,58 +3,41 @@ module;
 export module Visera.Runtime.RHI.CommandList;
 #define VISERA_MODULE_NAME "RHI.CommandList"
 import Visera.Runtime.RHI.Common;
+import Visera.Runtime.RHI.Attachments;
 import Visera.Runtime.RHI.Registry;
+import Visera.Runtime.RHI.Barrier;
 import Visera.Core.Log;
 import Visera.Core.OS.Memory;
 import Visera.Core.Containers.Array;
 
+#define RHI_COMMAND_LIST \
+    RHI_COMMAND(TransitionTexture) \
+    RHI_COMMAND(WriteBuffer) \
+    RHI_COMMAND(CopyBufferToImage) \
+    RHI_COMMAND(ClearColorImage) \
+    RHI_COMMAND(BlitImage) \
+    RHI_COMMAND(EnterRenderPass) \
+    RHI_COMMAND(SetViewport) \
+    RHI_COMMAND(SetScissor) \
+    RHI_COMMAND(LeaveRenderPass) \
+    RHI_COMMAND(BindVertexBuffer) \
+    RHI_COMMAND(BindDescriptorSet) \
+    RHI_COMMAND(Draw) \
+    RHI_COMMAND(DrawIndexed)
+
 export namespace Visera
 {
-    enum class ECommandType : UInt16
+    enum class ERHICommandType : UInt16
     {
-        ConvertImageLayout,
-        WriteBuffer,
-        CopyBufferToImage,
-        ClearColorImage,
-        BlitImage,
-        BlitToSwapChain,
-        EnterRenderPass,
-        SetViewport,
-        SetScissor,
-        LeaveRenderPass,
-        BindVertexBuffer,
-        BindDescriptorSet,
-        Draw,
-        DrawIndexed,
+#define RHI_COMMAND(Name) Name,
+        RHI_COMMAND_LIST
+#undef RHI_COMMAND
     };
-
-    [[nodiscard]] constexpr const char*
-    CommandTypeName(ECommandType I_Type) noexcept
-    {
-        switch (I_Type)
-        {
-        case ECommandType::ConvertImageLayout:  return "ConvertImageLayout";
-        case ECommandType::WriteBuffer:         return "WriteBuffer";
-        case ECommandType::CopyBufferToImage:   return "CopyBufferToImage";
-        case ECommandType::ClearColorImage:     return "ClearColorImage";
-        case ECommandType::BlitImage:           return "BlitImage";
-        case ECommandType::BlitToSwapChain:     return "BlitToSwapChain";
-        case ECommandType::EnterRenderPass:     return "EnterRenderPass";
-        case ECommandType::SetViewport:         return "SetViewport";
-        case ECommandType::SetScissor:          return "SetScissor";
-        case ECommandType::LeaveRenderPass:     return "LeaveRenderPass";
-        case ECommandType::BindVertexBuffer:    return "BindVertexBuffer";
-        case ECommandType::BindDescriptorSet:   return "BindDescriptorSet";
-        case ECommandType::Draw:                return "Draw";
-        case ECommandType::DrawIndexed:         return "DrawIndexed";
-        default: return "Unknown";
-        }
-    }
 
     // Command view returned by iterator
     struct FRHICommandView
     {
-        ECommandType Type;
+        ERHICommandType Type;
         const FByte* PayloadPtrAligned; // Already aligned payload start
         UInt16       PayloadBytes;      // = TotalBytes - PayloadOff
     };
@@ -62,30 +45,12 @@ export namespace Visera
     class VISERA_RUNTIME_API FRHICommandList
     {
         static constexpr UInt64 CommandAlignment = 8;
-        static inline constexpr UInt64 InlineArenaBytes = 32_KB;
-        PROFILING_ONLY_FIELD(
-        struct FProfilingMetrics
-        {
-            UInt64 PeakCommandCount {0};
-            UInt64 PeakBufferSizeBytes {0};
-            UInt64 PeakBufferCapacityBytes {0};
-            UInt64 PeakCommandBytes {0};
-            ECommandType PeakCommandType {ECommandType::ConvertImageLayout};
-            UInt64 InlineOverflowEvents {0};
-            UInt64 PeakOverInlineBytes {0};
-            UInt64 RecommendedInlineBytes {InlineArenaBytes};
-        } ProfilingMetrics {};
-        );
-
-    public:
-        /// Target swap chain for execution. Set by FRHI::Execute(); do not set directly.
-        FRHISwapChainID TargetSwapChain { 0 };  // Index into FRHI's swap chain array; 0 = primary
 
     private:
 
         struct alignas(8) FCommandHeader
         {
-            ECommandType Type;       // Command type
+            ERHICommandType Type;       // Command type
             UInt16       PayloadOff; // Offset from header start to payload start
             UInt16       TotalBytes; // Total bytes from header start to command end
             UInt16       Pad;        // Reserved / padding
@@ -94,7 +59,18 @@ export namespace Visera
         static_assert(alignof(FCommandHeader) == 8);
 
     public:
-        struct FWriteBuffer
+        PROFILING_ONLY_FIELD(
+        struct FProfilingMetrics
+        {
+            UInt64 PeakCommandCount {0};
+            UInt64 PeakBufferSizeBytes {0};
+            UInt64 PeakBufferCapacityBytes {0};
+            UInt64 PeakCommandBytes {0};
+            ERHICommandType PeakCommandType {ERHICommandType::TransitionTexture};
+        } ProfilingMetrics {};
+        )
+
+        struct alignas(8) FWriteBuffer
         {
             FRHIBufferHandle TargetBuffer;
             FRHIBufferHandle StagingBuffer;
@@ -102,21 +78,33 @@ export namespace Visera
         void inline
         WriteBuffer(const FRHIBufferID& I_TargetBuffer, const FRHIBufferID& I_StagingBuffer);
 
-        struct FEnterRenderPass
+        struct alignas(8) FEnterRenderPass
         {
-            FRHIRenderPassHandle RenderPass;
+            FRHIRenderPassHandle      RenderPass;
+            UInt8                     ColorTargetCount { 0 };
+            struct alignas(8) FColorAttachmentSlot
+            {
+                FRHITextureHandle      Handle;
+                ERHIAttachmentLoadOp   LoadOp  { ERHIAttachmentLoadOp::Clear };
+                ERHIAttachmentStoreOp  StoreOp { ERHIAttachmentStoreOp::Store };
+                Float                  ClearR  { 0.1f };
+                Float                  ClearG  { 0.1f };
+                Float                  ClearB  { 0.15f };
+                Float                  ClearA  { 1.0f };
+            };
+            FColorAttachmentSlot ColorSlots[kMaxColorAttachments];
         };
         void inline
-        EnterRenderPass(const FRHIRenderPassID& I_RenderPass);
+        EnterRenderPass(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments);
 
-        struct FLeaveRenderPass
+        struct alignas(8) FLeaveRenderPass
         {
             UInt8 _ {0};  // Minimal payload for RecordCommand
         };
         void inline
         LeaveRenderPass();
 
-        struct FBindVertexBuffer
+        struct alignas(8) FBindVertexBuffer
         {
             FRHIBufferHandle Buffer;
             UInt8            Binding   {0};
@@ -125,7 +113,7 @@ export namespace Visera
         void inline
         BindVertexBuffer(const FRHIBufferID& I_Buffer, UInt8 I_Binding = 0, UInt64 I_Offset = 0);
 
-        struct FBindDescriptorSet
+        struct alignas(8) FBindDescriptorSet
         {
             FRHIDescriptorSetHandle DescriptorSet;
             UInt32                  SetIndex {0};
@@ -133,7 +121,7 @@ export namespace Visera
         void inline
         BindDescriptorSet(const FRHIDescriptorSetID& I_DescriptorSet, UInt32 I_SetIndex = 0);
 
-        struct FDraw
+        struct alignas(8) FDraw
         {
             UInt32 VertexCount   {0};
             UInt32 InstanceCount {1};
@@ -143,7 +131,7 @@ export namespace Visera
         void inline
         Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount = 1, UInt32 I_FirstVertex = 0, UInt32 I_FirstInstance = 0);
 
-        struct FDrawIndexed
+        struct alignas(8) FDrawIndexed
         {
             UInt32 IndexCount    {0};
             UInt32 InstanceCount {1};
@@ -154,60 +142,68 @@ export namespace Visera
         void inline
         DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount = 1, UInt32 I_FirstIndex = 0, Int32 I_VertexOffset = 0, UInt32 I_FirstInstance = 0);
 
-        struct FCopyBufferToImage
+        struct alignas(8) FCopyBufferToImage
         {
             FRHIBufferHandle  Buffer;
             FRHITextureHandle Image;
+            ERHIImageLayout   InitialLayout;
+            ERHIImageLayout   FinalLayout;
         };
         void inline
-        CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture);
+        CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture,
+                         ERHIImageLayout I_InitialLayout = ERHIImageLayout::Undefined,
+                         ERHIImageLayout I_FinalLayout = ERHIImageLayout::ShaderReadOnly);
 
-        struct FSetViewport
+        struct alignas(8) FSetViewport
         {
             FRHIViewport Viewport;
         };
         void inline
         SetViewport(const FRHIViewport& I_Viewport);
 
-        struct FSetScissor
+        struct alignas(8) FSetScissor
         {
             FRHIScissor Scissor;
         };
         void inline
         SetScissor(const FRHIScissor& I_Scissor);
 
-        struct FConvertImageLayout
+        struct alignas(8) FTransitionTexturePayload
         {
-            FRHITextureHandle   Image;
-            ERHIImageLayout NewLayout;
+            FRHITextureHandle Image;
+            ERHIImageLayout   OldLayout;
+            ERHIImageLayout   NewLayout;
         };
         void inline
-        ConvertImageLayout(const FRHITextureID& I_Texture, ERHIImageLayout I_NewLayout);
+        TransitionTexture(const FRHIImageBarrier& I_Barrier);
 
-        struct FClearColorImage
+        struct alignas(8) FClearColorImage
         {
             FRHITextureHandle  Image;
-            FRHIClearColor ClearColor;
+            FRHIClearColor     ClearColor;
+            ERHIImageLayout    ImageLayout;
         };
         void inline
-        ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor);
+        ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor,
+                       ERHIImageLayout I_ImageLayout = ERHIImageLayout::TransferDst);
 
-        struct FBlitImage
+        struct alignas(8) FBlitImage
         {
             FRHITextureHandle SrcImage;
             FRHITextureHandle DstImage;
-            ERHIFilter    Filter;
+            ERHIFilter        Filter;
+            ERHIImageLayout   SrcImageLayout;
+            ERHIImageLayout   DstImageLayout;
         };
         void inline
-        BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter);
+        BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter,
+                  ERHIImageLayout I_SrcLayout = ERHIImageLayout::TransferSrc,
+                  ERHIImageLayout I_DstLayout = ERHIImageLayout::TransferDst);
 
-        struct FBlitToSwapChain
-        {
-            FRHITextureHandle Image;
-            ERHIFilter    Filter;
-        };
-        void inline
-        BlitToSwapChain(const FRHITextureID& I_Texture, ERHIFilter I_Filter);
+        PROFILING_ONLY_FIELD(
+        [[nodiscard]] const FProfilingMetrics&
+        GetProfilingMetrics() const { return ProfilingMetrics; }
+        )
 
         // Check if the command list is empty
         [[nodiscard]] Bool
@@ -218,10 +214,18 @@ export namespace Visera
         // Get the buffer size in bytes
         [[nodiscard]] UInt64
         GetSize() const { return Buffer.GetSize(); }
-        /// Clear recorded commands. Does not reset MemoryCache so that Buffer's
-        /// storage (which may come from the arena) is not freed while still in use.
         void
         Reset() { Buffer.Clear(); CommandCount = 0; }
+
+        void
+        ShrinkTo(UInt64 I_MaxCapacity)
+        {
+            if (Buffer.GetCapacity() > I_MaxCapacity)
+            {
+                Buffer = TArray<FByte>();
+                Buffer.Reserve(I_MaxCapacity);
+            }
+        }
 
         // Iterator for range-based for loop
         class VISERA_RUNTIME_API FIterator
@@ -238,7 +242,7 @@ export namespace Visera
             {
                 const UInt64 HeaderOffset = Memory::Align(Offset, FRHICommandList::CommandAlignment);
                 if (HeaderOffset + sizeof(FCommandHeader) > Size)
-                    return {ECommandType{}, nullptr, 0};
+                    return {ERHICommandType{}, nullptr, 0};
 
                 const auto* Header = reinterpret_cast<const FCommandHeader*>(Data + HeaderOffset);
 
@@ -297,25 +301,21 @@ export namespace Visera
         }
 
     private:
-        Memory::TMonotonicArena<InlineArenaBytes> MemoryCache;
-        TPMRArray<FByte>               Buffer;
-        UInt64                         CommandCount = 0;
+        TArray<FByte>  Buffer;
+        UInt64         CommandCount = 0;
 
     public:
-        FRHICommandList() : MemoryCache(), Buffer(&MemoryCache.Get()) { }
-
-        FRHICommandList(const FRHICommandList& I_Other)
-            : MemoryCache(), Buffer(&MemoryCache.Get()), CommandCount(I_Other.CommandCount)
-        {
-            Buffer.Resize(I_Other.Buffer.GetSize());
-            if (I_Other.Buffer.GetSize() > 0)
-            { Memory::Memcpy(Buffer.Data(), I_Other.Buffer.Data(), I_Other.Buffer.GetSize()); }
-        }
+        FRHICommandList() = default;
+        ~FRHICommandList() = default;
+        FRHICommandList(const FRHICommandList&) = default;
+        FRHICommandList& operator=(const FRHICommandList&) = default;
+        FRHICommandList(FRHICommandList&&) noexcept = default;
+        FRHICommandList& operator=(FRHICommandList&&) noexcept = default;
 
     private:
         // Record a command with payload struct
         template<typename Payload> void
-        RecordCommand(ECommandType I_Type, const Payload& I_Payload) requires std::is_trivially_copyable_v<Payload>
+        RecordCommand(ERHICommandType I_Type, const Payload& I_Payload) requires std::is_trivially_copyable_v<Payload>
         {
             // Align header start to CommandAlignment
             const UInt64 HeaderOffset = Memory::Align(Buffer.GetSize(), CommandAlignment);
@@ -353,45 +353,15 @@ export namespace Visera
             ++CommandCount;
             PROFILING_ONLY_FIELD(
             if (CommandCount > ProfilingMetrics.PeakCommandCount)
-            {
                 ProfilingMetrics.PeakCommandCount = CommandCount;
-                LOG_INFO("[Profiling] CommandList peak command_count={} (last_type={}).",
-                    ProfilingMetrics.PeakCommandCount,
-                    CommandTypeName(I_Type));
-            }
             if (Buffer.GetSize() > ProfilingMetrics.PeakBufferSizeBytes)
-            {
                 ProfilingMetrics.PeakBufferSizeBytes = Buffer.GetSize();
-                LOG_INFO("[Profiling] CommandList peak buffer_size={} bytes (commands={}).",
-                    ProfilingMetrics.PeakBufferSizeBytes,
-                    CommandCount);
-            }
             if (Buffer.GetCapacity() > ProfilingMetrics.PeakBufferCapacityBytes)
-            {
                 ProfilingMetrics.PeakBufferCapacityBytes = Buffer.GetCapacity();
-                LOG_INFO("[Profiling] CommandList peak buffer_capacity={} bytes.",
-                    ProfilingMetrics.PeakBufferCapacityBytes);
-                if (ProfilingMetrics.PeakBufferCapacityBytes > InlineArenaBytes)
-                {
-                    const UInt64 OverInlineBytes = ProfilingMetrics.PeakBufferCapacityBytes - InlineArenaBytes;
-                    ++ProfilingMetrics.InlineOverflowEvents;
-                    if (OverInlineBytes > ProfilingMetrics.PeakOverInlineBytes)
-                    { ProfilingMetrics.PeakOverInlineBytes = OverInlineBytes; }
-                    ProfilingMetrics.RecommendedInlineBytes = ProfilingMetrics.PeakBufferCapacityBytes;
-                    LOG_WARN("[Profiling] CommandList inline arena pressure: inline={} bytes, peak_capacity={} bytes, over_by={} bytes, recommended_inline={} bytes.",
-                        InlineArenaBytes,
-                        ProfilingMetrics.PeakBufferCapacityBytes,
-                        OverInlineBytes,
-                        ProfilingMetrics.RecommendedInlineBytes);
-                }
-            }
             if (TotalBytes > ProfilingMetrics.PeakCommandBytes)
             {
                 ProfilingMetrics.PeakCommandBytes = TotalBytes;
                 ProfilingMetrics.PeakCommandType  = I_Type;
-                LOG_INFO("[Profiling] CommandList peak command_bytes={} (type={}).",
-                    ProfilingMetrics.PeakCommandBytes,
-                    CommandTypeName(ProfilingMetrics.PeakCommandType));
             }
             );
         }
@@ -404,7 +374,7 @@ export namespace Visera
         const auto StagingBufferHandle = I_StagingBuffer.GetHandle();
         VISERA_ASSERT(TargetBufferHandle  != FRHIBufferHandle{});
         VISERA_ASSERT(StagingBufferHandle != FRHIBufferHandle{});
-        RecordCommand(ECommandType::WriteBuffer, FWriteBuffer
+        RecordCommand(ERHICommandType::WriteBuffer, FWriteBuffer
         {
             .TargetBuffer  = TargetBufferHandle,
             .StagingBuffer = StagingBufferHandle
@@ -412,35 +382,39 @@ export namespace Visera
     }
 
     void FRHICommandList::
-    ConvertImageLayout(const FRHITextureID& I_Texture, ERHIImageLayout I_NewLayout)
+    TransitionTexture(const FRHIImageBarrier& I_Barrier)
     {
-        const auto Handle = I_Texture.GetHandle();
+        const auto Handle = I_Barrier.Image.GetHandle();
         VISERA_ASSERT(Handle != FRHITextureHandle{});
-        RecordCommand(ECommandType::ConvertImageLayout, FConvertImageLayout
+        RecordCommand(ERHICommandType::TransitionTexture, FTransitionTexturePayload
         {
             .Image     = Handle,
-            .NewLayout = I_NewLayout,
+            .OldLayout = I_Barrier.OldLayout,
+            .NewLayout = I_Barrier.NewLayout,
         });
     }
 
     void FRHICommandList::
-    CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture)
+    CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture,
+                     ERHIImageLayout I_InitialLayout, ERHIImageLayout I_FinalLayout)
     {
         const auto BufferHandle = I_Buffer.GetHandle();
         const auto ImageHandle  = I_Texture.GetHandle();
         VISERA_ASSERT(BufferHandle != FRHIBufferHandle{});
         VISERA_ASSERT(ImageHandle  != FRHITextureHandle{});
-        RecordCommand(ECommandType::CopyBufferToImage, FCopyBufferToImage
+        RecordCommand(ERHICommandType::CopyBufferToImage, FCopyBufferToImage
         {
-            .Buffer = BufferHandle,
-            .Image  = ImageHandle,
+            .Buffer         = BufferHandle,
+            .Image          = ImageHandle,
+            .InitialLayout  = I_InitialLayout,
+            .FinalLayout    = I_FinalLayout,
         });
     }
 
     void FRHICommandList::
     SetViewport(const FRHIViewport& I_Viewport)
     {
-        RecordCommand(ECommandType::SetViewport, FSetViewport
+        RecordCommand(ERHICommandType::SetViewport, FSetViewport
         {
             .Viewport = I_Viewport,
         });
@@ -449,66 +423,77 @@ export namespace Visera
     void FRHICommandList::
     SetScissor(const FRHIScissor& I_Scissor)
     {
-        RecordCommand(ECommandType::SetScissor, FSetScissor
+        RecordCommand(ERHICommandType::SetScissor, FSetScissor
         {
             .Scissor = I_Scissor,
         });
     }
 
     void FRHICommandList::
-    ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor)
+    ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor,
+                   ERHIImageLayout I_ImageLayout)
     {
         const auto Handle = I_Texture.GetHandle();
         VISERA_ASSERT(Handle != FRHITextureHandle{});
-        RecordCommand(ECommandType::ClearColorImage, FClearColorImage
+        RecordCommand(ERHICommandType::ClearColorImage, FClearColorImage
         {
-            .Image      = Handle,
-            .ClearColor = I_ClearColor,
+            .Image       = Handle,
+            .ClearColor  = I_ClearColor,
+            .ImageLayout = I_ImageLayout,
         });
     }
 
     void FRHICommandList::
-    BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter)
+    BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter,
+              ERHIImageLayout I_SrcLayout, ERHIImageLayout I_DstLayout)
     {
         const auto SrcHandle = I_SrcTexture.GetHandle();
         const auto DstHandle = I_DstTexture.GetHandle();
         VISERA_ASSERT(SrcHandle != FRHITextureHandle{});
         VISERA_ASSERT(DstHandle != FRHITextureHandle{});
-        RecordCommand(ECommandType::BlitImage, FBlitImage
+        RecordCommand(ERHICommandType::BlitImage, FBlitImage
         {
-            .SrcImage = SrcHandle,
-            .DstImage = DstHandle,
-            .Filter   = I_Filter,
+            .SrcImage       = SrcHandle,
+            .DstImage       = DstHandle,
+            .Filter         = I_Filter,
+            .SrcImageLayout = I_SrcLayout,
+            .DstImageLayout = I_DstLayout,
         });
     }
 
     void FRHICommandList::
-    BlitToSwapChain(const FRHITextureID& I_Texture, ERHIFilter I_Filter)
-    {
-        const auto Handle = I_Texture.GetHandle();
-        VISERA_ASSERT(Handle != FRHITextureHandle{});
-        RecordCommand(ECommandType::BlitToSwapChain, FBlitToSwapChain
-        {
-            .Image  = Handle,
-            .Filter = I_Filter,
-        });
-    }
-
-    void FRHICommandList::
-    EnterRenderPass(const FRHIRenderPassID& I_RenderPass)
+    EnterRenderPass(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments)
     {
         const auto Handle = I_RenderPass.GetHandle();
         VISERA_ASSERT(Handle != FRHIRenderPassHandle{});
-        RecordCommand(ECommandType::EnterRenderPass, FEnterRenderPass
+        FEnterRenderPass Payload{};
+        Payload.RenderPass        = Handle;
+        Payload.ColorTargetCount  = static_cast<UInt8>(I_Attachments.ColorTargets.GetSize());
+        if (Payload.ColorTargetCount > kMaxColorAttachments)
         {
-            .RenderPass = Handle,
-        });
+            LOG_ERROR("EnterRenderPass: ColorTargetCount {} exceeds kMaxColorAttachments ({}), clamping.",
+                      Payload.ColorTargetCount, kMaxColorAttachments);
+            Payload.ColorTargetCount = static_cast<UInt8>(kMaxColorAttachments);
+        }
+        for (UInt32 i = 0; i < Payload.ColorTargetCount; ++i)
+        {
+            const auto& Src = I_Attachments.ColorTargets[i];
+            auto& Dst = Payload.ColorSlots[i];
+            Dst.Handle = Src.Texture.GetHandle();
+            Dst.LoadOp = Src.LoadOp;
+            Dst.StoreOp = Src.StoreOp;
+            Dst.ClearR = Src.ClearColor.R;
+            Dst.ClearG = Src.ClearColor.G;
+            Dst.ClearB = Src.ClearColor.B;
+            Dst.ClearA = Src.ClearColor.A;
+        }
+        RecordCommand(ERHICommandType::EnterRenderPass, Payload);
     }
 
     void FRHICommandList::
     LeaveRenderPass()
     {
-        RecordCommand(ECommandType::LeaveRenderPass, FLeaveRenderPass{});
+        RecordCommand(ERHICommandType::LeaveRenderPass, FLeaveRenderPass{});
     }
 
     void FRHICommandList::
@@ -516,7 +501,7 @@ export namespace Visera
     {
         const auto Handle = I_Buffer.GetHandle();
         VISERA_ASSERT(Handle != FRHIBufferHandle{});
-        RecordCommand(ECommandType::BindVertexBuffer, FBindVertexBuffer
+        RecordCommand(ERHICommandType::BindVertexBuffer, FBindVertexBuffer
         {
             .Buffer   = Handle,
             .Binding  = I_Binding,
@@ -529,7 +514,7 @@ export namespace Visera
     {
         const auto Handle = I_DescriptorSet.GetHandle();
         VISERA_ASSERT(Handle != FRHIDescriptorSetHandle{});
-        RecordCommand(ECommandType::BindDescriptorSet, FBindDescriptorSet
+        RecordCommand(ERHICommandType::BindDescriptorSet, FBindDescriptorSet
         {
             .DescriptorSet = Handle,
             .SetIndex      = I_SetIndex,
@@ -539,7 +524,7 @@ export namespace Visera
     void FRHICommandList::
     Draw(UInt32 I_VertexCount, UInt32 I_InstanceCount, UInt32 I_FirstVertex, UInt32 I_FirstInstance)
     {
-        RecordCommand(ECommandType::Draw, FDraw
+        RecordCommand(ERHICommandType::Draw, FDraw
         {
             .VertexCount   = I_VertexCount,
             .InstanceCount = I_InstanceCount,
@@ -551,7 +536,7 @@ export namespace Visera
     void FRHICommandList::
     DrawIndexed(UInt32 I_IndexCount, UInt32 I_InstanceCount, UInt32 I_FirstIndex, Int32 I_VertexOffset, UInt32 I_FirstInstance)
     {
-        RecordCommand(ECommandType::DrawIndexed, FDrawIndexed
+        RecordCommand(ERHICommandType::DrawIndexed, FDrawIndexed
         {
             .IndexCount    = I_IndexCount,
             .InstanceCount = I_InstanceCount,
@@ -561,24 +546,3 @@ export namespace Visera
         });
     }
 }
-VISERA_MAKE_FORMATTER(Visera::ECommandType,
-    const char* CommandName = "Unknown";
-    switch (I_Formatee)
-    {
-    case Visera::ECommandType::ConvertImageLayout:  CommandName = "\"ConvertImageLayout\""; break;
-    case Visera::ECommandType::WriteBuffer:         CommandName = "\"WriteBuffer\""; break;
-    case Visera::ECommandType::CopyBufferToImage:   CommandName = "\"CopyBufferToImage\""; break;
-    case Visera::ECommandType::ClearColorImage:     CommandName = "\"ClearColorImage\""; break;
-    case Visera::ECommandType::BlitImage:           CommandName = "\"BlitImage\""; break;
-    case Visera::ECommandType::BlitToSwapChain:     CommandName = "\"BlitToSwapChain\""; break;
-    case Visera::ECommandType::EnterRenderPass:     CommandName = "\"EnterRenderPass\""; break;
-    case Visera::ECommandType::SetViewport:         CommandName = "\"SetViewport\""; break;
-    case Visera::ECommandType::SetScissor:          CommandName = "\"SetScissor\""; break;
-    case Visera::ECommandType::LeaveRenderPass:     CommandName = "\"LeaveRenderPass\""; break;
-    case Visera::ECommandType::BindVertexBuffer:    CommandName = "\"BindVertexBuffer\""; break;
-    case Visera::ECommandType::BindDescriptorSet:   CommandName = "\"BindDescriptorSet\""; break;
-    case Visera::ECommandType::Draw:                CommandName = "\"Draw\""; break;
-    case Visera::ECommandType::DrawIndexed:         CommandName = "\"DrawIndexed\""; break;
-    default: break;
-    }
-, "{}", CommandName);

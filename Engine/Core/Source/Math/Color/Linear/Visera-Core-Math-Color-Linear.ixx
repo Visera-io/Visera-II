@@ -32,6 +32,8 @@ export namespace Visera
         Blue() noexcept { return FLinearColor{0.0f,0.0f,1.0f,1.0f}; }
         [[nodiscard]] static constexpr FLinearColor
         Yellow() noexcept { return FLinearColor{1.0f,1.0f,0.0f,1.0f}; }
+        [[nodiscard]] static constexpr FLinearColor
+        Purple() noexcept { return FLinearColor{0.3984f, 0.00213f, 0.7826f, 1.0f}; }
 
         [[nodiscard]] static constexpr Float
         SRGBToLinear(UInt8 I_SRGBColor) noexcept { return LUT_sRGBToLinear[I_SRGBColor]; }
