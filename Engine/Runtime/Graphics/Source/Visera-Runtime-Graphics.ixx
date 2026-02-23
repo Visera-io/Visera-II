@@ -269,12 +269,12 @@ export namespace Visera
    void FGraphics::
    Present()
    {
-      auto Win = WindowWeak.Lock();
-      if (!Win)
-      { LOG_ERROR("Present: no window (windowless mode)."); return; }
-      if (Win->GetWidth() == 0 || Win->GetHeight() == 0)
-      { return; }  // Minimized
-      RHI->Present();
+      if (auto Win = WindowWeak.Lock(); Win)
+      {
+         if (Win->GetWidth() > 0 && Win->GetHeight() > 0)
+         { RHI->Present(); }
+      }
+      else LOG_ERROR("Present: no window (windowless mode).");
    }
 
    // --- Helpers ---

@@ -1121,9 +1121,10 @@ export namespace Visera
         auto* SC = GetSwapChain(I_Window);
         if (!SC) { return False; }
         VISERA_ASSERT(I_SignalSemaphore != nullptr);
+        constexpr UInt64 kAcquireTimeoutNs = 3'000'000'000ULL;  // 3s
         const auto AcquireInfo = vk::AcquireNextImageInfoKHR{}
             .setSwapchain   (SC->Context)
-            .setTimeout     (Math::UpperBound<UInt64>())
+            .setTimeout     (kAcquireTimeoutNs)
             .setSemaphore   (I_SignalSemaphore->GetHandle())
             .setFence       (nullptr)
             .setDeviceMask  (1)
@@ -1142,6 +1143,11 @@ export namespace Visera
         if (RawResult == vk::Result::eErrorOutOfDateKHR)
         {
             LOG_TRACE("({}) AcquireNextImage returned {}.", Info.ApplicationName, RawResult);
+            return False;
+        }
+        if (RawResult == vk::Result::eTimeout)
+        {
+            LOG_WARN("({}) AcquireNextImage timed out (swapchain may be blocked).", Info.ApplicationName);
             return False;
         }
         LOG_ERROR("({}) Failed to acquire the next Vulkan SwapChain Image! VkResult={}", Info.ApplicationName, RawResult);

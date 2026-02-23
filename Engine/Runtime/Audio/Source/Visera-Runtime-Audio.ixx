@@ -15,6 +15,7 @@ import Visera.Core.Types.String;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Pointer.Unique;
 import Visera.Runtime.Global;
+import Visera.Core.Log;
 
 export namespace Visera
 {

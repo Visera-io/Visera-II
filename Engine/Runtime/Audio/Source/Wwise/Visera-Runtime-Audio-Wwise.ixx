@@ -115,9 +115,10 @@ namespace Visera
 
             LOG_TRACE("Initializing Wwise Sound Engine.");
             {
-                auto InitSettings         = AkInitSettings{};
+                auto InitSettings = AkInitSettings{};
                 AK::SoundEngine::GetDefaultInitSettings(InitSettings);
                 InitSettings.uCommandQueueSize = CommandQueueSize;
+                InitSettings.bUseLEngineThread = True;
 
                 auto PlatformInitSettings = AkPlatformInitSettings{};
                 AK::SoundEngine::GetDefaultPlatformInitSettings(PlatformInitSettings);
@@ -141,13 +142,15 @@ namespace Visera
                                 AkPlayingID                 I_PlayingID,
                                 AkGameObjectID              I_GameObjectID)
                 {
+                    // Guard: Wwise may invoke this from audio thread with null/invalid I_ErrorMessage
+                    const char* SafeMsg = I_ErrorMessage ? I_ErrorMessage : "(no message)";
                     switch (I_ErrorLevel)
                     {
                     case AK::Monitor::ErrorLevel::ErrorLevel_Message:
-                        LOG_DEBUG("Wwise: {}", FPlatformPath(I_ErrorMessage).ToPath());
+                        LOG_DEBUG("Wwise: {}", FPlatformPath(SafeMsg).ToPath());
                         break;
                     case AK::Monitor::ErrorLevel::ErrorLevel_Error:
-                        LOG_ERROR("Wwise: {} (error: {}).", FPlatformPath(I_ErrorMessage).ToPath(), Int32(I_ErrorCode));
+                        LOG_ERROR("Wwise: {} (error: {}).", FPlatformPath(SafeMsg).ToPath(), Int32(I_ErrorCode));
                         break;
                     default: LOG_FATAL("Wwise:Unknown Message!");
                     }

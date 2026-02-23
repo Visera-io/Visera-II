@@ -69,4 +69,42 @@ export namespace Visera
 		FFuture(const FFuture&)				= default;
 		FFuture& operator=(const FFuture&)	= default;
 	};
+
+	template<typename T>
+	class VISERA_CORE_API FPromise
+	{
+	public:
+		FPromise() = default;
+		FPromise(FPromise&&) = default;
+		FPromise& operator=(FPromise&&) = default;
+		FPromise(const FPromise&) = delete;
+		FPromise& operator=(const FPromise&) = delete;
+
+		void
+		Set(T I_Value) { Promise.set_value(std::move(I_Value)); }
+		[[nodiscard]] FFuture<T>
+		GetFuture() { return FFuture<T>(Promise.get_future()); }
+
+	private:
+		std::promise<T> Promise;
+	};
+
+	template<>
+	class VISERA_CORE_API FPromise<void>
+	{
+	public:
+		FPromise() = default;
+		FPromise(FPromise&&) = default;
+		FPromise& operator=(FPromise&&) = default;
+		FPromise(const FPromise&) = delete;
+		FPromise& operator=(const FPromise&) = delete;
+
+		void
+		Set() { Promise.set_value(); }
+		[[nodiscard]] FFuture<void>
+		GetFuture() { return FFuture<void>(Promise.get_future()); }
+
+	private:
+		std::promise<void> Promise;
+	};
 }

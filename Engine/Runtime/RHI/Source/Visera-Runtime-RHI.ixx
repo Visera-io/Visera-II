@@ -27,6 +27,12 @@ export import Visera.Runtime.RHI.SwapChain;
        import Visera.Platform;
        import vulkan_hpp;
 
+namespace Visera
+{
+    constexpr UInt64 kFrameFenceTimeoutNs  = 5'000'000'000ULL;   // 5s
+    constexpr UInt64 kUploadFenceTimeoutNs = 10'000'000'000ULL;  // 10s
+}
+
 export namespace Visera
 {
     class VISERA_RUNTIME_API FRHI : public IGlobalService
@@ -162,7 +168,7 @@ export namespace Visera
             void
             Enqueue(FRHICommandList I_CommandList);
             void
-            Enqueue(FImmediateTask I_Task);
+            Execute(FImmediateTask I_Task);
             void
             CreateSwapChain(TSharedPtr<FWindow> I_Window);
             void
@@ -189,7 +195,7 @@ export namespace Visera
             ExecuteImmediate(FRHICommandList& I_CommandList);
             Bool BeginFrame(FRHISwapChainID I_SwapChainID);
             void
-            PresentSwapChain(FRHISwapChainID I_SwapChainID, FEvent* I_Done);
+            PresentSwapChain(FRHISwapChainID I_SwapChainID);
             [[nodiscard]] TOptional<FRHISwapChainID>
             GetSwapChainIndex(FWindow* I_Window) const;
             void
@@ -452,7 +458,7 @@ export namespace Visera
     }
 
     void FRHI::FRHIThread::
-    Enqueue(FImmediateTask I_Task)
+    Execute(FImmediateTask I_Task)
     {
         if (!I_Task) { return; }
         ImmediateCommandQueue.Enqueue(std::move(I_Task));
@@ -463,14 +469,14 @@ export namespace Visera
     CreateSwapChain(TSharedPtr<FWindow> I_Window)
     {
         if (!I_Window) { return; }
-        Enqueue([this, Window = std::move(I_Window)]() { ExecuteCreateSwapChain(std::move(Window)); });
+        Execute([this, Window = std::move(I_Window)]() { ExecuteCreateSwapChain(std::move(Window)); });
     }
 
     void FRHI::FRHIThread::
     Initialize()
     {
         bInitSuccess = False;
-        Enqueue([this]() { ExecuteInitialize(); });
+        Execute([this]() { ExecuteInitialize(); });
     }
 
     Bool FRHI::FRHIThread::
@@ -484,7 +490,7 @@ export namespace Visera
     Shutdown()
     {
         bShutdownSuccess = False;
-        Enqueue([this]() { ExecuteShutdown(); });
+        Execute([this]() { ExecuteShutdown(); });
     }
 
     Bool FRHI::FRHIThread::
@@ -498,14 +504,14 @@ export namespace Visera
     DestroySwapChain(TSharedPtr<FWindow> I_Window)
     {
         if (!I_Window) { return; }
-        Enqueue([this, Window = std::move(I_Window)]() { ExecuteDestroySwapChain(std::move(Window)); });
+        Execute([this, Window = std::move(I_Window)]() { ExecuteDestroySwapChain(std::move(Window)); });
     }
 
     void FRHI::FRHIThread::
     RecreateSwapChain(TSharedPtr<FWindow> I_Window, UInt32 I_Width, UInt32 I_Height)
     {
         if (!I_Window || I_Width == 0 || I_Height == 0) { return; }
-        Enqueue([this, Window = std::move(I_Window), I_Width, I_Height]() { ExecuteRecreateSwapChain(std::move(Window), I_Width, I_Height); });
+        Execute([this, Window = std::move(I_Window), I_Width, I_Height]() { ExecuteRecreateSwapChain(std::move(Window), I_Width, I_Height); });
     }
 
     void FRHI::FRHIThread::
@@ -679,7 +685,7 @@ export namespace Visera
         auto& Ctx   = SwapChains[I_SwapChainID];
         auto& Frame = Ctx.InFlightFrames[Ctx.FrameIndex];
 
-        if (Frame.ExecuteFence.Wait())
+        if (Frame.ExecuteFence.Wait(kFrameFenceTimeoutNs))
         {
             (void)Frame.ExecuteFence.Reset();
         }
@@ -687,6 +693,8 @@ export namespace Visera
 
         if (auto Win = Ctx.Window.Lock(); Win)
         {
+            if (Win->GetWidth() == 0 || Win->GetHeight() == 0)
+            { return False; }  // Minimized: skip AcquireNextImage to avoid blocking
             if (!Driver->WaitNextFrame(Win.Get(), &Frame.SwapChainReadySemaphore))
             { return False; }
         }
@@ -700,19 +708,13 @@ export namespace Visera
     }
 
     void FRHI::FRHIThread::
-    PresentSwapChain(FRHISwapChainID I_SwapChainID, FEvent* I_Done)
+    PresentSwapChain(FRHISwapChainID I_SwapChainID)
     {
         if (I_SwapChainID >= SwapChains.GetSize())
-        {
-            if (I_Done) { I_Done->Trigger(); }
-            return;
-        }
+        { return; }
         auto& Ctx = SwapChains[I_SwapChainID];
         if (!Ctx.bFrameActive)
-        {
-            if (I_Done) { I_Done->Trigger(); }
-            return;
-        }
+        { return; }
 
         auto& Frame = Ctx.InFlightFrames[Ctx.FrameIndex];
         Frame.TransferCalls.End();
@@ -733,8 +735,6 @@ export namespace Visera
 
         Ctx.bFrameActive = False;
         Ctx.FrameIndex = (Ctx.FrameIndex + 1) % static_cast<UInt8>(Ctx.InFlightFrames.GetSize());
-
-        if (I_Done) { I_Done->Trigger(); }
     }
 
     FRHICommandList FRHI::
@@ -768,12 +768,10 @@ export namespace Visera
     void FRHI::
     Present(FRHISwapChainID I_SwapChainID)
     {
-        FEvent Done;
-        RHIThread.Enqueue([this, I_SwapChainID, &Done]()
+        RHIThread.Execute([this, I_SwapChainID]
         {
-            RHIThread.PresentSwapChain(I_SwapChainID, &Done);
+            RHIThread.PresentSwapChain(I_SwapChainID);
         });
-        Done.Wait();
     }
 
     void FRHI::FRHIThread::
@@ -1224,7 +1222,7 @@ export namespace Visera
         // finishes reading from this staging region, else the next allocation could overwrite in-flight data;
         // (2) API contract - this is a synchronous API, caller expects data ready on return.
         // For async uploads, use CommandList (WriteBuffer, CopyBufferToImage) instead.
-        if (!Fence.Wait())
+        if (!Fence.Wait(kUploadFenceTimeoutNs))
         { LOG_FATAL("UploadTexture: fence wait failed!"); }
 
         StagingRing->AdvanceFence(Alloc.Offset + Alloc.Size);
@@ -1252,7 +1250,7 @@ export namespace Visera
 
         FVulkanFence Fence = Driver->CreateFence(False);
         Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-        if (!Fence.Wait())
+        if (!Fence.Wait(kUploadFenceTimeoutNs))
         { LOG_FATAL("TransitionTexture: fence wait failed!"); }
     }
 
@@ -1283,7 +1281,7 @@ export namespace Visera
         // finishes reading from this staging region, else the next allocation could overwrite in-flight data;
         // (2) API contract - this is a synchronous API, caller expects data ready on return.
         // For async uploads, use CommandList (WriteBuffer, CopyBufferToImage) instead.
-        if (!Fence.Wait())
+        if (!Fence.Wait(kUploadFenceTimeoutNs))
         { LOG_FATAL("UploadBuffer: fence wait failed!"); }
 
         StagingRing->AdvanceFence(Alloc.Offset + Alloc.Size);

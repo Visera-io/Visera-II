@@ -236,7 +236,7 @@ export namespace Visera
             auto Service = MakeShared<T>(I_ServiceName, &Registry, Config);
 
             Registry.Insert(I_ServiceName, Service);
-            LOG_TRACE("Registered service ({}) : {}.", Registry.GetSize(), I_ServiceName.GetName());
+            LOG_TRACE("Registered service ({}) : {}.", Registry.GetSize(), I_ServiceName);
             return Cast<T>(Service);
         }
 
@@ -253,7 +253,7 @@ export namespace Visera
                 LOG_INFO("Service {} already created by another Runtime, sharing instance across Runtime instances.", I_ServiceName.GetNameString());
                 SharedServices.Insert(I_ServiceName);
                 Registry.Insert(I_ServiceName, Cast<IGlobalService>(Shared));
-                LOG_TRACE("Registered shared service ({}) : {}.", Registry.GetSize(), I_ServiceName.GetName());
+                LOG_TRACE("Registered shared service ({}) : {}.", Registry.GetSize(), I_ServiceName);
                 return Shared;
             }
             auto Service = Register<T>(I_ServiceName);
