@@ -16,6 +16,9 @@ export namespace Visera
         Reset();
         void
         Wait();
+        /** Wait up to I_TimeoutNs nanoseconds. Returns true if signaled, false if timeout. */
+        [[nodiscard]] Bool
+        WaitFor(UInt64 I_TimeoutNs);
         [[nodiscard]] Bool
         TryWait();
         [[nodiscard]] Bool
@@ -52,6 +55,17 @@ export namespace Visera
         {
             return bSignaled;
         });
+    }
+
+    Bool FEvent::
+    WaitFor(UInt64 I_TimeoutNs)
+    {
+        std::unique_lock Lock(Mutex);
+        const auto Done = ConditionVariable.wait_for(Lock, std::chrono::nanoseconds(I_TimeoutNs), [this]
+        {
+            return bSignaled;
+        });
+        return Done;
     }
 
     Bool FEvent::

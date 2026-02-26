@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <initializer_list>
 export module Visera.Core.Math.Color.Linear;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Color.Common;
@@ -40,8 +41,20 @@ export namespace Visera
 
     public:
         constexpr FLinearColor() noexcept = default;
+        constexpr FLinearColor(const FLinearColor&) noexcept = default;
+        constexpr FLinearColor(FLinearColor&&) noexcept = default;
+        constexpr FLinearColor& operator=(const FLinearColor&) noexcept = default;
+        constexpr FLinearColor& operator=(FLinearColor&&) noexcept = default;
         constexpr FLinearColor(Float I_Red, Float I_Green, Float I_Blue, Float I_Alpha = 1.0f) noexcept
         : R{ I_Red }, G{ I_Green }, B{ I_Blue }, A{ I_Alpha } {}
+        constexpr FLinearColor(std::initializer_list<Float> I_List) noexcept
+        : R{0}, G{0}, B{0}, A{1}
+        {
+            Float* P[] = { &R, &G, &B, &A };
+            const Float* it = I_List.begin();
+            const Float* end = I_List.end();
+            for (UInt32 i = 0; i < 4 && it != end; ++i, ++it) { *P[i] = *it; }
+        }
         constexpr FLinearColor(UInt8 I_SRGBRed, UInt8 I_SRGBGreen, UInt8 I_SRGBBlue, UInt8 I_Alpha = 255U) noexcept
         : R{ LUT_sRGBToLinear[I_SRGBRed] }, G{ LUT_sRGBToLinear[I_SRGBGreen] }, B{ LUT_sRGBToLinear[I_SRGBBlue] }, A{ I_Alpha / 255.0f } {}
 

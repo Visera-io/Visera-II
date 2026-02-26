@@ -15,7 +15,7 @@ export namespace Visera
 	};
 
 	template<typename T>
-	class VISERA_CORE_API FFuture
+	class VISERA_CORE_API TFuture
 	{
 	public:
 		[[nodiscard]] Bool
@@ -33,17 +33,17 @@ export namespace Visera
 		std::shared_future<T> Future;
 
 	public:
-		FFuture() = default;
-		explicit FFuture(std::future<T> I_Future) : Future(I_Future.share()) {}
-		explicit FFuture(std::shared_future<T> I_Future) : Future(std::move(I_Future)) {}
-		FFuture(FFuture&&)					= default;
-		FFuture& operator=(FFuture&&)		= default;
-		FFuture(const FFuture&)				= default;
-		FFuture& operator=(const FFuture&)	= default;
+		TFuture() = default;
+		explicit TFuture(std::future<T> I_Future) : Future(I_Future.share()) {}
+		explicit TFuture(std::shared_future<T> I_Future) : Future(std::move(I_Future)) {}
+		TFuture(TFuture&&)					= default;
+		TFuture& operator=(TFuture&&)		= default;
+		TFuture(const TFuture&)				= default;
+		TFuture& operator=(const TFuture&)	= default;
 	};
 
 	template<>
-	class VISERA_CORE_API FFuture<void>
+	class VISERA_CORE_API TFuture<void>
 	{
 	public:
 		[[nodiscard]] Bool
@@ -61,48 +61,48 @@ export namespace Visera
 		std::shared_future<void> Future;
 
 	public:
-		FFuture() = default;
-		explicit FFuture(std::future<void> I_Future) : Future(I_Future.share()) {}
-		explicit FFuture(std::shared_future<void> I_Future) : Future(std::move(I_Future)) {}
-		FFuture(FFuture&&)					= default;
-		FFuture& operator=(FFuture&&)		= default;
-		FFuture(const FFuture&)				= default;
-		FFuture& operator=(const FFuture&)	= default;
+		TFuture() = default;
+		explicit TFuture(std::future<void> I_Future) : Future(I_Future.share()) {}
+		explicit TFuture(std::shared_future<void> I_Future) : Future(std::move(I_Future)) {}
+		TFuture(TFuture&&)					= default;
+		TFuture& operator=(TFuture&&)		= default;
+		TFuture(const TFuture&)				= default;
+		TFuture& operator=(const TFuture&)	= default;
 	};
 
 	template<typename T>
-	class VISERA_CORE_API FPromise
+	class VISERA_CORE_API TPromise
 	{
 	public:
-		FPromise() = default;
-		FPromise(FPromise&&) = default;
-		FPromise& operator=(FPromise&&) = default;
-		FPromise(const FPromise&) = delete;
-		FPromise& operator=(const FPromise&) = delete;
+		TPromise() = default;
+		TPromise(TPromise&&) = default;
+		TPromise& operator=(TPromise&&) = default;
+		TPromise(const TPromise&) = delete;
+		TPromise& operator=(const TPromise&) = delete;
 
 		void
 		Set(T I_Value) { Promise.set_value(std::move(I_Value)); }
-		[[nodiscard]] FFuture<T>
-		GetFuture() { return FFuture<T>(Promise.get_future()); }
+		[[nodiscard]] TFuture<T>
+		GetFuture() { return TFuture<T>(Promise.get_future()); }
 
 	private:
 		std::promise<T> Promise;
 	};
 
 	template<>
-	class VISERA_CORE_API FPromise<void>
+	class VISERA_CORE_API TPromise<void>
 	{
 	public:
-		FPromise() = default;
-		FPromise(FPromise&&) = default;
-		FPromise& operator=(FPromise&&) = default;
-		FPromise(const FPromise&) = delete;
-		FPromise& operator=(const FPromise&) = delete;
+		TPromise() = default;
+		TPromise(TPromise&&) = default;
+		TPromise& operator=(TPromise&&) = default;
+		TPromise(const TPromise&) = delete;
+		TPromise& operator=(const TPromise&) = delete;
 
 		void
 		Set() { Promise.set_value(); }
-		[[nodiscard]] FFuture<void>
-		GetFuture() { return FFuture<void>(Promise.get_future()); }
+		[[nodiscard]] TFuture<void>
+		GetFuture() { return TFuture<void>(Promise.get_future()); }
 
 	private:
 		std::promise<void> Promise;

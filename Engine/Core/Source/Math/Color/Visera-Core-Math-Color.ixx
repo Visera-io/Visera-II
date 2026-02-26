@@ -1,5 +1,6 @@
 module;
 #include <Visera-Core.hpp>
+#include <initializer_list>
 export module Visera.Core.Math.Color;
 #define VISERA_MODULE_NAME "Core.Math"
 export import Visera.Core.Math.Color.Linear;
@@ -90,7 +91,25 @@ export namespace Visera
             : A(0), R(0), G(0), B(0)
 #endif
         {}
-
+        constexpr FColor(const FColor&) noexcept = default;
+        constexpr FColor(FColor&&) noexcept = default;
+        constexpr FColor& operator=(const FColor&) noexcept = default;
+        constexpr FColor& operator=(FColor&&) noexcept = default;
+        constexpr FColor(std::initializer_list<UInt8> I_List) noexcept
+#if defined(VISERA_ON_LITTLE_ENDIAN_PLATFORM)
+            : B(0), G(0), R(0), A(255)
+#else
+            : A(255), R(0), G(0), B(0)
+#endif
+        {
+            const UInt8* it = I_List.begin();
+            const UInt8* end = I_List.end();
+#if defined(VISERA_ON_LITTLE_ENDIAN_PLATFORM)
+            if (it != end) { R = *it++; } if (it != end) { G = *it++; } if (it != end) { B = *it++; } if (it != end) { A = *it; }
+#else
+            if (it != end) { R = *it++; } if (it != end) { G = *it++; } if (it != end) { B = *it++; } if (it != end) { A = *it; }
+#endif
+        }
         constexpr FColor(UInt8 I_Red, UInt8 I_Green, UInt8 I_Blue, UInt8 I_Alpha = 255) noexcept
 #if defined(VISERA_ON_LITTLE_ENDIAN_PLATFORM)
             : B(I_Blue), G(I_Green), R(I_Red), A(I_Alpha)
