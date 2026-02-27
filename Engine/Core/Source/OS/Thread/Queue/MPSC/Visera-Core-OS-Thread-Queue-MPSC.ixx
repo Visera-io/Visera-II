@@ -1,8 +1,8 @@
 module;
 #include <Visera-Core.hpp>
-#include <atomic>
 export module Visera.Core.OS.Thread.Queue.MPSC;
 #define VISERA_MODULE_NAME "Core.OS"
+import Visera.Core.OS.Thread.Sync.Atomic;
 import Visera.Core.OS.Memory;
 import Visera.Core.Types.Optional;
 
@@ -29,14 +29,14 @@ export namespace Visera
             FNode* New = new (Memory::Malloc(sizeof(FNode), alignof(FNode))) FNode;
             new (reinterpret_cast<void*>(&New->Value)) ElementType(std::forward<ArgTypes>(Args)...);
 
-            FNode* Prev = Head.exchange(New, std::memory_order_acq_rel);
-            Prev->Next.store(New, std::memory_order_release);
+            FNode* Prev = Head.Exchange(New, EMemoryOrder::AcqRel);
+            Prev->Next.Store(New, EMemoryOrder::Release);
         }
 
         [[nodiscard]] TOptional<ElementType>
         Dequeue()
         {
-            FNode* Next = Tail->Next.load(std::memory_order_acquire);
+            FNode* Next = Tail->Next.Load(EMemoryOrder::Acquire);
 
             if (Next == nullptr) { return {}; }
 
@@ -55,21 +55,21 @@ export namespace Visera
         [[nodiscard]] ElementType*
         Peek() const
         {
-            FNode* Next = Tail->Next.load(std::memory_order_acquire);
+            FNode* Next = Tail->Next.Load(EMemoryOrder::Acquire);
             return Next? reinterpret_cast<ElementType*>(&Next->Value) : nullptr;
         }
 
         [[nodiscard]] Bool
-        IsEmpty() const { return Tail->Next.load(std::memory_order_acquire) == nullptr; }
+        IsEmpty() const { return Tail->Next.Load(EMemoryOrder::Acquire) == nullptr; }
 
     private:
         struct FNode
         {
-            std::atomic<FNode*>               Next{ nullptr };
+            TAtomic<FNode*>                   Next{ nullptr };
             TTypeCompatibleBytes<ElementType> Value;
         };
         alignas(VISERA_CACHELINE_SIZE)
-        std::atomic<FNode*> Head { nullptr }; // accessed only by producers
+        TAtomic<FNode*> Head { nullptr }; // accessed only by producers
         alignas(VISERA_CACHELINE_SIZE)
         FNode*              Tail { nullptr }; // accessed only by consumer
 
@@ -77,13 +77,13 @@ export namespace Visera
         TMPSCQueue()
         {
             FNode* Sentinel = new (Memory::Malloc(sizeof(FNode), alignof(FNode))) FNode;
-            Head.store(Sentinel, std::memory_order_relaxed);
+            Head.Store(Sentinel, EMemoryOrder::Relaxed);
             Tail = Sentinel;
         }
 
         ~TMPSCQueue()
         {
-            FNode* Next = Tail->Next.load(std::memory_order_relaxed);
+            FNode* Next = Tail->Next.Load(EMemoryOrder::Relaxed);
 
             // Sentinel's value storage was never constructed.
             Memory::Free(Tail, alignof(FNode));
@@ -91,7 +91,7 @@ export namespace Visera
             while (Next != nullptr)
             {
                 Tail = Next;
-                Next = Tail->Next.load(std::memory_order_relaxed);
+                Next = Tail->Next.Load(EMemoryOrder::Relaxed);
 
                 Tail->Value.DestroyUnchecked();
                 Memory::Free(Tail, alignof(FNode));

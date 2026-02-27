@@ -16,6 +16,9 @@ export namespace Visera
         Reset();
         void
         Wait();
+        /** Wait until signaled, then atomically clear the signal (auto-reset). One wait consumes one signal. */
+        void
+        WaitAndReset();
         /** Wait up to I_TimeoutNs nanoseconds. Returns true if signaled, false if timeout. */
         [[nodiscard]] Bool
         WaitFor(UInt64 I_TimeoutNs);
@@ -55,6 +58,14 @@ export namespace Visera
         {
             return bSignaled;
         });
+    }
+
+    void FEvent::
+    WaitAndReset()
+    {
+        std::unique_lock Lock(Mutex);
+        ConditionVariable.wait(Lock, [this] { return bSignaled; });
+        bSignaled = False;
     }
 
     Bool FEvent::

@@ -1,8 +1,8 @@
 module;
 #include <Visera-Core.hpp>
-#include <atomic>
 export module Visera.Core.OS.Thread.Queue.SPSC;
 #define VISERA_MODULE_NAME "Core.OS"
+import Visera.Core.OS.Thread.Sync.Atomic;
 import Visera.Core.OS.Memory;
 import Visera.Core.Types.Optional;
 
@@ -32,34 +32,34 @@ export namespace Visera
             FNode* Node = AllocateNode();
             new (reinterpret_cast<void*>(&Node->Value)) ElementType (std::forward<ArgTypes>(Args)...);
 
-            Head->Next.store(Node, std::memory_order_release);
+            Head->Next.Store(Node, EMemoryOrder::Release);
             Head = Node;
         }
 
         TOptional<ElementType>
         Dequeue()
         {
-            FNode* LocalTail = Tail.load(std::memory_order_relaxed);
-            FNode* LocalTailNext = LocalTail->Next.load(std::memory_order_acquire);
+            FNode* LocalTail = Tail.Load(EMemoryOrder::Relaxed);
+            FNode* LocalTailNext = LocalTail->Next.Load(EMemoryOrder::Acquire);
             if (LocalTailNext == nullptr) {  return NullOpt; }
 
             ElementType* TailNextValue = reinterpret_cast<ElementType*>(&LocalTailNext->Value);
             TOptional<ElementType> Value{ std::move(*TailNextValue) };
             std::destroy_at(TailNextValue);
 
-            Tail.store(LocalTailNext, std::memory_order_release);
+            Tail.Store(LocalTailNext, EMemoryOrder::Release);
 
             return Value;
         }
 
         [[nodiscard]] Bool
-        IsEmpty() const { return Tail.load(std::memory_order_relaxed)->Next.load(std::memory_order_acquire) == nullptr; }
+        IsEmpty() const { return Tail.Load(EMemoryOrder::Relaxed)->Next.Load(EMemoryOrder::Acquire) == nullptr; }
 
         [[nodiscard]] ElementType*
         Peek() const
         {
-            FNode* LocalTail = Tail.load(std::memory_order_relaxed);
-            FNode* LocalTailNext = LocalTail->Next.load(std::memory_order_acquire);
+            FNode* LocalTail = Tail.Load(EMemoryOrder::Relaxed);
+            FNode* LocalTailNext = LocalTail->Next.Load(EMemoryOrder::Acquire);
 
             if (LocalTailNext == nullptr)
             { return nullptr; }
@@ -70,13 +70,13 @@ export namespace Visera
     private:
         struct FNode
         {
-            std::atomic<FNode*>               Next { nullptr };
+            TAtomic<FNode*>                   Next { nullptr };
             TTypeCompatibleBytes<ElementType> Value;
         };
 
         // consumer part (accessed mainly by consumer, infrequently by producer)
         alignas(VISERA_CACHELINE_SIZE)
-        std::atomic<FNode*> Tail; // tail of the queue
+        TAtomic<FNode*> Tail; // tail of the queue
 
         // producer part (accessed only by producer)
         alignas(VISERA_CACHELINE_SIZE)
@@ -90,20 +90,20 @@ export namespace Visera
         TSPSCQueue()
         {
             FNode* Node = new (Memory::Malloc(sizeof(FNode), alignof(FNode))) FNode;
-            Tail.store(Node, std::memory_order_relaxed);
+            Tail.Store(Node, EMemoryOrder::Relaxed);
             Head = First = TailCopy = Node;
         }
 
         ~TSPSCQueue()
         {
             FNode* Node = First;
-            FNode* LocalTail = Tail.load(std::memory_order_relaxed);
+            FNode* LocalTail = Tail.Load(EMemoryOrder::Relaxed);
 
             // Delete all nodes which are the sentinel or unoccupied
             bool bContinue = false;
             do
             {
-                FNode* Next = Node->Next.load(std::memory_order_relaxed);
+                FNode* Next = Node->Next.Load(EMemoryOrder::Relaxed);
                 bContinue = Node != LocalTail;
                 Memory::Free(Node, alignof(FNode));
                 Node = Next;
@@ -112,7 +112,7 @@ export namespace Visera
             // Delete all nodes which are occupied, destroying the element first
             while (Node != nullptr)
             {
-                FNode* Next = Node->Next.load(std::memory_order_relaxed);
+                FNode* Next = Node->Next.Load(EMemoryOrder::Relaxed);
                 std::destroy_at(reinterpret_cast<ElementType*>(&Node->Value));
                 Memory::Free(Node, alignof(FNode));
                 Node = Next;
@@ -131,8 +131,8 @@ export namespace Visera
             auto AllocateFromCache = [this]()
             {
                 FNode* Node = First;
-                First = First->Next.load(std::memory_order_relaxed);
-                Node->Next.store(nullptr, std::memory_order_relaxed);
+                First = First->Next.Load(EMemoryOrder::Relaxed);
+                Node->Next.Store(nullptr, EMemoryOrder::Relaxed);
                 return Node;
             };
 
@@ -141,7 +141,7 @@ export namespace Visera
                 return AllocateFromCache();
             }
 
-            TailCopy = Tail.load(std::memory_order_acquire);
+            TailCopy = Tail.Load(EMemoryOrder::Acquire);
             if (First != TailCopy)
             {
                 return AllocateFromCache();

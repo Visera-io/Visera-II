@@ -1,8 +1,8 @@
 module;
 #include <Visera-Core.hpp>
-#include <atomic>
 export module Visera.Core.OS.Thread.Sync.SpinLock;
 #define VISERA_MODULE_NAME "Core.OS"
+import Visera.Core.OS.Thread.Sync.Atomic;
 
 export namespace Visera
 {
@@ -10,15 +10,15 @@ export namespace Visera
     {
     public:
         void
-        Lock()   { while (Flag.test_and_set(std::memory_order_acquire)); }
+        Lock()   { while (Flag.TestAndSet(EMemoryOrder::Acquire)); }
         void
-        Unlock() { Flag.clear(std::memory_order_release); }
+        Unlock() { Flag.Clear(EMemoryOrder::Release); }
 
         FSpinLock() = default;
         FSpinLock(const FSpinLock&) = delete;
         FSpinLock& operator=(const FSpinLock&) = delete;
 
     private:
-        std::atomic_flag Flag = ATOMIC_FLAG_INIT;
+        FAtomicFlag Flag;
     };
 }

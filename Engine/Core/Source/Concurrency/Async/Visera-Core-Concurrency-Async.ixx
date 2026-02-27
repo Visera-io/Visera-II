@@ -1,9 +1,10 @@
 module;
 #include <Visera-Core.hpp>
 #include <coroutine>
-export module Visera.Core.OS.Coroutine.Async;
-#define VISERA_MODULE_NAME "Core.OS"
-       import Visera.Core.Types.Optional;
+export module Visera.Core.Concurrency.Async;
+#define VISERA_MODULE_NAME "Core.Concurrency"
+import Visera.Core.OS.Thread.Sync.Event;
+import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
@@ -16,6 +17,7 @@ export namespace Visera
         {
             TOptional<T>            Value;
             std::coroutine_handle<> Continuation;
+            FEvent                  DoneEvent;
 
             TAsync get_return_object()
             {
@@ -26,18 +28,21 @@ export namespace Visera
             {
                 Value.Emplace(std::move(I_Value));
             }
+            /** Trigger before resume so Get() waiters are woken while this frame is still valid; resuming the continuation may destroy the TAsync and this frame. */
             struct final_awaitable
             {
                 std::coroutine_handle<> Continuation;
+                promise_type*           Promise;
                 Bool await_ready() const noexcept { return False; }
                 Bool await_suspend(std::coroutine_handle<>) const noexcept
                 {
+                    Promise->DoneEvent.Trigger();
                     if (Continuation) { Continuation.resume(); }
-                    return True; // suspend this task so the resumed caller runs
+                    return True;
                 }
                 void await_resume() const noexcept {}
             };
-            final_awaitable final_suspend() noexcept { return { Continuation }; }
+            final_awaitable final_suspend() noexcept { return { Continuation, this }; }
             void unhandled_exception() { throw; }
         };
 
@@ -70,12 +75,15 @@ export namespace Visera
             return awaitable{ Handle };
         }
 
-        /** Run the task to completion on the current thread and return the result. Blocks until done. */
+        /** Run the task to completion and return the result. Blocks until done. One resume() to start; then Wait() once for DoneEvent (no loop, so no double-resume if another thread drives the coroutine). */
         T Get()
         {
             if (Handle && !Handle.done())
             {
-                while (!Handle.done()) { Handle.resume(); }
+                promise_type& Promise = Handle.promise();
+                Handle.resume();
+                if (!Handle.done())
+                { Promise.DoneEvent.Wait(); }
             }
             if (Handle && Handle.promise().Value.HasValue())
             {
@@ -118,6 +126,7 @@ export namespace Visera
         struct promise_type
         {
             std::coroutine_handle<> Continuation;
+            FEvent                 DoneEvent;
 
             TAsync get_return_object()
             {
@@ -125,18 +134,21 @@ export namespace Visera
             }
             std::suspend_always initial_suspend() noexcept { return {}; }
             void return_void() {}
+            /** Trigger before resume so Get() waiters are woken while this frame is still valid; resuming the continuation may destroy the TAsync and this frame. */
             struct final_awaitable
             {
                 std::coroutine_handle<> Continuation;
+                promise_type*           Promise;
                 Bool await_ready() const noexcept { return False; }
                 Bool await_suspend(std::coroutine_handle<>) const noexcept
                 {
+                    Promise->DoneEvent.Trigger();
                     if (Continuation) { Continuation.resume(); }
                     return True;
                 }
                 void await_resume() const noexcept {}
             };
-            final_awaitable final_suspend() noexcept { return { Continuation }; }
+            final_awaitable final_suspend() noexcept { return { Continuation, this }; }
             void unhandled_exception() { throw; }
         };
 
@@ -156,11 +168,15 @@ export namespace Visera
         awaitable operator co_await() const& noexcept { return awaitable{ Handle }; }
         awaitable operator co_await() && noexcept { return awaitable{ Handle }; }
 
+        /** Run the task to completion. One resume() to start; then Wait() once for DoneEvent (no loop, so no double-resume if another thread drives the coroutine). */
         void Get()
         {
             if (Handle && !Handle.done())
             {
-                while (!Handle.done()) { Handle.resume(); }
+                promise_type& Promise = Handle.promise();
+                Handle.resume();
+                if (!Handle.done())
+                { Promise.DoneEvent.Wait(); }
             }
         }
 

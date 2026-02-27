@@ -1,7 +1,6 @@
 module;
 #include <Visera-Core.hpp>
 #include <thread>
-#include <atomic>
 export module Visera.Core.OS.Thread;
 import Visera.Core.Types.Function;
 #define VISERA_MODULE_NAME "Core.OS"
@@ -19,17 +18,17 @@ export namespace Visera
         Start(FFn I_Fn)
         {
             VISERA_ASSERT(!Worker.joinable());
-            bStopRequested.store(False, std::memory_order_release);
+            bStopRequested.Store(False, EMemoryOrder::Release);
             Worker = std::thread([this, Fn = std::move(I_Fn)]() mutable{ Fn(); });
         }
 
         void
         RequestStop()
-        { bStopRequested.store(True, std::memory_order_release); }
+        { bStopRequested.Store(True, EMemoryOrder::Release); }
 
         [[nodiscard]] Bool
         ShouldStop() const
-        { return bStopRequested.load(std::memory_order_acquire); }
+        { return bStopRequested.Load(EMemoryOrder::Acquire); }
 
         void
         Join()
@@ -37,7 +36,7 @@ export namespace Visera
 
     private:
         std::thread      Worker;
-        std::atomic_bool bStopRequested{False};
+        TAtomic<Bool> bStopRequested{False};
 
     public:
         FThread() = default;
