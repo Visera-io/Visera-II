@@ -123,6 +123,22 @@ export namespace Visera
     class VISERA_CORE_API TAsync<void>
     {
     public:
+        /** Run the task to completion. One resume() to start; then Wait() once for DoneEvent (no loop, so no double-resume if another thread drives the coroutine). */
+        void
+        Get()
+        {
+            if (Handle && !Handle.done())
+            {
+                promise_type& Promise = Handle.promise();
+                Handle.resume();
+                if (!Handle.done())
+                { Promise.DoneEvent.Wait(); }
+            }
+        }
+
+        [[nodiscard]] Bool
+        IsDone() const noexcept { return !Handle || Handle.done(); }
+
         struct promise_type
         {
             std::coroutine_handle<> Continuation;
@@ -168,20 +184,11 @@ export namespace Visera
         awaitable operator co_await() const& noexcept { return awaitable{ Handle }; }
         awaitable operator co_await() && noexcept { return awaitable{ Handle }; }
 
-        /** Run the task to completion. One resume() to start; then Wait() once for DoneEvent (no loop, so no double-resume if another thread drives the coroutine). */
-        void Get()
-        {
-            if (Handle && !Handle.done())
-            {
-                promise_type& Promise = Handle.promise();
-                Handle.resume();
-                if (!Handle.done())
-                { Promise.DoneEvent.Wait(); }
-            }
-        }
+    private:
+        std::coroutine_handle<promise_type> Handle;
 
-        [[nodiscard]] Bool IsDone() const noexcept { return !Handle || Handle.done(); }
-
+        public:
+        
         TAsync() noexcept : Handle(nullptr) {}
         explicit TAsync(std::coroutine_handle<promise_type> I_Handle) noexcept : Handle(I_Handle) {}
         TAsync(TAsync&& I_Other) noexcept : Handle(I_Other.Handle) { I_Other.Handle = nullptr; }
@@ -195,8 +202,5 @@ export namespace Visera
         ~TAsync() { if (Handle) { Handle.destroy(); } }
         TAsync(const TAsync&) = delete;
         TAsync& operator=(const TAsync&) = delete;
-
-    private:
-        std::coroutine_handle<promise_type> Handle;
     };
 }

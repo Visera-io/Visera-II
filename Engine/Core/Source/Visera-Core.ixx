@@ -2,7 +2,6 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core;
 #define VISERA_MODULE_NAME "Core"
-export import Visera.Core.Concurrency;
 export import Visera.Core.OS;
 export import Visera.Core.Log;
 export import Visera.Core.Math;
@@ -13,6 +12,7 @@ export import Visera.Core.Traits;
 export import Visera.Core.Delegate;
 export import Visera.Core.Algorithm;
 export import Visera.Core.Compression;
+export import Visera.Core.Concurrency;
 
 export namespace Visera
 {

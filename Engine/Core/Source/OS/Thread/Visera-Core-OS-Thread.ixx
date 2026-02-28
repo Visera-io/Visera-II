@@ -14,6 +14,10 @@ export namespace Visera
     public:
         using FFn = TFunction<void()>;
 
+        static void
+        Sleep(UInt32 I_MilliSeconds)
+        { std::this_thread::sleep_for(std::chrono::milliseconds(I_MilliSeconds)); }
+
         void
         Start(FFn I_Fn)
         {
