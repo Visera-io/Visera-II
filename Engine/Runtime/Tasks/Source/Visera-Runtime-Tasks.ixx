@@ -9,7 +9,7 @@ export import Visera.Runtime.Tasks.Interface;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FTasks : public IGlobalService
+    class VISERA_RUNTIME_API FTasks : public IRuntimeService
     {
     public:
 
@@ -17,8 +17,9 @@ export namespace Visera
         TUniquePtr<FTaskScheduler> Scheduler;
 
     public:
-        FTasks(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
-            : IGlobalService(I_Name, I_Registry, I_Config)
+        FTasks(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
+               TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
+            : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
         {
             Dependencies =
             {

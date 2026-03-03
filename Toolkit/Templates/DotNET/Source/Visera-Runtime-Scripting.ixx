@@ -11,7 +11,7 @@ import Visera.Runtime.Scripting.Platform;
 
 namespace Visera
 {
-    export class VISERA_RUNTIME_API FScripting : public IGlobalService
+    export class VISERA_RUNTIME_API FScripting : public IRuntimeService
     {
     public:
         using FFunction = FDotNETComponent::FFunction;
@@ -25,7 +25,7 @@ namespace Visera
         TSharedPtr<FDotNETComponent> APIs;
 
     public:
-        FScripting() : IGlobalService{"Scripting"} {}
+        FScripting() : IRuntimeService{"Scripting"} {}
         void inline
         Bootstrap() override;
         void inline

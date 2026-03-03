@@ -3,8 +3,8 @@ module;
 export module Visera.Runtime.Global.Service;
 #define VISERA_MODULE_NAME "Runtime.Global"
 export import Visera.Core.Log;
-export import Visera.Core.Types.Name;
 export import Visera.Core.Types.JSON;
+export import Visera.Runtime.Global.Configuration;
        import Visera.Platform;
        import Visera.Core.Containers.Map;
        import Visera.Core.Containers.Set;
@@ -15,42 +15,36 @@ export import Visera.Core.Types.JSON;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Meta.Cast;
        import Visera.Core.Delegate.Unicast;
+       import Visera.Core.Delegate.Multicast;
 
 export namespace Visera
 {
-    namespace EName
+    export using FServiceName = FString;
+
+    namespace EService
     {
-        VISERA_RUNTIME_API inline const auto
-        Input     = FName{"input",       0};
-        VISERA_RUNTIME_API inline const auto
-        Window    = FName{"window",      0};
-        VISERA_RUNTIME_API inline const auto
-        RHI       = FName{"rhi",         0};
-        VISERA_RUNTIME_API inline const auto
-        Graphics  = FName{"graphics",    0};
-        VISERA_RUNTIME_API inline const auto
-        DebugUI   = FName{"debugui",     0};
-        VISERA_RUNTIME_API inline const auto
-        Audio     = FName{"audio",       0};
-        VISERA_RUNTIME_API inline const auto
-        Physics2D = FName{"physics2d",   0};
-        VISERA_RUNTIME_API inline const auto
-        AssetHub  = FName{"assethub",    0};
-        VISERA_RUNTIME_API inline const auto
-        Tasks     = FName{"tasks",       0};
+        VISERA_RUNTIME_API inline const FString Input     = "Input";
+        VISERA_RUNTIME_API inline const FString Window   = "Window";
+        VISERA_RUNTIME_API inline const FString RHI      = "RHI";
+        VISERA_RUNTIME_API inline const FString Graphics = "Graphics";
+        VISERA_RUNTIME_API inline const FString UI       = "UI";
+        VISERA_RUNTIME_API inline const FString Audio    = "Audio";
+        VISERA_RUNTIME_API inline const FString Physics2D = "Physics2D";
+        VISERA_RUNTIME_API inline const FString AssetHub = "AssetHub";
+        VISERA_RUNTIME_API inline const FString Tasks    = "Tasks";
     }
 
-    class IGlobalService;
+    class IRuntimeService;
     namespace Concepts
     {
         template<typename T> concept
         Service = std::is_class_v<T> &&
-                  std::derived_from<T, IGlobalService>;
+                  std::derived_from<T, IRuntimeService>;
     }
 
-    using FServiceRegistry = TMap<FName, TSharedPtr<IGlobalService>>;
+    using FServiceRegistry = TMap<FString, TSharedPtr<IRuntimeService>>;
 
-    class VISERA_RUNTIME_API IGlobalService
+    class VISERA_RUNTIME_API IRuntimeService
     {
     public:
         enum class EStatus : Int8 { Pending, Bootstrapped, Terminated };
@@ -64,11 +58,11 @@ export namespace Visera
 
         // Get a service from the registry (used by services to access dependencies)
         template<Concepts::Service T> [[nodiscard]] TWeakPtr<T>
-        GetService(FName I_ServiceName) const
+        GetService(const FString& I_ServiceName) const
         {
             if (!Registry)
             {
-                LOG_ERROR("Service {} has no registry!", Name.GetNameString());
+                LOG_ERROR("Service {} has no registry!", Name);
                 return TWeakPtr<T>();
             }
             auto ServiceIter = Registry->Find(I_ServiceName);
@@ -76,7 +70,7 @@ export namespace Visera
             {
                 return TWeakPtr<T>();
             }
-            // Cast TSharedPtr<IGlobalService> to TSharedPtr<T>, then create TWeakPtr
+            // Cast TSharedPtr<IRuntimeService> to TSharedPtr<T>, then create TWeakPtr
             if (auto Casted = Cast<T>(ServiceIter->second))
             {
                 return TWeakPtr<T>(Casted);
@@ -84,14 +78,14 @@ export namespace Visera
             return TWeakPtr<T>();
         }
 
-        [[nodiscard]] const FName&
+        [[nodiscard]] const FString&
         GetName() const { return Name; }
 
-        [[nodiscard]] const TSet<FName>&
+        [[nodiscard]] const TSet<FString>&
         GetDependencies() const { return Dependencies; }
 
         [[nodiscard]] FString
-        GetRuntimeName() const { return Config.GetString("Runtime", "Unknown"); }
+        GetRuntimeName() const { return RuntimeName; }
 
         /** Notify this service of a config change. Called by Runtime or other services. */
         void
@@ -102,10 +96,7 @@ export namespace Visera
         // Default implementation calls corresponding OnXXX delegates based on the new status
         virtual Bool SetStatus(EStatus I_NewStatus)
         {
-            if (Status == I_NewStatus)
-            {
-                return True; // Already in the target state
-            }
+            if (Status == I_NewStatus) { return True; }
 
             // Call corresponding delegate based on target status
             Bool Success = False;
@@ -114,36 +105,36 @@ export namespace Visera
             case EStatus::Bootstrapped:
                 if (Status != EStatus::Pending)
                 {
-                    LOG_ERROR("Service {} cannot transition to Bootstrapped from current state {}!", 
-                              Name.GetNameString(), static_cast<Int8>(Status));
+                    LOG_ERROR("Service {} cannot transition to Bootstrapped from current state {}!",
+                              Name, static_cast<Int8>(Status));
                     return False;
                 }
-                
+
                 // Check if all dependencies are bootstrapped
                 if (Registry)
                 {
-                    for (const FName& DepName : Dependencies)
+                    for (const FString& DependencyName : Dependencies)
                     {
-                        auto DepIter = Registry->Find(DepName);
+                        auto DepIter = Registry->Find(DependencyName);
                         if (DepIter == Registry->end())
                         {
-                            LOG_ERROR("Service {} depends on {} which is not registered!", 
-                                      Name.GetNameString(), DepName.GetNameString());
+                            LOG_ERROR("Service {} depends on {} which is not registered!",
+                                      Name, DependencyName);
                             return False;
                         }
-                        
+
                         auto DepService = DepIter->second;
                         if (!DepService->IsBootstrapped())
                         {
-                            LOG_ERROR("Service {} depends on {} which is not bootstrapped! (current status: {})", 
-                                      Name.GetNameString(), DepName.GetNameString(), static_cast<Int8>(DepService->Status));
+                            LOG_ERROR("Service {} depends on {} which is not bootstrapped! (current status: {})",
+                                      Name, DependencyName, static_cast<Int8>(DepService->Status));
                             return False;
                         }
                     }
                 }
                 else if (!Dependencies.IsEmpty())
                 {
-                    LOG_ERROR("Service {} has dependencies but no registry available!", Name.GetNameString());
+                    LOG_ERROR("Service {} has dependencies but no registry available!", Name);
                     return False;
                 }
                 
@@ -152,18 +143,18 @@ export namespace Visera
             case EStatus::Terminated:
                 if (Status != EStatus::Bootstrapped)
                 {
-                    LOG_ERROR("Service {} cannot transition to Terminated from current state {}!", 
-                              Name.GetNameString(), static_cast<Int8>(Status));
+                    LOG_ERROR("Service {} cannot transition to Terminated from current state {}!",
+                              Name, static_cast<Int8>(Status));
                     return False;
                 }
                 Success = OnTerminate.Invoke().GetValue();
                 break;
             case EStatus::Pending:
-                LOG_WARN("Service {} cannot transition back to Pending!", Name.GetNameString());
+                LOG_WARN("Service {} cannot transition back to Pending!", Name);
                 return False;
             default:
-                LOG_ERROR("Service {} cannot transition to unknown state {}!", 
-                          Name.GetNameString(), static_cast<Int8>(I_NewStatus));
+                LOG_ERROR("Service {} cannot transition to unknown state {}!",
+                          Name, static_cast<Int8>(I_NewStatus));
                 return False;
             }
 
@@ -173,7 +164,7 @@ export namespace Visera
         }
 
     protected:
-        TSet<FName>                  Dependencies;
+        TSet<FString>                Dependencies;
         TUnicastDelegate<Bool(void)> OnBootstrap;
         TUnicastDelegate<Bool(void)> OnTerminate;
         TUnicastDelegate<void(const FJSONRoute&)> OnConfigChange;
@@ -181,96 +172,99 @@ export namespace Visera
         FServiceRegistry* Registry {nullptr}; // Registry pointer set by constructor
         mutable EStatus   Status   {EStatus::Pending};
 
-        [[nodiscard]] const FJSON&
-        GetConfig() const { return Config; }
+        [[nodiscard]] const FJSONView&
+        GetConfig() const { return ConfigView; }
 
-        /** Set config value at path and notify all services in registry via OnConfigChange. For internal use by Service subclasses. */
-        template<Concepts::JSONRoute RouteType> IGlobalService&
+        /** Set config value at path and notify scope subscribers via OnConfigChange. For internal use by Service subclasses. */
+        template<Concepts::JSONRoute RouteType> IRuntimeService&
         SetConfig(const RouteType& I_Route, FStringView I_Value)
         {
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
+            ConfigView.Set(I_Route, I_Value);
+            if (OnConfigChangeDelegate) { OnConfigChangeDelegate->Broadcast(FJSONRoute(I_Route.GetRouteString())); }
             return *this;
         }
 
-        template<Concepts::JSONRoute RouteType> IGlobalService&
+        template<Concepts::JSONRoute RouteType> IRuntimeService&
         SetConfig(const RouteType& I_Route, Double I_Value)
         {
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
+            ConfigView.Set(I_Route, I_Value);
+            if (OnConfigChangeDelegate) { OnConfigChangeDelegate->Broadcast(FJSONRoute(I_Route.GetRouteString())); }
             return *this;
         }
 
-        template<Concepts::JSONRoute RouteType> IGlobalService&
+        template<Concepts::JSONRoute RouteType> IRuntimeService&
         SetConfig(const RouteType& I_Route, Int64 I_Value)
         {
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
+            ConfigView.Set(I_Route, I_Value);
+            if (OnConfigChangeDelegate) { OnConfigChangeDelegate->Broadcast(FJSONRoute(I_Route.GetRouteString())); }
             return *this;
         }
 
-        template<Concepts::JSONRoute RouteType> IGlobalService&
+        template<Concepts::JSONRoute RouteType> IRuntimeService&
         SetConfig(const RouteType& I_Route, Bool I_Value)
         {
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
+            ConfigView.Set(I_Route, I_Value);
+            if (OnConfigChangeDelegate) { OnConfigChangeDelegate->Broadcast(FJSONRoute(I_Route.GetRouteString())); }
             return *this;
         }
 
-        template<Concepts::JSONRoute RouteType> IGlobalService&
+        template<Concepts::JSONRoute RouteType> IRuntimeService&
         SetConfig(const RouteType& I_Route, const FJSON& I_Value)
         {
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
+            ConfigView.Set(I_Route, I_Value);
+            if (OnConfigChangeDelegate) { OnConfigChangeDelegate->Broadcast(FJSONRoute(I_Route.GetRouteString())); }
             return *this;
         }
 
     private:
-        template<Concepts::JSONRoute RouteType>
-        void NotifyConfigChange(const RouteType& I_Route)
-        {
-            if (!Registry) { return; }
-            const FJSONRoute DynamicPath{I_Route.GetRouteString()};
-            for (auto& [Name, Service] : *Registry)
-            {
-                Service->NotifyConfigChanged(DynamicPath);
-            }
-        }
-        FJSON& Config; // Config JSON reference to global config in FRuntime (all services share the same global config)
+        FJSONView                                              ConfigView;
+        TMulticastDelegate<const FJSONRoute&>*              OnConfigChangeDelegate {nullptr};
+        TMulticastDelegate<const FJSONRoute&>::FHandle      ConfigChangeSubscribeHandle {0};
+        FString                                                  RuntimeName;
 
     public:
-        virtual ~IGlobalService()
+        virtual ~IRuntimeService()
         {
+            if (OnConfigChangeDelegate && ConfigChangeSubscribeHandle != 0)
+            { OnConfigChangeDelegate->Unsubscribe(ConfigChangeSubscribeHandle); }
             switch (Status)
             {
             case EStatus::Pending:
-                LOG_WARN("Service {} was NOT bootstrapped!", Name.GetNameString());
+                LOG_WARN("Service {} was NOT bootstrapped!", Name);
                 break;
             case EStatus::Bootstrapped:
-                LOG_ERROR("Service {} was NOT terminated! -- will try to terminate it!", Name.GetNameString());
-                if (!OnTerminate.Invoke())
-                { LOG_ERROR("Failed to Terminate Service {}！", Name.GetNameString()); }
+                LOG_ERROR("Service {} was NOT terminated!", Name);
                 break;
             case EStatus::Terminated:
                 // Service was properly terminated, nothing to do
                 break;
-            default: LOG_ERROR("Service {} is in unknown statue {} !", Name.GetNameString(), static_cast<Int8>(Status)); break;
+            default: LOG_ERROR("Service {} is in unknown state {}!", Name, static_cast<Int8>(Status)); break;
             }
         }
 
     private:
-        const FName Name;
+        const FString Name;
 
     public:
-        IGlobalService() = delete;
-        explicit IGlobalService(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
-            : Name     (I_Name)
-            , Registry (I_Registry)
-            , Config   (const_cast<FJSON&>(I_Config)) { }
+        IRuntimeService() = delete;
+        explicit IRuntimeService(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
+                               TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
+            : Name                  (std::move(I_Name))
+            , Registry              (I_Registry)
+            , ConfigView            (std::move(I_ConfigView))
+            , OnConfigChangeDelegate(I_OnConfigChange)
+            , RuntimeName           (I_RuntimeName)
+        {
+            if (OnConfigChangeDelegate)
+            {
+                ConfigChangeSubscribeHandle = OnConfigChangeDelegate->Subscribe(
+                    [this](const FJSONRoute& I_Route) { OnConfigChange.Invoke(I_Route); });
+            }
+        }
 
-        IGlobalService(const IGlobalService&)			 = delete;
-        IGlobalService& operator=(const IGlobalService&) = delete;
-        IGlobalService(IGlobalService&&)				 = delete;
-        IGlobalService& operator=(IGlobalService&&)      = delete;
+        IRuntimeService(const IRuntimeService&)			 = delete;
+        IRuntimeService& operator=(const IRuntimeService&) = delete;
+        IRuntimeService(IRuntimeService&&)				 = delete;
+        IRuntimeService& operator=(IRuntimeService&&)      = delete;
     };
 }

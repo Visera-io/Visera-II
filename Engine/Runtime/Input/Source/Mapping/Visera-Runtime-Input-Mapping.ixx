@@ -218,7 +218,7 @@ export namespace Visera
         inline EKeyboardModifier ParseModifiers(const FJSON& I_Obj)
         {
             EKeyboardModifier Out = EKeyboardModifier::None;
-            auto ArrOpt = I_Obj.TryGetStringArray("Modifiers");
+            auto ArrOpt = I_Obj.TryGetArray<FString>("Modifiers");
             if (!ArrOpt.HasValue()) { return Out; }
             for (const auto& S : ArrOpt.GetValue())
             {

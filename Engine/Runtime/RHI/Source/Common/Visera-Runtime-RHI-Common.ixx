@@ -11,7 +11,8 @@ export import Visera.Core.Traits.Flags;
 
 export namespace Visera
 {
-    using FRHISwapChainID   = UInt8;
+    using FRHISwapChainID = UInt8;
+    inline constexpr FRHISwapChainID kInvalidSwapChainID  = 0xFF;
 
     enum class ERHIFormat : UInt32
     {
@@ -245,6 +246,55 @@ export namespace Visera
     [[nodiscard]] constexpr vk::ImageLayout
     TypeCast(ERHIImageLayout I_ImageLayout) { return static_cast<vk::ImageLayout>(I_ImageLayout); }
 
+    enum class ERHIPipelineStage : UInt64
+    {
+        None                    = static_cast<UInt64>(vk::PipelineStageFlagBits2::eNone),
+        TopOfPipe               = static_cast<UInt64>(vk::PipelineStageFlagBits2::eTopOfPipe),
+        BottomOfPipe            = static_cast<UInt64>(vk::PipelineStageFlagBits2::eBottomOfPipe),
+        DrawIndirect            = static_cast<UInt64>(vk::PipelineStageFlagBits2::eDrawIndirect),
+        VertexInput             = static_cast<UInt64>(vk::PipelineStageFlagBits2::eVertexInput),
+        VertexShader            = static_cast<UInt64>(vk::PipelineStageFlagBits2::eVertexShader),
+        FragmentShader          = static_cast<UInt64>(vk::PipelineStageFlagBits2::eFragmentShader),
+        EarlyFragmentTests      = static_cast<UInt64>(vk::PipelineStageFlagBits2::eEarlyFragmentTests),
+        LateFragmentTests       = static_cast<UInt64>(vk::PipelineStageFlagBits2::eLateFragmentTests),
+        ColorAttachmentOutput   = static_cast<UInt64>(vk::PipelineStageFlagBits2::eColorAttachmentOutput),
+        ComputeShader           = static_cast<UInt64>(vk::PipelineStageFlagBits2::eComputeShader),
+        Transfer                = static_cast<UInt64>(vk::PipelineStageFlagBits2::eTransfer),
+        AllGraphics             = static_cast<UInt64>(vk::PipelineStageFlagBits2::eAllGraphics),
+        AllCommands             = static_cast<UInt64>(vk::PipelineStageFlagBits2::eAllCommands),
+    };
+    VISERA_MAKE_FLAGS(ERHIPipelineStage);
+    [[nodiscard]] constexpr vk::PipelineStageFlags2
+    TypeCast(ERHIPipelineStage I_Stage) { return static_cast<vk::PipelineStageFlagBits2>(static_cast<UInt64>(I_Stage)); }
+
+    enum class ERHIAccessFlag : UInt64
+    {
+        None                    = static_cast<UInt64>(vk::AccessFlagBits2::eNone),
+        IndirectCommandRead     = static_cast<UInt64>(vk::AccessFlagBits2::eIndirectCommandRead),
+        IndexRead               = static_cast<UInt64>(vk::AccessFlagBits2::eIndexRead),
+        VertexAttributeRead     = static_cast<UInt64>(vk::AccessFlagBits2::eVertexAttributeRead),
+        UniformRead             = static_cast<UInt64>(vk::AccessFlagBits2::eUniformRead),
+        InputAttachmentRead     = static_cast<UInt64>(vk::AccessFlagBits2::eInputAttachmentRead),
+        ShaderRead              = static_cast<UInt64>(vk::AccessFlagBits2::eShaderRead),
+        ShaderWrite             = static_cast<UInt64>(vk::AccessFlagBits2::eShaderWrite),
+        ColorAttachmentRead     = static_cast<UInt64>(vk::AccessFlagBits2::eColorAttachmentRead),
+        ColorAttachmentWrite    = static_cast<UInt64>(vk::AccessFlagBits2::eColorAttachmentWrite),
+        DepthStencilRead        = static_cast<UInt64>(vk::AccessFlagBits2::eDepthStencilAttachmentRead),
+        DepthStencilWrite       = static_cast<UInt64>(vk::AccessFlagBits2::eDepthStencilAttachmentWrite),
+        TransferRead            = static_cast<UInt64>(vk::AccessFlagBits2::eTransferRead),
+        TransferWrite           = static_cast<UInt64>(vk::AccessFlagBits2::eTransferWrite),
+        HostRead                = static_cast<UInt64>(vk::AccessFlagBits2::eHostRead),
+        HostWrite               = static_cast<UInt64>(vk::AccessFlagBits2::eHostWrite),
+        MemoryRead              = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryRead),
+        MemoryWrite             = static_cast<UInt64>(vk::AccessFlagBits2::eMemoryWrite),
+        ShaderSampledRead       = static_cast<UInt64>(vk::AccessFlagBits2::eShaderSampledRead),
+        ShaderStorageRead       = static_cast<UInt64>(vk::AccessFlagBits2::eShaderStorageRead),
+        ShaderStorageWrite      = static_cast<UInt64>(vk::AccessFlagBits2::eShaderStorageWrite),
+    };
+    VISERA_MAKE_FLAGS(ERHIAccessFlag);
+    [[nodiscard]] constexpr vk::AccessFlags2
+    TypeCast(ERHIAccessFlag I_Access) { return static_cast<vk::AccessFlagBits2>(static_cast<UInt64>(I_Access)); }
+
     enum class ERHIBufferUsage : UInt32
     {
         None = 0,
@@ -269,7 +319,7 @@ export namespace Visera
     };
     VISERA_MAKE_FLAGS(ERHIResourceAccess);
 
-    struct FRHIExtent3D
+    struct VISERA_RUNTIME_API FRHIExtent3D
     {
         UInt32 Width  = 0;
         UInt32 Height = 0;
@@ -278,21 +328,21 @@ export namespace Visera
     [[nodiscard]] constexpr vk::Extent3D
     TypeCast(const FRHIExtent3D& I_Extent) { return vk::Extent3D{I_Extent.Width, I_Extent.Height, I_Extent.Depth}; }
 
-    struct FRHIOffset2D
+    struct VISERA_RUNTIME_API FRHIOffset2D
     {
         Int32 X, Y;
     };
     [[nodiscard]] constexpr vk::Offset2D
     TypeCast(const FRHIOffset2D& I_Offset2D) { return vk::Offset2D{I_Offset2D.X, I_Offset2D.Y}; }
 
-    struct FRHIExtent2D
+    struct VISERA_RUNTIME_API FRHIExtent2D
     {
         UInt32 Width, Height;
     };
     [[nodiscard]] constexpr vk::Extent2D
     TypeCast(const FRHIExtent2D& I_Extent2D) { return vk::Extent2D{I_Extent2D.Width, I_Extent2D.Height}; }
 
-    struct FRHIViewport
+    struct VISERA_RUNTIME_API FRHIViewport
     {
         Float X       , Y       ;
         Float Width   , Height  ;
@@ -301,7 +351,7 @@ export namespace Visera
     [[nodiscard]] constexpr vk::Viewport
     TypeCast(const FRHIViewport& I_Viewport) { return vk::Viewport{I_Viewport.X, I_Viewport.Y, I_Viewport.Width, I_Viewport.Height, I_Viewport.MinDepth, I_Viewport.MaxDepth}; }
 
-    struct FRHIScissor
+    struct VISERA_RUNTIME_API FRHIScissor
     {
         FRHIOffset2D Offset;
         FRHIExtent2D Extent;
@@ -309,12 +359,14 @@ export namespace Visera
     [[nodiscard]] constexpr vk::Rect2D
     TypeCast(const FRHIScissor& I_Scissor) { return vk::Rect2D{ TypeCast(I_Scissor.Offset), TypeCast(I_Scissor.Extent)}; }
 
-    struct FRHIShaderLayout
+    struct VISERA_RUNTIME_API FRHIShaderLayout
     {
         struct FEntryPoint
         {
             FString            Name;
             ERHIShaderStage    Stage = ERHIShaderStage::Vertex;
+
+            Bool operator==(const FEntryPoint&) const = default;
         };
         struct FResource
         {
@@ -325,6 +377,8 @@ export namespace Visera
             ERHIDescriptorType Type   = ERHIDescriptorType::Undefined;
             ERHIResourceAccess Access = ERHIResourceAccess::Read;
             ERHIShaderStage    Stages = ERHIShaderStage::All; // which stage(s) use this resource (bitmask)
+
+            Bool operator==(const FResource&) const = default;
         };
         struct FPushConstant
         {
@@ -332,6 +386,8 @@ export namespace Visera
             UInt32           Size = 0;
             /** Which stage(s) access this push-constant block. */
             ERHIShaderStage Stages = ERHIShaderStage::All;
+
+            Bool operator==(const FPushConstant&) const = default;
         };
         TArray<FEntryPoint>   EntryPoints;
         TArray<FResource>     Resources;

@@ -3,7 +3,7 @@ module;
 export module Visera.Platform.MacOS.Window;
 #define VISERA_MODULE_NAME "Platform.MacOS"
 import Visera.Platform.Cross.GLFW.Window;
-import Visera.Core.Types.String;
+import Visera.Core.Types.Text;
 
 export namespace Visera
 {
@@ -14,7 +14,7 @@ export namespace Visera
         SetIcon(const FIconSet& I_IconSet) override
         { /* MacOS regular windows do not have icons */ }
 
-        FMacOSWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
+        FMacOSWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height)
         : FGLFWWindow(I_Title, I_Width, I_Height)
         {
 

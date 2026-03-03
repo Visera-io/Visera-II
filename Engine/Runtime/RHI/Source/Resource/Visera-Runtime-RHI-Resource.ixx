@@ -7,6 +7,7 @@ export import Visera.Runtime.RHI.Resource.Sampler;
 export import Visera.Runtime.RHI.Resource.Buffer;
 export import Visera.Runtime.RHI.Resource.DescriptorSet;
 export import Visera.Runtime.RHI.Resource.RenderPass;
+export import Visera.Runtime.RHI.Resource.ComputePass;
 export import Visera.Runtime.RHI.Resource.Shader;
 
 export namespace Visera

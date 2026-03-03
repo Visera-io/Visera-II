@@ -145,6 +145,12 @@ export namespace Visera
                               FVulkanImage*  I_DstImage,
                               UInt64         I_BufferOffset,
                               vk::ImageLayout I_DstImageLayout = vk::ImageLayout::eTransferDstOptimal);
+        void CopyImageToBuffer(FVulkanImage*  I_SourceImage,
+                              FVulkanBuffer* I_DestBuffer,
+                              UInt64         I_BufferOffset,
+                              const vk::Offset2D& I_ImageOffset,
+                              const vk::Extent2D& I_ImageExtent,
+                              vk::ImageLayout I_SourceImageLayout = vk::ImageLayout::eTransferSrcOptimal);
     };
 
     // --- Compute specialization ---
@@ -451,6 +457,39 @@ export namespace Visera
             .setRegionCount    (1)
             .setPRegions       (&CopyRegion);
         Handle.copyBufferToImage2(CopyInfo);
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>::
+    CopyImageToBuffer(FVulkanImage*  I_SourceImage,
+                      FVulkanBuffer* I_DestBuffer,
+                      UInt64         I_BufferOffset,
+                      const vk::Offset2D& I_ImageOffset,
+                      const vk::Extent2D& I_ImageExtent,
+                      vk::ImageLayout I_SourceImageLayout)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SourceImage != nullptr);
+        VISERA_ASSERT(I_DestBuffer  != nullptr);
+
+        const auto ImageSubresourceLayers = vk::ImageSubresourceLayers{}
+            .setAspectMask     (vk::ImageAspectFlagBits::eColor)
+            .setMipLevel       (0)
+            .setBaseArrayLayer (0)
+            .setLayerCount     (1);
+        const auto CopyRegion = vk::BufferImageCopy2{}
+            .setBufferOffset       (I_BufferOffset)
+            .setBufferRowLength    (0)
+            .setBufferImageHeight (0)
+            .setImageSubresource  (ImageSubresourceLayers)
+            .setImageOffset        (vk::Offset3D{I_ImageOffset.x, I_ImageOffset.y, 0})
+            .setImageExtent       (vk::Extent3D{I_ImageExtent.width, I_ImageExtent.height, 1});
+        const auto CopyInfo = vk::CopyImageToBufferInfo2{}
+            .setSrcImage       (I_SourceImage->GetHandle())
+            .setSrcImageLayout (I_SourceImageLayout)
+            .setDstBuffer      (I_DestBuffer->GetHandle())
+            .setRegionCount    (1)
+            .setPRegions       (&CopyRegion);
+        Handle.copyImageToBuffer2(CopyInfo);
     }
 
     // ========== Graphics implementations ==========

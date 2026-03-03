@@ -9,6 +9,7 @@
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GLOBAL_SCRIPTS_DIR})
 
     file(GLOB_RECURSE VISERA_GLOBAL_MODULES "${VISERA_GLOBAL_SOURCE_DIR}/*.ixx")
+    list(SORT VISERA_GLOBAL_MODULES)
 
     target_include_directories(${in_target}
         PUBLIC

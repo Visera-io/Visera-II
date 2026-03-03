@@ -8,22 +8,23 @@ import Visera.Platform.Windows;
 import Visera.Platform.MacOS;
 #endif
 export import Visera.Core.Types.Path;
+export import Visera.Core.Types.Text;
        import Visera.Core.Types.Optional;
        import Visera.Core.Containers.Array;
+       import Visera.Core.Meta.Cast;
 
 export namespace Visera
 {
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-    using EPlatformIOStatus = EWindowsIOStatus;
-#elif defined(VISERA_ON_APPLE_SYSTEM)
-    using EPlatformIOStatus = EMacOSIOStatus;
-#endif
-    using FPlatformWindow   = IPlatformWindow;
-    using FPlatformLibrary  = IPlatformLibrary;
-#if defined(VISERA_ON_WINDOWS_SYSTEM)
+    using EPlatformIOStatus   = EWindowsIOStatus;
+    using FPlatformWindow     = FWindowsWindow;
+    using FPlatformLibrary    = FWindowsLibrary;
     using FPlatformPath       = FWindowsPath;
     using FPlatformFileSystem = FWindowsPlatformFileSystem;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
+    using EPlatformIOStatus   = EMacOSIOStatus;
+    using FPlatformWindow     = FMacOSWindow;
+    using FPlatformLibrary    = FMacOSLibrary;
     using FPlatformPath       = FMacOSPath;
     using FPlatformFileSystem = FMacOSPlatformFileSystem;
 #endif
@@ -32,11 +33,11 @@ export namespace Visera
     {
     public:
         [[nodiscard]] static inline TUniquePtr<FPlatformWindow>
-        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) { return Get()->CreateWindow(I_Title, I_Width, I_Height); }
+        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) { return Cast<FPlatformWindow>(Get()->CreateWindow(I_Title, I_Width, I_Height)); }
         [[nodiscard]] static inline FPlatformPath
         MakePlatformPath(const FPath& I_Path) { return FPlatformPath(I_Path); }
         [[nodiscard]] static inline TSharedPtr<FPlatformLibrary>
-        LoadLibrary(const FPath& I_Path) { return Get()->LoadLibrary(MakePlatformPath(I_Path)); }
+        LoadLibrary(const FPath& I_Path) { return Cast<FPlatformLibrary>(Get()->LoadLibrary(MakePlatformPath(I_Path))); }
         [[nodiscard]] static const FPath&
         GetExecutableDirectory();
         [[nodiscard]] static const FPath&
@@ -46,14 +47,17 @@ export namespace Visera
         [[nodiscard]] static const FPath&
         GetCacheDirectory();
         [[nodiscard]] static inline Bool
-        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) { return Get()->SetEnvironmentVariable(I_Variable, I_Value); }
+        SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) { return Get()->SetEnvironmentVariable(I_Variable, I_Value); }
         [[nodiscard]] static inline FUUID
         GenerateUUID() { return Get()->GenerateUUID(); }
         [[nodiscard]] static inline EPlatform
         GetType() { return Get()->GetType(); }
         static inline void
-        SetCurrentThreadName(FStringView I_Name) { Get()->SetCurrentThreadName(I_Name); }
-
+        SetCurrentThreadName(const FText& I_Name) { Get()->SetCurrentThreadName(I_Name); }
+        static inline void
+        PollEvents() { Get()->PollEvents(); }
+        static inline void
+        WaitEvents() { Get()->WaitEvents(); }
         [[nodiscard]] static inline Bool
         ExistsFile(const FPath& I_Path) { return Get()->GetFileSystem().ExistsFile(MakePlatformPath(I_Path)); }
         [[nodiscard]] static inline Bool

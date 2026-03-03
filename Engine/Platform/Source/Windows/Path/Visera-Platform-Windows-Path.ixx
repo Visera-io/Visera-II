@@ -40,7 +40,7 @@ namespace Visera
         Native.resize(static_cast<size_t>(WideLength));
         MultiByteToWideChar(CP_UTF8, 0, Utf8.Data(), static_cast<int>(Utf8.GetSize()), Native.data(), WideLength);
         for (wchar_t& Ch : Native)
-            if (Ch == L'/') Ch = L'\\';
+        { if (Ch == L'/') { Ch = L'\\'; } }
     }
 
     FPath FWindowsPath::ToPath() const

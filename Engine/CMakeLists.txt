@@ -1,25 +1,56 @@
 cmake_minimum_required(VERSION 4.0.0 FATAL_ERROR)
 
-if(VISERA_OFFSCREEN_MODE)
-    message(STATUS "Off-Screen Mode")
-    add_compile_definitions (VISERA_OFFSCREEN_MODE)
-endif()
-
 option(VISERA_PROFILING_MODE "Enable profiling instrumentation" OFF)
 if(VISERA_PROFILING_MODE)
     message(STATUS "Profiling Mode")
     add_compile_definitions(VISERA_PROFILING_MODE)
 endif()
 
-set(VISERA_CORE_DIR       "${CMAKE_CURRENT_SOURCE_DIR}/Core")
-set(VISERA_FORGE_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/Forge")
-set(VISERA_PLATFORM_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/Platform")
-set(VISERA_RUNTIME_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/Runtime")
+set(VISERA_CORE_DIR       "${VISERA_ENGINE_DIR}/Core")
+set(VISERA_FORGE_DIR      "${VISERA_ENGINE_DIR}/Forge")
+set(VISERA_PLATFORM_DIR   "${VISERA_ENGINE_DIR}/Platform")
+set(VISERA_RUNTIME_DIR    "${VISERA_ENGINE_DIR}/Runtime")
 if(VISERA_BUILD_FORGE)
 set(VISERA_FORGE_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Toolkit/Forge" CACHE PATH "Forge executable output directory")
 endif()
 
-if(CMAKE_CONFIGURATION_TYPES)
+if(DEFINED VISERA_ENGINE_BUILD_MODE AND NOT VISERA_ENGINE_BUILD_MODE STREQUAL "")
+    if(VISERA_ENGINE_BUILD_MODE STREQUAL "Debug")
+        target_compile_definitions(${VISERA} PUBLIC VISERA_DEBUG_MODE)
+        if(MSVC)
+            set(VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST "/Od" "/Zi")
+        else()
+            set(VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST "-O0" "-g")
+        endif()
+    elseif(VISERA_ENGINE_BUILD_MODE STREQUAL "Develop")
+        target_compile_definitions(${VISERA} PUBLIC VISERA_DEVELOP_MODE)
+        if(MSVC)
+            set(VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST "/O2" "/Zi")
+        else()
+            set(VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST "-O2" "-g")
+        endif()
+    elseif(VISERA_ENGINE_BUILD_MODE STREQUAL "Release")
+        target_compile_definitions(${VISERA} PUBLIC VISERA_RELEASE_MODE)
+        if(MSVC)
+            set(VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST "/O2" "/Ob2")
+        else()
+            set(VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST "-O3" "-DNDEBUG")
+        endif()
+    else()
+        message(FATAL_ERROR "VISERA_ENGINE_BUILD_MODE must be Debug, Develop, or Release; got ${VISERA_ENGINE_BUILD_MODE}")
+    endif()
+    if(CMAKE_CONFIGURATION_TYPES)
+        foreach(flag IN LISTS VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST)
+            target_compile_options(${VISERA} PRIVATE
+                $<$<CONFIG:Debug>:${flag}>
+                $<$<CONFIG:Develop>:${flag}>
+                $<$<CONFIG:Release>:${flag}>
+            )
+        endforeach()
+    else()
+        target_compile_options(${VISERA} PRIVATE ${VISERA_ENGINE_CHOSEN_CXX_FLAGS_LIST})
+    endif()
+elseif(CMAKE_CONFIGURATION_TYPES)
     add_compile_definitions(
         $<$<CONFIG:Debug>:VISERA_DEBUG_MODE>
         $<$<CONFIG:Develop>:VISERA_DEVELOP_MODE>
@@ -35,22 +66,6 @@ else()
     message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
-if(VISERA_BUILD_STATIC)
-    add_library(${VISERA} STATIC)
-    target_compile_definitions(${VISERA} PUBLIC
-        VISERA_CORE_BUILD_STATIC
-        VISERA_RUNTIME_BUILD_STATIC
-        VISERA_PLATFORM_BUILD_STATIC
-    )
-else()
-    add_library(${VISERA} SHARED)
-    target_compile_definitions(${VISERA} PRIVATE
-        VISERA_CORE_BUILD_SHARED
-        VISERA_RUNTIME_BUILD_SHARED
-        VISERA_PLATFORM_BUILD_SHARED
-    )
-endif()
-
 set_target_properties(${VISERA} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${VISERA_ENGINE_FRAMEWORK_DIR}"
     LIBRARY_OUTPUT_DIRECTORY "${VISERA_ENGINE_FRAMEWORK_DIR}"
@@ -63,5 +78,5 @@ install_visera_platform (${VISERA})
 install_visera_runtime  (${VISERA})
 
 if(VISERA_BUILD_FORGE)
-    add_subdirectory(${VISERA_FORGE_DIR})
+add_subdirectory(${VISERA_FORGE_DIR})
 endif()

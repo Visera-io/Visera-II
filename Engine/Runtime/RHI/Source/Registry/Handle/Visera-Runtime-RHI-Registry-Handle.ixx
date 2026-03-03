@@ -17,6 +17,7 @@ export namespace Visera
             Sampler,
             Buffer,
             RenderPass,
+            ComputePass,
             DescriptorSet,
             Shader,
             DescriptorSetLayout,
@@ -24,8 +25,8 @@ export namespace Visera
 
         enum : UInt32 // Embedded in the Generation(High32)
         {
-            GENERATION_MASK    = (1U << 28) - 1U,  //[0~27]    : 28Bits
-            TYPE_MASK          = (0b111) << 28,    //[28~30]   :  3Bits
+            GENERATION_MASK    = (1U << 27) - 1U,  //[0~26]    : 27Bits
+            TYPE_MASK          = (0b1111) << 27,   //[27~30]   :  4Bits
             WRITABLE_MASK      = (1U << 31),       //[31]      :  1Bit
         };
         static constexpr TClosedInterval<UInt32>
@@ -36,7 +37,7 @@ export namespace Visera
         [[nodiscard]] constexpr UInt32
         GetGeneration() const { return static_cast<UInt32>(Value >> 32) & GENERATION_MASK; }
         [[nodiscard]] constexpr EType
-        GetType() const { return static_cast<EType>((FHandle::GetGeneration() & TYPE_MASK) >> 28); }
+        GetType() const { return static_cast<EType>((FHandle::GetGeneration() & TYPE_MASK) >> 27); }
         [[nodiscard]] constexpr Bool
         IsWritable() const { return ((Value >> 32) & WRITABLE_MASK) != 0; }
 
@@ -47,7 +48,7 @@ export namespace Visera
             Bool             I_bWritable = False)
         {
             const UInt32 GenerationBits = (I_Generation & GENERATION_MASK);
-            const UInt32 TypeBits       = (static_cast<UInt32>(I_Type) & 0b111U) << 28;
+            const UInt32 TypeBits       = (static_cast<UInt32>(I_Type) & 0b1111U) << 27;
             const UInt32 WritableBit    = I_bWritable ? WRITABLE_MASK : 0U;
 
             Value = (static_cast<UInt64>(WritableBit | TypeBits | GenerationBits) << 32) | I_Index;
@@ -106,6 +107,14 @@ export namespace Visera
         : FRHIResourceHandle(I_Generation, I_Index, EType::RenderPass, False) {}
     };
 
+    struct VISERA_RUNTIME_API FRHIComputePassHandle : FRHIResourceHandle
+    {
+        FRHIComputePassHandle() = default;
+        FRHIComputePassHandle(const FRHIResourceHandle& I_Handle) : FRHIResourceHandle(I_Handle) {}
+        FRHIComputePassHandle(UInt32 I_Generation, UInt32 I_Index)
+        : FRHIResourceHandle(I_Generation, I_Index, EType::ComputePass, False) {}
+    };
+
     /** Internal use only: index into Registry's DescriptorSetLayout cache. Users create layout + DSet via FRHIDescriptorSetCreateInfo only. */
     struct VISERA_RUNTIME_API FRHIDescriptorSetLayoutHandle : FRHIResourceHandle
     {
@@ -141,6 +150,7 @@ VISERA_MAKE_FORMATTER(Visera::FRHIRenderPassHandle::EType,
     case Visera::FRHIRenderPassHandle::EType::Sampler:             Name = "Sampler";             break;
     case Visera::FRHIRenderPassHandle::EType::Buffer:              Name = "Buffer";              break;
     case Visera::FRHIRenderPassHandle::EType::RenderPass:          Name = "RenderPass";          break;
+    case Visera::FRHIRenderPassHandle::EType::ComputePass:         Name = "ComputePass";         break;
     case Visera::FRHIRenderPassHandle::EType::DescriptorSet:       Name = "DescriptorSet";       break;
     case Visera::FRHIRenderPassHandle::EType::Shader:              Name = "Shader";             break;
     case Visera::FRHIRenderPassHandle::EType::DescriptorSetLayout: Name = "DescriptorSetLayout"; break;
@@ -176,3 +186,6 @@ VISERA_MAKE_FORMATTER(Visera::FRHIShaderHandle, {}, "{}", static_cast<Visera::FR
 
 VISERA_MAKE_HASH(Visera::FRHIRenderPassHandle, { return I_Object.GetValue(); })
 VISERA_MAKE_FORMATTER(Visera::FRHIRenderPassHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));
+
+VISERA_MAKE_HASH(Visera::FRHIComputePassHandle, { return I_Object.GetValue(); })
+VISERA_MAKE_FORMATTER(Visera::FRHIComputePassHandle, {}, "{}", static_cast<Visera::FRHIResourceHandle>(I_Formatee));

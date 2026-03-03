@@ -13,8 +13,8 @@ project("${VISERA} (${VISERA_VERSION})"
 )
 message(STATUS "${PROJECT_NAME}")
 
-option(VISERA_OFFSCREEN_MODE    "Create a headless application"     OFF)
-option(VISERA_BUILD_FORGE       "Build Visera-Forge (toolchain)"    ON )
+option(VISERA_PROFILING_MODE    "Enable profiling mode"                               OFF)
+option(VISERA_BUILD_FORGE       "Build Visera-Forge (toolchain)"                      ON)
 option(VISERA_BUILD_STATIC      "Build Visera as static library (single exe, no DLL)" ON)
 
 set(CMAKE_CXX_STANDARD          23)
@@ -59,13 +59,33 @@ elseif(APPLE)
 endif()
 
 # Unified engine output paths (app-independent).
-set(VISERA_ENGINE_OUTPUT_ROOT "${CMAKE_BINARY_DIR}/Engine" CACHE PATH "Engine binary output root directory")
+set(VISERA_ENGINE_OUTPUT_ROOT   "${CMAKE_BINARY_DIR}/Engine" CACHE PATH "Engine binary output root directory")
 set(VISERA_ENGINE_FRAMEWORK_DIR "${VISERA_ENGINE_OUTPUT_ROOT}/$<CONFIG>" CACHE STRING "Engine runtime output directory")
-set(VISERA_ENGINE_RESOURCE_DIR "${VISERA_ENGINE_FRAMEWORK_DIR}/Resources" CACHE STRING "Engine runtime resource directory")
+set(VISERA_ENGINE_RESOURCE_DIR  "${VISERA_ENGINE_FRAMEWORK_DIR}/Resources" CACHE STRING "Engine runtime resource directory")
 
-# Pre-create engine output directories for each configuration to avoid MSBuild MSB3191.
-foreach(CFG ${CMAKE_CONFIGURATION_TYPES})
-    file(MAKE_DIRECTORY "${VISERA_ENGINE_OUTPUT_ROOT}/${CFG}")
-endforeach()
+set(VISERA_ENGINE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Engine")
+if(VISERA_BUILD_STATIC)
+    add_library(${VISERA} STATIC)
+    target_compile_definitions(${VISERA} PUBLIC
+        VISERA_CORE_BUILD_STATIC
+        VISERA_RUNTIME_BUILD_STATIC
+        VISERA_PLATFORM_BUILD_STATIC
+    )
+else()
+    add_library(${VISERA} SHARED)
+    target_compile_definitions(${VISERA} PRIVATE
+        VISERA_CORE_BUILD_SHARED
+        VISERA_RUNTIME_BUILD_SHARED
+        VISERA_PLATFORM_BUILD_SHARED
+    )
+endif()
+add_subdirectory(${VISERA_ENGINE_DIR})
 
-add_subdirectory(Engine)
+target_sources(${VISERA}
+    PUBLIC
+    FILE_SET "visera_engine" TYPE CXX_MODULES
+    FILES "${VISERA_ENGINE_DIR}/Visera.ixx")
+
+if(VISERA_PROFILING_MODE)
+    target_compile_definitions(${VISERA} PRIVATE VISERA_PROFILING_MODE)
+endif()

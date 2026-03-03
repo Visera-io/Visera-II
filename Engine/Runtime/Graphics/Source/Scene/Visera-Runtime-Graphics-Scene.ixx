@@ -3,23 +3,34 @@ module;
 export module Visera.Runtime.Graphics.Scene;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 export import Visera.Runtime.Graphics.Scene.Camera;
-       import Visera.Core.Containers.Map;
-       import Visera.Core.Types.Name;
+export import Visera.Runtime.Graphics.Scene.Light;
+export import Visera.Runtime.Graphics.Scene.Renderable;
+       import Visera.Core.Containers.Array;
+       import Visera.Core.Types.Pointer;
 
 export namespace Visera
 {
-    namespace EName
-    {
-        VISERA_RUNTIME_API inline const auto
-        MainCamera = FName{"camera", 0};
-    }
-
     class VISERA_RUNTIME_API FScene
     {
     public:
 
 
     private:
-        TMap<FName, FCamera> Cameras;
+        TUniquePtr<FCamera>             Camera;
+        TUniquePtr<FLight>              Light;
+        TArray<TUniquePtr<IRenderable>> Renderables;
+
+    public:
+        struct FSnapshot
+        {
+
+        };
+
+        /** Returns a read-only snapshot for this frame. Safe to call from Main; result can be enqueued to Graphics. */
+        [[nodiscard]] FSnapshot
+        Snapshot() const
+        {
+            return FSnapshot{};
+        }
     };
 }

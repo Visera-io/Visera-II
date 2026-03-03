@@ -9,12 +9,14 @@ export import Visera.Runtime.Graphics;
 export import Visera.Runtime.Input;
 export import Visera.Runtime.RHI;
 export import Visera.Runtime.Tasks;
+export import Visera.Runtime.UI;
 export import Visera.Runtime.Window;
        import Visera.Core.Containers.Set;
        import Visera.Core.Containers.Map;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Queue;
        import Visera.Core.Types.JSON;
+       import charted.json;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer;
@@ -22,405 +24,463 @@ export import Visera.Runtime.Window;
        import Visera.Core.Meta.Cast;
        import Visera.Core.Log;
 
-export namespace Visera
+namespace Visera
 {
-    enum class EMode
+    /** Engine mode: Standard = full features (config-driven), Forge = Task, AssetHub, RHI only (Visera-Forge). */
+    export enum class EEngineMode
     {
-        Minimal,  // Only essential services
-        Full,     // All services
+        Standard,
+        Forge,
     };
 
-    class VISERA_RUNTIME_API FRuntime
+    /** App mode: Game = full app features (config-driven). */
+    export enum class EAppMode
     {
+        Game,
+    };
+
+    export class VISERA_RUNTIME_API FViseraApp;
+    export class VISERA_RUNTIME_API FViseraEngine;
+
+    class VISERA_RUNTIME_API FViseraEngine
+    {
+        friend class FViseraApp;
     public:
-        [[nodiscard]] FInput*
-        GetInput() const { return Input ? Input.Get() : nullptr; }
+        [[nodiscard]] FTasks*      GetTasks()    const { return GetGlobalService<FTasks>    (EService::Tasks);    }
+        [[nodiscard]] FRHI*        GetRHI()      const { return GetGlobalService<FRHI>      (EService::RHI);      }
+        [[nodiscard]] FAudio*      GetAudio()    const { return GetGlobalService<FAudio>    (EService::Audio);    }
+        [[nodiscard]] FAssetHub*   GetAssetHub() const { return GetGlobalService<FAssetHub> (EService::AssetHub); }
+        [[nodiscard]] FGraphics*   GetGraphics() const { return GetGlobalService<FGraphics> (EService::Graphics); }
 
-        [[nodiscard]] FWindow*
-        GetWindow() const { return Window ? Window.Get() : nullptr; }
+        [[nodiscard]] FJSON&       GetConfig()       { return Config.GetRoot(); }
+        [[nodiscard]] const FJSON& GetConfig() const { return Config.GetRoot(); }
 
-        [[nodiscard]] FTasks*
-        GetTasks() const { return Tasks ? Tasks.Get() : nullptr; }
+        /** Create application by mode. No config needed. Call Bootstrap() explicitly. */
+        [[nodiscard]] FViseraApp*
+        CreateApplication(FString I_Name, EAppMode I_Mode);
 
-        [[nodiscard]] FRHI*
-        GetRHI() const { return RHI ? RHI.Get() : nullptr; }
+        /** Create application from config. Call Bootstrap() explicitly. */
+        [[nodiscard]] FViseraApp*
+        CreateApplication(FString I_Name, const FJSON& I_AppConfig);
 
-        [[nodiscard]] FAudio*
-        GetAudio() const { return Audio ? Audio.Get() : nullptr; }
+        /** Get application by name. Returns nullptr if not found. */
+        [[nodiscard]] FViseraApp*
+        GetApplication(FStringView I_Name) const;
 
-        [[nodiscard]] FGraphics*
-        GetGraphics() const { return Graphics ? Graphics.Get() : nullptr; }
+        explicit FViseraEngine(const FJSON& I_Config);
+        ~FViseraEngine() { Terminate(); }
 
-        [[nodiscard]] FAssetHub*
-        GetAssetHub() const { return AssetHub ? AssetHub.Get() : nullptr; }
-
-        // Get a service from the registry
-        template<typename T> [[nodiscard]] TWeakPtr<T>
-        GetService(FName I_ServiceName) const
-        {
-            auto ServiceIter = Registry.Find(I_ServiceName);
-            if (ServiceIter == Registry.end())
-            {
-                return TWeakPtr<T>();
-            }
-            // Cast TSharedPtr<IGlobalService> to TSharedPtr<T>, then create TWeakPtr
-            if (auto Casted = Cast<T>(ServiceIter->second))
-            {
-                return TWeakPtr<T>(Casted);
-            }
-            return TWeakPtr<T>();
-        }
-
-        /** Set config value at path and notify all services via OnConfigChange. */
-        template<Concepts::JSONRoute RouteType> FRuntime&
-        SetConfig(const RouteType& I_Route, FStringView I_Value)
-        {
-            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
-
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
-            return *this;
-        }
-
-        template<Concepts::JSONRoute RouteType> FRuntime&
-        SetConfig(const RouteType& I_Route, Double I_Value)
-        {
-            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
-
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
-            return *this;
-        }
-
-        template<Concepts::Integral T, Concepts::JSONRoute RouteType> FRuntime&
-        SetConfig(const RouteType& I_Route, T I_Value)
-        {
-            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
-
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
-            return *this;
-        }
-
-        template<Concepts::Boolean T, Concepts::JSONRoute RouteType> FRuntime&
-        SetConfig(const RouteType& I_Route, T I_Value)
-        {
-            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
-
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
-            return *this;
-        }
-
-        template<Concepts::JSONRoute RouteType> FRuntime&
-        SetConfig(const RouteType& I_Route, const FJSON& I_Value)
-        {
-            LOG_DEBUG("({}) SetConfig: {} = \"{}\"", RuntimeName, I_Route.GetRouteString(), I_Value);
-
-            Config.Set(I_Route, I_Value);
-            NotifyConfigChange(I_Route);
-            return *this;
-        }
-
-        ~FRuntime()
-        {
-            Terminate();
-            // TSharedPtr automatically manages lifetime, no need to manually unregister
-        }
-
-        // Create with mode (Full or Minimal)
-        [[nodiscard]] static TUniquePtr<FRuntime>
-        Create(FString I_Name = "Runtime", EMode I_Mode = EMode::Full, TOptional<FJSON> I_Config = {})
-        {
-            TSet<FName> Services;
-            if (I_Mode == EMode::Full)
-            {
-                Services =
-                {
-                    EName::Input,
-                    EName::Window,
-                    EName::Tasks,
-                    EName::RHI,
-                    EName::Audio,
-                    EName::Graphics,
-                    EName::AssetHub
-                };
-            }
-            else // Minimal
-            {
-                Services =
-                {
-                    EName::Tasks,
-                    EName::AssetHub
-                };
-            }
-            return Create(std::move(I_Name), Services, I_Config);
-        }
-
-        // Create with set of service names
-        [[nodiscard]] static TUniquePtr<FRuntime>
-        Create(FString I_Name, const TSet<FName>& I_Services, TOptional<FJSON> I_Config = {})
-        {
-            // Use new instead of MakeUnique to access private constructor
-            TUniquePtr<FRuntime> Runtime(new FRuntime(std::move(I_Name), I_Services, I_Config));
-            if (!Runtime)
-            {
-                LOG_ERROR("Failed to create Visera Runtime!");
-                return nullptr;
-            }
-
-            Runtime->Bootstrap();
-
-            return Runtime;
-        }
+        /** Explicitly shut down engine (terminate apps and services). Idempotent. Call before Reset() for clean exit. */
+        void
+        Terminate();
 
     private:
-        TSharedPtr<FInput>    Input;
-        TSharedPtr<FWindow>   Window;
-        TSharedPtr<FTasks>    Tasks;
-        TSharedPtr<FRHI>      RHI;
-        TSharedPtr<FAudio>    Audio;
-        TSharedPtr<FGraphics> Graphics;
-        TSharedPtr<FAssetHub> AssetHub;
-
-        FServiceRegistry Registry;
-        FJSON            Config; // Global config shared by all services
-        FString          RuntimeName; // For logging, also in Config["Runtime"]
-        TSet<FName>      SharedServices; // Services borrowed from other Runtime instances (Tasks, Audio, AssetHub)
-
-        static inline TWeakPtr<FTasks>    SharedTasks;
-        static inline TWeakPtr<FAudio>    SharedAudio;
-        static inline TWeakPtr<FAssetHub> SharedAssetHub;
-        static inline TWeakPtr<FRHI>      SharedRHI;
-
-        explicit FRuntime(FString I_Name, const TSet<FName>& I_Services, TOptional<FJSON> I_Config = {})
+        template<typename T> [[nodiscard]] T*
+        GetGlobalService(FServiceName I_ServiceName) const
         {
-            RuntimeName = std::move(I_Name);
-            // Use provided config or default empty config
-            if (I_Config.HasValue())
-            {
-                Config = std::move(I_Config).GetValue();
-                LOG_DEBUG("({}) Runtime config provided: {}", RuntimeName, Config.Dump());
-            }
-            // Inject Runtime name into Config for all services
-            Config.Set("Runtime", RuntimeName);
-
-            // Register services (all services reference the same global Config)
-            if (I_Services.Contains(EName::Input))
-            { Input    = Register<FInput>           (EName::Input);                       }
-            if (I_Services.Contains(EName::Window))
-            { Window   = Register<FWindow>          (EName::Window);                      }
-            if (I_Services.Contains(EName::Tasks))
-            { Tasks    = RegisterOrShare<FTasks>    (EName::Tasks,    SharedTasks);    }
-            if (I_Services.Contains(EName::RHI))
-            { RHI      = RegisterOrShare<FRHI>      (EName::RHI,      SharedRHI);      }
-            if (I_Services.Contains(EName::Audio))
-            { Audio    = RegisterOrShare<FAudio>    (EName::Audio,    SharedAudio);    }
-            if (I_Services.Contains(EName::Graphics))
-            { Graphics = Register<FGraphics>        (EName::Graphics);                    }
-            if (I_Services.Contains(EName::AssetHub))
-            { AssetHub = RegisterOrShare<FAssetHub> (EName::AssetHub, SharedAssetHub); }
+            auto it = GlobalRegistry.Find(I_ServiceName);
+            if (it == GlobalRegistry.end()) { return nullptr; }
+            if (auto p = Cast<T>(it->second)) { return p.Get(); }
+            return nullptr;
         }
 
         template<typename T> [[nodiscard]] TSharedPtr<T>
-        Register(FName I_ServiceName)
+        RegisterGlobal(const FString& I_ServiceName)
         {
-            if (Registry.Contains(I_ServiceName))
+            if (GlobalRegistry.Contains(I_ServiceName))
             {
-                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetNameString());
+                LOG_ERROR("Service {} already exists in Engine!", I_ServiceName);
                 return TSharedPtr<T>();
             }
-            
-            // Create service with Registry and reference to global Config
-            // TSharedPtr<IGlobalService> Service = MakeShared<T>(I_ServiceName, &Registry, Config);
-            auto Service = MakeShared<T>(I_ServiceName, &Registry, Config);
-
-            Registry.Insert(I_ServiceName, Service);
-            LOG_TRACE("Registered service ({}) : {}.", Registry.GetSize(), I_ServiceName);
+            auto EngineConfigView = Config.GetEngineConfig();
+            auto Service = MakeShared<T>(I_ServiceName, &GlobalRegistry, std::move(EngineConfigView),
+                                         &Config.OnEngineConfigChange, EngineName);
+            GlobalRegistry.Insert(I_ServiceName, Service);
+            LOG_TRACE("Engine registered service ({}) : {}.", GlobalRegistry.GetSize(), I_ServiceName);
             return Cast<T>(Service);
         }
 
+        void Bootstrap();
+        void DestroyApplication(FViseraApp* I_App);
+
+        FString                            EngineName;
+        FEngineConfig                      Config;
+        FServiceRegistry                   GlobalRegistry;
+        TArray<TSharedPtr<IRuntimeService>> GlobalServices;
+        TArray<TUniquePtr<FViseraApp>>       CreatedApps;
+
+        FViseraEngine(const FViseraEngine&)            = delete;
+        FViseraEngine& operator=(const FViseraEngine&) = delete;
+        FViseraEngine(FViseraEngine&&)                 = delete;
+        FViseraEngine& operator=(FViseraEngine&&)      = delete;
+    };
+
+    class VISERA_RUNTIME_API FViseraApp
+    {
+    public:
+        [[nodiscard]] FWindow*   GetWindow()   const { return GetLocalService<FWindow>   (EService::Window);   }
+        [[nodiscard]] FInput*    GetInput()    const { return GetLocalService<FInput>    (EService::Input);    }
+        [[nodiscard]] FUI*       GetUI()       const { return GetLocalService<FUI>       (EService::UI);       }
+
+        [[nodiscard]] FGraphics* GetGraphics() const { return OwnerEngine->GetGraphics(); }
+        [[nodiscard]] FTasks*    GetTasks()    const { return OwnerEngine->GetTasks();    }
+        [[nodiscard]] FAudio*    GetAudio()    const { return OwnerEngine->GetAudio();    }
+        [[nodiscard]] FAssetHub* GetAssetHub() const { return OwnerEngine->GetAssetHub(); }
+
+        template<Concepts::JSONRoute RouteType> FViseraApp&
+        SetConfig(const RouteType& I_Route, FStringView I_Value)
+        {
+            OwnerEngine->Config.GetAppConfig(AppName).Set(I_Route, I_Value);
+            OnConfigChange.Broadcast(FJSONRoute(I_Route.GetRouteString()));
+            return *this;
+        }
+        template<Concepts::JSONRoute RouteType> FViseraApp&
+        SetConfig(const RouteType& I_Route, Double I_Value)
+        {
+            OwnerEngine->Config.GetAppConfig(AppName).Set(I_Route, I_Value);
+            OnConfigChange.Broadcast(FJSONRoute(I_Route.GetRouteString()));
+            return *this;
+        }
+        template<Concepts::Integral T, Concepts::JSONRoute RouteType> FViseraApp&
+        SetConfig(const RouteType& I_Route, T I_Value)
+        {
+            OwnerEngine->Config.GetAppConfig(AppName).Set(I_Route, I_Value);
+            OnConfigChange.Broadcast(FJSONRoute(I_Route.GetRouteString()));
+            return *this;
+        }
+        template<Concepts::Boolean U, Concepts::JSONRoute RouteType> FViseraApp&
+        SetConfig(const RouteType& I_Route, U I_Value)
+        {
+            OwnerEngine->Config.GetAppConfig(AppName).Set(I_Route, I_Value);
+            OnConfigChange.Broadcast(FJSONRoute(I_Route.GetRouteString()));
+            return *this;
+        }
+        template<Concepts::JSONRoute RouteType> FViseraApp&
+        SetConfig(const RouteType& I_Route, const FJSON& I_Value)
+        {
+            OwnerEngine->Config.GetAppConfig(AppName).Set(I_Route, I_Value);
+            OnConfigChange.Broadcast(FJSONRoute(I_Route.GetRouteString()));
+            return *this;
+        }
+
+        /** Bootstrap app services. Call explicitly after Create/Get. */
+        void Bootstrap();
+        /** Terminate app and remove from Engine. Call explicitly when closing. */
+        void Terminate();
+
+        ~FViseraApp() { Terminate(); }
+
+    private:
+        template<typename T> [[nodiscard]] T*
+        GetLocalService(FServiceName I_ServiceName) const
+        {
+            auto it = Registry.Find(I_ServiceName);
+            if (it == Registry.end()) { return nullptr; }
+            if (auto p = Cast<T>(it->second)) { return p.Get(); }
+            return nullptr;
+        }
+
+        void InjectEngineServices();
+        void RegisterLocalServices();
+
         template<typename T> [[nodiscard]] TSharedPtr<T>
-        RegisterOrShare(FName I_ServiceName, TWeakPtr<T>& I_SharedWeak)
+        RegisterLocal(FServiceName I_ServiceName)
         {
             if (Registry.Contains(I_ServiceName))
             {
-                LOG_ERROR("Service {} already exists in this Runtime!", I_ServiceName.GetNameString());
+                LOG_ERROR("Service {} already exists in App!", I_ServiceName);
                 return TSharedPtr<T>();
             }
-            if (auto Shared = I_SharedWeak.Lock())
+            auto AppConfigView = OwnerEngine->Config.GetAppConfig(AppName);
+            auto Service = MakeShared<T>(I_ServiceName, &Registry, std::move(AppConfigView),
+                                         &OnConfigChange, AppName);
+            Registry.Insert(I_ServiceName, Service);
+            LOG_TRACE("App registered service ({}) : {}.", Registry.GetSize(), I_ServiceName);
+            return Cast<T>(Service);
+        }
+
+        FViseraEngine*                         OwnerEngine {nullptr};
+        TMulticastDelegate<const FJSONRoute&>  OnConfigChange;
+        FString                                AppName;
+        FServiceRegistry     Registry;
+        TArray<IRuntimeService*> LocalServicesSorted;  // order only; ownership is in Registry
+
+        explicit FViseraApp(FViseraEngine* I_Owner, FString I_Name);
+
+        FViseraApp(const FViseraApp&)            = delete;
+        FViseraApp& operator=(const FViseraApp&) = delete;
+        FViseraApp(FViseraApp&&)                 = delete;
+        FViseraApp& operator=(FViseraApp&&)      = delete;
+
+        friend class FViseraEngine;
+    };
+
+    [[nodiscard]] inline TArray<TSharedPtr<IRuntimeService>>
+    TopologicalSort(const FServiceRegistry& I_Registry)
+    {
+        auto Result = TArray<TSharedPtr<IRuntimeService>>();
+        Result.Reserve(I_Registry.GetSize());
+
+        auto Dependents = TMap<FServiceName, TArray<TSharedPtr<IRuntimeService>>>();
+        auto InDegrees  = TMap<FServiceName, UInt32>();
+
+        Bool bMissingDependency = False;
+        for (auto& [Name, Service] : I_Registry)
+        {
+            InDegrees[Name] = static_cast<UInt32>(Service->GetDependencies().GetSize());
+            for (const FServiceName& DepName : Service->GetDependencies())
             {
-                LOG_INFO("Service {} already created by another Runtime, sharing instance across Runtime instances.", I_ServiceName.GetNameString());
-                SharedServices.Insert(I_ServiceName);
-                Registry.Insert(I_ServiceName, Cast<IGlobalService>(Shared));
-                LOG_TRACE("Registered shared service ({}) : {}.", Registry.GetSize(), I_ServiceName);
-                return Shared;
+                if (I_Registry.Contains(DepName))
+                { Dependents[DepName].PushBack(Service); }
+                else
+                {
+                    LOG_ERROR("Service {} depends on unregistered service {}!", Name, DepName);
+                    bMissingDependency = True;
+                }
             }
-            auto Service = Register<T>(I_ServiceName);
-            I_SharedWeak = Service;
-            return Service;
+        }
+        if (bMissingDependency)
+        { LOG_FATAL("Failed to bootstrap Visera Runtime -- Missing dependency!"); }
+
+        auto Queue = TQueue<TSharedPtr<IRuntimeService>>();
+        for (auto& [Name, Service] : I_Registry)
+        {
+            if (InDegrees[Name] == 0) { Queue.Push(Service); }
         }
 
-        void
-        Unregister(FName I_ServiceName)
+        while (!Queue.IsEmpty())
         {
-            Registry.Erase(I_ServiceName); // TSharedPtr automatically manages lifetime
-        }
-
-        void
-        Bootstrap()
-        {
-            auto SortedServices = TopologicalSort();
-            
-            if (SortedServices.IsEmpty())
+            auto Current = Queue.Front();
+            Queue.Pop();
+            Result.PushBack(Current);
+            auto CurrentName = Current->GetName();
+            auto DependentsIter = Dependents.Find(CurrentName);
+            if (DependentsIter != Dependents.end())
             {
-                LOG_FATAL("Cannot bootstrap services due to dependency issues!");
+                for (const auto& Dependent : DependentsIter->second)
+                {
+                    auto DepName = Dependent->GetName();
+                    auto InDegreesIter = InDegrees.Find(DepName);
+                    if (InDegreesIter != InDegrees.end())
+                    {
+                        InDegreesIter->second--;
+                        if (InDegreesIter->second == 0) { Queue.Push(Dependent); }
+                    }
+                }
+            }
+        }
+
+        if (Result.GetSize() < I_Registry.GetSize())
+        {
+            LOG_FATAL("Circular dependency detected in service dependencies! Only {}/{} services could be sorted.",
+                      Result.GetSize(), I_Registry.GetSize());
+            TArray<FServiceName> CycleServices;
+            for (auto& [Name, InDegree] : InDegrees)
+            { if (InDegree > 0) { CycleServices.PushBack(Name); } }
+            FString CycleMsg = "Services involved in cycle: ";
+            for (const FString& CycleName : CycleServices)
+            { CycleMsg += FString::Format("{} ", CycleName); }
+            LOG_FATAL("{}", CycleMsg);
+            Result.Clear();
+        }
+        return Result;
+    }
+
+    FViseraEngine::FViseraEngine(const FJSON& I_Config)
+        : Config(I_Config)
+    {
+        auto EngineConfig = Config.GetEngineConfig();
+        EngineName = EngineConfig.GetString(TJSONRoute<"Name">(), "Visera");
+        if (!Config.GetRoot().IsNull()) { LOG_DEBUG("({}) Engine config provided: {}", EngineName, Config.GetRoot().Dump()); }
+        EngineConfig.Set(TJSONRoute<"Name">(), EngineName);
+
+        if (EngineConfig.GetBool(TJSONRoute<"Tasks.Enable">(), False))    { (void)RegisterGlobal<FTasks>    (EService::Tasks);    }
+        if (EngineConfig.GetBool(TJSONRoute<"RHI.Enable">(), False))      { (void)RegisterGlobal<FRHI>      (EService::RHI);      }
+        if (EngineConfig.GetBool(TJSONRoute<"Audio.Enable">(), False))    { (void)RegisterGlobal<FAudio>    (EService::Audio);    }
+        if (EngineConfig.GetBool(TJSONRoute<"AssetHub.Enable">(), False)) { (void)RegisterGlobal<FAssetHub> (EService::AssetHub); }
+        if (EngineConfig.GetBool(TJSONRoute<"Graphics.Enable">(), False)) { (void)RegisterGlobal<FGraphics> (EService::Graphics); }
+        Bootstrap();
+
+        if (auto AppsObj = Config.GetRoot().TryGetObject(TJSONRoute<"Apps">()); AppsObj.HasValue())
+        {
+            for (const auto& Item : AppsObj.GetValue().Items())
+            {
+                auto& AppName   = Item.key;
+                auto& ConfigJSON = Item.value;
+                if (auto AppConfig = FJSON{ConfigJSON}; !AppConfig.IsNull())
+                { (void)CreateApplication(AppName, AppConfig); }
+            }
+        }
+    }
+
+    void FViseraEngine::Bootstrap()
+    {
+        GlobalServices = TopologicalSort(GlobalRegistry);
+        if (GlobalServices.IsEmpty())
+        { LOG_FATAL("Cannot bootstrap Engine services due to dependency issues!"); }
+
+        for (const auto& Service : GlobalServices)
+        {
+            LOG_DEBUG("({}) Bootstrapping {}.", EngineName, Service->GetName());
+            if (!Service->SetStatus(IRuntimeService::EStatus::Bootstrapped))
+            { LOG_FATAL("({}) Failed to bootstrap {}!", EngineName, Service->GetName()); }
+        }
+    }
+
+    void FViseraEngine::Terminate()
+    {
+        if (!CreatedApps.IsEmpty())
+        { LOG_WARN("({}) Engine terminating with app(s) still registered; terminating them now.", EngineName); }
+        while (!CreatedApps.IsEmpty())
+        {
+            auto* App = CreatedApps[0].Get();
+            if (!App) { CreatedApps.Erase(CreatedApps.begin()); continue; }
+            LOG_DEBUG("({}) Terminating app {}.", EngineName, App->AppName);
+            App->Terminate();
+        }
+        // Always terminate global services so ~IRuntimeService does not see Bootstrapped (avoids "was NOT terminated!").
+        for (auto idx = GlobalServices.GetSize(); idx != 0; )
+        {
+            --idx;
+            const auto& Service = GlobalServices[idx];
+            LOG_DEBUG("({}) Terminating {}.", EngineName, Service->GetName());
+            if (!Service->SetStatus(IRuntimeService::EStatus::Terminated))
+            { LOG_FATAL("({}) Failed to terminate {}!", EngineName, Service->GetName()); }
+        }
+
+        CreatedApps.Clear();
+        GlobalRegistry.Clear();
+        GlobalServices.Clear();
+    }
+
+    FViseraApp* FViseraEngine::CreateApplication(FString I_Name, EAppMode I_Mode)
+    {
+        auto AppPath = FString::Format("{}.{}", kConfigKeyApps, I_Name);
+        Config.GetRoot().Set(FJSONRoute(AppPath.GetNative()), FJSON{});
+        if (I_Mode == EAppMode::Game)
+        {
+            Config.GetRoot().Set(FJSONRoute(FString::Format("{}.Window.Enable", AppPath).GetNative()), true);
+            Config.GetRoot().Set(FJSONRoute(FString::Format("{}.Input.Enable", AppPath).GetNative()), true);
+            Config.GetRoot().Set(FJSONRoute(FString::Format("{}.UI.Enable", AppPath).GetNative()), true);
+        }
+        auto App = TUniquePtr<FViseraApp>(new FViseraApp(this, std::move(I_Name)));
+        if (!App) return nullptr;
+        App->InjectEngineServices();
+        App->RegisterLocalServices();
+        CreatedApps.PushBack(std::move(App));
+        return CreatedApps.Back().Get();
+    }
+
+    FViseraApp* FViseraEngine::CreateApplication(FString I_Name, const FJSON& I_AppConfig)
+    {
+        auto AppPath = FString::Format("{}.{}", kConfigKeyApps, I_Name);
+        if (!I_AppConfig.IsNull())
+        {
+            LOG_DEBUG("({}) Creating app {} with config: {}", EngineName, I_Name, I_AppConfig.Dump());
+            Config.GetRoot().Set(FJSONRoute(AppPath.GetNative()), I_AppConfig);
+        }
+        else
+        {
+            LOG_WARN("({}) Creating app {} with empty config.", EngineName, I_Name);
+            Config.GetRoot().Set(FJSONRoute(AppPath.GetNative()), FJSON{});
+        }
+
+        auto App = TUniquePtr<FViseraApp>(new FViseraApp(this, std::move(I_Name)));
+        if (!App) return nullptr;
+        App->InjectEngineServices();
+        App->RegisterLocalServices();
+        CreatedApps.PushBack(std::move(App));
+        return CreatedApps.Back().Get();
+    }
+
+    FViseraApp* FViseraEngine::GetApplication(FStringView I_Name) const
+    {
+        for (const auto& App : CreatedApps)
+        {
+            if (App && App->AppName == I_Name) { return App.Get(); }
+        }
+        return nullptr;
+    }
+
+    void FViseraEngine::DestroyApplication(FViseraApp* I_App)
+    {
+        if (!I_App) return;
+        for (auto It = CreatedApps.begin(); It != CreatedApps.end(); ++It)
+        {
+            if (It->Get() == I_App)
+            {
+                TUniquePtr<FViseraApp> Released = std::move(*It);
+                CreatedApps.Erase(It);
                 return;
             }
-
-            for (const auto& Service : SortedServices)
-            {
-                LOG_DEBUG("({}) Bootstrapping {}.", RuntimeName, Service->GetName().GetNameString());
-                if (!Service->SetStatus(IGlobalService::EStatus::Bootstrapped))
-                { LOG_FATAL("({}) Failed to bootstrap {}!", RuntimeName, Service->GetName().GetNameString()); }
-            }
-            if (Window && RHI)
-            { RHI->CreateSwapChain(Window); }
         }
+    }
 
-        void
-        Terminate()
+    // --- FViseraApp implementation ---
+
+    FViseraApp::FViseraApp(FViseraEngine* I_Owner, FString I_Name)
+        : OwnerEngine(I_Owner)
+        , AppName   (std::move(I_Name))
+    {
+    }
+
+    void FViseraApp::InjectEngineServices()
+    {
+        if (!OwnerEngine) return;
+        for (auto& [Name, Service] : OwnerEngine->GlobalRegistry)
         {
-            auto SortedServices = TopologicalSort();
-            
-            if (SortedServices.IsEmpty())
-            { LOG_FATAL("Cannot terminate services due to dependency issues!"); }
-
-            // Terminate in reverse order (services that depend on others should terminate first)
-            for (auto It = SortedServices.rbegin(); It != SortedServices.rend(); ++It)
-            {
-                const auto& Service = *It;
-                if (SharedServices.Contains(Service->GetName()))
-                { continue; } // Shared services are not terminated by this Runtime
-                LOG_DEBUG("({}) Terminating {}.", RuntimeName, Service->GetName().GetNameString());
-                if (!Service->SetStatus(IGlobalService::EStatus::Terminated))
-                { LOG_FATAL("({}) Failed to terminate {}!", RuntimeName, Service->GetName().GetNameString()); }
-            }
+            if (Registry.Contains(Name)) continue;
+            Registry.Insert(Name, Service);
         }
+    }
 
-        template<Concepts::JSONRoute RouteType>
-        void
-        NotifyConfigChange(const RouteType& I_Route)
+    void FViseraApp::RegisterLocalServices()
+    {
+        auto AppConfigView = OwnerEngine->Config.GetAppConfig(AppName);
+        if (AppConfigView.GetBool(TJSONRoute<"Input.Enable">(), False))  { (void)RegisterLocal<FInput>  (EService::Input);  }
+        if (AppConfigView.GetBool(TJSONRoute<"UI.Enable">(), False))     { (void)RegisterLocal<FUI>     (EService::UI);     }
+        if (AppConfigView.GetBool(TJSONRoute<"Window.Enable">(), False)) { (void)RegisterLocal<FWindow> (EService::Window); }
+    }
+
+    void FViseraApp::Bootstrap()
+    {
+        auto Sorted = TopologicalSort(Registry);
+        if (Sorted.IsEmpty())
+        { LOG_FATAL("({}) Cannot bootstrap App services due to dependency issues!", AppName); }
+        LocalServicesSorted.Reserve(Sorted.GetSize());
+        for (const auto& P : Sorted)
+        { LocalServicesSorted.PushBack(P.Get()); }
+        for (IRuntimeService* Service : LocalServicesSorted)
         {
-            const FJSONRoute DynamicPath{I_Route.GetRouteString()};
-            for (auto& [Name, Service] : Registry)
-            {
-                Service->NotifyConfigChanged(DynamicPath);
-            }
+            if (Service->IsBootstrapped()) { continue; }
+            LOG_DEBUG("({}) Bootstrapping {}.", AppName, Service->GetName());
+            if (!Service->SetStatus(IRuntimeService::EStatus::Bootstrapped))
+            { LOG_FATAL("({}) Failed to bootstrap {}!", AppName, Service->GetName()); }
         }
+    }
 
-        TArray<TSharedPtr<IGlobalService>>
-        TopologicalSort()
+    void FViseraApp::Terminate()
+    {
+        if (OwnerEngine)
         {
-            auto Result = TArray<TSharedPtr<IGlobalService>>();
-            Result.Reserve(Registry.GetSize());
-
-            auto Dependents = TMap<FName, TArray<TSharedPtr<IGlobalService>>>(); // service -> list of services that depend on it
-            auto InDegrees = TMap<FName, UInt32>(); // service -> how many dependencies it has
-
-            Bool bMissingDependency = False;
-            for (auto& [Name, Service] : Registry)
-            {
-                InDegrees[Name] = static_cast<UInt32>(Service->GetDependencies().GetSize());
-
-                // For each dependency of this service, add this service as a dependent
-                for (const FName& DepName : Service->GetDependencies())
-                {
-                    if (Registry.Contains(DepName))
-                    {
-                        Dependents[DepName].PushBack(Service);
-                    }
-                    else
-                    {
-                        LOG_ERROR("Service {} depends on unregistered service {}!",
-                                  Name.GetNameString(), DepName.GetNameString());
-                        bMissingDependency = True;
-                    }
-                }
-            }
-            if (bMissingDependency)
-            { LOG_FATAL("Failed to bootstrap Visera Runtime -- Missing dependency!"); }
-
-            // Initialize queue with services that have no dependencies
-            auto Queue = TQueue<TSharedPtr<IGlobalService>>();
-            for (auto& [Name, Service] : Registry)
-            {
-                if (InDegrees[Name] == 0)
-                {
-                    Queue.Push(Service);
-                }
-            }
-
-            // Process queue
-            while (!Queue.IsEmpty())
-            {
-                auto Current = Queue.Front();
-                Queue.Pop();
-                Result.PushBack(Current);
-
-                // Decrease in-degree of all services that depend on Current
-                auto CurrentName = Current->GetName();
-                auto DependentsIter = Dependents.Find(CurrentName);
-                if (DependentsIter != Dependents.end())
-                {
-                    for (const auto& Dependent : DependentsIter->second)
-                    {
-                        auto DepName = Dependent->GetName();
-                        auto InDegreesIter = InDegrees.Find(DepName);
-                        if (InDegreesIter != InDegrees.end())
-                        {
-                            InDegreesIter->second--;
-                            if (InDegreesIter->second == 0)
-                            {
-                                Queue.Push(Dependent);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Check for circular dependencies
-            if (Result.GetSize() < Registry.GetSize())
-            {
-                LOG_FATAL("Circular dependency detected in service dependencies! Only {}/{} services could be sorted.",
-                          Result.GetSize(), Registry.GetSize());
-                
-                // Report which services are in the cycle
-                TArray<FName> CycleServices;
-                for (auto& [Name, InDegree] : InDegrees)
-                {
-                    if (InDegree > 0)
-                    {
-                        CycleServices.PushBack(Name);
-                    }
-                }
-                
-                FString CycleMsg = "Services involved in cycle: ";
-                for (const FName& Name : CycleServices)
-                {
-                    CycleMsg += FString::Format("{} ", Name.GetNameString());
-                }
-                LOG_FATAL("{}", CycleMsg);
-                
-                Result.Clear();
-            }
-
-            return Result;
+            Registry.EraseIf([this](const FServiceName& K, const TSharedPtr<IRuntimeService>&)
+                { return OwnerEngine->GlobalRegistry.Contains(K); });
         }
-
-        FRuntime(const FRuntime&)            = delete;
-        FRuntime& operator=(const FRuntime&) = delete;
-        FRuntime(FRuntime&&)                 = delete;
-        FRuntime& operator=(FRuntime&&)      = delete;
-    };
+        for (auto Idx = LocalServicesSorted.GetSize(); Idx != 0; )
+        {
+            --Idx;
+            IRuntimeService* Service = LocalServicesSorted[Idx];
+            if (OwnerEngine && OwnerEngine->GlobalRegistry.Contains(Service->GetName())) { continue; }
+            if (!Service->IsBootstrapped()) { continue; }
+            LOG_DEBUG("({}) Terminating {}.", AppName, Service->GetName());
+            if (!Service->SetStatus(IRuntimeService::EStatus::Terminated))
+            { LOG_FATAL("({}) Failed to terminate {}!", AppName, Service->GetName()); }
+        }
+        LocalServicesSorted.Clear();
+        if (OwnerEngine)
+        {
+            OwnerEngine->DestroyApplication(this);
+            OwnerEngine = nullptr;
+        }
+    }
 }

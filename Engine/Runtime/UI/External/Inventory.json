@@ -1,0 +1,13 @@
+{
+    "ImGui" :
+    {
+        "Version" : "1.92.3-docking",
+        "Dependencies" :
+        [
+            "Vulkan",
+            "GLFW",
+            "FreeType"
+        ],
+        "URL" : "https://github.com/ocornut/imgui"
+    }
+}

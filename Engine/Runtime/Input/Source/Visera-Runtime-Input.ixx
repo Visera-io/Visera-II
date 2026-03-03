@@ -6,8 +6,8 @@ export import Visera.Runtime.Input.Action;
 export import Visera.Runtime.Input.Device;
 export import Visera.Runtime.Input.Mapping;
        import Visera.Runtime.Global;
-       import Visera.Runtime.Window;
        import Visera.Platform;
+       import Visera.Platform.Interface.Window;
        import Visera.Core.Log;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.JSON;
@@ -17,7 +17,7 @@ export import Visera.Runtime.Input.Mapping;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FInput : public IGlobalService
+    class VISERA_RUNTIME_API FInput : public IRuntimeService
     {
     public:
         [[nodiscard]] inline FKeyboard*
@@ -45,25 +45,41 @@ export namespace Visera
         [[nodiscard]] Bool
         LoadInputMap(const FPath& I_Path);
 
-        /** Process input events (PollEvents) and update polling state (Sync). No-op when Window service is absent (OffScreen). */
+        /** Process input events (PollEvents) and update polling state (Sync). Uses platform window set via SetWindowForSync (e.g. by FWindow). */
         void
         PollAndSync();
 
+        /** Set the platform window used for keyboard Sync in PollAndSync. Call with nullptr when window is gone. */
+        void
+        SetWindowForSync(IPlatformWindow* I_PlatformWindow) { PlatformWindowForSync = I_PlatformWindow; }
+
+        /** Notify mouse button (called by FWindow from PlatformWindow callback). */
+        void
+        NotifyMouseButton(FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods);
+        /** Notify key (called by FWindow from PlatformWindow callback). */
+        void
+        NotifyKeyboardKey(FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods);
+        /** Notify cursor move (called by FWindow from PlatformWindow callback). */
+        void
+        NotifyCursorMove(Float I_PosX, Float I_PosY);
+        /** Notify scroll (called by FWindow from PlatformWindow callback). */
+        void
+        NotifyScroll(Float I_OffsetX, Float I_OffsetY);
+
     private:
-        void TryBindWindowCallbacks();
         void TriggerMatchingActions(EInputSource I_SourceType, Int32 I_SourceValue, UInt8 I_Action, UInt8 I_Mods);
 
     private:
         FKeyboard                    Keyboard;
         FMouse                       Mouse;
-        TSharedPtr<FWindow>          Window;
-        Bool                         bCallbacksBound{False};
+        IPlatformWindow*             PlatformWindowForSync {nullptr};
         TMap<FName, TUniquePtr<FInputAction>> Actions;
         TArray<FInputMapping>        Mappings;
 
     public:
-        FInput(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
-            : IGlobalService(I_Name, I_Registry, I_Config)
+        FInput(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
+               TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
+            : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
         {
             Dependencies =
             {
@@ -72,7 +88,7 @@ export namespace Visera
 
             if (!OnBootstrap.TryBind([this]
             {
-                     return True;
+                return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
 
@@ -84,59 +100,38 @@ export namespace Visera
         }
     };
 
-    void FInput::TryBindWindowCallbacks()
+    void FInput::NotifyMouseButton(FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods)
     {
-        if (bCallbacksBound || !Window) { return; }
-        auto PlatformWindow = Window->GetPlatformWindow();
-        if (!PlatformWindow) { return; }
-        if (!PlatformWindow->MouseButtonCallback.TryBind(
-        [this](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
+        TriggerMatchingActions(EInputSource::MouseButton, static_cast<Int32>(I_Button), static_cast<UInt8>(I_Action), I_Mods);
+        switch (I_Action)
         {
-            const auto Button = static_cast<FMouse::EButton>(I_Button);
-            const auto Mods = static_cast<UInt8>(I_Mods);
-            const auto Action = static_cast<UInt8>(I_Action <= 2 ? I_Action : 0);
-            TriggerMatchingActions(EInputSource::MouseButton, I_Button, Action, Mods);
-            switch (static_cast<FMouse::EAction>(I_Action))
-            {
-            case FMouse::EAction::Release : return Mouse.OnReleased.Broadcast(Button);
-            case FMouse::EAction::Press   : return Mouse.OnPressed.Broadcast(Button);
-            case FMouse::EAction::Hold    : return Mouse.OnHeld.Broadcast(Button);
-            default: LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), I_Action);
-            }
-        }))
-        { LOG_FATAL("Failed to bind MouseButtonCallback event!"); return; }
+        case FMouse::EAction::Release : Mouse.OnReleased.Broadcast(I_Button); break;
+        case FMouse::EAction::Press   : Mouse.OnPressed.Broadcast(I_Button); break;
+        case FMouse::EAction::Hold    : Mouse.OnHeld.Broadcast(I_Button); break;
+        default: LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), static_cast<Int32>(I_Action));
+        }
+    }
 
-        if (!PlatformWindow->KeyboardCallback.TryBind(
-        [this](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
+    void FInput::NotifyKeyboardKey(FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods)
+    {
+        TriggerMatchingActions(EInputSource::KeyboardKey, static_cast<Int32>(I_Key), static_cast<UInt8>(I_Action), I_Mods);
+        switch (I_Action)
         {
-            const auto Key = static_cast<FKeyboard::EKey>(I_Key);
-            const auto Mods = static_cast<UInt8>(I_Mods);
-            const auto Action = static_cast<UInt8>(I_Action <= 2 ? I_Action : 0);
-            TriggerMatchingActions(EInputSource::KeyboardKey, I_Key, Action, Mods);
-            switch (static_cast<FKeyboard::EAction>(I_Action))
-            {
-            case FKeyboard::EAction::Release : return Keyboard.OnReleased.Broadcast(Key);
-            case FKeyboard::EAction::Press   : return Keyboard.OnPressed.Broadcast(Key);
-            case FKeyboard::EAction::Hold    : return Keyboard.OnHeld.Broadcast(Key);
-            default: LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), I_Action);
-            }
-        }))
-        { LOG_FATAL("Failed to bind KeyboardCallback event!"); return; }
+        case FKeyboard::EAction::Release : Keyboard.OnReleased.Broadcast(I_Key); break;
+        case FKeyboard::EAction::Press   : Keyboard.OnPressed.Broadcast(I_Key); break;
+        case FKeyboard::EAction::Hold    : Keyboard.OnHeld.Broadcast(I_Key); break;
+        default: LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), static_cast<UInt8>(I_Action));
+        }
+    }
 
-        if (!PlatformWindow->CursorMoveCallback.TryBind(
-        [this](Double I_PosX, Double I_PosY)
-        {
-            Mouse.OnCursorMoved.Broadcast(I_PosX, I_PosY);
-        }))
-        { LOG_FATAL("Failed to bind CursorMoveCallback event!"); return; }
+    void FInput::NotifyCursorMove(Float I_PosX, Float I_PosY)
+    {
+        Mouse.OnCursorMoved.Broadcast(I_PosX, I_PosY);
+    }
 
-        if (!PlatformWindow->ScrollCallback.TryBind(
-        [this](Double I_OffsetX, Double I_OffsetY)
-        {
-            Mouse.OnScrolled.Broadcast(static_cast<Float>(I_OffsetX), static_cast<Float>(I_OffsetY));
-        }))
-        { LOG_FATAL("Failed to bind ScrollCallback event!"); return; }
-        bCallbacksBound = True;
+    void FInput::NotifyScroll(Float I_OffsetX, Float I_OffsetY)
+    {
+        Mouse.OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
     }
 
     FInputAction*
@@ -213,15 +208,11 @@ export namespace Visera
 
     void FInput::PollAndSync()
     {
-        if (!Window) { Window = GetService<FWindow>(EName::Window).Lock(); }
-        if (Window)
+        FPlatform::PollEvents();
+        if (PlatformWindowForSync)
         {
-            TryBindWindowCallbacks();
-            auto PlatformWindow = Window->GetPlatformWindow();
-            PlatformWindow->PollEvents();
-
-            Keyboard.Sync([PlatformWindow](FKeyboard::EKey I_Key)->FKeyboard::EAction
-            { return static_cast<FKeyboard::EAction>(PlatformWindow->GetKeyboardKey(static_cast<Int32>(I_Key))); });
+            Keyboard.Sync([this](FKeyboard::EKey I_Key)->FKeyboard::EAction
+            { return static_cast<FKeyboard::EAction>(PlatformWindowForSync->GetKeyboardKey(static_cast<Int32>(I_Key))); });
         }
     }
 }

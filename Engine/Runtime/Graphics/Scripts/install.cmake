@@ -8,12 +8,8 @@ macro(install_visera_graphics in_target)
 
     list(APPEND CMAKE_MODULE_PATH ${VISERA_GRAPHICS_SCRIPTS_DIR})
 
-    if(NOT VISERA_OFFSCREEN_MODE)
-    include(install_imgui)
-    link_imgui(${in_target})
-    endif()
-
     file(GLOB_RECURSE VISERA_GRAPHICS_MODULES "${VISERA_GRAPHICS_SOURCE_DIR}/*.ixx")
+    list(FILTER VISERA_GRAPHICS_MODULES EXCLUDE REGEX ".*/UI/.*")
 
     target_include_directories(${in_target}
         PUBLIC

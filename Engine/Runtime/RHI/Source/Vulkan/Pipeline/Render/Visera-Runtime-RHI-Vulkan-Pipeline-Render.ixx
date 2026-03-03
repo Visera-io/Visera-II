@@ -59,8 +59,8 @@ namespace Visera
             Multisampling{};
             vk::PipelineColorBlendAttachmentState
             ColorBlendAttachment{};
-            vk::Format
-            ColorRTFormat    {vk::Format::eB8G8R8A8Srgb};
+            /** One per color attachment; length must match PipelineRenderingCreateInfo. */
+            TArray<vk::Format> ColorRTFormats;
             vk::Format
             DepthRTFormat    {vk::Format::eUndefined};
             vk::Format
@@ -163,15 +163,21 @@ namespace Visera
                 .setVertexBindingDescriptionCount   (Settings.VertexBindings.GetSize())
                 .setPVertexBindingDescriptions      (Settings.VertexBindings.Data())
             ;
+            const UInt32 ColorAttachmentCount = Settings.ColorRTFormats.GetSize();
+            VISERA_ASSERT(ColorAttachmentCount > 0 && ColorAttachmentCount <= 8);
+            TArray<vk::PipelineColorBlendAttachmentState> BlendAttachments;
+            BlendAttachments.Reserve(ColorAttachmentCount);
+            for (UInt32 i = 0; i < ColorAttachmentCount; ++i)
+            { BlendAttachments.PushBack(Settings.ColorBlendAttachment); }
             const auto ColorBlending = vk::PipelineColorBlendStateCreateInfo{}
                 .setLogicOpEnable   (vk::False)
                 .setLogicOp         (vk::LogicOp::eCopy)
-                .setAttachmentCount (1)
-                .setPAttachments    (&Settings.ColorBlendAttachment)
+                .setAttachmentCount (ColorAttachmentCount)
+                .setPAttachments    (BlendAttachments.Data())
             ;
             const auto PipelineRenderingCreateInfo = vk::PipelineRenderingCreateInfo{}
-                .setPColorAttachmentFormats (&Settings.ColorRTFormat)
-                .setColorAttachmentCount    (1)
+                .setColorAttachmentCount    (ColorAttachmentCount)
+                .setPColorAttachmentFormats (Settings.ColorRTFormats.Data())
                 .setDepthAttachmentFormat   (Settings.DepthRTFormat)
                 .setStencilAttachmentFormat (Settings.StencilRTFormat)
             ;

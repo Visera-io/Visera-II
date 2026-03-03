@@ -10,7 +10,7 @@ export import Visera.Runtime.Physics2D.Common;
 
 namespace Visera
 {
-    export class VISERA_RUNTIME_API FPhysics2D : public IGlobalService
+    export class VISERA_RUNTIME_API FPhysics2D : public IRuntimeService
     {
     public:
         [[nodiscard]] FRigidBody2D
@@ -20,7 +20,7 @@ namespace Visera
         b2WorldId World;
 
     public:
-        FPhysics2D() : IGlobalService("Physics") {}
+        FPhysics2D() : IRuntimeService("Physics") {}
 
         void
         Bootstrap() override;

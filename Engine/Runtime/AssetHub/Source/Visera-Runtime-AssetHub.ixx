@@ -24,7 +24,7 @@ export import Visera.Runtime.AssetHub.Font;
 
 export namespace Visera
 {
-    class VISERA_RUNTIME_API FAssetHub : public IGlobalService
+    class VISERA_RUNTIME_API FAssetHub : public IRuntimeService
     {
     public:
         enum class ECacheClearTarget : UInt8
@@ -261,12 +261,13 @@ export namespace Visera
         }
 
     public:
-        FAssetHub(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
-            : IGlobalService(I_Name, I_Registry, I_Config)
+        FAssetHub(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
+                  TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
+            : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
         {
-            auto GetCapMB = [&](const auto& I_Path, UInt64 I_Default) -> UInt64
+            auto GetCapMB = [this](const auto& I_Path, UInt64 I_Default) -> UInt64
             {
-                const UInt64 V = I_Config.GetNumber(I_Path, static_cast<UInt64>(I_Default));
+                const UInt64 V = GetConfig().GetNumber(I_Path, static_cast<UInt64>(I_Default));
                 return V > 0 ? V * 1024 * 1024 : I_Default * 1024 * 1024;
             };
             auto MakeCache = [](UInt64 I_CapBytes)
@@ -279,7 +280,7 @@ export namespace Visera
             ShaderCache = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Shader">(), DefaultShaderMB));
             FontCache   = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Font">(),   DefaultFontMB));
 
-            Dependencies = { EName::Tasks };
+            Dependencies = { EService::Tasks };
 
             if (!OnBootstrap.TryBind([this] { return True; }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }

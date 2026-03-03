@@ -326,6 +326,12 @@ export namespace Visera
             Array.swap(I_Other.Array);
         }
 
+        [[nodiscard]] Bool operator==(const TArray& I_Other) const
+            requires (std::equality_comparable<T>)
+        {
+            return Array == I_Other.Array;
+        }
+
         Iterator RemoveAtSwap(Iterator I_Iterator) requires (std::movable<T> && std::assignable_from<T&, T>)
         {
             if (I_Iterator == Array.end()) return Array.end();

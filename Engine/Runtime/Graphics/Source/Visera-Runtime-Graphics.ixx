@@ -2,105 +2,425 @@ module;
 #include <Visera-Graphics.hpp>
 export module Visera.Runtime.Graphics;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
-export import Visera.Runtime.Graphics.Debug;
 export import Visera.Runtime.Graphics.Scene;
 export import Visera.Runtime.Graphics.Material;
-export import Visera.Runtime.Graphics.Renderer;
-export import Visera.Runtime.Graphics.RenderPass;
-export import Visera.Runtime.Graphics.Context;
-       import Visera.Runtime.Graphics.Texture;
+export import Visera.Runtime.Graphics.RenderPipeline;
        import Visera.Runtime.Global;
        import Visera.Runtime.AssetHub;
        import Visera.Runtime.RHI;
        import Visera.Runtime.Window;
-       import Visera.Core.Image;
-       import Visera.Core.Containers.Map;
        import Visera.Core.Containers.Array;
+       import Visera.Core.Concurrency.Channel.SPSC;
+       import Visera.Core.OS.Thread;
+       import Visera.Core.OS.Time;
+       import Visera.Core.Types.Function;
+       import Visera.Core.Types.Optional;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.JSON;
-       import Visera.Core.Types.String;
+       import Visera.Core.Types.Name;
        import Visera.Core.Log;
 
 export namespace Visera
 {
-   class VISERA_RUNTIME_API FGraphics : public IGlobalService
+   struct VISERA_RUNTIME_API FRenderTask
+   {
+      FRHISwapChainID   SwapChainID {kInvalidSwapChainID};
+      FScene::FSnapshot Snapshot;
+   };
+
+   /** A registered pass factory entry. User, UI, debug overlays all use this same type. */
+   struct VISERA_RUNTIME_API FPassEntry
+   {
+      UInt32  Priority {0};
+      FName   Name;
+      TFunction<void(FRenderGraph&, const FRenderContext&)> Factory;
+   };
+
+   class VISERA_RUNTIME_API FGraphics : public IRuntimeService
    {
    public:
-      template<Concepts::Renderer T, typename... Args>
-      TSharedPtr<T>
-      CreateRenderer(Args&&... I_Args)
-      {
-         auto R = MakeShared<T>(RHI, Scene, std::forward<Args>(I_Args)...);
-         Renderers.PushBack(R);
-         return R;
-      }
+      /** Render a windowed frame. Lazily creates swap chain for I_Window on first call. */
+      void
+      Render(FWindow* I_Window, const FScene& I_Scene);
+
+      /** Render a headless (or direct ID-based) frame. Use the ID returned by RegisterHeadless(). */
+      void
+      Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene);
+
+      /** Create a headless rendering context. Returns a stable SwapChainID. */
+      [[nodiscard]] FRHISwapChainID
+      RegisterHeadless();
+
+      /** Register a pass factory. Lower priority values execute first. All pass sources (user, UI, debug) use this same API. */
+      void
+      RegisterPass(UInt32 I_Priority, FName I_Name,
+                   TFunction<void(FRenderGraph&, const FRenderContext&)> I_Factory);
 
       [[nodiscard]] TSharedPtr<FMaterial>
       LoadMaterial(const FPath& I_MaterialFile);
 
-      void
-      Render();
-      void
-      Present();
+      [[nodiscard]] const FRHI*
+      GetRHI() const { return RHI.Get(); }
 
    private:
-      TSharedPtr<FAssetHub> AssetHub;
-      TWeakPtr<FWindow>     WindowWeak;
-      TSharedPtr<FRHI>      RHI;
-      TSharedPtr<FScene>    Scene;
-      FRenderContext        RenderContext;
-      TArray<TSharedPtr<IRenderer>> Renderers;
+      static constexpr UInt32 kMaxPendingDrawRenderTasks = 3;
 
-      static ESurfaceType
-      ParseSurfaceType(const FString& I_Str);
+      /** Engine-internal pass: transitions BackBuffer to Present layout as the absolute last step. */
+      class FPresentTransitionPass final : public IRGPass
+      {
+      public:
+         explicit FPresentTransitionPass(FGraphicsID I_BackBuffer);
 
-      static ERHIFormat
-      ParseFormat(const FString& I_Str);
+         void
+         Execute(const FRenderGraph* I_Graph, FRHICommandList* I_CommandList) override;
 
-      static ERHIFormat
-      PixelFormatToRHIFormat(EPixelFormat I_Fmt);
+         [[nodiscard]] const char*
+         GetName() const override { return "Engine::PresentTransition"; }
+
+         [[nodiscard]] EType
+         GetType() const override { return EType::Render; }
+
+      private:
+         FGraphicsID BackBufferID;
+      };
+
+      /** Dedicated thread: take draw intent from channel → BeginFrame → call pass factories → PresentTransition → Compile → Execute → Present → EndFrame. */
+      struct VISERA_RUNTIME_API FGraphicsThread
+      {
+      public:
+         FGraphicsThread(
+            FRHI*                                 I_RHI,
+            TSPSCChannel<TOptional<FRenderTask>>& I_ChannelFromMain,
+            TAtomic<UInt32>&                      I_PendingDrawRenderTaskCount,
+            const TArray<FPassEntry>*             I_PassEntries,
+            UInt32                                I_MaxFrameRate = 0);
+
+         void
+         Start();
+         void
+         RequestStop();
+         void
+         Join();
+
+      private:
+         void
+         Run();
+
+         FRHI*                                 RHI {nullptr};
+         TSPSCChannel<TOptional<FRenderTask>>& ChannelFromMain;
+         TAtomic<UInt32>&                      PendingDrawRenderTaskCount;
+         UInt32                                MaxFrameRate {0};
+         FHiResClock                           FramePacingClock;
+         TUniquePtr<FThread>                   Thread;
+         const TArray<FPassEntry>*             PassEntries {nullptr};
+      };
+
+      TSharedPtr<FAssetHub>                    AssetHub;
+      TSharedPtr<FRHI>                         RHI;
+      TSPSCChannel<TOptional<FRenderTask>>     ChannelToGraphics;
+      TAtomic<UInt32>                          PendingDrawRenderTaskCount {0};
+      TUniquePtr<FGraphicsThread>              GraphicsThread;
+      TArray<FWindow*>                         ManagedWindows;
+      TArray<FRHISwapChainID>                  ManagedHeadlessIDs;
+      TArray<FPassEntry>                       PassEntries;
 
    public:
-      FGraphics(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
-          : IGlobalService(I_Name, I_Registry, I_Config)
+      FGraphics(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
+                TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
+          : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
       {
          Dependencies =
          {
-            EName::AssetHub,
-            EName::RHI,
+            EService::AssetHub,
+            EService::RHI,
          };
 
          if (!OnBootstrap.TryBind([this]
          {
-            if (auto RHIWeak = GetService<FRHI>(EName::RHI); auto RHIShared = RHIWeak.Lock())
+            if (auto RHIWeak = GetService<FRHI>(EService::RHI); auto RHIShared = RHIWeak.Lock())
             { RHI = RHIShared; }
             else
             { LOG_FATAL("Failed to get RHI service!"); return False; }
 
-            if (auto AHWeak = GetService<FAssetHub>(EName::AssetHub); auto AHShared = AHWeak.Lock())
+            if (auto AHWeak = GetService<FAssetHub>(EService::AssetHub); auto AHShared = AHWeak.Lock())
             { AssetHub = AHShared; }
             else
             { LOG_FATAL("Failed to get AssetHub service!"); return False; }
 
-            WindowWeak = GetService<FWindow>(EName::Window);
-            Scene = MakeShared<FScene>();
+            if (!GraphicsThread)
+            {
+               UInt32 MaxFrameRate = GetConfig().GetNumber(TJSONRoute<"Graphics.MaxFrameRate">(), 0);
+               GraphicsThread = MakeUnique<FGraphicsThread>(
+                  RHI.Get(), ChannelToGraphics, PendingDrawRenderTaskCount,
+                  &PassEntries, MaxFrameRate);
+               GraphicsThread->Start();
+               LOG_INFO("Graphics: thread started (MaxFrameRate={}).", MaxFrameRate);
+            }
             return True;
          }))
          { LOG_FATAL("Failed to bind bootstrap function!"); }
 
          if (!OnTerminate.TryBind([this]
          {
-            for (auto& R : Renderers)
-            { if (R) { R->Teardown(); } }
-            Renderers.Clear();
+            for (auto* W : ManagedWindows)
+            {
+               auto Id = RHI->QuerySwapChainID(W);
+               if (Id != kInvalidSwapChainID) { RHI->MarkSwapChainDestroyed(Id); }
+            }
+            for (auto Id : ManagedHeadlessIDs) { RHI->MarkSwapChainDestroyed(Id); }
+            if (GraphicsThread)
+            {
+               GraphicsThread->RequestStop();
+               GraphicsThread->Join();
+               GraphicsThread.Reset();
+            }
+            if (RHI) { RHI->WaitIdle(); }
+            for (auto* W : ManagedWindows)
+            { RHI->DestroySwapChain(W); }
+            for (auto Id : ManagedHeadlessIDs)
+            { RHI->DestroySwapChain(Id); }
+            ManagedWindows.Clear();
+            ManagedHeadlessIDs.Clear();
+            LOG_DEBUG("Graphics: terminated.");
             return True;
          }))
          { LOG_FATAL("Failed to bind terminate function!"); }
       }
    };
 
-   // --- FGraphics::LoadMaterial ---
+   // =================================================================
+   // FPresentTransitionPass
+   // =================================================================
+
+   FGraphics::FPresentTransitionPass::
+   FPresentTransitionPass(FGraphicsID I_BackBuffer) : BackBufferID(I_BackBuffer) {}
+
+   void FGraphics::FPresentTransitionPass::
+   Execute(const FRenderGraph* I_Graph, FRHICommandList* I_CommandList)
+   {
+      const auto& BackBuffer = I_Graph->GetTexture(BackBufferID);
+      if (BackBuffer.IsNull())
+      {
+         LOG_ERROR("PresentTransition: BackBuffer is null, skipping.");
+         return;
+      }
+      I_CommandList->TransitionTexture(FRHIImageBarrier{
+         .Image         = BackBuffer,
+         .OldLayout     = ERHIImageLayout::TransferDst,
+         .NewLayout     = ERHIImageLayout::Present,
+         .MemoryBarrier = {
+            .SourceStage  = ERHIPipelineStage::AllGraphics,
+            .DestStage    = ERHIPipelineStage::BottomOfPipe,
+            .SourceAccess = ERHIAccessFlag::ColorAttachmentWrite | ERHIAccessFlag::TransferWrite,
+            .DestAccess   = ERHIAccessFlag::None,
+         },
+      });
+   }
+
+   // =================================================================
+   // RegisterPass
+   // =================================================================
+
+   void FGraphics::
+   RegisterPass(UInt32 I_Priority, FName I_Name,
+                TFunction<void(FRenderGraph&, const FRenderContext&)> I_Factory)
+   {
+      UInt64 InsertIdx = 0;
+      for (; InsertIdx < PassEntries.GetSize(); ++InsertIdx)
+      {
+         if (PassEntries[InsertIdx].Priority > I_Priority) { break; }
+      }
+      PassEntries.Insert(PassEntries.begin() + InsertIdx, FPassEntry{
+         .Priority = I_Priority,
+         .Name     = I_Name,
+         .Factory  = std::move(I_Factory),
+      });
+      LOG_INFO("Graphics::RegisterPass: '{}' registered at priority {}.", I_Name.GetNameString(), I_Priority);
+   }
+
+   // =================================================================
+   // FGraphicsThread
+   // =================================================================
+
+   FGraphics::FGraphicsThread::
+   FGraphicsThread(
+      FRHI*                                 I_RHI,
+      TSPSCChannel<TOptional<FRenderTask>>& I_ChannelFromMain,
+      TAtomic<UInt32>&                      I_PendingDrawRenderTaskCount,
+      const TArray<FPassEntry>*             I_PassEntries,
+      UInt32                                I_MaxFrameRate)
+       : RHI(I_RHI)
+       , ChannelFromMain(I_ChannelFromMain)
+       , PendingDrawRenderTaskCount(I_PendingDrawRenderTaskCount)
+       , MaxFrameRate(I_MaxFrameRate)
+       , PassEntries(I_PassEntries)
+   {}
+
+   void FGraphics::FGraphicsThread::
+   Start()
+   {
+      Thread = MakeUnique<FThread>();
+      Thread->Start([this]() { Run(); });
+   }
+
+   void FGraphics::FGraphicsThread::
+   RequestStop()
+   {
+      ChannelFromMain.Send(TOptional<FRenderTask>{});
+   }
+
+   void FGraphics::FGraphicsThread::
+   Join()
+   {
+      if (Thread) { Thread->Join(); Thread.Reset(); }
+   }
+
+   void FGraphics::FGraphicsThread::
+   Run()
+   {
+      LOG_DEBUG("({}) Graphics thread started.", RHI->GetRuntimeName());
+
+      while (True)
+      {
+         auto FrameStart = FramePacingClock.Now();
+         auto Received = ChannelFromMain.Receive();
+         if (!Received.GetValue().HasValue())
+         {
+            LOG_DEBUG("({}) Graphics thread stopped.", RHI->GetRuntimeName());
+            break;
+         }
+         PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
+         const FRenderTask& RenderTask = Received.GetValue().GetValue();
+
+         FRHISwapChainID SwapChainID = RenderTask.SwapChainID;
+         if (SwapChainID == kInvalidSwapChainID) { continue; }
+         if (!RHI->IsValidSwapChain(SwapChainID)) { continue; }
+
+         if (!PassEntries || PassEntries->IsEmpty())
+         {
+            LOG_TRACE("Graphics thread: no passes registered, skipping frame.");
+            continue;
+         }
+
+         const auto& Snapshot = RenderTask.Snapshot;
+         const Bool bHasWindow = RHI->HasWindow(SwapChainID);
+
+         if (bHasWindow && RHI->IsSwapChainDirty(SwapChainID))
+         {
+            RHI->WaitIdle();
+            constexpr UInt32 kMaxDirtyWaitMs = 5000;
+            for (UInt32 Waited = 0; Waited < kMaxDirtyWaitMs && RHI->IsSwapChainDirty(SwapChainID); Waited += 1)
+            { LOG_TRACE("Graphics thread: waiting for swapchain to be ready... ({}/{})", Waited, kMaxDirtyWaitMs); FThread::Sleep(1); }
+         }
+
+         FRHITextureID BackBuffer = RHI->BeginFrame(SwapChainID);
+         if (bHasWindow && BackBuffer.IsNull()) { continue; }
+
+         FRenderContext Ctx{
+            .RHI         = RHI,
+            .Scene       = &Snapshot,
+            .SwapChainID = SwapChainID,
+            .BackBuffer  = BackBuffer,
+         };
+         auto Graph = MakeUnique<FRenderGraph>(SwapChainID, BackBuffer);
+
+         for (const auto& Entry : *PassEntries)
+         {
+            LOG_TRACE("Graphics thread: running pass factory '{}'.", Entry.Name.GetNameString());
+            Entry.Factory(*Graph, Ctx);
+         }
+
+         if (bHasWindow && Graph->HasBackBuffer())
+         {
+            auto BackBufferID = Graph->GetBackBuffer();
+            Graph->AddNode(
+               MakeUnique<FPresentTransitionPass>(BackBufferID),
+               {BackBufferID}, {BackBufferID});
+         }
+
+         auto CmdList = RHI->CreateCommandList();
+         Graph->Compile(RHI)->Execute(&CmdList);
+         RHI->Submit(std::move(CmdList));
+
+         RHI->Present(SwapChainID);
+         RHI->EndFrame();
+
+         if (MaxFrameRate > 0)
+         {
+            auto Elapsed = FramePacingClock.Now() - FrameStart;
+            UInt32 ElapsedMs = Elapsed.Milliseconds();
+            UInt32 TargetMs  = 1000 / MaxFrameRate;
+            if (ElapsedMs < TargetMs) { FThread::Sleep(TargetMs - ElapsedMs); }
+         }
+      }
+   }
+
+   // =================================================================
+   // FGraphics — public API
+   // =================================================================
+
+   FRHISwapChainID FGraphics::
+   RegisterHeadless()
+   {
+      FRHISwapChainID ID = RHI->CreateSwapChain(nullptr);
+      if (ID != kInvalidSwapChainID)
+      {
+         ManagedHeadlessIDs.PushBack(ID);
+         LOG_INFO("Registered headless rendering context (id:{}).", ID);
+      }
+      else
+      {
+         LOG_ERROR("Failed to register headless rendering context.");
+      }
+      return ID;
+   }
+
+   void FGraphics::
+   Render(FWindow* I_Window, const FScene& I_Scene)
+   {
+      if (!I_Window)
+      {
+         LOG_WARN("FGraphics::Render called with nullptr window. Use RegisterHeadless() + Render(SwapChainID) for headless rendering.");
+         return;
+      }
+      FRHISwapChainID SwapChainID = RHI->QuerySwapChainID(I_Window);
+      if (SwapChainID == kInvalidSwapChainID)
+      {
+         LOG_TRACE("Triggered the eager creation of the swapchain.");
+         SwapChainID = RHI->CreateSwapChain(I_Window);
+         if (SwapChainID == kInvalidSwapChainID) { return; }
+         ManagedWindows.PushBack(I_Window);
+      }
+      RHI->UpdateSwapChainMinimized(SwapChainID, I_Window->IsMinimized());
+
+      UInt32 Prev = PendingDrawRenderTaskCount.FetchAdd(1, EMemoryOrder::Relaxed);
+      if (Prev >= kMaxPendingDrawRenderTasks)
+      {
+         PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
+         LOG_TRACE("Graphics render queue full, dropping draw intent.");
+         return;
+      }
+      ChannelToGraphics.Send(TOptional<FRenderTask>{{SwapChainID, I_Scene.Snapshot()}});
+   }
+
+   void FGraphics::
+   Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene)
+   {
+      if (I_SwapChainID == kInvalidSwapChainID)
+      {
+         LOG_WARN("FGraphics::Render called with invalid SwapChainID.");
+         return;
+      }
+      UInt32 Prev = PendingDrawRenderTaskCount.FetchAdd(1, EMemoryOrder::Relaxed);
+      if (Prev >= kMaxPendingDrawRenderTasks)
+      {
+         PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
+         LOG_TRACE("Graphics render queue full, dropping draw intent (id:{}).", I_SwapChainID);
+         return;
+      }
+      ChannelToGraphics.Send(TOptional<FRenderTask>{{I_SwapChainID, I_Scene.Snapshot()}});
+   }
 
    TSharedPtr<FMaterial> FGraphics::
    LoadMaterial(const FPath& I_MaterialFile)
@@ -108,214 +428,9 @@ export namespace Visera
       auto JSONOpt = FJSON::Load(I_MaterialFile);
       if (!JSONOpt.HasValue())
       { LOG_ERROR("LoadMaterial: failed to parse {}.", I_MaterialFile); return nullptr; }
-      const FJSON& JSON = JSONOpt.GetValue();
-
-      const FString VertPath = JSON.GetString(TJSONRoute<"Shader.Vert">());
-      const FString FragPath = JSON.GetString(TJSONRoute<"Shader.Frag">());
-      // Surface: object { Type, Format } or legacy string (Type only)
-      FString SurfStr = "Opaque";
-      if (auto opt = JSON.TryGetString(TJSONRoute<"Surface.Type">()); opt.HasValue())
-         SurfStr = std::move(opt.GetValue());
-      else if (auto opt = JSON.TryGetString("Surface"); opt.HasValue())
-         SurfStr = std::move(opt.GetValue());
-      const FString FormatStr = JSON.GetString(TJSONRoute<"Surface.Format">(), "B8G8R8A8_sRGB");
-      const FString BaseColorPath = JSON.GetString(TJSONRoute<"Textures.BaseColor">());
-
-      if (VertPath.IsEmpty() || FragPath.IsEmpty() || BaseColorPath.IsEmpty())
-      { LOG_ERROR("LoadMaterial: missing required fields in {}.", I_MaterialFile); return nullptr; }
-
-      auto VertAsset = AssetHub->LoadShader(FPath{VertPath});
-      auto FragAsset = AssetHub->LoadShader(FPath{FragPath});
-      if (!VertAsset || !FragAsset)
-      { LOG_ERROR("LoadMaterial: failed to load shaders ({}, {}).", VertPath, FragPath); return nullptr; }
-
-      auto ImageAsset = AssetHub->LoadImage(FPath{BaseColorPath});
-      if (!ImageAsset)
-      { LOG_ERROR("LoadMaterial: failed to load base color texture {}.", BaseColorPath); return nullptr; }
-
-      // Create RHI shader modules
-      FRHIShaderID VertShader = RHI->CreateShader(FRHIShaderCreateInfo{
-         .SPIRV      = VertAsset->GetSPIRV(),
-         .Reflection = VertAsset->GetReflection(),
-      });
-      FRHIShaderID FragShader = RHI->CreateShader(FRHIShaderCreateInfo{
-         .SPIRV      = FragAsset->GetSPIRV(),
-         .Reflection = FragAsset->GetReflection(),
-      });
-
-      // Build descriptor set from merged (Vert + Frag) reflection, deduplicated by (Set, Binding)
-      const auto& VertRefl = VertAsset->GetReflection();
-      const auto& FragRefl = FragAsset->GetReflection();
-      TMap<UInt64, FRHIShaderLayout::FResource> MergedResources;
-      auto AddResource = [&MergedResources](const FRHIShaderLayout::FResource& Res)
-      {
-         const UInt64 Key = (static_cast<UInt64>(Res.Set) << 32) | Res.Binding;
-         auto It = MergedResources.Find(Key);
-         if (It != MergedResources.end())
-         { It->second.Stages = static_cast<ERHIShaderStage>(static_cast<UInt32>(It->second.Stages) | static_cast<UInt32>(Res.Stages)); }
-         else
-         { MergedResources.Insert(Key, Res); }
-      };
-      for (const auto& Res : VertRefl.Resources) { AddResource(Res); }
-      for (const auto& Res : FragRefl.Resources) { AddResource(Res); }
-
-      TArray<FRHIDescriptorSetLayoutBinding> DSBindings;
-      for (const auto& [_, Res] : MergedResources)
-      {
-         DSBindings.PushBack(FRHIDescriptorSetLayoutBinding{
-            .Binding = static_cast<UInt8>(Res.Binding),
-            .Type    = Res.Type,
-            .Count   = Res.ArrayCount,
-            .Stages  = Res.Stages,
-         });
-      }
-
-      // Create RHI resources
-      const auto& Img = ImageAsset->GetImage();
-      ERHIFormat TexFormat = PixelFormatToRHIFormat(Img.GetPixelFormat());
-      FRHITextureID BaseColorTex = RHI->CreateTexture(FRHITextureCreateInfo{
-         .Width   = Img.GetWidth(),
-         .Height  = Img.GetHeight(),
-         .Depth   = 1,
-         .Format  = TexFormat,
-         .Type    = ERHIImageType::Image2D,
-         .Usages  = ERHIImageUsage::ShaderResource | ERHIImageUsage::TransferDst,
-         .ViewType = ERHIImageViewType::Image2D,
-      });
-
-      RHI->UploadTexture(BaseColorTex, Img.GetData(), Img.GetSizeInBytes());
-
-      FRHISamplerID Sampler = RHI->CreateSampler(FRHISamplerCreateInfo{
-         .Type        = ERHISamplerType::Linear,
-         .AddressMode = ERHISamplerAddressMode::Repeat,
-      });
-
-      FRHIDescriptorSetID DescSet = RHI->CreateDescriptorSet(FRHIDescriptorSetCreateInfo{
-         .Bindings = std::move(DSBindings),
-      });
-
-      // Ensure texture is in ShaderReadOnly before descriptor write (UploadTexture already transitions, but explicit sync)
-      RHI->TransitionTexture(BaseColorTex, ERHIImageLayout::ShaderReadOnly, ERHIImageLayout::ShaderReadOnly);
-
-      // Write descriptors by resource type and name
-      for (const auto& [_, Res] : MergedResources)
-      {
-         const UInt32 Binding = Res.Binding;
-         if (Res.Type == ERHIDescriptorType::SampledImage && Res.Name == "BaseColor")
-         { RHI->WriteDescriptorSampledImage(DescSet, Binding, BaseColorTex); }
-         else if (Res.Type == ERHIDescriptorType::Sampler && Res.Name == "BaseColorSampler")
-         { RHI->WriteDescriptorSampler(DescSet, Binding, Sampler); }
-         else if (Res.Type == ERHIDescriptorType::CombinedImageSampler && Res.Name == "BaseColor")
-         { RHI->WriteDescriptorCombinedImageSampler(DescSet, Binding, BaseColorTex, Sampler); }
-      }
-
-      // Create render pass (pipeline state)
-      FRHIRenderPassCreateInfo RPInfo
-      {
-         .VertexShader   = VertShader.GetHandle(),
-         .FragmentShader = FragShader.GetHandle(),
-         .Desc           = { .ColorFormat = ParseFormat(FormatStr) },
-      };
-      FRHIRenderPassID RenderPassID = RHI->CreateRenderPass(std::move(RPInfo));
-
-      auto Mat = MakeShared<FMaterial>(
-         std::move(RenderPassID),
-         std::move(DescSet),
-         std::move(Sampler),
-         std::move(BaseColorTex),
-         ParseSurfaceType(SurfStr));
-
-      LOG_INFO("LoadMaterial: {} loaded successfully.", I_MaterialFile);
-      return Mat;
-   }
-
-   // --- FGraphics::Render ---
-
-   void FGraphics::
-   Render()
-   {
-      auto Win = WindowWeak.Lock();
-      if (!Win)
-      { LOG_ERROR("Render: no window (windowless mode)."); return; }
-      if (Win->GetWidth() == 0 || Win->GetHeight() == 0)
-      { return; }  // Minimized
-
-      RenderContext.ViewportWidth  = Win->GetWidth();
-      RenderContext.ViewportHeight = Win->GetHeight();
-
-      auto SwapChainTex = RHI->AcquireSwapChainTexture();
-      auto CommandList  = RHI->CreateCommandList();
-
-      FRHIRenderPassAttachments SwapChainAttachments;
-      SwapChainAttachments.ColorTargets.PushBack(FRHIColorAttachmentDesc{
-         .Texture    = SwapChainTex,
-         .LoadOp     = ERHIAttachmentLoadOp::Clear,
-         .StoreOp    = ERHIAttachmentStoreOp::Store,
-      });
-
-      CommandList.TransitionTexture({SwapChainTex, ERHIImageLayout::Undefined, ERHIImageLayout::ColorAttachment});
-
-      for (auto& R : Renderers)
-      {
-         if (R) { R->Render(RenderContext, CommandList, SwapChainAttachments); }
-      }
-
-      CommandList.TransitionTexture({SwapChainTex, ERHIImageLayout::ColorAttachment, ERHIImageLayout::Present});
-      RHI->Submit(std::move(CommandList));
-   }
-
-   // --- FGraphics::Present ---
-
-   void FGraphics::
-   Present()
-   {
-      if (auto Win = WindowWeak.Lock(); Win)
-      {
-         if (Win->GetWidth() > 0 && Win->GetHeight() > 0)
-         { RHI->Present(); }
-      }
-      else LOG_ERROR("Present: no window (windowless mode).");
-   }
-
-   // --- Helpers ---
-
-   ESurfaceType FGraphics::
-   ParseSurfaceType(const FString& I_Str)
-   {
-      if (I_Str == "Masked")      { return ESurfaceType::Masked; }
-      if (I_Str == "Transparent") { return ESurfaceType::Transparent; }
-      return ESurfaceType::Opaque;
-   }
-
-   ERHIFormat FGraphics::
-   ParseFormat(const FString& I_Str)
-   {
-      if (I_Str == "R8G8B8_sRGB")         { return ERHIFormat::R8G8B8_sRGB; }
-      if (I_Str == "R8G8B8_UNorm")        { return ERHIFormat::R8G8B8_UNorm; }
-      if (I_Str == "B8G8R8_sRGB")         { return ERHIFormat::B8G8R8_sRGB; }
-      if (I_Str == "B8G8R8_UNorm")        { return ERHIFormat::B8G8R8_UNorm; }
-      if (I_Str == "R8G8B8A8_sRGB")       { return ERHIFormat::R8G8B8A8_sRGB; }
-      if (I_Str == "R8G8B8A8_UNorm")      { return ERHIFormat::R8G8B8A8_UNorm; }
-      if (I_Str == "B8G8R8A8_sRGB")       { return ERHIFormat::B8G8R8A8_sRGB; }
-      if (I_Str == "B8G8R8A8_UNorm")      { return ERHIFormat::B8G8R8A8_UNorm; }
-      if (I_Str == "R16G16B16A16_Float")  { return ERHIFormat::R16G16B16A16_Float; }
-      if (I_Str == "R32G32_Float")        { return ERHIFormat::R32G32_Float; }
-      if (I_Str == "R32G32B32_Float")     { return ERHIFormat::R32G32B32_Float; }
-      if (I_Str == "R32G32B32A32_Float")  { return ERHIFormat::R32G32B32A32_Float; }
-      return ERHIFormat::B8G8R8A8_sRGB;
-   }
-
-   ERHIFormat FGraphics::
-   PixelFormatToRHIFormat(EPixelFormat I_Fmt)
-   {
-      switch (I_Fmt)
-      {
-      case EPixelFormat::RGBA8_UNorm: return ERHIFormat::R8G8B8A8_UNorm;
-      case EPixelFormat::BGRA8_UNorm: return ERHIFormat::B8G8R8A8_UNorm;
-      case EPixelFormat::RGBA16_Float: return ERHIFormat::R16G16B16A16_Float;
-      default:
-         LOG_WARN("PixelFormatToRHIFormat: unsupported format, defaulting to R8G8B8A8_UNorm.");
-         return ERHIFormat::R8G8B8A8_UNorm;
-      }
+      auto Material = FMaterial::Create(JSONOpt.GetValue(), AssetHub.Get(), RHI.Get());
+      if (Material)
+      { LOG_INFO("LoadMaterial: {} loaded successfully.", I_MaterialFile); }
+      return Material;
    }
 }

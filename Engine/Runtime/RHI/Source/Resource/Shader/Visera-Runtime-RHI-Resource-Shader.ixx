@@ -14,10 +14,12 @@ export namespace Visera
     public:
         struct VISERA_RUNTIME_API FCreateInfo
         {
-            TArray<FByte>     SPIRV;
+            TArray<FByte>    SPIRV;
             FRHIShaderLayout Reflection;
 
             Bool operator==(const FCreateInfo&) const = default;
+            Bool IsCompatibleWith(const FCreateInfo& I_Other) const
+            { return *this == I_Other; }
         };
 
         [[nodiscard]] const FCreateInfo&

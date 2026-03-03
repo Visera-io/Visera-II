@@ -11,9 +11,12 @@ export import Visera.Platform.Interface;
 export import Visera.Platform.MacOS.Path;
 export import Visera.Platform.MacOS.Window;
 export import Visera.Platform.MacOS.Library;
+export import Visera.Platform.MacOS.EventLoop;
 export import Visera.Platform.MacOS.FileSystem;
+       import Visera.Platform.Cross.GLFW.Window;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
+       import Visera.Core.Types.Text;
        import Visera.Core.Log;
 
 export namespace Visera
@@ -22,7 +25,7 @@ export namespace Visera
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
+        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
         [[nodiscard]] TUniquePtr<IPlatformPath>
@@ -32,20 +35,27 @@ export namespace Visera
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const override;
         [[nodiscard]] Bool
-        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
+        SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
         void
-        SetCurrentThreadName(FStringView I_Name) const override;
+        SetCurrentThreadName(const FText& I_Name) const override;
         [[nodiscard]] IPlatformFileSystem&
         GetFileSystem() const override { return FileSystem; }
+        void
+        PollEvents() const override { EventLoop.PollEvents(); }
+        void
+        WaitEvents() const override { EventLoop.WaitEvents(); }
 
     public:
         FMacOSPlatform();
         ~FMacOSPlatform() override = default;
 
     private:
+        static std::string MakePlatformString(const FText& I_Text);
+
         mutable FMacOSPlatformFileSystem FileSystem;
+        mutable FMacOSEventLoop EventLoop;
     };
 
     FMacOSPlatform::FMacOSPlatform() : IPlatform{EPlatform::MacOS} {}
@@ -81,24 +91,32 @@ export namespace Visera
         return nullptr;
     }
 
+    std::string FMacOSPlatform::MakePlatformString(const FText& I_Text)
+    {
+        if (I_Text.IsEmpty()) { return {}; }
+        return std::string(I_Text.GetData(), I_Text.GetSize());
+    }
+
     TUniquePtr<IPlatformWindow> FMacOSPlatform::
-    CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const
+    CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const
     {
         return MakeUnique<FMacOSWindow>(I_Title, I_Width, I_Height);
     }
 
     Bool FMacOSPlatform::
-    SetEnvironmentVariable(FStringView I_Variable,
-                           FStringView I_Value) const
+    SetEnvironmentVariable(const FText& I_Variable,
+                           const FText& I_Value) const
     {
-        if (setenv(I_Variable.Data(), I_Value.Data(), True) != 0)
+        const std::string Var = MakePlatformString(I_Variable);
+        const std::string Val = MakePlatformString(I_Value);
+        if (setenv(Var.c_str(), Val.c_str(), True) != 0)
         {
             LOG_ERROR("Failed to set environment variable {} as {}!",
                       I_Variable, I_Value);
             return False;
         }
         LOG_DEBUG("Set environment variable {} as {}.",
-                  I_Variable, I_Value);
+                  Var, Val);
         return True;
     }
 
@@ -118,11 +136,11 @@ export namespace Visera
         return UUID;
     }
 
-    void FMacOSPlatform::SetCurrentThreadName(FStringView I_Name) const
+    void FMacOSPlatform::SetCurrentThreadName(const FText& I_Name) const
     {
         if (I_Name.IsEmpty()) { return; }
-        FString Name(I_Name);
-        if (Name.GetSize() > 63) { Name.Resize(63); }
-        (void)pthread_setname_np(Name.Data());
+        std::string Name = MakePlatformString(I_Name);
+        if (Name.size() > 63) { Name.resize(63); }
+        (void)pthread_setname_np(Name.c_str());
     }
 }

@@ -5,6 +5,7 @@ export module Visera.Forge;
 import Visera.Core;
 import Visera.Platform;
 import Visera.Runtime;
+import Visera;
 import Visera.Forge.Utils;
 import Visera.Forge.Baking;
 import Visera.Forge.Shader;
@@ -85,11 +86,12 @@ namespace Visera::Forge
 
     // Compile shader from slang file -> FShaderAsset, then save
     [[nodiscard]] Bool
-    CompileShader(const FPath& I_SourcePath, TUniqueRef<FRuntime> I_Runtime)
+    CompileShader(const FPath& I_SourcePath, FViseraEngine* I_Engine)
     {
         LOG_INFO("Compiling shader: {}", I_SourcePath);
 
-        auto AssetHub = I_Runtime->GetAssetHub();
+        auto AssetHub = I_Engine->GetAssetHub();
+        if (!AssetHub) { LOG_ERROR("AssetHub service is not available."); return False; }
 
         const TArray<FStringView> EntryPoints = {"VertMain", "FragMain"};
         const FPath ShaderDirectory = *I_SourcePath.GetParent();
@@ -176,11 +178,11 @@ namespace Visera::Forge
             return 0;
         }
 
-        // Create Runtime with only Tasks and AssetHub services
-        auto Runtime = FRuntime::Create("Forge", {EName::Tasks, EName::AssetHub});
-        if (!Runtime)
+        // Create Engine with Forge mode (Tasks, AssetHub, RHI only)
+        auto Engine = Visera::CreateEngine(EEngineMode::Forge);
+        if (!Engine)
         {
-            LOG_FATAL("Failed to create FRuntime!");
+            LOG_FATAL("Failed to create Engine!");
             return 1;
         }
 
@@ -213,7 +215,7 @@ namespace Visera::Forge
 
             for (const auto& FilePath : MatchedFiles)
             {
-                if (CompileShader(FilePath, Runtime))
+                if (CompileShader(FilePath, Engine.Get()))
                 {
                     ++SuccessCount;
                 }

@@ -16,6 +16,7 @@ export namespace Visera
         Mapped                         = VMA_ALLOCATION_CREATE_MAPPED_BIT,
         HostAccessAllowTransferInstead = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
         HostAccessSequentialWrite      = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+        HostAccessRandom               = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
         Aliasable                      = VMA_ALLOCATION_CREATE_CAN_ALIAS_BIT,
     };
     VISERA_MAKE_FLAGS(EVMAMemoryProperty);

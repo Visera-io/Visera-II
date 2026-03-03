@@ -5,6 +5,7 @@ export module Visera.Platform.Interface.Window;
 export import Visera.Core.Types.String;
 export import Visera.Core.Types.Pointer.Unique;
        import Visera.Core.Delegate.Unicast;
+       import Visera.Core.Types.Text;
 
 export namespace Visera
 {
@@ -39,22 +40,20 @@ export namespace Visera
         [[nodiscard]] virtual Bool
         ShouldClose() const = 0;
         virtual void
-        WaitEvents() const  = 0;
-        virtual void
-        PollEvents() const  = 0;
-        virtual void
         SetSize(Int32 I_NewWidth, Int32 I_NewHeight) = 0;
         virtual void
         SetPosition(Int32 I_X, Int32 I_Y) const = 0;
         virtual void
-        SetTitle(FStringView I_Title) = 0;
+        SetTitle(const FText& I_Title) = 0;
         virtual void
         SetIcon(const FIconSet& I_IconSet) = 0;
         [[nodiscard]] virtual Int32
         GetKeyboardKey(Int32 I_Key) const = 0;
         [[nodiscard]] virtual Int32
         GetMouseButton(Int32 I_Button) const = 0;
-        [[nodiscard]] inline FStringView
+        [[nodiscard]] virtual void*
+        CreateVulkanSurface(void* I_Instance) const = 0;
+        [[nodiscard]] inline const FText&
         GetTitle() const { return Title; }
         [[nodiscard]] inline UInt32
         GetWidth() const  { return Width; }
@@ -70,12 +69,12 @@ export namespace Visera
         IsMaximized() const { return bMaximized; };
 
         explicit IPlatformWindow() = delete;
-        explicit IPlatformWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
+        explicit IPlatformWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height)
         : Title(I_Title), Width(I_Width), Height(I_Height) {}
         virtual ~IPlatformWindow() = default;
 
     protected:
-        FString     Title;
+        FText       Title;
         UInt32      Width      {0},     Height{0};
         Float       ScaleX     {1.0f},  ScaleY{1.0f};
         Bool        bMaximized {False};

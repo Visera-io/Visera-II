@@ -3,15 +3,14 @@ module;
 export module Visera.Runtime.RHI.SwapChain;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
+       import Visera.Core.OS.Thread.Sync.Atomic;
+       import Visera.Core.OS.Thread.Sync.Event;
        import Visera.Runtime.RHI.Registry;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.Window;
        import Visera.Core.Containers.Array;
        import Visera.Core.Types.Pointer;
-       import Visera.Core.Delegate;
        import Visera.Core.Log;
-       import Visera.Core.Types.Function;
-       import Visera.Core.Types.Optional;
        import Visera.Core.Types.String;
        import vulkan_hpp;
 
@@ -24,7 +23,6 @@ export namespace Visera
         FVulkanSemaphore  SwapChainReadySemaphore;
         FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>
         GraphicsCalls;
-        FVulkanSemaphore  RenderFinishedSemaphore;    // Offscreen only
         FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>
         TransferCalls;
         FVulkanSemaphore  TransferFinishedSemaphore;
@@ -33,121 +31,208 @@ export namespace Visera
     /// RHI-level swap chain context: frame resources and synchronization state.
     struct VISERA_RUNTIME_API FRHISwapChain
     {
-        TWeakPtr<FWindow>            Window;  // For Driver lookup; empty = offscreen
-        TArray<FRHIInFlightFrame>    InFlightFrames;
-        TArray<FVulkanSemaphore>     RenderFinishedSemaphores;
-        UInt8                        FrameIndex = 0;
-        UInt8                        LastSubmittedImageIndex = 0;
-        Bool                         bFrameActive {False};
-        FRHITextureID                CachedProxyTextureID;
+        FWindow*                  Window {nullptr};  // For Driver lookup; nullptr = offscreen
+        TArray<FRHIInFlightFrame> InFlightFrames;
+        TArray<FVulkanSemaphore>  RenderFinishedSemaphores;
+        UInt8                     FrameIndex = 0;
+        FRHITextureID             CachedProxyTextureID;
+        Bool                      bFrameActive = False;
+        TAtomic<Bool>             bDirty {False};   // Set when recreate requested; cleared when ExecuteRecreateSwapChain finishes. Read from main thread.
+        TAtomic<Bool>             bDestroyed {False};  // Set on main thread when DestroySwapChain called; read from graphics thread.
+        TAtomic<Bool>             bMinimized {False};  // Updated from main thread window state; read from graphics thread.
+        UInt32                    CachedWidth {0}; // Window size when swapchain was created/recreated; used to detect resize in BeginFrame.
+        UInt32                    CachedHeight {0};
+        UInt32                    PendingRecreateWidth {0};  // Last submitted size for recreate; task runs with this so we dedupe by "last size".
+        UInt32                    PendingRecreateHeight {0};
+        Bool                      bRecreateEnqueued {False}; // Only one RecreateSwapChain task in flight per swapchain.
+        /** Frames enqueued for Present but not yet completed on RHI thread. Used for BeginFrame backpressure. */
+        TAtomic<UInt32>           PendingPresentCount {0};
+        /** Signalled by RHI thread when PendingPresentCount drops below MaxInFlight; Graphics thread waits on this for linear submit. */
+        TUniquePtr<FEvent>       FrameSlotFreeEvent;
 
-        /// Initialize context. I_Window=nullptr: offscreen (1 frame). I_Window non-null: from window swap chain.
+        FRHISwapChain() = default;
+        FRHISwapChain(FRHISwapChain&& I_Other) noexcept;
+        FRHISwapChain& operator=(FRHISwapChain&& I_Other) noexcept;
+        FRHISwapChain(const FRHISwapChain&) = delete;
+        FRHISwapChain& operator=(const FRHISwapChain&) = delete;
+
+        /// Initialize context. I_Window=nullptr: headless (own InFlightFrames, no Vulkan surface). I_Window non-null: windowed swap chain. I_MaxInFlightFrames caps InFlightFrames size.
         void Initialize(
-            FVulkanDriver*                                      I_Driver,
+            FVulkanDriver*                I_Driver,
             FVulkanGraphicsCommandPool*   I_GraphicsPool,
             FVulkanTransferCommandPool*   I_TransferPool,
-            TSharedPtr<FWindow>                                 I_Window);
+            FWindow*                      I_Window,
+            UInt32                        I_MaxInFlightFrames = 3);
 
-        /// Subscribe to window resize; reinitializes this swap chain on resize.
-        void SubscribeToResize(
-            FVulkanDriver*                                      I_Driver,
+        /// Rebuild frame resources in-place after swap chain recreation. Preserves PendingPresentCount and FrameSlotFreeEvent to avoid underflow when Present tasks are still in flight.
+        void Reinitialize(
+            FVulkanDriver*                I_Driver,
             FVulkanGraphicsCommandPool*   I_GraphicsPool,
             FVulkanTransferCommandPool*   I_TransferPool,
-            FWindow*                                            I_Window,
-            const TFunction<void(FWindow*, UInt32, UInt32)>& I_OnResizeRequested);
-        void UnsubscribeFromResize();
+            UInt32                        I_MaxInFlightFrames = 3);
 
     private:
-        using FResizeHandle = TMulticastDelegate<FWindow*>::FHandle;
-        TOptional<FResizeHandle> ResizeHandle;
+        void BuildFrameResources(
+            FVulkanDriver*                I_Driver,
+            FVulkanGraphicsCommandPool*   I_GraphicsPool,
+            FVulkanTransferCommandPool*   I_TransferPool,
+            UInt32                        I_MaxInFlightFrames);
+        void BuildHeadlessFrameResources(
+            FVulkanDriver*                I_Driver,
+            FVulkanGraphicsCommandPool*   I_GraphicsPool,
+            FVulkanTransferCommandPool*   I_TransferPool,
+            UInt32                        I_MaxInFlightFrames);
     };
+
+    FRHISwapChain::FRHISwapChain(FRHISwapChain&& I_Other) noexcept
+        : Window                    (I_Other.Window)
+        , InFlightFrames            (std::move(I_Other.InFlightFrames))
+        , RenderFinishedSemaphores  (std::move(I_Other.RenderFinishedSemaphores))
+        , FrameIndex                (I_Other.FrameIndex)
+        , CachedProxyTextureID      (I_Other.CachedProxyTextureID)
+        , bFrameActive              (I_Other.bFrameActive)
+        , CachedWidth               (I_Other.CachedWidth)
+        , CachedHeight              (I_Other.CachedHeight)
+        , PendingRecreateWidth      (I_Other.PendingRecreateWidth)
+        , PendingRecreateHeight     (I_Other.PendingRecreateHeight)
+        , bRecreateEnqueued         (I_Other.bRecreateEnqueued)
+        , FrameSlotFreeEvent        (std::move(I_Other.FrameSlotFreeEvent))
+    {
+        I_Other.FrameSlotFreeEvent = MakeUnique<FEvent>();
+        bDirty.Store(I_Other.bDirty.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        bDestroyed.Store(I_Other.bDestroyed.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        bMinimized.Store(I_Other.bMinimized.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        PendingPresentCount.Store(I_Other.PendingPresentCount.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        I_Other.PendingPresentCount.Store(0, EMemoryOrder::Relaxed);
+        I_Other.Window = nullptr;
+        I_Other.FrameIndex = 0;
+        I_Other.bFrameActive = False;
+        I_Other.CachedWidth = 0;
+        I_Other.CachedHeight = 0;
+        I_Other.PendingRecreateWidth = 0;
+        I_Other.PendingRecreateHeight = 0;
+        I_Other.bRecreateEnqueued = False;
+    }
+
+    FRHISwapChain& FRHISwapChain::operator=(FRHISwapChain&& I_Other) noexcept
+    {
+        if (this == &I_Other) { return *this; }
+        Window                   = I_Other.Window;
+        InFlightFrames           = std::move(I_Other.InFlightFrames);
+        RenderFinishedSemaphores = std::move(I_Other.RenderFinishedSemaphores);
+        FrameIndex               = I_Other.FrameIndex;
+        CachedProxyTextureID     = I_Other.CachedProxyTextureID;
+        bFrameActive             = I_Other.bFrameActive;
+        CachedWidth              = I_Other.CachedWidth;
+        CachedHeight             = I_Other.CachedHeight;
+        PendingRecreateWidth     = I_Other.PendingRecreateWidth;
+        PendingRecreateHeight    = I_Other.PendingRecreateHeight;
+        bRecreateEnqueued        = I_Other.bRecreateEnqueued;
+        FrameSlotFreeEvent       = std::move(I_Other.FrameSlotFreeEvent);
+        I_Other.FrameSlotFreeEvent = MakeUnique<FEvent>();
+        bDirty.Store(I_Other.bDirty.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        bDestroyed.Store(I_Other.bDestroyed.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        bMinimized.Store(I_Other.bMinimized.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        PendingPresentCount.Store(I_Other.PendingPresentCount.Load(EMemoryOrder::Relaxed), EMemoryOrder::Relaxed);
+        I_Other.PendingPresentCount.Store(0, EMemoryOrder::Relaxed);
+        I_Other.Window = nullptr;
+        I_Other.FrameIndex = 0;
+        I_Other.bFrameActive = False;
+        I_Other.CachedWidth = 0;
+        I_Other.CachedHeight = 0;
+        I_Other.PendingRecreateWidth = 0;
+        I_Other.PendingRecreateHeight = 0;
+        I_Other.bRecreateEnqueued = False;
+        return *this;
+    }
 
     void FRHISwapChain::
     Initialize(
-        FVulkanDriver*                                       I_Driver,
+        FVulkanDriver*                 I_Driver,
         FVulkanGraphicsCommandPool*    I_GraphicsPool,
         FVulkanTransferCommandPool*    I_TransferPool,
-        TSharedPtr<FWindow>                                  I_Window)
+        FWindow*                       I_Window,
+        UInt32                         I_MaxInFlightFrames)
     {
-        if (I_Window) { Window = I_Window; }
-        if (!I_Window)
+        Window = I_Window;
+        if (I_Window)
         {
-            InFlightFrames.Resize(1);
-            RenderFinishedSemaphores.Clear();
-            for (auto& Frame : InFlightFrames)
-            {
-                Frame.ExecuteFence = I_Driver->CreateFence(True);
-                Frame.RenderFinishedSemaphore = I_Driver->CreateSemaphore();
-                Frame.GraphicsCalls = I_GraphicsPool->CreateCommandBuffer(True);
-                Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
-                Frame.TransferCalls = I_TransferPool->CreateCommandBuffer(True);
-            }
-            return;
+            BuildFrameResources(I_Driver, I_GraphicsPool, I_TransferPool, I_MaxInFlightFrames);
+            CachedWidth  = I_Window->GetWidth();
+            CachedHeight = I_Window->GetHeight();
         }
-        auto* SC = I_Driver->GetSwapChain(I_Window.Get());
-        if (!SC) { return; }
-        InFlightFrames.Resize(SC->Images.GetSize());
-        RenderFinishedSemaphores.Clear();
-        for (UInt32 Idx = 0; Idx < SC->Images.GetSize(); ++Idx)
+        else
         {
-            RenderFinishedSemaphores.EmplaceBack(I_Driver->CreateSemaphore());
+            BuildHeadlessFrameResources(I_Driver, I_GraphicsPool, I_TransferPool, I_MaxInFlightFrames);
         }
-        for (auto& Frame : InFlightFrames)
-        {
-            Frame.ExecuteFence = I_Driver->CreateFence(True);
-            Frame.SwapChainReadySemaphore = I_Driver->CreateSemaphore();
-            Frame.GraphicsCalls = I_GraphicsPool->CreateCommandBuffer(True);
-            Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
-            Frame.TransferCalls = I_TransferPool->CreateCommandBuffer(True);
-        }
-        auto Cmd = I_GraphicsPool->CreateCommandBuffer(True);
-        Cmd.Begin();
-        for (auto& Image : SC->Images)
-        {
-            Cmd.ConvertImageLayout(&Image,
-                vk::ImageLayout::eUndefined,
-                vk::ImageLayout::ePresentSrcKHR,
-                EVulkanGraphicsStage::TopOfPipe,
-                EVulkanGraphicsAccess::None,
-                EVulkanGraphicsStage::BottomOfPipe,
-                EVulkanGraphicsAccess::None);
-        }
-        Cmd.End();
-        FVulkanFence Fence = I_Driver->CreateFence(False);
-        I_Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-        if (!Fence.Wait())
-        { LOG_FATAL("Failed to init RHI SwapChain!"); }
+        FrameSlotFreeEvent = MakeUnique<FEvent>();
     }
 
     void FRHISwapChain::
-    SubscribeToResize(
+    Reinitialize(
         FVulkanDriver*              I_Driver,
         FVulkanGraphicsCommandPool* I_GraphicsPool,
         FVulkanTransferCommandPool* I_TransferPool,
-        FWindow*                    I_Window,
-        const TFunction<void(FWindow*, UInt32, UInt32)>& I_OnResizeRequested)
+        UInt32                      I_MaxInFlightFrames)
     {
-        if (!I_Window || ResizeHandle.HasValue()) { return; }
-        ResizeHandle = I_Window->OnResized.Subscribe([I_OnResizeRequested](FWindow* I_Win)
+        InFlightFrames.Clear();
+        RenderFinishedSemaphores.Clear();
+        if (Window)
         {
-            if (!I_OnResizeRequested) { return; }
-            if (I_Win->GetWidth() == 0 || I_Win->GetHeight() == 0)
-            {
-                LOG_TRACE("({}) Skip SwapChain recreation while minimized ({}x{}).", I_Win->GetTitle(), I_Win->GetWidth(), I_Win->GetHeight());
-                return;
-            }
-            LOG_DEBUG("({}) Recreating SwapChain ({}x{}) for window (title:{}).", I_Win->GetTitle(), I_Win->GetWidth(), I_Win->GetHeight(), I_Win->GetTitle());
-            I_OnResizeRequested(I_Win, I_Win->GetWidth(), I_Win->GetHeight());
-        });
+            BuildFrameResources(I_Driver, I_GraphicsPool, I_TransferPool, I_MaxInFlightFrames);
+            CachedWidth  = Window->GetWidth();
+            CachedHeight = Window->GetHeight();
+        }
+        else
+        {
+            BuildHeadlessFrameResources(I_Driver, I_GraphicsPool, I_TransferPool, I_MaxInFlightFrames);
+        }
+        FrameIndex   = 0;
+        bFrameActive = False;
     }
 
     void FRHISwapChain::
-    UnsubscribeFromResize()
+    BuildFrameResources(
+        FVulkanDriver*              I_Driver,
+        FVulkanGraphicsCommandPool* I_GraphicsPool,
+        FVulkanTransferCommandPool* I_TransferPool,
+        UInt32                      I_MaxInFlightFrames)
     {
-        if (auto Win = Window.Lock(); Win && ResizeHandle.HasValue())
+        auto* SC = I_Driver->GetSwapChain(Window);
+        if (!SC) { LOG_WARN("BuildFrameResources: no vulkan swapchain!"); return; }
+        const UInt32 ImageCount    = static_cast<UInt32>(SC->Images.GetSize());
+        const UInt32 InFlightCount = (ImageCount == 0) ? 1u
+            : (I_MaxInFlightFrames < ImageCount ? I_MaxInFlightFrames : ImageCount);
+        InFlightFrames.Resize(InFlightCount);
+        RenderFinishedSemaphores.Clear();
+        for (UInt32 Idx = 0; Idx < ImageCount; ++Idx)
+        { RenderFinishedSemaphores.EmplaceBack(I_Driver->CreateSemaphore()); }
+        for (auto& Frame : InFlightFrames)
         {
-            Win->OnResized.Unsubscribe(ResizeHandle.GetValue());
-            ResizeHandle = NullOpt;
+            Frame.ExecuteFence              = I_Driver->CreateFence(True);
+            Frame.SwapChainReadySemaphore   = I_Driver->CreateSemaphore();
+            Frame.GraphicsCalls             = I_GraphicsPool->CreateCommandBuffer(True);
+            Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
+            Frame.TransferCalls             = I_TransferPool->CreateCommandBuffer(True);
+        }
+    }
+
+    void FRHISwapChain::
+    BuildHeadlessFrameResources(
+        FVulkanDriver*              I_Driver,
+        FVulkanGraphicsCommandPool* I_GraphicsPool,
+        FVulkanTransferCommandPool* I_TransferPool,
+        UInt32                      I_MaxInFlightFrames)
+    {
+        const UInt32 Count = (I_MaxInFlightFrames > 0) ? I_MaxInFlightFrames : 2u;
+        InFlightFrames.Resize(Count);
+        for (auto& Frame : InFlightFrames)
+        {
+            Frame.ExecuteFence              = I_Driver->CreateFence(True);
+            Frame.SwapChainReadySemaphore   = I_Driver->CreateSemaphore();
+            Frame.GraphicsCalls             = I_GraphicsPool->CreateCommandBuffer(True);
+            Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
+            Frame.TransferCalls             = I_TransferPool->CreateCommandBuffer(True);
         }
     }
 }

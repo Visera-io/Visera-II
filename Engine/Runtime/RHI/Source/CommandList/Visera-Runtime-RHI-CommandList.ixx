@@ -3,17 +3,21 @@ module;
 export module Visera.Runtime.RHI.CommandList;
 #define VISERA_MODULE_NAME "RHI.CommandList"
 import Visera.Runtime.RHI.Common;
-import Visera.Runtime.RHI.Attachments;
 import Visera.Runtime.RHI.Registry;
 import Visera.Runtime.RHI.Barrier;
+import Visera.Runtime.RHI.Resource;
 import Visera.Core.Log;
 import Visera.Core.OS.Memory;
+import Visera.Core.Math.Color;
 import Visera.Core.Containers.Array;
 
 #define RHI_COMMAND_LIST \
     RHI_COMMAND(TransitionTexture) \
+    RHI_COMMAND(MemoryBarrier) \
+    RHI_COMMAND(BufferBarrier) \
     RHI_COMMAND(WriteBuffer) \
     RHI_COMMAND(CopyBufferToImage) \
+    RHI_COMMAND(CopyImageToBuffer) \
     RHI_COMMAND(ClearColorImage) \
     RHI_COMMAND(BlitImage) \
     RHI_COMMAND(EnterRenderPass) \
@@ -23,7 +27,10 @@ import Visera.Core.Containers.Array;
     RHI_COMMAND(BindVertexBuffer) \
     RHI_COMMAND(BindDescriptorSet) \
     RHI_COMMAND(Draw) \
-    RHI_COMMAND(DrawIndexed)
+    RHI_COMMAND(DrawIndexed) \
+    RHI_COMMAND(EnterComputePass) \
+    RHI_COMMAND(LeaveComputePass) \
+    RHI_COMMAND(Dispatch)
 
 export namespace Visera
 {
@@ -85,12 +92,9 @@ export namespace Visera
             struct alignas(8) FColorAttachmentSlot
             {
                 FRHITextureHandle      Handle;
-                ERHIAttachmentLoadOp   LoadOp  { ERHIAttachmentLoadOp::Clear };
-                ERHIAttachmentStoreOp  StoreOp { ERHIAttachmentStoreOp::Store };
-                Float                  ClearR  { 0.1f };
-                Float                  ClearG  { 0.1f };
-                Float                  ClearB  { 0.15f };
-                Float                  ClearA  { 1.0f };
+                ERHIAttachmentLoadOp   LoadOp     { ERHIAttachmentLoadOp::Clear  };
+                ERHIAttachmentStoreOp  StoreOp    { ERHIAttachmentStoreOp::Store };
+                FLinearColor           ClearColor { FLinearColor::Purple() };
             };
             FColorAttachmentSlot ColorSlots[kMaxColorAttachments];
         };
@@ -154,6 +158,19 @@ export namespace Visera
                          ERHIImageLayout I_InitialLayout = ERHIImageLayout::Undefined,
                          ERHIImageLayout I_FinalLayout = ERHIImageLayout::ShaderReadOnly);
 
+        struct alignas(8) FCopyImageToBuffer
+        {
+            FRHITextureHandle SourceTexture;
+            FRHIBufferHandle  DestBuffer;
+            UInt64            DestBufferOffset {0};
+            FRHIOffset2D      ImageOffset      {0, 0};
+            FRHIExtent2D      ImageExtent      {0, 0};
+        };
+        void inline
+        CopyImageToBuffer(const FRHITextureID& I_SourceTexture, const FRHIBufferID& I_DestBuffer,
+                         UInt64 I_DestBufferOffset, const FRHIOffset2D& I_ImageOffset,
+                         const FRHIExtent2D& I_ImageExtent);
+
         struct alignas(8) FSetViewport
         {
             FRHIViewport Viewport;
@@ -173,9 +190,36 @@ export namespace Visera
             FRHITextureHandle Image;
             ERHIImageLayout   OldLayout;
             ERHIImageLayout   NewLayout;
+            ERHIPipelineStage SourceStage;
+            ERHIPipelineStage DestStage;
+            ERHIAccessFlag    SourceAccess;
+            ERHIAccessFlag    DestAccess;
         };
         void inline
         TransitionTexture(const FRHIImageBarrier& I_Barrier);
+
+        struct alignas(8) FMemoryBarrierPayload
+        {
+            ERHIPipelineStage SourceStage;
+            ERHIPipelineStage DestStage;
+            ERHIAccessFlag    SourceAccess;
+            ERHIAccessFlag    DestAccess;
+        };
+        void inline
+        MemoryBarrier(const FRHIMemoryBarrier& I_Barrier);
+
+        struct alignas(8) FBufferBarrierPayload
+        {
+            FRHIBufferHandle  Buffer;
+            UInt64            Offset;
+            UInt64            Size;
+            ERHIPipelineStage SourceStage;
+            ERHIPipelineStage DestStage;
+            ERHIAccessFlag    SourceAccess;
+            ERHIAccessFlag    DestAccess;
+        };
+        void inline
+        BufferBarrier(const FRHIBufferBarrier& I_Barrier);
 
         struct alignas(8) FClearColorImage
         {
@@ -199,6 +243,29 @@ export namespace Visera
         BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter,
                   ERHIImageLayout I_SrcLayout = ERHIImageLayout::TransferSrc,
                   ERHIImageLayout I_DstLayout = ERHIImageLayout::TransferDst);
+
+        struct alignas(8) FEnterComputePass
+        {
+            FRHIComputePassHandle ComputePass;
+        };
+        void inline
+        EnterComputePass(const FRHIComputePassID& I_ComputePass);
+
+        struct alignas(8) FLeaveComputePass
+        {
+            UInt8 _ {0};
+        };
+        void inline
+        LeaveComputePass();
+
+        struct alignas(8) FDispatch
+        {
+            UInt32 GroupCountX {0};
+            UInt32 GroupCountY {0};
+            UInt32 GroupCountZ {0};
+        };
+        void inline
+        Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ);
 
         PROFILING_ONLY_FIELD(
         [[nodiscard]] const FProfilingMetrics&
@@ -388,9 +455,42 @@ export namespace Visera
         VISERA_ASSERT(Handle != FRHITextureHandle{});
         RecordCommand(ERHICommandType::TransitionTexture, FTransitionTexturePayload
         {
-            .Image     = Handle,
-            .OldLayout = I_Barrier.OldLayout,
-            .NewLayout = I_Barrier.NewLayout,
+            .Image        = Handle,
+            .OldLayout    = I_Barrier.OldLayout,
+            .NewLayout    = I_Barrier.NewLayout,
+            .SourceStage  = I_Barrier.MemoryBarrier.SourceStage,
+            .DestStage    = I_Barrier.MemoryBarrier.DestStage,
+            .SourceAccess = I_Barrier.MemoryBarrier.SourceAccess,
+            .DestAccess   = I_Barrier.MemoryBarrier.DestAccess,
+        });
+    }
+
+    void FRHICommandList::
+    MemoryBarrier(const FRHIMemoryBarrier& I_Barrier)
+    {
+        RecordCommand(ERHICommandType::MemoryBarrier, FMemoryBarrierPayload
+        {
+            .SourceStage  = I_Barrier.SourceStage,
+            .DestStage    = I_Barrier.DestStage,
+            .SourceAccess = I_Barrier.SourceAccess,
+            .DestAccess   = I_Barrier.DestAccess,
+        });
+    }
+
+    void FRHICommandList::
+    BufferBarrier(const FRHIBufferBarrier& I_Barrier)
+    {
+        const auto Handle = I_Barrier.Buffer.GetHandle();
+        VISERA_ASSERT(Handle != FRHIBufferHandle{});
+        RecordCommand(ERHICommandType::BufferBarrier, FBufferBarrierPayload
+        {
+            .Buffer       = Handle,
+            .Offset       = I_Barrier.Offset,
+            .Size         = I_Barrier.Size,
+            .SourceStage  = I_Barrier.MemoryBarrier.SourceStage,
+            .DestStage    = I_Barrier.MemoryBarrier.DestStage,
+            .SourceAccess = I_Barrier.MemoryBarrier.SourceAccess,
+            .DestAccess   = I_Barrier.MemoryBarrier.DestAccess,
         });
     }
 
@@ -408,6 +508,25 @@ export namespace Visera
             .Image          = ImageHandle,
             .InitialLayout  = I_InitialLayout,
             .FinalLayout    = I_FinalLayout,
+        });
+    }
+
+    void FRHICommandList::
+    CopyImageToBuffer(const FRHITextureID& I_SourceTexture, const FRHIBufferID& I_DestBuffer,
+                     UInt64 I_DestBufferOffset, const FRHIOffset2D& I_ImageOffset,
+                     const FRHIExtent2D& I_ImageExtent)
+    {
+        const auto SourceHandle = I_SourceTexture.GetHandle();
+        const auto DestHandle   = I_DestBuffer.GetHandle();
+        VISERA_ASSERT(SourceHandle != FRHITextureHandle{});
+        VISERA_ASSERT(DestHandle   != FRHIBufferHandle{});
+        RecordCommand(ERHICommandType::CopyImageToBuffer, FCopyImageToBuffer
+        {
+            .SourceTexture     = SourceHandle,
+            .DestBuffer        = DestHandle,
+            .DestBufferOffset  = I_DestBufferOffset,
+            .ImageOffset       = I_ImageOffset,
+            .ImageExtent       = I_ImageExtent,
         });
     }
 
@@ -479,13 +598,10 @@ export namespace Visera
         {
             const auto& Src = I_Attachments.ColorTargets[i];
             auto& Dst = Payload.ColorSlots[i];
-            Dst.Handle = Src.Texture.GetHandle();
-            Dst.LoadOp = Src.LoadOp;
-            Dst.StoreOp = Src.StoreOp;
-            Dst.ClearR = Src.ClearColor.R;
-            Dst.ClearG = Src.ClearColor.G;
-            Dst.ClearB = Src.ClearColor.B;
-            Dst.ClearA = Src.ClearColor.A;
+            Dst.Handle     = Src.Texture;
+            Dst.LoadOp     =  Src.LoadOp;
+            Dst.StoreOp    = Src.StoreOp;
+            Dst.ClearColor = Src.ClearColor;
         }
         RecordCommand(ERHICommandType::EnterRenderPass, Payload);
     }
@@ -543,6 +659,34 @@ export namespace Visera
             .FirstIndex    = I_FirstIndex,
             .VertexOffset  = I_VertexOffset,
             .FirstInstance = I_FirstInstance,
+        });
+    }
+
+    void FRHICommandList::
+    EnterComputePass(const FRHIComputePassID& I_ComputePass)
+    {
+        const auto Handle = I_ComputePass.GetHandle();
+        VISERA_ASSERT(Handle != FRHIComputePassHandle{});
+        RecordCommand(ERHICommandType::EnterComputePass, FEnterComputePass
+        {
+            .ComputePass = Handle,
+        });
+    }
+
+    void FRHICommandList::
+    LeaveComputePass()
+    {
+        RecordCommand(ERHICommandType::LeaveComputePass, FLeaveComputePass{});
+    }
+
+    void FRHICommandList::
+    Dispatch(UInt32 I_GroupCountX, UInt32 I_GroupCountY, UInt32 I_GroupCountZ)
+    {
+        RecordCommand(ERHICommandType::Dispatch, FDispatch
+        {
+            .GroupCountX = I_GroupCountX,
+            .GroupCountY = I_GroupCountY,
+            .GroupCountZ = I_GroupCountZ,
         });
     }
 }

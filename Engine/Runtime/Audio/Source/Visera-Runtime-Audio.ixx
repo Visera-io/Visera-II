@@ -1,6 +1,5 @@
 module;
 #include <Visera-Audio.hpp>
-#include <atomic>
 export module Visera.Runtime.Audio;
 #define VISERA_MODULE_NAME "Runtime.Audio"
 import Visera.Runtime.Audio.Interface;
@@ -10,6 +9,7 @@ import Visera.Core.Containers.Array;
 import Visera.Core.Containers.Map;
 import Visera.Core.Math.Hash.GoldenRatio;
 import Visera.Core.OS.Memory;
+import Visera.Core.OS.Thread.Sync.Atomic;
 import Visera.Core.OS.Thread.Queue.MPSC;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Path;
@@ -21,7 +21,7 @@ export namespace Visera
 {
     using EAudioEngine = IAudioEngine::EType;
 
-    class VISERA_RUNTIME_API FAudio : public IGlobalService
+    class VISERA_RUNTIME_API FAudio : public IRuntimeService
     {
         static constexpr VISERA_RUNTIME_API UInt64 AudioPumpInlineArenaBytes = 64_KB;
     public:
@@ -91,7 +91,7 @@ export namespace Visera
         [[nodiscard]] inline FObjectID
         RegisterEmitter(FName I_Name, EPriority I_Priority = EPriority::Critical)
         {
-            const auto Token = NextToken.fetch_add(1, std::memory_order_relaxed);
+            const auto Token = NextToken.FetchAdd(1, EMemoryOrder::Relaxed);
             FAudioCommand Command{};
             Command.Type     = FAudioCommand::EType::RegisterGameObject;
             Command.Priority = I_Priority;
@@ -189,7 +189,7 @@ export namespace Visera
                 case EPriority::Critical:
                     CriticalQueue.Enqueue(std::move(I_Command));
                     {
-                        const UInt64 NowPending = PendingCritical.fetch_add(1, std::memory_order_relaxed) + 1;
+                        const UInt64 NowPending = PendingCritical.FetchAdd(1, EMemoryOrder::Relaxed) + 1;
                         PROFILING_ONLY_FIELD(
                         ++ProfilingMetrics.EnqueuedCritical;
                         if (NowPending > ProfilingMetrics.PeakPendingCritical) { ProfilingMetrics.PeakPendingCritical = NowPending; }
@@ -199,7 +199,7 @@ export namespace Visera
                 case EPriority::Normal:
                     NormalQueue.Enqueue(std::move(I_Command));
                     {
-                        const UInt64 NowPending = PendingNormal.fetch_add(1, std::memory_order_relaxed) + 1;
+                        const UInt64 NowPending = PendingNormal.FetchAdd(1, EMemoryOrder::Relaxed) + 1;
                         PROFILING_ONLY_FIELD(
                         ++ProfilingMetrics.EnqueuedNormal;
                         if (NowPending > ProfilingMetrics.PeakPendingNormal) { ProfilingMetrics.PeakPendingNormal = NowPending; }
@@ -207,14 +207,14 @@ export namespace Visera
                     }
                     return True;
                 case EPriority::Spam:
-                    if (PendingSpam.load(std::memory_order_relaxed) >= MaxPendingSpam)
+                    if (PendingSpam.Load(EMemoryOrder::Relaxed) >= MaxPendingSpam)
                     {
                         PROFILING_ONLY_FIELD(++ProfilingMetrics.DroppedSpamDueToLimit;);
                         return False;
                     }
                     SpamQueue.Enqueue(std::move(I_Command));
                     {
-                        const UInt64 NowPending = PendingSpam.fetch_add(1, std::memory_order_relaxed) + 1;
+                        const UInt64 NowPending = PendingSpam.FetchAdd(1, EMemoryOrder::Relaxed) + 1;
                         PROFILING_ONLY_FIELD(
                         ++ProfilingMetrics.EnqueuedSpam;
                         if (NowPending > ProfilingMetrics.PeakPendingSpam) { ProfilingMetrics.PeakPendingSpam = NowPending; }
@@ -226,13 +226,13 @@ export namespace Visera
             }
         }
         inline void
-        DrainQueue(TMPSCQueue<FAudioCommand>& I_Queue, std::atomic<UInt64>& I_Pending, UInt32 I_Budget, TPMRArray<FAudioCommand>& O_Batch)
+        DrainQueue(TMPSCQueue<FAudioCommand>& I_Queue, TAtomic<UInt64>& I_Pending, UInt32 I_Budget, TPMRArray<FAudioCommand>& O_Batch)
         {
             for (UInt32 Index = 0; Index < I_Budget; ++Index)
             {
                 auto OptionalCommand = I_Queue.Dequeue();
                 if (!OptionalCommand.HasValue()) { break; }
-                I_Pending.fetch_sub(1, std::memory_order_relaxed);
+                I_Pending.FetchSub(1, EMemoryOrder::Relaxed);
                 O_Batch.PushBack(std::move(OptionalCommand.GetValue()));
             }
         }
@@ -244,7 +244,7 @@ export namespace Visera
             {
                 auto OptionalCommand = SpamQueue.Dequeue();
                 if (!OptionalCommand.HasValue()) { break; }
-                PendingSpam.fetch_sub(1, std::memory_order_relaxed);
+                PendingSpam.FetchSub(1, EMemoryOrder::Relaxed);
                 ++DroppedCount;
             }
             PROFILING_ONLY_FIELD(ProfilingMetrics.DroppedSpamByOverflow += DroppedCount;);
@@ -392,14 +392,14 @@ export namespace Visera
         TMPSCQueue<FAudioCommand> SpamQueue {};
         TMap<FObjectID, FName>    Playlist {};
         Memory::TMonotonicArena<AudioPumpInlineArenaBytes> PumpArena {};
-        TPMRArray<FAudioCommand>  PumpBatch;
+        TPMRArray<FAudioCommand>    PumpBatch;
         TMap<UInt64, FAudioCommand> CoalescedRTPCByKey {};
         TMap<UInt64, FAudioCommand> CoalescedPositionByEmitter {};
         TMap<UInt64, FAudioCommand> AggregatedImpactEvents {};
-        std::atomic<UInt64>       NextToken {1};
-        std::atomic<UInt64>       PendingCritical {0};
-        std::atomic<UInt64>       PendingNormal {0};
-        std::atomic<UInt64>       PendingSpam {0};
+        TAtomic<UInt64>       NextToken {1};
+        TAtomic<UInt64>       PendingCritical {0};
+        TAtomic<UInt64>       PendingNormal {0};
+        TAtomic<UInt64>       PendingSpam {0};
 
         UInt32 CriticalQuotaPerTick {64};
         UInt32 NormalQuotaPerTick {256};
@@ -410,8 +410,9 @@ export namespace Visera
         UInt32 WwiseCommandQueueSizeBytes {1024 * 1024};
 
     public:
-        FAudio(FName I_Name, FServiceRegistry* I_Registry, const FJSON& I_Config)
-            : IGlobalService(I_Name, I_Registry, I_Config)
+        FAudio(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
+               TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
+            : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
             , PumpArena()
             , PumpBatch(&PumpArena.Get())
         {
@@ -434,11 +435,27 @@ export namespace Visera
                 CoalescedPositionByEmitter.Reserve(MaxCommandsPerTick);
                 AggregatedImpactEvents.Reserve(MaxCommandsPerTick);
 
-                const auto BankBasePath = GetConfig().GetString(TJSONRoute<"Audio.Bank.BasePath">(), "Assets/SoundBank/Main");
-                const auto InitBankName = GetConfig().GetString(TJSONRoute<"Audio.Bank.Init">(), "Init.bnk");
-                const auto MainBankName = GetConfig().GetString(TJSONRoute<"Audio.Bank.Main">(), "Main.bnk");
+                const auto EngineStr = GetConfig().GetString(TJSONRoute<"Audio.Engine">(), "Null");
+                const Bool bWwise = (EngineStr == "Wwise" || EngineStr == "wwise");
 
-                Engine = MakeUnique<FWwiseAudioEngine>(WwiseCommandQueueSizeBytes);
+                if (bWwise)
+                {
+                    const auto BankBasePath = GetConfig().GetString(TJSONRoute<"Audio.Bank.BasePath">(), "Assets/SoundBank");
+                    const auto InitBankName = GetConfig().GetString(TJSONRoute<"Audio.Bank.Init">(), "Init.bnk");
+                    const auto MainBankName = GetConfig().GetString(TJSONRoute<"Audio.Bank.Main">(), "Main.bnk");
+                    Engine = MakeUnique<FWwiseAudioEngine>(WwiseCommandQueueSizeBytes);
+                    const FObjectID MainID{0};
+                    if (!Engine->RegisterGameObject(MainID, "Player"))
+                    { LOG_FATAL("Failed to register Main Listener"); }
+                    if (!Engine->SetDefaultListeners(MainID))
+                    { LOG_FATAL("Failed to set default listeners"); }
+                    if (!Engine->InitializeBanks(FPath{FString{BankBasePath}}, InitBankName, MainBankName))
+                    { LOG_WARN("({}) Failed to initialize banks. Events may fail.", GetRuntimeName()); }
+                }
+                else
+                {
+                    Engine = MakeUnique<FNullAudioEngine>();
+                }
 
                 DEBUG_ONLY_FIELD
                 (
@@ -449,14 +466,6 @@ export namespace Visera
                     default: LOG_FATAL("Unknown Audio Engine!");  break;
                 }
                 );
-
-                const FObjectID MainID{0};
-                if (!Engine->RegisterGameObject(MainID, "Player"))
-                { LOG_FATAL("Failed to register Main Listener"); }
-                if (!Engine->SetDefaultListeners(MainID))
-                { LOG_FATAL("Failed to set default listeners"); }
-                if (!Engine->InitializeBanks(FPath{FString{BankBasePath}}, InitBankName, MainBankName))
-                { LOG_WARN("({}) Failed to initialize banks. Events may fail.", GetRuntimeName()); }
 
                 return True;
             }))

@@ -28,6 +28,12 @@ export namespace Visera
                      const typename std::remove_cvref_t<T>::FCreateInfo& B)
             {
                 { A != B } -> std::convertible_to<Bool>;
+            } &&
+
+            requires(const typename std::remove_cvref_t<T>::FCreateInfo& A,
+                     const typename std::remove_cvref_t<T>::FCreateInfo& B)
+            {
+                { A.IsCompatibleWith(B) } -> std::convertible_to<Bool>;
             };
     }
 }

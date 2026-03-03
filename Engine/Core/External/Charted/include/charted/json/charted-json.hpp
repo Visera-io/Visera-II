@@ -11,8 +11,12 @@
 #include "../core/charted-core.hpp"
 #include "nlohmann/json.hpp"
 
+#include <iterator>
+
 namespace charted
 {
+    class ObjectItemsRange;
+
     class Json
     {
         using NativeJson = nlohmann::json;
@@ -41,6 +45,7 @@ namespace charted
 
         [[nodiscard]] bool IsNull() const noexcept { return Root.is_null(); }
         [[nodiscard]] bool IsDiscarded() const noexcept { return Root.is_discarded(); }
+        [[nodiscard]] bool IsObject() const noexcept { return Root.is_object(); }
         [[nodiscard]] bool Contains(std::string_view key) const noexcept { return Root.contains(key); }
         template <concepts::Route TJSONRoute> [[nodiscard]] bool Contains(const TJSONRoute& routeValue) const noexcept
         { return Find(routeValue) != nullptr; }
@@ -150,6 +155,9 @@ namespace charted
 
         [[nodiscard]] NativeJson& GetNative() noexcept { return Root; }
         [[nodiscard]] const NativeJson& GetNative() const noexcept { return Root; }
+
+        /** Iterate over object key-value pairs. Returns empty range if not an object. Supports: for (auto [key, value] : json.Items()) */
+        [[nodiscard]] ObjectItemsRange Items() const noexcept;
 
     private:
         template <typename T> [[nodiscard]] static NativeJson ToNative(T&& value)
@@ -289,4 +297,102 @@ namespace charted
     private:
         NativeJson Root;
     };
+
+    struct ObjectItem
+    {
+        std::string_view key;
+        Json value;
+    };
+
+    class ObjectItemsIterator
+    {
+        using NativeIter = nlohmann::json::const_iterator;
+        using ProxyValue = nlohmann::detail::iteration_proxy_value<NativeIter>;
+
+    public:
+        using value_type = ObjectItem;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::forward_iterator_tag;
+
+        ObjectItemsIterator() = default;
+        explicit ObjectItemsIterator(ProxyValue it) : proxy_(std::move(it)) {}
+
+        ObjectItem operator*() const
+        {
+            return ObjectItem{std::string_view(proxy_.key()), Json(proxy_.value())};
+        }
+
+        ObjectItemsIterator& operator++()
+        {
+            ++proxy_;
+            return *this;
+        }
+
+        ObjectItemsIterator operator++(int)
+        {
+            auto tmp = *this;
+            ++*this;
+            return tmp;
+        }
+
+        friend bool operator==(const ObjectItemsIterator& a, const ObjectItemsIterator& b)
+        {
+            return a.proxy_ == b.proxy_;
+        }
+
+        friend bool operator!=(const ObjectItemsIterator& a, const ObjectItemsIterator& b)
+        {
+            return !(a == b);
+        }
+
+    private:
+        ProxyValue proxy_;
+    };
+
+    class ObjectItemsRange
+    {
+    public:
+        explicit ObjectItemsRange(const nlohmann::json* root) noexcept : root_(root) {}
+
+        ObjectItemsIterator begin() const noexcept
+        {
+            if (!root_ || !root_->is_object()) { return ObjectItemsIterator{}; }
+            auto proxy = root_->items();
+            return ObjectItemsIterator(proxy.begin());
+        }
+
+        ObjectItemsIterator end() const noexcept
+        {
+            if (!root_ || !root_->is_object()) { return ObjectItemsIterator{}; }
+            auto proxy = root_->items();
+            return ObjectItemsIterator(proxy.end());
+        }
+
+    private:
+        const nlohmann::json* root_;
+    };
+
+    inline ObjectItemsRange Json::Items() const noexcept
+    {
+        return ObjectItemsRange(std::addressof(Root));
+    }
+}
+
+namespace std
+{
+    template <>
+    struct tuple_size<charted::ObjectItem> : std::integral_constant<std::size_t, 2> {};
+
+    template <std::size_t N>
+    struct tuple_element<N, charted::ObjectItem>
+    {
+        using type = std::conditional_t<N == 0, std::string_view, charted::Json>;
+    };
+
+    template <std::size_t N>
+    auto get(const charted::ObjectItem& item)
+    {
+        if constexpr (N == 0) { return item.key; }
+        else { return item.value; }
+    }
 }

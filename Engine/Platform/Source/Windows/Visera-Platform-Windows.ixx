@@ -12,10 +12,12 @@ export module Visera.Platform.Windows;
 export import Visera.Platform.Windows.Path;
 export import Visera.Platform.Interface;
 export import Visera.Platform.Windows.FileSystem;
+export import Visera.Platform.Windows.EventLoop;
 export import Visera.Platform.Windows.Window;
 export import Visera.Platform.Windows.Library;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
+       import Visera.Core.Types.Text;
        import Visera.Core.Log;
 
 export namespace Visera
@@ -24,7 +26,7 @@ export namespace Visera
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
+        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
         [[nodiscard]] IPlatformFileSystem&
@@ -36,18 +38,25 @@ export namespace Visera
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const override;
         [[nodiscard]] Bool
-        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
+        SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
         void
-        SetCurrentThreadName(FStringView I_Name) const override;
+        SetCurrentThreadName(const FText& I_Name) const override;
+        void
+        PollEvents() const override { EventLoop.PollEvents(); }
+        void
+        WaitEvents() const override { EventLoop.WaitEvents(); }
 
     public:
         FWindowsPlatform();
         ~FWindowsPlatform() override = default;
 
     private:
+        static std::wstring MakePlatformString(const FText& I_Text);
+
         mutable FWindowsPlatformFileSystem FileSystem;
+        mutable FWindowsEventLoop          EventLoop;
     };
 
     FWindowsPlatform::FWindowsPlatform()
@@ -79,17 +88,27 @@ export namespace Visera
         return GetExecutableDirectory();
     }
 
+    std::wstring FWindowsPlatform::MakePlatformString(const FText& I_Text)
+    {
+        if (I_Text.IsEmpty()) { return {}; }
+        const int WideLen = MultiByteToWideChar(CP_UTF8, 0, I_Text.GetData(), static_cast<int>(I_Text.GetSize()), nullptr, 0);
+        if (WideLen <= 0) { return {}; }
+        std::wstring Out(static_cast<std::size_t>(WideLen), L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, I_Text.GetData(), static_cast<int>(I_Text.GetSize()), Out.data(), WideLen);
+        return Out;
+    }
+
     TUniquePtr<IPlatformWindow> FWindowsPlatform::
-    CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const
+    CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const
     {
         return MakeUnique<FWindowsWindow>(I_Title, I_Width, I_Height);
     }
 
     Bool FWindowsPlatform::
-    SetEnvironmentVariable(FStringView I_Variable,
-                           FStringView I_Value) const
+    SetEnvironmentVariable(const FText& I_Variable,
+                           const FText& I_Value) const
     {
-        return SetEnvironmentVariableA(I_Variable.Data(), I_Value.Data());
+        return SetEnvironmentVariableA(I_Variable.GetData(), I_Value.GetData());
     }
 
     /**
@@ -138,16 +157,12 @@ export namespace Visera
         return UUID;
     }
 
-    void FWindowsPlatform::SetCurrentThreadName(FStringView I_Name) const
+    void FWindowsPlatform::SetCurrentThreadName(const FText& I_Name) const
     {
         if (I_Name.IsEmpty()) { return; }
-        const int WideLen = MultiByteToWideChar(CP_UTF8, 0, I_Name.Data(), static_cast<int>(I_Name.GetSize()), nullptr, 0);
-        if (WideLen <= 0) { return; }
-        std::wstring WideBuf(static_cast<std::size_t>(WideLen + 1), L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, I_Name.Data(), static_cast<int>(I_Name.GetSize()), WideBuf.data(), WideLen + 1);
-        WideBuf[static_cast<std::size_t>(WideLen)] = L'\0';
-
-        if (auto Result = SetThreadDescription(GetCurrentThread(), WideBuf.data()); FAILED(Result))
+        std::wstring Wide = MakePlatformString(I_Name);
+        if (Wide.empty()) { return; }
+        if (auto Result = SetThreadDescription(GetCurrentThread(), Wide.c_str()); FAILED(Result))
         { LOG_WARN("SetThreadDescription failed: HRESULT=0x{:08X}", static_cast<UInt32>(Result)); }
     }
 }
