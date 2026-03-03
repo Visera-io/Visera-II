@@ -456,6 +456,13 @@ static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory
     ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo* v = &bd->VulkanInitInfo;
     VkResult err;
+    if (buffer != VK_NULL_HANDLE || buffer_memory != VK_NULL_HANDLE)
+    {
+        // Engine-side command submission may keep prior frame buffers in flight when
+        // Dear ImGui decides to grow transient buffers. Serialize before recycling.
+        err = vkDeviceWaitIdle(v->Device);
+        check_vk_result(err);
+    }
     if (buffer != VK_NULL_HANDLE)
         vkDestroyBuffer(v->Device, buffer, v->Allocator);
     if (buffer_memory != VK_NULL_HANDLE)
@@ -1441,6 +1448,8 @@ void ImGui_ImplVulkan_RemoveTexture(VkDescriptorSet descriptor_set)
 
 void ImGui_ImplVulkan_DestroyFrameRenderBuffers(VkDevice device, ImGui_ImplVulkan_FrameRenderBuffers* buffers, const VkAllocationCallbacks* allocator)
 {
+    if (buffers->VertexBuffer || buffers->VertexBufferMemory || buffers->IndexBuffer || buffers->IndexBufferMemory)
+        vkDeviceWaitIdle(device);
     if (buffers->VertexBuffer) { vkDestroyBuffer(device, buffers->VertexBuffer, allocator); buffers->VertexBuffer = VK_NULL_HANDLE; }
     if (buffers->VertexBufferMemory) { vkFreeMemory(device, buffers->VertexBufferMemory, allocator); buffers->VertexBufferMemory = VK_NULL_HANDLE; }
     if (buffers->IndexBuffer) { vkDestroyBuffer(device, buffers->IndexBuffer, allocator); buffers->IndexBuffer = VK_NULL_HANDLE; }

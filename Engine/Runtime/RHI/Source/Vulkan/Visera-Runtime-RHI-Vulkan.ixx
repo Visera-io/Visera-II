@@ -1050,7 +1050,6 @@ export namespace Visera
         VISERA_ASSERT(I_Window && I_SignalSemaphore);
         auto* SC = GetSwapChain(I_Window);
         if (!SC) { LOG_ERROR("Failed to find swapchain for window (title:{}).", I_Window->GetTitle()); VISERA_ASSERT(False); return True; }
-        constexpr UInt64 kAcquireTimeoutNs = 3'000'000'000ULL;  // 3s
         const auto AcquireInfo = vk::AcquireNextImageInfoKHR{}
             .setSwapchain   (SC->Context)
             .setTimeout     (kAcquireTimeoutNs)

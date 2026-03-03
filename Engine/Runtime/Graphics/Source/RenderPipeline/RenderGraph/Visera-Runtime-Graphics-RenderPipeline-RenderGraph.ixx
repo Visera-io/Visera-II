@@ -4,6 +4,7 @@ export module Visera.Runtime.Graphics.RenderPipeline.RenderGraph;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 import Visera.Runtime.RHI;
 import Visera.Core.Containers.Array;
+import Visera.Core.OS.Memory;
 import Visera.Core.Types.Pointer;
 import Visera.Core.Log;
 
@@ -261,6 +262,20 @@ export namespace Visera
         /** Construct with optional backbuffer. If valid, registers it as external texture at slot 0. */
         FRenderGraph(FSwapChainID I_SwapChainID, FRHITextureID I_BackBuffer);
 
+        PROFILING_ONLY_FIELD(
+        friend void LogRenderGraphCompileProfilingSummary()
+        {
+            LOG_INFO("[Profiling] RenderGraph.Compile summary: total_compiles={} peak_nodes={} total_culled={} arena_peak_bytes={} arena_spill_count={}.",
+              FRenderGraph::ProfilingMetrics.TotalCompiles,
+              FRenderGraph::ProfilingMetrics.PeakNodes,
+              FRenderGraph::ProfilingMetrics.TotalCulled,
+              FRenderGraph::ProfilingMetrics.PeakArenaBytesUsed,
+              FRenderGraph::ProfilingMetrics.ArenaSpillCount);
+            if (FRenderGraph::ProfilingMetrics.PeakArenaBytesUsed >  kRenderGraphCompilingInlineMemory &&
+                FRenderGraph::ProfilingMetrics.ArenaSpillCount    != 0)
+            { LOG_WARN("Memory arena for compiling the render graph is insufficient!"); }
+        })
+
     private:
         FSwapChainID        SwapChainID;
         Bool                bHasBackBuffer {False};
@@ -269,10 +284,25 @@ export namespace Visera
         TArray<FRGBuffer>   Buffers;
         TArray<UInt8>       NeedsBarrierBefore;
 
-        void CullDeadPasses();
-        void TopologicalSort();
+        PROFILING_ONLY_FIELD(
+        struct FCompileProfilingMetrics
+        {
+            UInt64 TotalCompiles      {0};
+            UInt64 PeakNodes          {0};
+            UInt64 TotalCulled        {0};
+            UInt64 PeakArenaBytesUsed {0};
+            UInt64 ArenaSpillCount    {0};
+        };
+        static inline FCompileProfilingMetrics ProfilingMetrics {};
+        );
+
+        void CullDeadPasses(std::pmr::memory_resource* I_Scratch);
+        void TopologicalSort(std::pmr::memory_resource* I_Scratch);
         void ComputeBarrierFlags();
     };
+
+    /** Call at app end (e.g. from FGraphics destructor) to log RenderGraph compile profiling summary. */
+    void LogRenderGraphCompileProfilingSummary();
 
     // =================================================================
     // FRenderGraph — out-of-line definitions
@@ -418,9 +448,25 @@ export namespace Visera
             LOG_TRACE("RenderGraph::Compile: allocated transient buffer ({} bytes).", Info.Size);
         }
 
-        CullDeadPasses();
-        TopologicalSort();
+        Memory::TMonotonicArena<kRenderGraphCompilingInlineMemory> Arena;
+        std::pmr::memory_resource* const Scratch = &Arena.Get();
+        const UInt32 NodeCountBefore = static_cast<UInt32>(Nodes.GetSize());
+        CullDeadPasses(Scratch);
+        const UInt32 SurvivingCount = static_cast<UInt32>(Nodes.GetSize());
+        TopologicalSort(Scratch);
         ComputeBarrierFlags();
+
+        PROFILING_ONLY_FIELD(
+        ++ProfilingMetrics.TotalCompiles;
+        ProfilingMetrics.TotalCulled += (NodeCountBefore - SurvivingCount);
+        if (NodeCountBefore > ProfilingMetrics.PeakNodes) { ProfilingMetrics.PeakNodes = NodeCountBefore; }
+        {
+            const std::size_t ArenaUsed = Arena.GetTotalBytesUsed();
+            if (static_cast<UInt64>(ArenaUsed) > ProfilingMetrics.PeakArenaBytesUsed)
+            { ProfilingMetrics.PeakArenaBytesUsed = static_cast<UInt64>(ArenaUsed); }
+            ProfilingMetrics.ArenaSpillCount += static_cast<UInt64>(Arena.GetOverflowBlockCount());
+        }
+        )
 
         LOG_TRACE("RenderGraph::Compile: {} nodes, {} textures, {} buffers.",
                   Nodes.GetSize(), Textures.GetSize(), Buffers.GetSize());
@@ -464,12 +510,12 @@ export namespace Visera
     }
 
     void FRenderGraph::
-    CullDeadPasses()
+    CullDeadPasses(std::pmr::memory_resource* I_Scratch)
     {
         const UInt32 NodeCount = static_cast<UInt32>(Nodes.GetSize());
         if (NodeCount == 0) { return; }
 
-        TArray<UInt8> Alive;
+        TPMRArray<UInt8> Alive(I_Scratch);
         Alive.Resize(NodeCount, 0);
 
         auto IsExternalResource = [this](FGraphicsID I_ID) -> Bool
@@ -518,7 +564,7 @@ export namespace Visera
             }
         }
 
-        TArray<FRGNode> SurvivingNodes;
+        TPMRArray<FRGNode> SurvivingNodes(I_Scratch);
         SurvivingNodes.Reserve(NodeCount);
         UInt32 Culled = 0;
         for (UInt32 i = 0; i < NodeCount; ++i)
@@ -534,19 +580,22 @@ export namespace Visera
                 ++Culled;
             }
         }
-        Nodes = std::move(SurvivingNodes);
+        Nodes.Clear();
+        Nodes.Reserve(static_cast<UInt32>(SurvivingNodes.GetSize()));
+        for (UInt64 i = 0; i < SurvivingNodes.GetSize(); ++i)
+        { Nodes.PushBack(std::move(SurvivingNodes[i])); }
         if (Culled > 0) { LOG_DEBUG("RenderGraph::Compile: culled {} dead pass(es).", Culled); }
     }
 
     void FRenderGraph::
-    TopologicalSort()
+    TopologicalSort(std::pmr::memory_resource* I_Scratch)
     {
         const UInt32 NodeCount = static_cast<UInt32>(Nodes.GetSize());
         if (NodeCount <= 1) { return; }
 
-        TArray<TArray<UInt32>> Adjacency;
+        TPMRArray<TArray<UInt32>> Adjacency(I_Scratch);
         Adjacency.Resize(NodeCount);
-        TArray<UInt32> InDegree;
+        TPMRArray<UInt32> InDegree(I_Scratch);
         InDegree.Resize(NodeCount, 0);
 
         for (UInt32 Consumer = 0; Consumer < NodeCount; ++Consumer)
@@ -568,14 +617,14 @@ export namespace Visera
             }
         }
 
-        TArray<UInt32> Queue;
+        TPMRArray<UInt32> Queue(I_Scratch);
         Queue.Reserve(NodeCount);
         for (UInt32 i = 0; i < NodeCount; ++i)
         {
             if (InDegree[i] == 0) { Queue.EmplaceBack(i); }
         }
 
-        TArray<UInt32> Sorted;
+        TPMRArray<UInt32> Sorted(I_Scratch);
         Sorted.Reserve(NodeCount);
         UInt32 Head = 0;
         while (Head < Queue.GetSize())
@@ -592,13 +641,16 @@ export namespace Visera
         { LOG_FATAL("RenderGraph::Compile: cycle detected in dependency graph!"); }
         VISERA_ASSERT(Sorted.GetSize() == NodeCount);
 
-        TArray<FRGNode> SortedNodes;
+        TPMRArray<FRGNode> SortedNodes(I_Scratch);
         SortedNodes.Reserve(NodeCount);
         for (UInt32 Idx : Sorted)
         {
             SortedNodes.EmplaceBack(std::move(Nodes[Idx]));
         }
-        Nodes = std::move(SortedNodes);
+        Nodes.Clear();
+        Nodes.Reserve(static_cast<UInt32>(SortedNodes.GetSize()));
+        for (UInt64 i = 0; i < SortedNodes.GetSize(); ++i)
+        { Nodes.PushBack(std::move(SortedNodes[i])); }
     }
 
     void FRenderGraph::

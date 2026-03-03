@@ -63,8 +63,9 @@ export namespace Visera
       [[nodiscard]] const FRHI*
       GetRHI() const { return RHI.Get(); }
 
+      ~FGraphics();
+
    private:
-      static constexpr UInt32 kMaxPendingDrawRenderTasks = 3;
 
       /** Engine-internal pass: transitions BackBuffer to Present layout as the absolute last step. */
       class FPresentTransitionPass final : public IRGPass
@@ -309,7 +310,6 @@ export namespace Visera
          if (bHasWindow && RHI->IsSwapChainDirty(SwapChainID))
          {
             RHI->WaitIdle();
-            constexpr UInt32 kMaxDirtyWaitMs = 5000;
             for (UInt32 Waited = 0; Waited < kMaxDirtyWaitMs && RHI->IsSwapChainDirty(SwapChainID); Waited += 1)
             { LOG_TRACE("Graphics thread: waiting for swapchain to be ready... ({}/{})", Waited, kMaxDirtyWaitMs); FThread::Sleep(1); }
          }
@@ -432,5 +432,10 @@ export namespace Visera
       if (Material)
       { LOG_INFO("LoadMaterial: {} loaded successfully.", I_MaterialFile); }
       return Material;
+   }
+
+   FGraphics::~FGraphics()
+   {
+      PROFILING_ONLY_FIELD(LogRenderGraphCompileProfilingSummary();)
    }
 }

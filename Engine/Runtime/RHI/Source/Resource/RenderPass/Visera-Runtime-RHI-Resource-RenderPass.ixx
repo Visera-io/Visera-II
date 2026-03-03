@@ -11,8 +11,6 @@ import Visera.Core.Containers.Array;
 
 export namespace Visera
 {
-    constexpr UInt32 kMaxColorAttachments = 4;
-
     struct FRHIColorAttachmentDesc
     {
         FRHITextureHandle      Texture;

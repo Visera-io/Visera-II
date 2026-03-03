@@ -64,9 +64,6 @@ export namespace Visera
         ClearCache(ECacheClearTarget I_Target = ECacheClearTarget::All);
 
     private:
-        static constexpr UInt64 DefaultImageMB  = 64;
-        static constexpr UInt64 DefaultShaderMB = 32;
-        static constexpr UInt64 DefaultFontMB   = 16;
 
         static UInt64 GetAssetByteSize(const TSharedPtr<IAsset>& I_Ptr)
         { return I_Ptr ? I_Ptr->GetByteSize() : 0; }
@@ -276,9 +273,9 @@ export namespace Visera
                     FHotCacheType(I_CapBytes, Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
                     {}, {}));
             };
-            ImageCache  = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Image">(),  DefaultImageMB));
-            ShaderCache = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Shader">(), DefaultShaderMB));
-            FontCache   = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Font">(),   DefaultFontMB));
+            ImageCache  = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Image">(),  kAssetHubDefaultImageMB));
+            ShaderCache = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Shader">(), kAssetHubDefaultShaderMB));
+            FontCache   = MakeCache(GetCapMB(TJSONRoute<"AssetHub.CacheCapacityMB.Font">(),   kAssetHubDefaultFontMB));
 
             Dependencies = { EService::Tasks };
 

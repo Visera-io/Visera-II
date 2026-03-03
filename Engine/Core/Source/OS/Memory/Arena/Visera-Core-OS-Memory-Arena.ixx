@@ -53,6 +53,28 @@ export namespace Visera
         [[nodiscard]] std::pmr::memory_resource*
         GetUpstream() const noexcept { return Upstream; }
 
+        /// Bytes used in the initial (inline) buffer (for profiling)
+        [[nodiscard]] std::size_t
+        GetCurrentOffset() const noexcept { return CurrentOffset; }
+
+        /// Number of overflow blocks allocated (0 if inline was sufficient; for profiling)
+        [[nodiscard]] std::size_t
+        GetOverflowBlockCount() const noexcept
+        {
+            std::size_t N = 0;
+            for (Block* B = OverflowBlocks; B != nullptr; B = B->Next) { ++N; }
+            return N;
+        }
+
+        /// Total bytes used (inline + overflow payloads; for profiling)
+        [[nodiscard]] std::size_t
+        GetTotalBytesUsed() const noexcept
+        {
+            std::size_t Total = CurrentOffset;
+            for (Block* B = OverflowBlocks; B != nullptr; B = B->Next) { Total += B->Size; }
+            return Total;
+        }
+
         /// Destructor releases all overflow blocks
         ~FMonotonicBufferResource()
         {
@@ -219,6 +241,18 @@ export namespace Visera
         {
             return Resource.GetUpstream();
         }
+
+        /// Bytes used in current buffer (for profiling)
+        [[nodiscard]] std::size_t
+        GetBytesUsed() const noexcept { return Resource.GetCurrentOffset(); }
+
+        /// Number of overflow blocks (0 if inline was sufficient; for profiling)
+        [[nodiscard]] std::size_t
+        GetOverflowBlockCount() const noexcept { return Resource.GetOverflowBlockCount(); }
+
+        /// Total bytes used, inline + overflow (for profiling)
+        [[nodiscard]] std::size_t
+        GetTotalBytesUsed() const noexcept { return Resource.GetTotalBytesUsed(); }
 
         // ========================================================================
         // Construction / Destruction

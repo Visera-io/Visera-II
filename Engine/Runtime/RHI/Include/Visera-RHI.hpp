@@ -1,11 +1,13 @@
 #pragma once
 #include <Visera-Global.hpp>
 
-#define VISERA_MAX_PUSH_CONSTANT_SIZE 32
-// Use this Macro inside the renderpass class;
-#define VISERA_PUSH_CONSTANT(...)                                           \
-struct alignas(16) FPushConstantRange { __VA_ARGS__ };                      \
-static_assert(sizeof(FPushConstantRange) <= VISERA_MAX_PUSH_CONSTANT_SIZE,  \
-"Push constant exceeds VISERA_MAX_PUSH_CONSTANT_SIZE");                     \
-static_assert((sizeof(FPushConstantRange) % 4) == 0,                        \
-"Push constant size should be multiple of 4")
+namespace Visera
+{
+    inline constexpr UInt8  kInvalidSwapChainID     = 0xFF;
+    inline constexpr UInt32 kMaxColorAttachments   = 8;
+    inline constexpr UInt64 kFrameFenceTimeoutNs   = 5'000'000'000ULL;   // 5s
+    inline constexpr UInt64 kUploadFenceTimeoutNs  = 10'000'000'000ULL;  // 10s
+    inline constexpr UInt64 kUtilityFenceTimeoutNs = 5'000'000'000ULL;   // 5s
+    inline constexpr UInt64 kAcquireTimeoutNs      = 3'000'000'000ULL;   // 3s
+    inline constexpr UInt64 kCommandListHighWaterMarkBytes = 64ULL * 1024; // 64KB
+}

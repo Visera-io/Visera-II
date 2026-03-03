@@ -12,7 +12,6 @@ export import Visera.Core.Traits.Flags;
 export namespace Visera
 {
     using FRHISwapChainID = UInt8;
-    inline constexpr FRHISwapChainID kInvalidSwapChainID  = 0xFF;
 
     enum class ERHIFormat : UInt32
     {

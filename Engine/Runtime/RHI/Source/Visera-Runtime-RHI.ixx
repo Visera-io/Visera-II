@@ -26,12 +26,6 @@ export import Visera.Runtime.RHI.Barrier;
        import Visera.Platform;
        import vulkan_hpp;
 
-namespace Visera
-{
-    constexpr UInt64 kFrameFenceTimeoutNs   = 5'000'000'000ULL;   // 5s
-    constexpr UInt64 kUploadFenceTimeoutNs  = 10'000'000'000ULL;  // 10s
-}
-
 export namespace Visera
 {
     class VISERA_RUNTIME_API FRHI : public IRuntimeService
@@ -171,7 +165,7 @@ export namespace Visera
             struct FCommandListEntry { FRHICommandList Cmd; FRHISwapChainID SwapChainID {kInvalidSwapChainID}; };
             TSPSCQueue<FCommandListEntry> CommandListQueue;
             TSPSCQueue<FRHICommandList>   FreeCommandListQueue;
-            UInt64                        CommandListHighWaterMark { 64_KB };
+            UInt64                        CommandListHighWaterMark { kCommandListHighWaterMarkBytes };
             FImmediateCommandQueue        ImmediateCommandQueue;
             FEvent                        InitEvent;
             FEvent                        ShutdownEvent;
@@ -330,7 +324,7 @@ export namespace Visera
                 RHIThread.PreferredGPUName = GetConfig().GetString(TJSONRoute<"RHI.GPU">(), "");
                 RHIThread.MaxInFlightFrames = static_cast<UInt32>(GetConfig().GetNumber(TJSONRoute<"RHI.MaxInFlightFrames">(), 3));
                 RHIThread.CommandListHighWaterMark = GetConfig().GetNumber<UInt64>(
-                    TJSONRoute<"RHI.CommandListHighWaterMark">(), 64_KB);
+                    TJSONRoute<"RHI.CommandListHighWaterMark">(), kCommandListHighWaterMarkBytes);
                 UInt32 AppVersion = vk::makeVersion(1, 0, 0);
                 RHIThread.Driver = MakeUnique<FVulkanDriver>();
                 auto InstanceExtensions = FPlatformWindow::GetVulkanRequiredInstanceExtensions();
@@ -1700,7 +1694,6 @@ export namespace Visera
 
         (void)Frame.ExecuteFence.Reset();
         Driver->Submit(&Frame.TransferCalls, nullptr, nullptr, &Frame.ExecuteFence);
-        constexpr UInt64 kUtilityFenceTimeoutNs = 5'000'000'000ULL;
         if (!Frame.ExecuteFence.Wait(kUtilityFenceTimeoutNs))
         { LOG_ERROR("DoReadbackTexture: utility fence wait timed out."); return; }
         (void)Frame.ExecuteFence.Reset();

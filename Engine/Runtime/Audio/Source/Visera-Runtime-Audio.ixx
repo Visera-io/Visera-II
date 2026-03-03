@@ -23,8 +23,7 @@ export namespace Visera
 
     class VISERA_RUNTIME_API FAudio : public IRuntimeService
     {
-        static constexpr VISERA_RUNTIME_API UInt64 AudioPumpInlineArenaBytes = 64_KB;
-    public:
+        public:
         using FObjectID  = IAudioEngine::FObjectID;
         using FPlayingID = IAudioEngine::FPlayingID;
         enum class ECategory : UInt8
@@ -52,39 +51,39 @@ export namespace Visera
                 SetRTPC,
                 SetPosition,
             };
-            EType      Type {EType::PostEvent};
+            EType      Type     {EType::PostEvent};
             ECategory  Category {ECategory::Impact};
             EPriority  Priority {EPriority::Normal};
-            FObjectID  Token {IAudioEngine::InvalidObjectID};
+            FObjectID  Token    {IAudioEngine::InvalidObjectID};
             IAudioEngine::FEventID ID {IAudioEngine::InvalidEventID}; // event id or rtpc id
             Float      Value {0.0f};              // rtpc value / impact intensity
-            Float      X {0.0f};
-            Float      Y {0.0f};
-            Float      Z {0.0f};
+            Float      X     {0.0f};
+            Float      Y     {0.0f};
+            Float      Z     {0.0f};
             UInt32     SpatialCell {0};
             FName      Name {};
         };
         PROFILING_ONLY_FIELD(
         struct FProfilingMetrics
         {
-            UInt64 EnqueuedCritical {0};
-            UInt64 EnqueuedNormal {0};
-            UInt64 EnqueuedSpam {0};
-            UInt64 DroppedSpamDueToLimit {0};
-            UInt64 DroppedSpamByOverflow {0};
+            UInt64 EnqueuedCritical         {0};
+            UInt64 EnqueuedNormal           {0};
+            UInt64 EnqueuedSpam             {0};
+            UInt64 DroppedSpamDueToLimit    {0};
+            UInt64 DroppedSpamByOverflow    {0};
 
-            UInt64 PeakPendingCritical {0};
-            UInt64 PeakPendingNormal {0};
-            UInt64 PeakPendingSpam {0};
+            UInt64 PeakPendingCritical      {0};
+            UInt64 PeakPendingNormal        {0};
+            UInt64 PeakPendingSpam          {0};
 
-            UInt64 PeakPumpBatchSize {0};
-            UInt64 PeakPumpBatchCapacity {0};
-            UInt64 PeakCoalescedRTPC {0};
-            UInt64 PeakCoalescedPosition {0};
-            UInt64 PeakAggregatedImpact {0};
-            UInt64 InlineOverflowEvents {0};
-            UInt64 PeakOverInlineBytes {0};
-            UInt64 RecommendedInlineBytes {AudioPumpInlineArenaBytes};
+            UInt64 PeakPumpBatchSize        {0};
+            UInt64 PeakPumpBatchCapacity    {0};
+            UInt64 PeakCoalescedRTPC        {0};
+            UInt64 PeakCoalescedPosition    {0};
+            UInt64 PeakAggregatedImpact     {0};
+            UInt64 InlineOverflowEvents     {0};
+            UInt64 PeakOverInlineBytes      {0};
+            UInt64 RecommendedInlineBytes   {kAudioPumpInlineArenaBytes};
         } ProfilingMetrics {};
         );
     public:
@@ -315,14 +314,14 @@ export namespace Visera
             {
                 ProfilingMetrics.PeakPumpBatchCapacity = PumpBatch.GetCapacity();
                 const UInt64 PeakCapacityBytes = ProfilingMetrics.PeakPumpBatchCapacity * sizeof(FAudioCommand);
-                if (PeakCapacityBytes > AudioPumpInlineArenaBytes)
+                if (PeakCapacityBytes > kAudioPumpInlineArenaBytes)
                 {
-                    const UInt64 OverInlineBytes = PeakCapacityBytes - AudioPumpInlineArenaBytes;
+                    const UInt64 OverInlineBytes = PeakCapacityBytes - kAudioPumpInlineArenaBytes;
                     ++ProfilingMetrics.InlineOverflowEvents;
                     if (OverInlineBytes > ProfilingMetrics.PeakOverInlineBytes) { ProfilingMetrics.PeakOverInlineBytes = OverInlineBytes; }
                     ProfilingMetrics.RecommendedInlineBytes = PeakCapacityBytes;
                     LOG_WARN("[Profiling] Audio pump inline arena pressure: inline={} bytes, peak_capacity={} bytes, over_by={} bytes, recommended_inline={} bytes.",
-                        AudioPumpInlineArenaBytes,
+                        kAudioPumpInlineArenaBytes,
                         PeakCapacityBytes,
                         OverInlineBytes,
                         ProfilingMetrics.RecommendedInlineBytes);
@@ -391,7 +390,7 @@ export namespace Visera
         TMPSCQueue<FAudioCommand> NormalQueue {};
         TMPSCQueue<FAudioCommand> SpamQueue {};
         TMap<FObjectID, FName>    Playlist {};
-        Memory::TMonotonicArena<AudioPumpInlineArenaBytes> PumpArena {};
+        Memory::TMonotonicArena<kAudioPumpInlineArenaBytes> PumpArena {};
         TPMRArray<FAudioCommand>    PumpBatch;
         TMap<UInt64, FAudioCommand> CoalescedRTPCByKey {};
         TMap<UInt64, FAudioCommand> CoalescedPositionByEmitter {};
@@ -475,7 +474,7 @@ export namespace Visera
             {
                 if (!Engine) { return True; }
                 PROFILING_ONLY_FIELD(
-                const Bool InlineArenaMayOverflow = ProfilingMetrics.RecommendedInlineBytes > AudioPumpInlineArenaBytes;
+                const Bool InlineArenaMayOverflow = ProfilingMetrics.RecommendedInlineBytes > kAudioPumpInlineArenaBytes;
                 LOG_INFO("[Profiling] Enqueued counts: critical={}, normal={}, spam={}.",
                     ProfilingMetrics.EnqueuedCritical,
                     ProfilingMetrics.EnqueuedNormal,
@@ -492,7 +491,7 @@ export namespace Visera
                 LOG_INFO("[Profiling] Pump batch: peak_size={}, peak_capacity={}, inline_arena={} bytes, estimated_needed_inline={} bytes.",
                     ProfilingMetrics.PeakPumpBatchSize,
                     ProfilingMetrics.PeakPumpBatchCapacity,
-                    AudioPumpInlineArenaBytes,
+                    kAudioPumpInlineArenaBytes,
                     ProfilingMetrics.PeakPumpBatchSize * sizeof(FAudioCommand));
                 LOG_INFO("[Profiling] Pump inline overflow: events={}, peak_over_by={} bytes.",
                     ProfilingMetrics.InlineOverflowEvents,
