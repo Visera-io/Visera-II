@@ -4153,8 +4153,10 @@ static bool FindMemoryPreferences(
 
 ////////////////////////////////////////////////////////////////////////////////
 // Memory allocation
+// Use inline instead of static to fix Clang C++20 modules: static functions
+// are not visible during template instantiation (llvm/llvm-project#78173).
 
-static void* VmaMalloc(const VkAllocationCallbacks* pAllocationCallbacks, size_t size, size_t alignment)
+inline void* VmaMalloc(const VkAllocationCallbacks* pAllocationCallbacks, size_t size, size_t alignment)
 {
     void* result = VMA_NULL;
     if ((pAllocationCallbacks != VMA_NULL) &&
@@ -4174,7 +4176,7 @@ static void* VmaMalloc(const VkAllocationCallbacks* pAllocationCallbacks, size_t
     return result;
 }
 
-static void VmaFree(const VkAllocationCallbacks* pAllocationCallbacks, void* ptr)
+inline void VmaFree(const VkAllocationCallbacks* pAllocationCallbacks, void* ptr)
 {
     if ((pAllocationCallbacks != VMA_NULL) &&
         (pAllocationCallbacks->pfnFree != VMA_NULL))
@@ -10609,12 +10611,12 @@ private:
 
 
 #ifndef _VMA_MEMORY_FUNCTIONS
-static void* VmaMalloc(VmaAllocator hAllocator, size_t size, size_t alignment)
+inline void* VmaMalloc(VmaAllocator hAllocator, size_t size, size_t alignment)
 {
     return VmaMalloc(&hAllocator->m_AllocationCallbacks, size, alignment);
 }
 
-static void VmaFree(VmaAllocator hAllocator, void* ptr)
+inline void VmaFree(VmaAllocator hAllocator, void* ptr)
 {
     VmaFree(&hAllocator->m_AllocationCallbacks, ptr);
 }

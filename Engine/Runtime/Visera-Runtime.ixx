@@ -76,7 +76,7 @@ namespace Visera
 
     private:
         template<typename T> [[nodiscard]] T*
-        GetGlobalService(FServiceName I_ServiceName) const
+        GetGlobalService(const FString& I_ServiceName) const
         {
             auto it = GlobalRegistry.Find(I_ServiceName);
             if (it == GlobalRegistry.end()) { return nullptr; }
@@ -172,7 +172,7 @@ namespace Visera
 
     private:
         template<typename T> [[nodiscard]] T*
-        GetLocalService(FServiceName I_ServiceName) const
+        GetLocalService(const FString& I_ServiceName) const
         {
             auto it = Registry.Find(I_ServiceName);
             if (it == Registry.end()) { return nullptr; }
@@ -184,7 +184,7 @@ namespace Visera
         void RegisterLocalServices();
 
         template<typename T> [[nodiscard]] TSharedPtr<T>
-        RegisterLocal(FServiceName I_ServiceName)
+        RegisterLocal(const FString& I_ServiceName)
         {
             if (Registry.Contains(I_ServiceName))
             {
@@ -221,14 +221,14 @@ namespace Visera
         auto Result = TArray<TSharedPtr<IRuntimeService>>();
         Result.Reserve(I_Registry.GetSize());
 
-        auto Dependents = TMap<FServiceName, TArray<TSharedPtr<IRuntimeService>>>();
-        auto InDegrees  = TMap<FServiceName, UInt32>();
+        auto Dependents = TMap<FString, TArray<TSharedPtr<IRuntimeService>>>();
+        auto InDegrees  = TMap<FString, UInt32>();
 
         Bool bMissingDependency = False;
         for (auto& [Name, Service] : I_Registry)
         {
             InDegrees[Name] = static_cast<UInt32>(Service->GetDependencies().GetSize());
-            for (const FServiceName& DepName : Service->GetDependencies())
+            for (const FString& DepName : Service->GetDependencies())
             {
                 if (I_Registry.Contains(DepName))
                 { Dependents[DepName].PushBack(Service); }
@@ -274,7 +274,7 @@ namespace Visera
         {
             LOG_FATAL("Circular dependency detected in service dependencies! Only {}/{} services could be sorted.",
                       Result.GetSize(), I_Registry.GetSize());
-            TArray<FServiceName> CycleServices;
+            TArray<FString> CycleServices;
             for (auto& [Name, InDegree] : InDegrees)
             { if (InDegree > 0) { CycleServices.PushBack(Name); } }
             FString CycleMsg = "Services involved in cycle: ";
@@ -463,7 +463,7 @@ namespace Visera
     {
         if (OwnerEngine)
         {
-            Registry.EraseIf([this](const FServiceName& K, const TSharedPtr<IRuntimeService>&)
+            Registry.EraseIf([this](const FString& K, const TSharedPtr<IRuntimeService>&)
                 { return OwnerEngine->GlobalRegistry.Contains(K); });
         }
         for (auto Idx = LocalServicesSorted.GetSize(); Idx != 0; )

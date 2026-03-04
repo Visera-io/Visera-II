@@ -4,6 +4,7 @@ export module Visera.Runtime.Global.Service;
 #define VISERA_MODULE_NAME "Runtime.Global"
 export import Visera.Core.Log;
 export import Visera.Core.Types.JSON;
+export import Visera.Core.Types.String;
 export import Visera.Runtime.Global.Configuration;
        import Visera.Platform;
        import Visera.Core.Containers.Map;
@@ -11,7 +12,6 @@ export import Visera.Runtime.Global.Configuration;
        import Visera.Core.Types.Path;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Queue;
-       import Visera.Core.Types.String;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Meta.Cast;
        import Visera.Core.Delegate.Unicast;
@@ -19,19 +19,26 @@ export import Visera.Runtime.Global.Configuration;
 
 export namespace Visera
 {
-    export using FServiceName = FString;
-
     namespace EService
     {
-        VISERA_RUNTIME_API inline const FString Input     = "Input";
-        VISERA_RUNTIME_API inline const FString Window   = "Window";
-        VISERA_RUNTIME_API inline const FString RHI      = "RHI";
-        VISERA_RUNTIME_API inline const FString Graphics = "Graphics";
-        VISERA_RUNTIME_API inline const FString UI       = "UI";
-        VISERA_RUNTIME_API inline const FString Audio    = "Audio";
-        VISERA_RUNTIME_API inline const FString Physics2D = "Physics2D";
-        VISERA_RUNTIME_API inline const FString AssetHub = "AssetHub";
-        VISERA_RUNTIME_API inline const FString Tasks    = "Tasks";
+        VISERA_RUNTIME_API inline const FString
+        Input     = "Input";
+        VISERA_RUNTIME_API inline const FString
+        Window    = "Window";
+        VISERA_RUNTIME_API inline const FString
+        RHI       = "RHI";
+        VISERA_RUNTIME_API inline const FString
+        Graphics  = "Graphics";
+        VISERA_RUNTIME_API inline const FString
+        UI        = "UI";
+        VISERA_RUNTIME_API inline const FString
+        Audio     = "Audio";
+        VISERA_RUNTIME_API inline const FString
+        Physics2D = "Physics2D";
+        VISERA_RUNTIME_API inline const FString
+        AssetHub  = "AssetHub";
+        VISERA_RUNTIME_API inline const FString
+        Tasks     = "Tasks";
     }
 
     class IRuntimeService;

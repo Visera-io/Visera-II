@@ -35,6 +35,17 @@ export namespace Visera
     // Forward declaration for IRGPass::Execute parameter
     class FRenderGraph;
 
+    PROFILING_ONLY_FIELD(
+    struct FRenderGraphCompileProfilingMetrics
+    {
+        UInt64 TotalCompiles      {0};
+        UInt64 PeakNodes          {0};
+        UInt64 TotalCulled        {0};
+        UInt64 PeakArenaBytesUsed {0};
+        UInt64 ArenaSpillCount    {0};
+    };
+    )
+
     // =========================================================================
     // IRGPass -- Base interface for all RenderGraph pass types
     // =========================================================================
@@ -285,15 +296,7 @@ export namespace Visera
         TArray<UInt8>       NeedsBarrierBefore;
 
         PROFILING_ONLY_FIELD(
-        struct FCompileProfilingMetrics
-        {
-            UInt64 TotalCompiles      {0};
-            UInt64 PeakNodes          {0};
-            UInt64 TotalCulled        {0};
-            UInt64 PeakArenaBytesUsed {0};
-            UInt64 ArenaSpillCount    {0};
-        };
-        static inline FCompileProfilingMetrics ProfilingMetrics {};
+        static inline FRenderGraphCompileProfilingMetrics ProfilingMetrics;
         );
 
         void CullDeadPasses(std::pmr::memory_resource* I_Scratch);

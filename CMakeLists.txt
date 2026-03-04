@@ -26,6 +26,7 @@ add_compile_options(
     -Wno-nullability-completeness        # hides "_Nonnull/_Nullable" notes
     -Wno-nullability-extension           # suppresses "pointer is missing nullability specifier"
     -Wno-unused-parameter                # quiets unused args in engine stubs
+    -Wno-unused-command-line-argument    # CMake module scanner passes -c in scan-only mode
     -Wno-missing-field-initializers      # silences C-style struct init warnings
     -Wno-unknown-pragmas                 # hides vendor #pragma notes in external libs
     -Wno-ignored-qualifiers              # avoids 'type qualifiers ignored on cast' noise

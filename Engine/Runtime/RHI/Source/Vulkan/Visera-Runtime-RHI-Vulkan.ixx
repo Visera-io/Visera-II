@@ -245,12 +245,12 @@ export namespace Visera
 #if defined(VISERA_ON_APPLE_SYSTEM)
         FPath VulkanICDPath = FPlatform::GetResourceDirectory() / FPath{"Vulkan/MoltenVK_icd.json"};
         if (!FPlatform::SetEnvironmentVariable(
-            "VK_ICD_FILENAMES", VulkanICDPath.GetString()))
+            "VK_ICD_FILENAMES", FText{VulkanICDPath.GetString()}))
         { LOG_FATAL("Failed to set VK_ICD_FILENAMES as {}!", VulkanICDPath); }
 #if !defined(VISERA_RELEASE_MODE)
         FPath VulkanLayerPath = FPlatform::GetResourceDirectory() / FPath{"Vulkan"};
         if (!FPlatform::SetEnvironmentVariable(
-            "VK_LAYER_PATH", VulkanLayerPath.GetString()))
+            "VK_LAYER_PATH", FText{VulkanLayerPath.GetString()}))
         { LOG_FATAL("Failed to set VK_LAYER_PATH as {}!", VulkanLayerPath); }
 #endif
 #endif
@@ -1039,7 +1039,7 @@ export namespace Visera
             ->AddDeviceExtension(vk::KHRMaintenance6ExtensionName)
             ->AddDeviceExtension(vk::KHRSwapchainExtensionName)
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        this->AddDeviceExtension("VK_KHR_portability_subset");
+            ->AddDeviceExtension("VK_KHR_portability_subset")
 #endif
         ;
     }
