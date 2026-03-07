@@ -3,7 +3,8 @@
 
 namespace Visera
 {
-    inline constexpr UInt8  kInvalidSwapChainID     = 0xFF;
+    inline constexpr UInt8  kInvalidSwapChainID    = 8; // Max Swapchain count.
+    inline constexpr UInt32 kMaxInFlightFrames     = 3;
     inline constexpr UInt32 kMaxColorAttachments   = 8;
     inline constexpr UInt64 kFrameFenceTimeoutNs   = 5'000'000'000ULL;   // 5s
     inline constexpr UInt64 kUploadFenceTimeoutNs  = 10'000'000'000ULL;  // 10s

@@ -2,8 +2,8 @@ module;
 #include <Visera-Graphics.hpp>
 export module Visera.Runtime.Graphics.Scene.Camera;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
-import Visera.Core.Math.Algebra;
-import Visera.Core.Math.Trigonometry;
+export import Visera.Core.Math.Algebra;
+export import Visera.Core.Math.Trigonometry;
 
 export namespace Visera
 {
@@ -201,4 +201,25 @@ export namespace Visera
             UnmarkViewProjDirty();
         }
     };
+
+    const FMatrix4x4F&
+    FCamera::GetViewMatrix() const noexcept
+    {
+        UpdateViewMatrix();
+        return ViewMatrix;
+    }
+
+    const FMatrix4x4F&
+    FCamera::GetProjectionMatrix() const noexcept
+    {
+        UpdateProjectionMatrix();
+        return ProjectionMatrix;
+    }
+
+    const FMatrix4x4F&
+    FCamera::GetViewProjectionMatrix() const noexcept
+    {
+        UpdateViewProjectionMatrix();
+        return ViewProjMatrix;
+    }
 }

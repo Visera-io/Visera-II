@@ -14,8 +14,6 @@ namespace Visera
     public:
         [[nodiscard]] inline FVulkanImageView*
         GetImageView() const { return ImageView; }
-        [[nodiscard]] inline FVulkanImage*
-        GetImage() const { return ImageView ? ImageView->GetImage() : nullptr; }
         [[nodiscard]] inline vk::AttachmentLoadOp
         GetLoadOp() const { return LoadOp; }
         inline FVulkanRenderTarget&
@@ -31,10 +29,6 @@ namespace Visera
 
         vk::RenderingAttachmentInfo
         GetAttachmentInfo(vk::ImageLayout I_ImageLayout) const;
-        [[nodiscard]] Bool
-        HasDepth()      const { return ImageView->GetImage()->HasDepth();   }
-        [[nodiscard]] Bool
-        HasStencil()    const { return ImageView->GetImage()->HasStencil(); }
 
     private:
         FVulkanImageView* ImageView {nullptr};
@@ -58,7 +52,6 @@ namespace Visera
     : ImageView { I_ImageView }
     {
         VISERA_ASSERT(I_ImageView != nullptr);
-        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
     }
 
     vk::RenderingAttachmentInfo FVulkanRenderTarget::

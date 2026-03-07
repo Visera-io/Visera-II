@@ -4,6 +4,7 @@ export module Visera.Runtime.RHI.Registry;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Registry.Handle;
        import Visera.Core.OS.Thread.Sync.Atomic;
+       import Visera.Core.OS.Thread.Sync.RWLock;
        import Visera.Runtime.RHI.Common;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.RHI.Resource;
@@ -99,6 +100,9 @@ export namespace Visera
         Get(FRHIRenderPassHandle I_Handle) const { return RenderPasses.Get(I_Handle); }
         [[nodiscard]] const FRHIComputePass*
         Get(FRHIComputePassHandle I_Handle) const { return ComputePasses.Get(I_Handle); }
+
+        [[nodiscard]] FRWLock& GetLock() const { return RegistryLock; }
+
         [[nodiscard]] FRHITextureID
         Register(FRHITextureCreateInfo&& I_TextureDesc);
         [[nodiscard]] FRHIBufferID
@@ -232,6 +236,7 @@ export namespace Visera
         } ProfilingMetrics {};
         );
 
+        mutable FRWLock        RegistryLock;
         FVulkanDriver*        Driver;
         FVulkanDescriptorPool  DescriptorSetPool;
         FVulkanFence*         CurrentRetirementFence {nullptr};
@@ -412,6 +417,7 @@ export namespace Visera
     FRHISamplerID FRHIRegistry::
     Register(FRHISamplerCreateInfo&& I_SamplerDesc)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         const UInt64 Key = Hash(I_SamplerDesc);
 
         auto RecycleBinIter = RecycleBinSamplers.Find(Key);
@@ -449,6 +455,7 @@ export namespace Visera
     FRHITextureID FRHIRegistry::
     Register(FRHITextureCreateInfo&& I_TextureDesc)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         const UInt64 Key = Hash(I_TextureDesc);
 
         auto RecycleBinIter = RecycleBinTextures.Find(Key);
@@ -501,6 +508,7 @@ export namespace Visera
     FRHIBufferID FRHIRegistry::
     Register(FRHIBufferCreateInfo&& I_BufferDesc)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         const UInt64 Key = Hash(I_BufferDesc);
 
         auto RecycleBinIter = RecycleBinBuffers.Find(Key);
@@ -553,6 +561,7 @@ export namespace Visera
     FRHIDescriptorSetID FRHIRegistry::
     Register(FRHIDescriptorSetCreateInfo&& I_DescriptorSetDesc)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         VISERA_ASSERT(!I_DescriptorSetDesc.Bindings.IsEmpty());
         // Canonicalize: sort bindings by Binding index so that Hash and IsCompatibleWith are order-independent
         Algorithm::Sort(I_DescriptorSetDesc.Bindings,
@@ -626,6 +635,7 @@ export namespace Visera
     FRHIShaderID FRHIRegistry::
     Register(FRHIShaderCreateInfo&& I_ShaderDesc)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         VISERA_ASSERT(!I_ShaderDesc.SPIRV.IsEmpty());
         FVulkanShaderModule ShaderModule = Driver->CreateShaderModule(I_ShaderDesc.SPIRV);
         FRHIShaderHandle Handle = Shaders.Insert(
@@ -637,6 +647,7 @@ export namespace Visera
     FRHIRenderPassID FRHIRegistry::
     Register(FRHIRenderPassCreateInfo&& I_Info)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         FRHIShader* pVS = Get(I_Info.VertexShader);
         FRHIShader* pFS = Get(I_Info.FragmentShader);
         VISERA_ASSERT(pVS != nullptr && pFS != nullptr);
@@ -736,6 +747,7 @@ export namespace Visera
     FRHIComputePassID FRHIRegistry::
     Register(FRHIComputePassCreateInfo&& I_Info)
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         FRHIShader* pCS = Get(I_Info.ComputeShader);
         VISERA_ASSERT(pCS != nullptr);
 
@@ -897,6 +909,8 @@ export namespace Visera
     void FRHIRegistry::
     ForceDestroyAll()
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
+        LOG_DEBUG("FRHIRegistry::ForceDestroyAll: destroying all resources.");
         DrainPendingUnregisters();
 
         for (auto& CurrentItem : GarbageBinTextures)
@@ -977,6 +991,7 @@ export namespace Visera
     void FRHIRegistry::
     CollectGarbage()
     {
+        FScopeWriteLock WriteLock(&RegistryLock);
         DrainPendingUnregisters();
         PROFILING_ONLY_FIELD(
         ++ProfilingMetrics.CollectCalls;
@@ -1141,6 +1156,7 @@ export namespace Visera
     void FRHIRegistry::
     ClearGarbage()
     {
+        // No lock here: only called from ForceDestroyAll() which already holds RegistryLock.
         PROFILING_ONLY_FIELD(++ProfilingMetrics.ClearCalls;);
         for (auto& [_, Handles] : RecycleBinTextures)
         {

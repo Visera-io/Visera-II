@@ -17,16 +17,13 @@ namespace Visera
     public:
         [[nodiscard]] inline vk::ImageView
         GetHandle() const { return Handle; }
-        [[nodiscard]] inline FVulkanImage*
-        GetImage() const { return Image; }
 
     private:
         vk::raii::ImageView      Handle {nullptr};
-        FVulkanImage*            Image  {nullptr};
 
     public:
         FVulkanImageView() = default;
-        FVulkanImageView(FVulkanImage*                    I_Image,  // Needed for construction only
+        FVulkanImageView(FVulkanImage*                    I_Image,
                          vk::ImageViewType                I_Type,
                          vk::ImageAspectFlags             I_Aspect,
                          TClosedInterval<UInt8>           I_MipmapRange = {0,0},
@@ -136,13 +133,12 @@ namespace Visera
                      TClosedInterval<UInt8>      I_MipmapRange,
                      TClosedInterval<UInt8>      I_ArrayRange,
                      const vk::ComponentMapping& I_Swizzle)
-    : Image { I_Image }
     {
         VISERA_ASSERT(I_Image != nullptr);
         VISERA_ASSERT(I_MipmapRange.Contains(I_Image->GetMipmapLevels() - 1));
         VISERA_ASSERT(I_ArrayRange.Contains(I_Image->GetArrayLayers() - 1));
 
-        auto& Device = Image->GetAllocator()->GetDevice();
+        auto& Device = I_Image->GetAllocator()->GetDevice();
 
         const auto ImageSubresourceRange = vk::ImageSubresourceRange{}
             .setAspectMask      (I_Aspect)

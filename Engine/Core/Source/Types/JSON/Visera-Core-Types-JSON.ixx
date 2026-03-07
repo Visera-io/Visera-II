@@ -304,7 +304,8 @@ export namespace Visera
         {
             if (auto Value = Root.TryGet<Json>(I_Key.GetNative()); Value.has_value())
             {
-                return TOptional<FJSON>(FJSON(std::move(Value.value())));
+                FJSON Obj(std::move(Value.value()));
+                if (!Obj.IsNull()) { return TOptional<FJSON>(std::move(Obj)); }
             }
             return NullOpt;
         }
@@ -315,7 +316,8 @@ export namespace Visera
         {
             if (auto Value = Root.TryGet<Json>(I_Route); Value.has_value())
             {
-                return TOptional<FJSON>(FJSON(std::move(Value.value())));
+                FJSON Obj(std::move(Value.value()));
+                if (!Obj.IsNull()) { return TOptional<FJSON>(std::move(Obj)); }
             }
             return NullOpt;
         }

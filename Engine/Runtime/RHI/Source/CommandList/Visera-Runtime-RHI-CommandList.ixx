@@ -437,10 +437,18 @@ export namespace Visera
     void FRHICommandList::
     WriteBuffer(const FRHIBufferID& I_TargetBuffer, const FRHIBufferID& I_StagingBuffer)
     {
+        if(I_TargetBuffer.IsNull())
+        {
+            LOG_ERROR("WriteBuffer: TargetBuffer is null");
+            return;
+        }
+        if(I_StagingBuffer.IsNull())
+        {
+            LOG_ERROR("WriteBuffer: StagingBuffer is null");
+            return;
+        }
         const auto TargetBufferHandle  = I_TargetBuffer.GetHandle();
         const auto StagingBufferHandle = I_StagingBuffer.GetHandle();
-        VISERA_ASSERT(TargetBufferHandle  != FRHIBufferHandle{});
-        VISERA_ASSERT(StagingBufferHandle != FRHIBufferHandle{});
         RecordCommand(ERHICommandType::WriteBuffer, FWriteBuffer
         {
             .TargetBuffer  = TargetBufferHandle,
@@ -451,8 +459,12 @@ export namespace Visera
     void FRHICommandList::
     TransitionTexture(const FRHIImageBarrier& I_Barrier)
     {
+        if(I_Barrier.Image.IsNull())
+        {
+            LOG_ERROR("TransitionTexture: Image is null");
+            return;
+        }
         const auto Handle = I_Barrier.Image.GetHandle();
-        VISERA_ASSERT(Handle != FRHITextureHandle{});
         RecordCommand(ERHICommandType::TransitionTexture, FTransitionTexturePayload
         {
             .Image        = Handle,
@@ -480,8 +492,12 @@ export namespace Visera
     void FRHICommandList::
     BufferBarrier(const FRHIBufferBarrier& I_Barrier)
     {
+        if(I_Barrier.Buffer.IsNull())
+        {
+            LOG_ERROR("BufferBarrier: Buffer is null");
+            return;
+        }
         const auto Handle = I_Barrier.Buffer.GetHandle();
-        VISERA_ASSERT(Handle != FRHIBufferHandle{});
         RecordCommand(ERHICommandType::BufferBarrier, FBufferBarrierPayload
         {
             .Buffer       = Handle,
@@ -498,10 +514,18 @@ export namespace Visera
     CopyBufferToImage(const FRHIBufferID& I_Buffer, const FRHITextureID& I_Texture,
                      ERHIImageLayout I_InitialLayout, ERHIImageLayout I_FinalLayout)
     {
+        if(I_Buffer.IsNull())
+        {
+            LOG_ERROR("CopyBufferToImage: Buffer is null");
+            return;
+        }
+        if(I_Texture.IsNull())
+        {
+            LOG_ERROR("CopyBufferToImage: Texture is null");
+            return;
+        }
         const auto BufferHandle = I_Buffer.GetHandle();
         const auto ImageHandle  = I_Texture.GetHandle();
-        VISERA_ASSERT(BufferHandle != FRHIBufferHandle{});
-        VISERA_ASSERT(ImageHandle  != FRHITextureHandle{});
         RecordCommand(ERHICommandType::CopyBufferToImage, FCopyBufferToImage
         {
             .Buffer         = BufferHandle,
@@ -516,10 +540,18 @@ export namespace Visera
                      UInt64 I_DestBufferOffset, const FRHIOffset2D& I_ImageOffset,
                      const FRHIExtent2D& I_ImageExtent)
     {
+        if(I_SourceTexture.IsNull())
+        {
+            LOG_ERROR("CopyImageToBuffer: SourceTexture is null");
+            return;
+        }
+        if(I_DestBuffer.IsNull())
+        {
+            LOG_ERROR("CopyImageToBuffer: DestBuffer is null");
+            return;
+        }
         const auto SourceHandle = I_SourceTexture.GetHandle();
         const auto DestHandle   = I_DestBuffer.GetHandle();
-        VISERA_ASSERT(SourceHandle != FRHITextureHandle{});
-        VISERA_ASSERT(DestHandle   != FRHIBufferHandle{});
         RecordCommand(ERHICommandType::CopyImageToBuffer, FCopyImageToBuffer
         {
             .SourceTexture     = SourceHandle,
@@ -552,8 +584,12 @@ export namespace Visera
     ClearColorImage(const FRHITextureID& I_Texture, FRHIClearColor I_ClearColor,
                    ERHIImageLayout I_ImageLayout)
     {
+        if(I_Texture.IsNull())
+        {
+            LOG_ERROR("ClearColorImage: Texture is null");
+            return;
+        }
         const auto Handle = I_Texture.GetHandle();
-        VISERA_ASSERT(Handle != FRHITextureHandle{});
         RecordCommand(ERHICommandType::ClearColorImage, FClearColorImage
         {
             .Image       = Handle,
@@ -566,10 +602,18 @@ export namespace Visera
     BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter,
               ERHIImageLayout I_SrcLayout, ERHIImageLayout I_DstLayout)
     {
+        if(I_SrcTexture.IsNull())
+        {
+            LOG_ERROR("BlitImage: SrcTexture is null");
+            return;
+        }
+        if(I_DstTexture.IsNull())
+        {
+            LOG_ERROR("BlitImage: DstTexture is null");
+            return;
+        }
         const auto SrcHandle = I_SrcTexture.GetHandle();
         const auto DstHandle = I_DstTexture.GetHandle();
-        VISERA_ASSERT(SrcHandle != FRHITextureHandle{});
-        VISERA_ASSERT(DstHandle != FRHITextureHandle{});
         RecordCommand(ERHICommandType::BlitImage, FBlitImage
         {
             .SrcImage       = SrcHandle,
@@ -583,8 +627,12 @@ export namespace Visera
     void FRHICommandList::
     EnterRenderPass(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments)
     {
+        if(I_RenderPass.IsNull())
+        {
+            LOG_ERROR("EnterRenderPass: RenderPass is null");
+            return;
+        }
         const auto Handle = I_RenderPass.GetHandle();
-        VISERA_ASSERT(Handle != FRHIRenderPassHandle{});
         FEnterRenderPass Payload{};
         Payload.RenderPass        = Handle;
         Payload.ColorTargetCount  = static_cast<UInt8>(I_Attachments.ColorTargets.GetSize());
@@ -615,8 +663,12 @@ export namespace Visera
     void FRHICommandList::
     BindVertexBuffer(const FRHIBufferID& I_Buffer, UInt8 I_Binding, UInt64 I_Offset)
     {
+        if(I_Buffer.IsNull())
+        {
+            LOG_ERROR("BindVertexBuffer: Buffer is null");
+            return;
+        }
         const auto Handle = I_Buffer.GetHandle();
-        VISERA_ASSERT(Handle != FRHIBufferHandle{});
         RecordCommand(ERHICommandType::BindVertexBuffer, FBindVertexBuffer
         {
             .Buffer   = Handle,
@@ -628,8 +680,12 @@ export namespace Visera
     void FRHICommandList::
     BindDescriptorSet(const FRHIDescriptorSetID& I_DescriptorSet, UInt32 I_SetIndex)
     {
+        if(I_DescriptorSet.IsNull())
+        {
+            LOG_ERROR("BindDescriptorSet: DescriptorSet is null");
+            return;
+        }
         const auto Handle = I_DescriptorSet.GetHandle();
-        VISERA_ASSERT(Handle != FRHIDescriptorSetHandle{});
         RecordCommand(ERHICommandType::BindDescriptorSet, FBindDescriptorSet
         {
             .DescriptorSet = Handle,
@@ -665,8 +721,12 @@ export namespace Visera
     void FRHICommandList::
     EnterComputePass(const FRHIComputePassID& I_ComputePass)
     {
+        if(I_ComputePass.IsNull())
+        {
+            LOG_ERROR("EnterComputePass: ComputePass is null");
+            return;
+        }
         const auto Handle = I_ComputePass.GetHandle();
-        VISERA_ASSERT(Handle != FRHIComputePassHandle{});
         RecordCommand(ERHICommandType::EnterComputePass, FEnterComputePass
         {
             .ComputePass = Handle,

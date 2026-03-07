@@ -3,11 +3,11 @@ module;
 export module Visera.Runtime.Window;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Global;
-import Visera.Runtime.Input;
 import Visera.Platform;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Text;
 import Visera.Core.Types.Pointer.Unique;
+import Visera.Core.Delegate.Multicast;
 
 export namespace Visera
 {
@@ -25,7 +25,7 @@ export namespace Visera
         [[nodiscard]] Bool
         ShouldClose() const
         {
-            if (!bHasInputService) { FPlatform::PollEvents(); }
+            FPlatform::PollEvents();
             return PlatformWindow->ShouldClose();
         }
         [[nodiscard]] EPresentMode
@@ -48,6 +48,15 @@ export namespace Visera
         [[nodiscard]] const TUniqueRef<FPlatformWindow>
         GetPlatformWindow() const { return PlatformWindow; }
 
+        /** Platform keyboard callback: key, scancode, action, mods. Subscribe from FInput etc. */
+        TMulticastDelegate<Int32, Int32, Int32, Int32> OnKeyboardKey;
+        /** Platform mouse button callback: button, action, mods. */
+        TMulticastDelegate<Int32, Int32, Int32>       OnMouseButton;
+        /** Platform cursor move: x, y. */
+        TMulticastDelegate<Double, Double>            OnCursorMove;
+        /** Platform scroll: offsetX, offsetY. */
+        TMulticastDelegate<Double, Double>            OnScroll;
+
         void
         SetIcon(const FIconSet& I_IconSet) { PlatformWindow->SetIcon(I_IconSet); }
         void
@@ -57,8 +66,7 @@ export namespace Visera
 
     private:
         TUniquePtr<FPlatformWindow> PlatformWindow;
-        EPresentMode                PresentMode      {EPresentMode::VSync};
-        Bool                        bHasInputService {False};
+        EPresentMode                PresentMode {EPresentMode::VSync};
 
     public:
         FWindow(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
@@ -82,25 +90,18 @@ export namespace Visera
                 if (!PlatformWindow->WindowResizeCallback.TryBind([](Int32, Int32) { /* RHI detects resize via BeginFrame/Present and bDirty */ }))
                 { LOG_FATAL("Failed to bind resize window event!"); }
 
-                if (auto Input = GetService<FInput>(EService::Input).Lock())
-                {
-                    LOG_TRACE("Binding window callbacks to the Input service...");
-                    Input->SetWindowForSync(PlatformWindow.Get());
-                    bHasInputService = True;
-
-                    if (!PlatformWindow->MouseButtonCallback.TryBind([Input](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
-                    { Input->NotifyMouseButton(static_cast<FMouse::EButton>(I_Button), static_cast<FMouse::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); }))
-                    { LOG_ERROR("Failed to bind MouseButtonCallback event!"); }
-                    if (!PlatformWindow->KeyboardCallback.TryBind([Input](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
-                    { Input->NotifyKeyboardKey(static_cast<FKeyboard::EKey>(I_Key), I_ScanCode, static_cast<FKeyboard::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); }))
-                    { LOG_ERROR("Failed to bind KeyboardCallback event!"); }
-                    if (!PlatformWindow->CursorMoveCallback.TryBind([Input](Double I_PosX, Double I_PosY)
-                    { Input->NotifyCursorMove(static_cast<Float>(I_PosX), static_cast<Float>(I_PosY)); }))
-                    { LOG_ERROR("Failed to bind CursorMoveCallback event!"); }
-                    if (!PlatformWindow->ScrollCallback.TryBind([Input](Double I_OffsetX, Double I_OffsetY)
-                    { Input->NotifyScroll(static_cast<Float>(I_OffsetX), static_cast<Float>(I_OffsetY)); }))
-                    { LOG_ERROR("Failed to bind ScrollCallback event!"); }
-                }
+                if (!PlatformWindow->KeyboardCallback.TryBind([this](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
+                { OnKeyboardKey.Broadcast(I_Key, I_ScanCode, I_Action, I_Mods); }))
+                { LOG_ERROR("Failed to bind KeyboardCallback event!"); }
+                if (!PlatformWindow->MouseButtonCallback.TryBind([this](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
+                { OnMouseButton.Broadcast(I_Button, I_Action, I_Mods); }))
+                { LOG_ERROR("Failed to bind MouseButtonCallback event!"); }
+                if (!PlatformWindow->CursorMoveCallback.TryBind([this](Double I_PosX, Double I_PosY)
+                { OnCursorMove.Broadcast(I_PosX, I_PosY); }))
+                { LOG_ERROR("Failed to bind CursorMoveCallback event!"); }
+                if (!PlatformWindow->ScrollCallback.TryBind([this](Double I_OffsetX, Double I_OffsetY)
+                { OnScroll.Broadcast(I_OffsetX, I_OffsetY); }))
+                { LOG_ERROR("Failed to bind ScrollCallback event!"); }
 
                 return True;
             }))
@@ -108,11 +109,6 @@ export namespace Visera
 
             if (!OnTerminate.TryBind([this]
             {
-                if (bHasInputService)
-                {
-                    if (auto Input = GetService<FInput>(EService::Input).Lock())
-                    { Input->SetWindowForSync(nullptr); }
-                }
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

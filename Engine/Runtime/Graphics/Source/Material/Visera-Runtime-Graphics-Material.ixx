@@ -28,8 +28,10 @@ export namespace Visera
 		[[nodiscard]] static TSharedPtr<FMaterial>
 		Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI);
 
-		[[nodiscard]] const FRHIRenderPassID&
-		GetRenderPass() const noexcept { return RenderPass; }
+		[[nodiscard]] const FRHIShaderID&
+		GetVertexShader() const noexcept { return VertexShader; }
+		[[nodiscard]] const FRHIShaderID&
+		GetFragmentShader() const noexcept { return FragmentShader; }
 		[[nodiscard]] const FRHIDescriptorSetID&
 		GetDescriptorSet() const noexcept { return DescriptorSet; }
 		[[nodiscard]] ESurfaceType
@@ -37,20 +39,23 @@ export namespace Visera
 		[[nodiscard]] Bool
 		IsValid() const noexcept { return bValid; }
 
-		FMaterial(FRHIRenderPassID    I_RenderPass,
+		FMaterial(FRHIShaderID        I_VertexShader,
+		          FRHIShaderID        I_FragmentShader,
 		          FRHIDescriptorSetID I_DescriptorSet,
 		          FRHISamplerID       I_Sampler,
 		          FRHITextureID       I_BaseColor,
 		          ESurfaceType        I_Surface)
-			: RenderPass    (std::move(I_RenderPass))
-			, DescriptorSet (std::move(I_DescriptorSet))
-			, Sampler       (std::move(I_Sampler))
-			, BaseColor     (std::move(I_BaseColor))
-			, Surface       (I_Surface)
+			: VertexShader   (std::move(I_VertexShader))
+			, FragmentShader (std::move(I_FragmentShader))
+			, DescriptorSet  (std::move(I_DescriptorSet))
+			, Sampler        (std::move(I_Sampler))
+			, BaseColor      (std::move(I_BaseColor))
+			, Surface        (I_Surface)
 		{}
 
 	private:
-		FRHIRenderPassID    RenderPass;
+		FRHIShaderID        VertexShader;
+		FRHIShaderID        FragmentShader;
 		FRHIDescriptorSetID DescriptorSet;
 		FRHISamplerID       Sampler;
 		FRHITextureID       BaseColor;
@@ -71,24 +76,6 @@ export namespace Visera
 			if (I_Str == "Masked")      { return ESurfaceType::Masked; }
 			if (I_Str == "Transparent") { return ESurfaceType::Transparent; }
 			return ESurfaceType::Opaque;
-		}
-
-		static ERHIFormat
-		ParseFormat(const FString& I_Str)
-		{
-			if (I_Str == "R8G8B8_sRGB")         { return ERHIFormat::R8G8B8_sRGB; }
-			if (I_Str == "R8G8B8_UNorm")        { return ERHIFormat::R8G8B8_UNorm; }
-			if (I_Str == "B8G8R8_sRGB")         { return ERHIFormat::B8G8R8_sRGB; }
-			if (I_Str == "B8G8R8_UNorm")        { return ERHIFormat::B8G8R8_UNorm; }
-			if (I_Str == "R8G8B8A8_sRGB")       { return ERHIFormat::R8G8B8A8_sRGB; }
-			if (I_Str == "R8G8B8A8_UNorm")      { return ERHIFormat::R8G8B8A8_UNorm; }
-			if (I_Str == "B8G8R8A8_sRGB")       { return ERHIFormat::B8G8R8A8_sRGB; }
-			if (I_Str == "B8G8R8A8_UNorm")      { return ERHIFormat::B8G8R8A8_UNorm; }
-			if (I_Str == "R16G16B16A16_Float")  { return ERHIFormat::R16G16B16A16_Float; }
-			if (I_Str == "R32G32_Float")        { return ERHIFormat::R32G32_Float; }
-			if (I_Str == "R32G32B32_Float")     { return ERHIFormat::R32G32B32_Float; }
-			if (I_Str == "R32G32B32A32_Float")  { return ERHIFormat::R32G32B32A32_Float; }
-			return ERHIFormat::B8G8R8A8_sRGB;
 		}
 
 		static ERHIFormat
@@ -119,7 +106,6 @@ export namespace Visera
 			SurfStr = std::move(opt.GetValue());
 		else if (auto opt = I_Description.TryGetString("Surface"); opt.HasValue())
 			SurfStr = std::move(opt.GetValue());
-		const FString FormatStr = I_Description.GetString(TJSONRoute<"Surface.Format">(), "B8G8R8A8_sRGB");
 		const FString BaseColorPath = I_Description.GetString(TJSONRoute<"Textures.BaseColor">());
 
 		if (VertPath.IsEmpty() || FragPath.IsEmpty() || BaseColorPath.IsEmpty())
@@ -205,16 +191,9 @@ export namespace Visera
 			{ I_RHI->WriteDescriptorCombinedImageSampler(DescSet, Binding, BaseColorTex, Sampler); }
 		}
 
-		FRHIRenderPassCreateInfo RPInfo
-		{
-			.VertexShader   = VertShader,
-			.FragmentShader = FragShader,
-			.PSO            = { .ColorFormats = { ParseFormat(FormatStr) } },
-		};
-		FRHIRenderPassID RenderPassID = I_RHI->CreateRenderPass(std::move(RPInfo));
-
 		return MakeShared<FMaterial>(
-			std::move(RenderPassID),
+			std::move(VertShader),
+			std::move(FragShader),
 			std::move(DescSet),
 			std::move(Sampler),
 			std::move(BaseColorTex),

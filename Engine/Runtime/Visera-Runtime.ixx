@@ -33,12 +33,6 @@ namespace Visera
         Forge,
     };
 
-    /** App mode: Game = full app features (config-driven). */
-    export enum class EAppMode
-    {
-        Game,
-    };
-
     export class VISERA_RUNTIME_API FViseraApp;
     export class VISERA_RUNTIME_API FViseraEngine;
 
@@ -55,19 +49,11 @@ namespace Visera
         [[nodiscard]] FJSON&       GetConfig()       { return Config.GetRoot(); }
         [[nodiscard]] const FJSON& GetConfig() const { return Config.GetRoot(); }
 
-        /** Create application by mode. No config needed. Call Bootstrap() explicitly. */
-        [[nodiscard]] FViseraApp*
-        CreateApplication(FString I_Name, EAppMode I_Mode);
-
-        /** Create application from config. Call Bootstrap() explicitly. */
+        /** Create application from JSON config. Bootstrap() is called automatically. */
         [[nodiscard]] FViseraApp*
         CreateApplication(FString I_Name, const FJSON& I_AppConfig);
 
-        /** Get application by name. Returns nullptr if not found. */
-        [[nodiscard]] FViseraApp*
-        GetApplication(FStringView I_Name) const;
-
-        explicit FViseraEngine(const FJSON& I_Config);
+        explicit FViseraEngine(const FJSON& I_EngineConfig);
         ~FViseraEngine() { Terminate(); }
 
         /** Explicitly shut down engine (terminate apps and services). Idempotent. Call before Reset() for clean exit. */
@@ -114,7 +100,7 @@ namespace Visera
         FViseraEngine(FViseraEngine&&)                 = delete;
         FViseraEngine& operator=(FViseraEngine&&)      = delete;
     };
-
+    
     class VISERA_RUNTIME_API FViseraApp
     {
     public:
@@ -163,9 +149,9 @@ namespace Visera
             return *this;
         }
 
-        /** Bootstrap app services. Call explicitly after Create/Get. */
+        /** Bootstrap app services. Called automatically by CreateApplication. */
         void Bootstrap();
-        /** Terminate app and remove from Engine. Call explicitly when closing. */
+        /** Terminate app and remove from Engine. Optional; recommended to just Reset the engine instead. */
         void Terminate();
 
         ~FViseraApp() { Terminate(); }
@@ -286,8 +272,8 @@ namespace Visera
         return Result;
     }
 
-    FViseraEngine::FViseraEngine(const FJSON& I_Config)
-        : Config(I_Config)
+    FViseraEngine::FViseraEngine(const FJSON& I_EngineConfig)
+        : Config(I_EngineConfig)
     {
         auto EngineConfig = Config.GetEngineConfig();
         EngineName = EngineConfig.GetString(TJSONRoute<"Name">(), "Visera");
@@ -300,17 +286,6 @@ namespace Visera
         if (EngineConfig.GetBool(TJSONRoute<"AssetHub.Enable">(), False)) { (void)RegisterGlobal<FAssetHub> (EService::AssetHub); }
         if (EngineConfig.GetBool(TJSONRoute<"Graphics.Enable">(), False)) { (void)RegisterGlobal<FGraphics> (EService::Graphics); }
         Bootstrap();
-
-        if (auto AppsObj = Config.GetRoot().TryGetObject(TJSONRoute<"Apps">()); AppsObj.HasValue())
-        {
-            for (const auto& Item : AppsObj.GetValue().Items())
-            {
-                auto& AppName   = Item.key;
-                auto& ConfigJSON = Item.value;
-                if (auto AppConfig = FJSON{ConfigJSON}; !AppConfig.IsNull())
-                { (void)CreateApplication(AppName, AppConfig); }
-            }
-        }
     }
 
     void FViseraEngine::Bootstrap()
@@ -353,24 +328,6 @@ namespace Visera
         GlobalServices.Clear();
     }
 
-    FViseraApp* FViseraEngine::CreateApplication(FString I_Name, EAppMode I_Mode)
-    {
-        auto AppPath = FString::Format("{}.{}", kConfigKeyApps, I_Name);
-        Config.GetRoot().Set(FJSONRoute(AppPath.GetNative()), FJSON{});
-        if (I_Mode == EAppMode::Game)
-        {
-            Config.GetRoot().Set(FJSONRoute(FString::Format("{}.Window.Enable", AppPath).GetNative()), true);
-            Config.GetRoot().Set(FJSONRoute(FString::Format("{}.Input.Enable", AppPath).GetNative()), true);
-            Config.GetRoot().Set(FJSONRoute(FString::Format("{}.UI.Enable", AppPath).GetNative()), true);
-        }
-        auto App = TUniquePtr<FViseraApp>(new FViseraApp(this, std::move(I_Name)));
-        if (!App) return nullptr;
-        App->InjectEngineServices();
-        App->RegisterLocalServices();
-        CreatedApps.PushBack(std::move(App));
-        return CreatedApps.Back().Get();
-    }
-
     FViseraApp* FViseraEngine::CreateApplication(FString I_Name, const FJSON& I_AppConfig)
     {
         auto AppPath = FString::Format("{}.{}", kConfigKeyApps, I_Name);
@@ -389,17 +346,10 @@ namespace Visera
         if (!App) return nullptr;
         App->InjectEngineServices();
         App->RegisterLocalServices();
+        FViseraApp* Ptr = App.Get();
         CreatedApps.PushBack(std::move(App));
-        return CreatedApps.Back().Get();
-    }
-
-    FViseraApp* FViseraEngine::GetApplication(FStringView I_Name) const
-    {
-        for (const auto& App : CreatedApps)
-        {
-            if (App && App->AppName == I_Name) { return App.Get(); }
-        }
-        return nullptr;
+        Ptr->Bootstrap();
+        return Ptr;
     }
 
     void FViseraEngine::DestroyApplication(FViseraApp* I_App)
@@ -437,9 +387,9 @@ namespace Visera
     void FViseraApp::RegisterLocalServices()
     {
         auto AppConfigView = OwnerEngine->Config.GetAppConfig(AppName);
+        if (AppConfigView.GetBool(TJSONRoute<"Window.Enable">(), False)) { (void)RegisterLocal<FWindow> (EService::Window); }
         if (AppConfigView.GetBool(TJSONRoute<"Input.Enable">(), False))  { (void)RegisterLocal<FInput>  (EService::Input);  }
         if (AppConfigView.GetBool(TJSONRoute<"UI.Enable">(), False))     { (void)RegisterLocal<FUI>     (EService::UI);     }
-        if (AppConfigView.GetBool(TJSONRoute<"Window.Enable">(), False)) { (void)RegisterLocal<FWindow> (EService::Window); }
     }
 
     void FViseraApp::Bootstrap()

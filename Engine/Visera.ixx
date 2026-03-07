@@ -8,11 +8,11 @@ export import Visera.Platform;
 
 export namespace Visera
 {
-    /** Create engine from Config. Services enabled via Engine.<Service>.Enable (default false when missing). */
+    /** Create engine from engine config only. Services enabled via Engine.<Service>.Enable (default false when missing). Apps are created separately via CreateApplication. */
     [[nodiscard]] inline TUniquePtr<FViseraEngine>
-    CreateEngine(const FJSON& I_Config)
+    CreateEngine(const FJSON& I_EngineConfig)
     {
-        return MakeUnique<FViseraEngine>(I_Config);
+        return MakeUnique<FViseraEngine>(I_EngineConfig);
     }
 
     /** Create engine by mode. No Config needed. Standard = full; Forge = Task, AssetHub, RHI only (Visera-Forge). */
@@ -38,6 +38,6 @@ export namespace Visera
         default:
             LOG_FATAL("Unknown EEngineMode: {}", static_cast<Int32>(I_Mode));
         }
-        return CreateEngine(Config);
+        return CreateEngine(Config);  // Config contains only Engine.* keys
     }
 }

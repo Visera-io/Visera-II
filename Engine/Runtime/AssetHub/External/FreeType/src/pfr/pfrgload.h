@@ -16,8 +16,8 @@
  */
 
 
-#ifndef PFRGLOAD_H_
-#define PFRGLOAD_H_
+#ifndef PFRDGLOAD_H_
+#define PFRDGLOAD_H_
 
 #include "pfrtypes.h"
 
@@ -43,7 +43,7 @@ FT_BEGIN_HEADER
 FT_END_HEADER
 
 
-#endif /* PFRGLOAD_H_ */
+#endif /* PFRDGLOAD_H_ */
 
 
 /* END */

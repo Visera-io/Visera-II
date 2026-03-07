@@ -6,6 +6,7 @@ export import Visera.Runtime.Input.Action;
 export import Visera.Runtime.Input.Device;
 export import Visera.Runtime.Input.Mapping;
        import Visera.Runtime.Global;
+       import Visera.Runtime.Window;
        import Visera.Platform;
        import Visera.Platform.Interface.Window;
        import Visera.Core.Log;
@@ -45,6 +46,10 @@ export namespace Visera
         [[nodiscard]] Bool
         LoadInputMap(const FPath& I_Path);
 
+        /** True if any mapping for I_ActionName is active this frame (e.g. Hold = key down, Press = just pressed). Call after PollAndSync(). Keyboard only for now. */
+        [[nodiscard]] Bool
+        IsActionActive(FName I_ActionName) const;
+
         /** Process input events (PollEvents) and update polling state (Sync). Uses platform window set via SetWindowForSync (e.g. by FWindow). */
         void
         PollAndSync();
@@ -75,25 +80,50 @@ export namespace Visera
         IPlatformWindow*             PlatformWindowForSync {nullptr};
         TMap<FName, TUniquePtr<FInputAction>> Actions;
         TArray<FInputMapping>        Mappings;
+        TMulticastDelegate<Int32, Int32, Int32, Int32>::FHandle SubHandleKeyboard    {0};
+        TMulticastDelegate<Int32, Int32, Int32>::FHandle       SubHandleMouseButton {0};
+        TMulticastDelegate<Double, Double>::FHandle            SubHandleCursorMove  {0};
+        TMulticastDelegate<Double, Double>::FHandle            SubHandleScroll       {0};
 
     public:
         FInput(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
                TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
             : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
         {
-            Dependencies =
-            {
-
-            };
+            if (I_Registry && I_Registry->Contains(EService::Window))
+            { Dependencies = { EService::Window }; }
+            else
+            { Dependencies = {}; }
 
             if (!OnBootstrap.TryBind([this]
             {
+                auto WinPtr = GetService<FWindow>(EService::Window).Lock();
+                if (WinPtr && WinPtr->GetPlatformWindow())
+                {
+                    SetWindowForSync(WinPtr->GetPlatformWindow().Get());
+                    SubHandleKeyboard    = WinPtr->OnKeyboardKey   .Subscribe([this](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
+                    { NotifyKeyboardKey(static_cast<FKeyboard::EKey>(I_Key), I_ScanCode, static_cast<FKeyboard::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); });
+                    SubHandleMouseButton = WinPtr->OnMouseButton  .Subscribe([this](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
+                    { NotifyMouseButton(static_cast<FMouse::EButton>(I_Button), static_cast<FMouse::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); });
+                    SubHandleCursorMove  = WinPtr->OnCursorMove   .Subscribe([this](Double I_PosX, Double I_PosY)
+                    { NotifyCursorMove(static_cast<Float>(I_PosX), static_cast<Float>(I_PosY)); });
+                    SubHandleScroll      = WinPtr->OnScroll       .Subscribe([this](Double I_OffsetX, Double I_OffsetY)
+                    { NotifyScroll(static_cast<Float>(I_OffsetX), static_cast<Float>(I_OffsetY)); });
+                }
                 return True;
             }))
             { LOG_FATAL("Failed to bind bootstrap function!"); }
 
             if (!OnTerminate.TryBind([this]
             {
+                SetWindowForSync(nullptr);
+                if (auto WinPtr = GetService<FWindow>(EService::Window).Lock())
+                {
+                    if (SubHandleKeyboard)    { WinPtr->OnKeyboardKey   .Unsubscribe(SubHandleKeyboard);    SubHandleKeyboard    = 0; }
+                    if (SubHandleMouseButton) { WinPtr->OnMouseButton   .Unsubscribe(SubHandleMouseButton); SubHandleMouseButton = 0; }
+                    if (SubHandleCursorMove)  { WinPtr->OnCursorMove    .Unsubscribe(SubHandleCursorMove);  SubHandleCursorMove  = 0; }
+                    if (SubHandleScroll)      { WinPtr->OnScroll        .Unsubscribe(SubHandleScroll);      SubHandleScroll      = 0; }
+                }
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }
@@ -186,6 +216,28 @@ export namespace Visera
         }
     }
 
+    Bool
+    FInput::IsActionActive(FName I_ActionName) const
+    {
+        for (const auto& M : Mappings)
+        {
+            if (M.ActionName != I_ActionName) { continue; }
+            if (M.SourceType != EInputSource::KeyboardKey) { continue; }
+            const auto Key = static_cast<FKeyboard::EKey>(M.SourceValue);
+            const auto KeyAct = Keyboard.GetKeyAction(Key);
+            const auto Trig = static_cast<UInt8>(M.Trigger);
+            Bool bActive = False;
+            if (Trig == static_cast<UInt8>(EInputTrigger::Press))
+            { bActive = (KeyAct == FKeyboard::EAction::Press); }
+            else if (Trig == static_cast<UInt8>(EInputTrigger::Release))
+            { bActive = (KeyAct == FKeyboard::EAction::Release); }
+            else if (Trig == static_cast<UInt8>(EInputTrigger::Hold))
+            { bActive = (KeyAct == FKeyboard::EAction::Press || KeyAct == FKeyboard::EAction::Hold); }
+            if (bActive) { return True; }
+        }
+        return False;
+    }
+
     void
     FInput::TriggerMatchingActions(EInputSource I_SourceType, Int32 I_SourceValue, UInt8 I_Action, UInt8 I_Mods)
     {
@@ -208,7 +260,8 @@ export namespace Visera
 
     void FInput::PollAndSync()
     {
-        FPlatform::PollEvents();
+        if (!PlatformWindowForSync) { FPlatform::PollEvents(); }
+        
         if (PlatformWindowForSync)
         {
             Keyboard.Sync([this](FKeyboard::EKey I_Key)->FKeyboard::EAction

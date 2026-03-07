@@ -96,8 +96,6 @@ namespace Visera
             return;
         }
 
-        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
-
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (I_Sampler->GetHandle())
             .setImageView   (I_ImageView->GetHandle())
@@ -129,7 +127,6 @@ namespace Visera
             return;
         }
 
-        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
 
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (nullptr)
@@ -194,7 +191,6 @@ namespace Visera
             return;
         }
 
-        VISERA_ASSERT(I_ImageView->GetImage() != nullptr);
 
         auto ImageInfo = vk::DescriptorImageInfo{}
             .setSampler     (nullptr)
@@ -301,7 +297,6 @@ namespace Visera
                 continue;
             }
 
-            VISERA_ASSERT(I_ImageViews[Idx]->GetImage() != nullptr);
 
             ImageInfos.EmplaceBack(vk::DescriptorImageInfo{}
                 .setSampler     (I_Samplers[Idx]->GetHandle())
@@ -347,7 +342,6 @@ namespace Visera
                 continue;
             }
 
-            VISERA_ASSERT(I_ImageViews[Idx]->GetImage() != nullptr);
 
             ImageInfos.EmplaceBack(vk::DescriptorImageInfo{}
                 .setSampler     (nullptr)

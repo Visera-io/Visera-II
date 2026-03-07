@@ -7,7 +7,6 @@ import Visera.Platform;
 import Visera.Runtime;
 import Visera;
 import Visera.Forge.Utils;
-import Visera.Forge.Baking;
 import Visera.Forge.Shader;
 
 namespace Visera::Forge
@@ -66,6 +65,8 @@ namespace Visera::Forge
                 return Results; // File doesn't exist
             }
         }
+
+        SearchDir = FPath::Normalized(SearchDir);
 
         if (!FPlatform::ExistsDirectory(SearchDir))
         {
