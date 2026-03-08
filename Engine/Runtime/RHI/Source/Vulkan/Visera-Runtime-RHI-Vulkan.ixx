@@ -10,7 +10,7 @@ export import Visera.Runtime.RHI.Vulkan.Buffer;
 export import Visera.Runtime.RHI.Vulkan.Sampler;
 export import Visera.Runtime.RHI.Vulkan.Pipeline;
 export import Visera.Runtime.RHI.Vulkan.ShaderModule;
-export import Visera.Runtime.RHI.Vulkan.RenderTarget;
+export import Visera.Runtime.RHI.Vulkan.Attachment;
 export import Visera.Runtime.RHI.Vulkan.DescriptorPool;
 export import Visera.Runtime.RHI.Vulkan.DescriptorSet;
 export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;

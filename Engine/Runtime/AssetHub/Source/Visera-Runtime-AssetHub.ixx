@@ -305,16 +305,16 @@ export namespace Visera
                     ProfilingMetrics.CacheColdExpiredPrunedImage,
                     ProfilingMetrics.CacheColdExpiredPrunedShader,
                     ProfilingMetrics.CacheColdExpiredPrunedFont);
-                LOG_INFO("[Profiling] AssetHub cache peaks: hot_entries(I={},S={},F={}) cold_entries(I={},S={},F={}) hot_weight_bytes(I={},S={},F={}).",
+                LOG_INFO("[Profiling] AssetHub cache peaks: hot_entries(I={},S={},F={}) cold_entries(I={},S={},F={}) hot_weight_MB(I={:.2f},S={:.2f},F={:.2f}).",
                     ProfilingMetrics.PeakHotEntriesImage,
                     ProfilingMetrics.PeakHotEntriesShader,
                     ProfilingMetrics.PeakHotEntriesFont,
                     ProfilingMetrics.PeakColdEntriesImage,
                     ProfilingMetrics.PeakColdEntriesShader,
                     ProfilingMetrics.PeakColdEntriesFont,
-                    ProfilingMetrics.PeakHotWeightBytesImage,
-                    ProfilingMetrics.PeakHotWeightBytesShader,
-                    ProfilingMetrics.PeakHotWeightBytesFont);
+                    ProfilingMetrics.PeakHotWeightBytesImage / (1024.0 * 1024.0),
+                    ProfilingMetrics.PeakHotWeightBytesShader / (1024.0 * 1024.0),
+                    ProfilingMetrics.PeakHotWeightBytesFont / (1024.0 * 1024.0));
                 LOG_INFO("[Profiling] AssetHub stores: image={}, shader={}, font={}; saves: image {}/{} shader {}/{}.",
                     ProfilingMetrics.StoreImageCalls,
                     ProfilingMetrics.StoreShaderCalls,

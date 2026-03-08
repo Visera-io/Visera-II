@@ -1239,8 +1239,8 @@ export namespace Visera
             return;
         }
 
-        FVulkanRenderTarget  ColorRTs[kMaxColorAttachments];
-        FVulkanRenderTarget* ColorRTPtrs[kMaxColorAttachments];
+        FVulkanColorAttachment  ColorAttachments[kMaxColorAttachments];
+        FVulkanColorAttachment* ColorAttachmentPtrs[kMaxColorAttachments];
         UInt32 ValidCount = 0;
         for (UInt32 i = 0; i < Payload.ColorTargetCount; ++i)
         {
@@ -1253,22 +1253,22 @@ export namespace Visera
                     i, Slot.Handle);
                 continue;
             }
-            ColorRTs[ValidCount] = FVulkanRenderTarget(ImageView);
-            ColorRTs[ValidCount].SetLoadOp(TypeCast(Slot.LoadOp));
-            ColorRTs[ValidCount].SetStoreOp(TypeCast(Slot.StoreOp));
-            ColorRTs[ValidCount].SetClearColor(vk::ClearColorValue(
+            ColorAttachments[ValidCount] = FVulkanColorAttachment(ImageView);
+            ColorAttachments[ValidCount].SetLoadOp(TypeCast(Slot.LoadOp));
+            ColorAttachments[ValidCount].SetStoreOp(TypeCast(Slot.StoreOp));
+            ColorAttachments[ValidCount].SetClearColor(vk::ClearColorValue(
                 Slot.ClearColor.R, Slot.ClearColor.G, Slot.ClearColor.B, Slot.ClearColor.A));
-            ColorRTPtrs[ValidCount] = &ColorRTs[ValidCount];
+            ColorAttachmentPtrs[ValidCount] = &ColorAttachments[ValidCount];
             ++ValidCount;
         }
 
         if (ValidCount == 0)
         {
-            LOG_WARN("ExecuteEnterRenderPass: no valid color targets after filtering, skipping render pass.");
+            LOG_WARN("ExecuteEnterRenderPass: no valid color attachments after filtering, skipping render pass.");
             return;
         }
 
-        Pipeline->SetColorRTs(ColorRTPtrs, ValidCount);
+        Pipeline->SetColorAttachments(ColorAttachmentPtrs, ValidCount);
 
         auto* Image = GetVulkanImageChecked(Payload.ColorSlots[0].Handle);
         if (!Image)

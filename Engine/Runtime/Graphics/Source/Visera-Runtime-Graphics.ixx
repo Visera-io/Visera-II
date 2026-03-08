@@ -317,8 +317,8 @@ export namespace Visera
          }
 
          FRHITextureID BackBuffer = RHI->BeginFrame(SwapChainID);
-         if (bHasWindow && BackBuffer.IsNull())
-         { LOG_DEBUG("Graphics thread: skipping frame SwapChainID={}, BackBuffer is null.", SwapChainID); continue; }
+         if (BackBuffer.IsNull())
+         { LOG_DEBUG("Graphics thread: skipping frame SwapChainID={}, BackBuffer is null (swapchain destroyed or unavailable).", SwapChainID); continue; }
 
          auto& SCContext = GetOrCreateContext(SwapChainID);
 
@@ -526,7 +526,7 @@ export namespace Visera
       auto JSONOpt = FJSON::Load(I_MaterialFile);
       if (!JSONOpt.HasValue())
       { LOG_ERROR("LoadMaterial: failed to parse {}.", I_MaterialFile); return nullptr; }
-      auto Material = FMaterial::Create(JSONOpt.GetValue(), AssetHub.Get(), RHI.Get());
+      auto Material = FMaterial::Create(JSONOpt.GetValue(), AssetHub.Get(), RHI.Get(), I_MaterialFile);
       if (Material)
       { LOG_INFO("LoadMaterial: {} loaded successfully.", I_MaterialFile); }
       return Material;

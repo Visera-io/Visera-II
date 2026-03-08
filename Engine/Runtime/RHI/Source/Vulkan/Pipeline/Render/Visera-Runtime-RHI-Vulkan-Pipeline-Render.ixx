@@ -3,7 +3,7 @@ module;
 export module Visera.Runtime.RHI.Vulkan.Pipeline.Render;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
-import Visera.Runtime.RHI.Vulkan.RenderTarget;
+import Visera.Runtime.RHI.Vulkan.Attachment;
 import Visera.Runtime.RHI.Vulkan.Pipeline.Cache;
 import Visera.Runtime.RHI.Vulkan.Pipeline.Layout;
 import Visera.Runtime.RHI.Vulkan.ShaderModule;
@@ -24,20 +24,17 @@ namespace Visera
         GetLayout() const { return &Layout; }
         [[nodiscard]] inline const vk::Rect2D&
         GetRenderArea() const { return CurrentRenderingInfo.renderArea; }
-        [[nodiscard]] inline FVulkanRenderTarget*
-        GetColorRT() const { return CurrentColorRT; }
+        /** Number of color attachments currently set (0 until SetColorAttachments is called). */
+        [[nodiscard]] inline UInt32
+        GetColorAttachmentCount() const { return ColorAttachmentCount; }
         inline FVulkanRenderPipeline*
-        SetColorRT(FVulkanRenderTarget* I_ColorRT);
+        SetColorAttachment(FVulkanColorAttachment* I_ColorAttachment);
         inline FVulkanRenderPipeline*
-        SetColorRTs(FVulkanRenderTarget* const* I_ColorRTs, UInt32 I_Count);
-        [[nodiscard]] inline FVulkanRenderTarget*
-        GetDepthRT() const { return CurrentDepthRT; }
+        SetColorAttachments(FVulkanColorAttachment* const* I_ColorAttachments, UInt32 I_Count);
+        [[nodiscard]] inline FVulkanDepthStencilAttachment*
+        GetDepthStencilAttachment() const { return CurrentDepthStencilAttachment; }
         inline FVulkanRenderPipeline*
-        SetDepthRT(FVulkanRenderTarget* I_DepthRT);
-        [[nodiscard]] inline FVulkanRenderTarget*
-        GetStencilRT() const { return CurrentStencilRT; }
-        inline FVulkanRenderPipeline*
-        SetStencilRT(FVulkanRenderTarget* I_StencilRT);
+        SetDepthStencilAttachment(FVulkanDepthStencilAttachment* I_DepthStencilAttachment);
         inline FVulkanRenderPipeline*
         SetRenderArea(const vk::Rect2D& I_RenderArea) { CurrentRenderingInfo.setRenderArea(I_RenderArea); return this; }
         [[nodiscard]] inline const vk::RenderingInfo&
@@ -82,9 +79,8 @@ namespace Visera
         vk::RenderingAttachmentInfo DepthAttachmentInfo{};
         vk::RenderingAttachmentInfo StencilAttachmentInfo{};
 
-        FVulkanRenderTarget* CurrentColorRT   {nullptr};
-        FVulkanRenderTarget* CurrentDepthRT   {nullptr};
-        FVulkanRenderTarget* CurrentStencilRT {nullptr};
+        UInt32                          ColorAttachmentCount          {0};
+        FVulkanDepthStencilAttachment*  CurrentDepthStencilAttachment {nullptr};
 
         enum : UInt8 { MAX_DYNAMIC_STATE = 2 };
         static inline vk::DynamicState  DynamicStates[MAX_DYNAMIC_STATE]
@@ -215,18 +211,18 @@ namespace Visera
     };
     
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetColorRT(FVulkanRenderTarget* I_ColorRT)
+    SetColorAttachment(FVulkanColorAttachment* I_ColorAttachment)
     {
-        return SetColorRTs(&I_ColorRT, 1);
+        return SetColorAttachments(&I_ColorAttachment, 1);
     }
 
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetColorRTs(FVulkanRenderTarget* const* I_ColorRTs, UInt32 I_Count)
+    SetColorAttachments(FVulkanColorAttachment* const* I_ColorAttachments, UInt32 I_Count)
     {
-        VISERA_ASSERT(I_ColorRTs != nullptr && I_Count > 0 && I_Count <= kMaxColorAttachments);
+        VISERA_ASSERT(I_ColorAttachments != nullptr && I_Count > 0 && I_Count <= kMaxColorAttachments);
         for (UInt32 i = 0; i < I_Count; ++i)
-        { ColorAttachmentInfos[i] = I_ColorRTs[i]->GetAttachmentInfo(vk::ImageLayout::eColorAttachmentOptimal); }
-        CurrentColorRT = I_ColorRTs[0];
+        { ColorAttachmentInfos[i] = I_ColorAttachments[i]->GetAttachmentInfo(vk::ImageLayout::eColorAttachmentOptimal); }
+        ColorAttachmentCount = I_Count;
         CurrentRenderingInfo
             .setColorAttachmentCount(I_Count)
             .setPColorAttachments(ColorAttachmentInfos);
@@ -234,22 +230,16 @@ namespace Visera
     }
 
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetDepthRT(FVulkanRenderTarget* I_DepthRT)
+    SetDepthStencilAttachment(FVulkanDepthStencilAttachment* I_DepthStencilAttachment)
     {
-        VISERA_ASSERT(I_DepthRT != nullptr);
-        CurrentDepthRT = I_DepthRT;
-        DepthAttachmentInfo = CurrentDepthRT->GetAttachmentInfo(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-        CurrentRenderingInfo.setPDepthAttachment(&DepthAttachmentInfo);
-        return this;
-    }
-
-    FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetStencilRT(FVulkanRenderTarget* I_StencilRT)
-    {
-        VISERA_ASSERT(I_StencilRT != nullptr);
-        CurrentStencilRT = I_StencilRT;
-        StencilAttachmentInfo = CurrentStencilRT->GetAttachmentInfo(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-        CurrentRenderingInfo.setPStencilAttachment(&StencilAttachmentInfo);
+        VISERA_ASSERT(I_DepthStencilAttachment != nullptr);
+        CurrentDepthStencilAttachment = I_DepthStencilAttachment;
+        const auto Layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        DepthAttachmentInfo   = CurrentDepthStencilAttachment->GetDepthAttachmentInfo(Layout);
+        StencilAttachmentInfo = CurrentDepthStencilAttachment->GetStencilAttachmentInfo(Layout);
+        CurrentRenderingInfo
+            .setPDepthAttachment  (&DepthAttachmentInfo)
+            .setPStencilAttachment(&StencilAttachmentInfo);
         return this;
     }
 }

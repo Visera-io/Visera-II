@@ -25,8 +25,9 @@ export namespace Visera
 	class VISERA_RUNTIME_API FMaterial
 	{
 	public:
+		/** Paths in the JSON (Shader.Vert, Shader.Frag, Textures.BaseColor) are resolved relative to the material file's directory (e.g. "../Shader/X" from Material/Test.vmaterial -> Material/../Shader/X). */
 		[[nodiscard]] static TSharedPtr<FMaterial>
-		Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI);
+		Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI, const FPath& I_MaterialFile);
 
 		[[nodiscard]] const FRHIShaderID&
 		GetVertexShader() const noexcept { return VertexShader; }
@@ -93,8 +94,15 @@ export namespace Visera
 		}
 	};
 
+	inline FPath ResolveRelativeToMaterialDir(const FPath& I_MaterialFile, const FString& I_RelativePath)
+	{
+		auto Base = I_MaterialFile.GetParent();
+		if (!Base.HasValue()) { return FPath{I_RelativePath}; }
+		return FPath::Normalized(FPath::Merge(Base.GetValue(), FPath{I_RelativePath}));
+	}
+
 	TSharedPtr<FMaterial> FMaterial::
-	Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI)
+	Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI, const FPath& I_MaterialFile)
 	{
 		if (!I_AssetHub || !I_RHI)
 		{ LOG_ERROR("FMaterial::Create: AssetHub or RHI is null."); return nullptr; }
@@ -111,14 +119,18 @@ export namespace Visera
 		if (VertPath.IsEmpty() || FragPath.IsEmpty() || BaseColorPath.IsEmpty())
 		{ LOG_ERROR("FMaterial::Create: missing required fields (Shader.Vert, Shader.Frag, Textures.BaseColor)."); return nullptr; }
 
-		auto VertAsset = I_AssetHub->LoadShader(FPath{VertPath});
-		auto FragAsset = I_AssetHub->LoadShader(FPath{FragPath});
-		if (!VertAsset || !FragAsset)
-		{ LOG_ERROR("FMaterial::Create: failed to load shaders ({}, {}).", VertPath, FragPath); return nullptr; }
+		const FPath VertResolved  = ResolveRelativeToMaterialDir(I_MaterialFile, VertPath);
+		const FPath FragResolved = ResolveRelativeToMaterialDir(I_MaterialFile, FragPath);
+		const FPath BaseColorResolved = ResolveRelativeToMaterialDir(I_MaterialFile, BaseColorPath);
 
-		auto ImageAsset = I_AssetHub->LoadImage(FPath{BaseColorPath});
+		auto VertAsset = I_AssetHub->LoadShader(VertResolved);
+		auto FragAsset = I_AssetHub->LoadShader(FragResolved);
+		if (!VertAsset || !FragAsset)
+		{ LOG_ERROR("FMaterial::Create: failed to load shaders ({}, {}).", VertResolved, FragResolved); return nullptr; }
+
+		auto ImageAsset = I_AssetHub->LoadImage(BaseColorResolved);
 		if (!ImageAsset)
-		{ LOG_ERROR("FMaterial::Create: failed to load base color texture {}.", BaseColorPath); return nullptr; }
+		{ LOG_ERROR("FMaterial::Create: failed to load base color texture {}.", BaseColorResolved); return nullptr; }
 
 		FRHIShaderID VertShader = I_RHI->CreateShader(FRHIShaderCreateInfo{
 			.SPIRV      = VertAsset->GetSPIRV(),

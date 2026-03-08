@@ -172,6 +172,11 @@ export namespace Visera
             FVulkanFence*    RetiredFence   {nullptr};
             UInt8            TimeToLive     {4};
         };
+        /// All Vulkan-backed resources (Texture, Buffer, Sampler, DescriptorSet, Shader, RenderPass, ComputePass)
+        /// must be destroyed only after the GPU has finished using them. Unregister() enqueues the handle into
+        /// the corresponding GarbageBin with the current retirement fence; the RHI thread later reaps items
+        /// when RetiredFence is signaled (and optional TimeToLive has elapsed), then Erase() destroys the
+        /// backing Vulkan object. Do not destroy or release Vulkan objects outside this path to avoid use-after-free.
         TArray<FGarbageItem<FRHITextureHandle>>         GarbageBinTextures;
         TArray<FGarbageItem<FRHIBufferHandle>>          GarbageBinBuffers;
         TArray<FGarbageItem<FRHISamplerHandle>>         GarbageBinSamplers;
@@ -365,15 +370,20 @@ export namespace Visera
         if (Block->RefCount.FetchSub(1, EMemoryOrder::AcqRel) == 1)
         {
             TWeakPtr<FRHIRegistry> RegWeak = Block->Registry;
-            auto                  Hdl     = Block->Handle;
+            auto                   Handle  = Block->Handle;
             delete Block;
             Block = nullptr;
             if (RegWeak.IsExpired())
             {
-                DEBUG_ONLY_FIELD(LOG_ERROR("App did not release RHI resources (e.g. Materials, texture handles) before engine shutdown.");)
+                DEBUG_ONLY_FIELD(
+                // SwapChain proxy textures are CreateUnmanaged(Gen=0); they are not in the registry, so do not report as leak.
+                const Bool bSwapChainProxy = (Handle.GetType() == FRHIResourceHandle::EType::Texture && Handle.GetGeneration() == 0);
+                if (!bSwapChainProxy)
+                { LOG_ERROR("App did not release RHI resources({}) before engine shutdown.", Handle); }
+                );  
                 return;
             }
-            if (auto Reg = RegWeak.Lock()) { Reg->EnqueueUnregister(Hdl); }
+            if (auto Reg = RegWeak.Lock()) { Reg->EnqueueUnregister(Handle); }
         }
         else { Block = nullptr; }
     }
@@ -629,7 +639,7 @@ export namespace Visera
 
         FVulkanDescriptorSetLayout* LayoutPtr = DescriptorSetLayouts.Get(LayoutHandle);
         VISERA_ASSERT(LayoutPtr != nullptr);
-        FVulkanDescriptorSet VulkanDescriptorSet = DescriptorSetPool.CreateInforiptorSet(*LayoutPtr);
+        FVulkanDescriptorSet VulkanDescriptorSet = DescriptorSetPool.CreateDescriptorSet(*LayoutPtr);
         FRHIDescriptorSetHandle Handle = DescriptorSets.Insert(
             FRHIDescriptorSet{std::move(I_DescriptorSetDesc), std::move(VulkanDescriptorSet)},
             False);

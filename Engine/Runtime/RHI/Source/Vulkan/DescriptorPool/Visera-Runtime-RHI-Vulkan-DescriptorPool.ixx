@@ -10,11 +10,18 @@ import vulkan_hpp;
 
 export namespace Visera
 {
+    /**
+     * Vulkan descriptor pool. PoolSizes and MaxSets must be chosen so that every
+     * FVulkanDescriptorSetLayout that allocates from this pool has its bindings
+     * covered: for each descriptor type, the sum of descriptorCount across
+     * bindings of that type must not exceed the pool's corresponding
+     * VkDescriptorPoolSize::descriptorCount, and total sets must not exceed MaxSets.
+     */
     class VISERA_RUNTIME_API FVulkanDescriptorPool
     {
     public:
         [[nodiscard]] FVulkanDescriptorSet
-        CreateInforiptorSet(const FVulkanDescriptorSetLayout& I_DescriptorSetLayout);
+        CreateDescriptorSet(const FVulkanDescriptorSetLayout& I_DescriptorSetLayout);
         [[nodiscard]] const vk::raii::DescriptorPool&
         GetHandle() const { return Handle; }
 
@@ -49,7 +56,7 @@ export namespace Visera
     }
 
     FVulkanDescriptorSet FVulkanDescriptorPool::
-    CreateInforiptorSet(const FVulkanDescriptorSetLayout& I_DescriptorSetLayout)
+    CreateDescriptorSet(const FVulkanDescriptorSetLayout& I_DescriptorSetLayout)
     {
         VISERA_ASSERT(AvailableSets > 0);
 
