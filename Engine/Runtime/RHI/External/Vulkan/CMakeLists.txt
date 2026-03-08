@@ -18,9 +18,6 @@ target_compile_definitions(VulkanModule PRIVATE
 target_compile_definitions(VulkanModule PUBLIC
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
 )
-if(APPLE)
-    target_compile_options(VulkanModule PRIVATE $<$<CONFIG:Debug>:-g0> $<$<CONFIG:Develop>:-g0>)
-endif()
 message(STATUS "Vulkan files will be copied into the app bundle.")
 if(APPLE)
     set(VULKAN_ARCHIVE     "${CMAKE_CURRENT_SOURCE_DIR}/MacOS.zip")

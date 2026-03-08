@@ -5,6 +5,8 @@ export module Visera.Runtime.RHI.Registry;
 export import Visera.Runtime.RHI.Registry.Handle;
        import Visera.Core.OS.Thread.Sync.Atomic;
        import Visera.Core.OS.Thread.Sync.RWLock;
+       import Visera.Core.Types.Pointer.Shared;
+       import Visera.Core.Types.Pointer.Weak;
        import Visera.Runtime.RHI.Common;
        import Visera.Runtime.RHI.Vulkan;
        import Visera.Runtime.RHI.Resource;
@@ -27,9 +29,9 @@ export namespace Visera
     {
         struct FControlBlock
         {
-            FRHIRegistry*        Registry  {nullptr};
-            RHIHandle            Handle    {};
-            TAtomic<UInt32>      RefCount  {0};
+            TWeakPtr<FRHIRegistry> Registry {};
+            RHIHandle              Handle   {};
+            TAtomic<UInt32>        RefCount {0};
         };
 
     public:
@@ -39,7 +41,7 @@ export namespace Visera
         GetHandle() const { return Block ? Block->Handle : RHIHandle{}; }
 
         TRHIRegistryEntry() = default;
-        TRHIRegistryEntry(FRHIRegistry& I_Registry, RHIHandle I_Handle);
+        TRHIRegistryEntry(TWeakPtr<FRHIRegistry> I_Registry, RHIHandle I_Handle);
         TRHIRegistryEntry(const TRHIRegistryEntry& I_Other);
         TRHIRegistryEntry(TRHIRegistryEntry&& I_Other) noexcept;
         TRHIRegistryEntry& operator=(const TRHIRegistryEntry& I_Other);
@@ -52,7 +54,7 @@ export namespace Visera
         static TRHIRegistryEntry CreateUnmanaged(RHIHandle I_Handle)
         {
             TRHIRegistryEntry Entry;
-            Entry.Block = new FControlBlock{nullptr, I_Handle, 1};
+            Entry.Block = new FControlBlock{TWeakPtr<FRHIRegistry>{}, I_Handle, 1};
             return Entry;
         }
 
@@ -69,7 +71,7 @@ export namespace Visera
     using FRHIRenderPassID    = TRHIRegistryEntry<FRHIRenderPassHandle>;
     using FRHIComputePassID   = TRHIRegistryEntry<FRHIComputePassHandle>;
 
-    class VISERA_RUNTIME_API FRHIRegistry
+    class VISERA_RUNTIME_API FRHIRegistry : public FEnableSharedFromThis<FRHIRegistry>
     {
     public:
         [[nodiscard]] FRHITexture*
@@ -362,18 +364,23 @@ export namespace Visera
         if (!Block) { return; }
         if (Block->RefCount.FetchSub(1, EMemoryOrder::AcqRel) == 1)
         {
-            auto* Reg = Block->Registry;
-            auto  Hdl = Block->Handle;
+            TWeakPtr<FRHIRegistry> RegWeak = Block->Registry;
+            auto                  Hdl     = Block->Handle;
             delete Block;
             Block = nullptr;
-            if (Reg) { Reg->EnqueueUnregister(Hdl); }
+            if (RegWeak.IsExpired())
+            {
+                DEBUG_ONLY_FIELD(LOG_ERROR("App did not release RHI resources (e.g. Materials, texture handles) before engine shutdown.");)
+                return;
+            }
+            if (auto Reg = RegWeak.Lock()) { Reg->EnqueueUnregister(Hdl); }
         }
         else { Block = nullptr; }
     }
 
     template<Concepts::RHIHandle RHIHandle>
-    TRHIRegistryEntry<RHIHandle>::TRHIRegistryEntry(FRHIRegistry& I_Registry, RHIHandle I_Handle)
-        : Block(new FControlBlock{&I_Registry, I_Handle, 1})
+    TRHIRegistryEntry<RHIHandle>::TRHIRegistryEntry(TWeakPtr<FRHIRegistry> I_Registry, RHIHandle I_Handle)
+        : Block(new FControlBlock{std::move(I_Registry), I_Handle, 1})
     {}
 
     template<Concepts::RHIHandle RHIHandle>
@@ -435,7 +442,7 @@ export namespace Visera
                 {
                     Handles.RemoveAtSwap(Idx);
                     PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedSamplers;);
-                    return TRHIRegistryEntry<FRHISamplerHandle>(*this, Handle);
+                    return TRHIRegistryEntry<FRHISamplerHandle>(SharedFromThis(), Handle);
                 }
             }
         }
@@ -449,7 +456,7 @@ export namespace Visera
         PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedSamplers;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
-        return TRHIRegistryEntry<FRHISamplerHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHISamplerHandle>(SharedFromThis(), Handle);
     }
 
     FRHITextureID FRHIRegistry::
@@ -473,7 +480,7 @@ export namespace Visera
                 {
                     Handles.RemoveAtSwap(Idx);
                     PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedTextures;);
-                    return TRHIRegistryEntry<FRHITextureHandle>(*this, Handle);
+                    return TRHIRegistryEntry<FRHITextureHandle>(SharedFromThis(), Handle);
                 }
             }
         }
@@ -502,7 +509,7 @@ export namespace Visera
         PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedTextures;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
-        return TRHIRegistryEntry<FRHITextureHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHITextureHandle>(SharedFromThis(), Handle);
     }
 
     FRHIBufferID FRHIRegistry::
@@ -526,7 +533,7 @@ export namespace Visera
                 {
                     Handles.RemoveAtSwap(Idx);
                     PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedBuffers;);
-                    return TRHIRegistryEntry<FRHIBufferHandle>(*this, Handle);
+                    return TRHIRegistryEntry<FRHIBufferHandle>(SharedFromThis(), Handle);
                 }
             }
         }
@@ -555,7 +562,7 @@ export namespace Visera
         PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedBuffers;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
-        return TRHIRegistryEntry<FRHIBufferHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHIBufferHandle>(SharedFromThis(), Handle);
     }
 
     FRHIDescriptorSetID FRHIRegistry::
@@ -580,7 +587,7 @@ export namespace Visera
                 {
                     CandidateHandles.RemoveAtSwap(Idx);
                     PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedDescriptorSets;);
-                    return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Hdl);
+                    return TRHIRegistryEntry<FRHIDescriptorSetHandle>(SharedFromThis(), Hdl);
                 }
             }
         }
@@ -629,7 +636,7 @@ export namespace Visera
         PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedDescriptorSets;);
 
         LOG_DEBUG("Created a new resource ({}).", Handle);
-        return TRHIRegistryEntry<FRHIDescriptorSetHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHIDescriptorSetHandle>(SharedFromThis(), Handle);
     }
 
     FRHIShaderID FRHIRegistry::
@@ -641,7 +648,7 @@ export namespace Visera
         FRHIShaderHandle Handle = Shaders.Insert(
             FRHIShader{std::move(I_ShaderDesc), std::move(ShaderModule)});
         LOG_DEBUG("Registered Shader ({}).", Handle);
-        return TRHIRegistryEntry<FRHIShaderHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHIShaderHandle>(SharedFromThis(), Handle);
     }
 
     FRHIRenderPassID FRHIRegistry::
@@ -741,7 +748,7 @@ export namespace Visera
         FRHIRenderPassHandle Handle = RenderPasses.Insert(
             FRHIRenderPass{std::move(I_Info), std::move(Pipeline)});
         LOG_DEBUG("Registered RenderPass ({}).", Handle);
-        return TRHIRegistryEntry<FRHIRenderPassHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHIRenderPassHandle>(SharedFromThis(), Handle);
     }
 
     FRHIComputePassID FRHIRegistry::
@@ -803,7 +810,7 @@ export namespace Visera
         FRHIComputePassHandle Handle = ComputePasses.Insert(
             FRHIComputePass{std::move(I_Info), std::move(Pipeline)});
         LOG_DEBUG("Registered ComputePass ({}).", Handle);
-        return TRHIRegistryEntry<FRHIComputePassHandle>(*this, Handle);
+        return TRHIRegistryEntry<FRHIComputePassHandle>(SharedFromThis(), Handle);
     }
 
     void FRHIRegistry::

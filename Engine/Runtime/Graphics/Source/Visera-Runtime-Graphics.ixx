@@ -49,6 +49,10 @@ export namespace Visera
       [[nodiscard]] FRHISwapChainID
       RegisterHeadless();
 
+      /** Unregister a window and destroy its swap chain. Call before destroying the FWindow (e.g. before app terminate) to avoid dangling pointers. */
+      void
+      UnregisterWindow(FWindow* I_Window);
+
       /** Register a pass factory. Lower priority values execute first. All pass sources (user, UI, debug) use this same API. */
       void
       RegisterPass(UInt32 I_Priority, FName I_Name,
@@ -188,7 +192,7 @@ export namespace Visera
                GraphicsThread->Join();
                GraphicsThread.Reset();
             }
-            if (RHI) { RHI->WaitIdle(); }
+            if (RHI) { RHI->WaitDeviceIdle(); }
             for (FWindow* W : ManagedWindows)
             { RHI->DestroySwapChain(W); }
             for (auto Id : ManagedHeadlessIDs)
@@ -307,7 +311,7 @@ export namespace Visera
 
          if (bHasWindow && RHI->IsSwapChainDirty(SwapChainID))
          {
-            RHI->WaitIdle();
+            RHI->WaitDeviceIdle();
             for (UInt32 Waited = 0; Waited < kMaxDirtyWaitMs && RHI->IsSwapChainDirty(SwapChainID); Waited += 1)
             { LOG_TRACE("Graphics thread: waiting for swapchain to be ready... ({}/{})", Waited, kMaxDirtyWaitMs); FThread::Sleep(1); }
          }
@@ -426,6 +430,17 @@ export namespace Visera
    // =================================================================
    // FGraphics — public API
    // =================================================================
+
+   void FGraphics::
+   UnregisterWindow(FWindow* I_Window)
+   {
+      if (!I_Window || !RHI) { return; }
+      RHI->DestroySwapChain(I_Window);
+      for (auto It = ManagedWindows.begin(); It != ManagedWindows.end(); ++It)
+      {
+         if (*It == I_Window) { ManagedWindows.Erase(It); break; }
+      }
+   }
 
    FRHISwapChainID FGraphics::
    RegisterHeadless()

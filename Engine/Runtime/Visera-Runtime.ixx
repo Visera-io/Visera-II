@@ -415,6 +415,9 @@ namespace Visera
     {
         if (OwnerEngine)
         {
+            auto GFX = GetGraphics();
+            auto Win = GetWindow();
+            if (GFX && Win) { GFX->UnregisterWindow(Win); }
             Registry.EraseIf([this](const FString& K, const TSharedPtr<IRuntimeService>&)
                 { return OwnerEngine->GlobalRegistry.Contains(K); });
         }

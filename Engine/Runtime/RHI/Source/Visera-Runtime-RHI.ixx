@@ -83,7 +83,9 @@ export namespace Visera
         [[nodiscard]] UInt32
         GetMaxInFlightFrames() const { return kMaxInFlightFrames; }
         void
-        WaitIdle() const;
+        WaitDeviceIdle() const;
+        void
+        WaitSwapChainIdle(FWindow* I_Window) const;
 
         // Resource creation
         [[nodiscard]] FRHITextureID
@@ -180,7 +182,7 @@ export namespace Visera
 
             FString                             PreferredGPUName {};
             TUniquePtr<FVulkanDriver>           Driver;
-            TUniquePtr<FRHIRegistry>            Registry;
+            TSharedPtr<FRHIRegistry>            Registry;
             TUniquePtr<FRHIStagingRingBuffer>   StagingRing;
             FVulkanGraphicsCommandPool          GraphicsCommandPool;
             FVulkanTransferCommandPool          TransferCommandPool;
@@ -241,7 +243,7 @@ export namespace Visera
             void
             RequestRecreateSwapChain(FRHISwapChainID I_SwapChainID);
             void
-            WaitIdle() const;
+            WaitDeviceIdle() const;
             void
             DoReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_Size, UInt32 I_Width, UInt32 I_Height);
             [[nodiscard]] FRHITextureID
@@ -385,7 +387,6 @@ export namespace Visera
                 Done.Trigger();
             });
             Done.Wait();
-            LOG_DEBUG("({}) Created windowed SwapChain (id:{}) for window.", GetRuntimeName(), ResultID);
             return ResultID;
         }
         else
@@ -398,7 +399,6 @@ export namespace Visera
                 Done.Trigger();
             });
             Done.Wait();
-            LOG_DEBUG("({}) Created headless SwapChain (id:{}).", GetRuntimeName(), ResultID);
             return ResultID;
         }
     }
@@ -574,7 +574,7 @@ export namespace Visera
         Driver->CreateAllocator();
         Driver->CreatePipelineCache();
 
-        Registry    = MakeUnique<FRHIRegistry>(Driver.Get());
+        Registry    = MakeShared<FRHIRegistry>(Driver.Get());
         StagingRing = MakeUnique<FRHIStagingRingBuffer>(Driver.Get(), 16_MB);
         GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>(False);
         TransferCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Transfer>(False);
@@ -610,7 +610,7 @@ export namespace Visera
         }
 
         // Wait for all queue submissions before destroying any semaphore/fence (VUID 05149 / 01120).
-        Driver->WaitIdle();
+        Driver->WaitDeviceIdle();
 
         // Tear down swap chains while device is still alive.
         for (UInt8 Idx = 0; Idx < static_cast<UInt8>(SwapChains.GetSize()); ++Idx)
@@ -717,6 +717,7 @@ export namespace Visera
         {
             UInt8 Idx = It->second;
             LOG_TRACE("({}) ExecuteDestroySwapChain: windowed (id:{}).", Owner->GetRuntimeName(), Idx);
+            Driver->WaitSwapChainIdle(I_Window);
             FreeSlot(Idx);
             WindowToSwapChainIndex.Erase(I_Window);
         }
@@ -729,6 +730,11 @@ export namespace Visera
     {
         if (I_ID >= SwapChains.GetSize()) { if (I_Done) { I_Done->Trigger(); } return; }
         auto& SC = SwapChains[I_ID];
+        for (auto& Frame : SC.InFlightFrames)
+        {
+            if (Frame.ExecuteFence.Wait(kFrameFenceTimeoutNs))
+            { (void)Frame.ExecuteFence.Reset(); }
+        }
         if (SC.Window)
         {
             Driver->DestroySwapChain(SC.Window);
@@ -748,10 +754,6 @@ export namespace Visera
         if (It == WindowToSwapChainIndex.end()) { return; }
 
         const UInt8 Idx = It->second;
-        LOG_DEBUG("({}) Recreating SwapChain ({}x{}) for window (title:{}).",
-            Owner->GetRuntimeName(),
-            I_Window->GetWidth(), I_Window->GetHeight(), I_Window->GetTitle());
-
         auto& Ctx = SwapChains[Idx];
         if (Ctx.bFrameActive)
         {
@@ -1467,21 +1469,34 @@ export namespace Visera
         return sc.FrameRate.Load(EMemoryOrder::Relaxed);
     }
 
-    void FRHI::WaitIdle() const
+    void FRHI::WaitDeviceIdle() const
     {
         FRHI* Self = const_cast<FRHI*>(this);
         Self->RHIThread.IdleSyncEvent.Reset();
         Self->RHIThread.Execute([Driver = Self->RHIThread.Driver.Get(), &IdleSyncEvent = Self->RHIThread.IdleSyncEvent]()
         {
-            if (Driver) { Driver->WaitIdle(); }
+            if (Driver) { Driver->WaitDeviceIdle(); }
             IdleSyncEvent.Trigger();
         });
         Self->RHIThread.IdleSyncEvent.Wait();
     }
 
-    void FRHI::FRHIThread::WaitIdle() const
+    void FRHI::WaitSwapChainIdle(FWindow* I_Window) const
     {
-        if (Driver) { Driver->WaitIdle(); }
+        if (!I_Window) { return; }
+        FRHI* Self = const_cast<FRHI*>(this);
+        Self->RHIThread.IdleSyncEvent.Reset();
+        Self->RHIThread.Execute([Driver = Self->RHIThread.Driver.Get(), Window = I_Window, &IdleSyncEvent = Self->RHIThread.IdleSyncEvent]()
+        {
+            if (Driver) { Driver->WaitSwapChainIdle(Window); }
+            IdleSyncEvent.Trigger();
+        });
+        Self->RHIThread.IdleSyncEvent.Wait();
+    }
+
+    void FRHI::FRHIThread::WaitDeviceIdle() const
+    {
+        if (Driver) { Driver->WaitDeviceIdle(); }
     }
 
     FRHITextureID FRHI::FRHIThread::CreateTexture(FRHITextureCreateInfo&& I_Desc)

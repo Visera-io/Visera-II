@@ -101,8 +101,10 @@ export namespace Visera
         void inline CreateAllocator();      void inline DestroyAllocator();
         void inline CreatePipelineCache();  void inline DestroyPipelineCache();
 
-        void inline
-        WaitIdle() const { auto Result = Device.Context.waitIdle(); }
+        void
+        WaitDeviceIdle() const;
+        void
+        WaitSwapChainIdle(FWindow* I_Window) const;
 
     private:
         FString    ApplicationName    {"Visera"};
@@ -260,7 +262,7 @@ export namespace Visera
     FVulkanDriver::
     ~FVulkanDriver()
     {
-        if (*Device.Context) { WaitIdle(); }
+        if (*Device.Context) { WaitDeviceIdle(); }
         DestroyPipelineCache();
         for (auto& [W, SC] : SwapChains)
         {
@@ -360,7 +362,7 @@ export namespace Visera
             SC = It->second;
             SC->Extent = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
             SC->Cursor = 0;
-            WaitIdle();
+            WaitDeviceIdle();
             SC->ImageViews.Clear();
             SC->Images.Clear();
             SC->Context.clear();
@@ -454,7 +456,6 @@ export namespace Visera
             else
             { Entry.Context = std::move(*R); }
         }
-        LOG_TRACE("({}) Created a SwapChain (extent:[{},{}]).", ApplicationName, Entry.Extent.width, Entry.Extent.height);
         {
             auto R = Entry.Context.getImages();
             if (!R.has_value())
@@ -487,13 +488,27 @@ export namespace Visera
         if (It == SwapChains.end() || !It->second) { return; }
         if (*Device.Context)
         {
-            WaitIdle();
+            // RHI has already waited for this swap chain's in-flight fences before calling us.
             It->second->ImageViews.Clear();
             It->second->Images.Clear();
             It->second->Context.clear();
         }
         delete It->second;
         SwapChains.Erase(I_Window);
+    }
+
+    void FVulkanDriver::
+    WaitDeviceIdle() const
+    {
+        if (*Device.Context) { (void)Device.Context.waitIdle(); }
+    }
+
+    void FVulkanDriver::
+    WaitSwapChainIdle(FWindow* I_Window) const
+    {
+        (void)I_Window;
+        if (*Device.Context && *Device.GraphicsQueue)
+        { (void)Device.GraphicsQueue.waitIdle(); }
     }
 
     void FVulkanDriver::

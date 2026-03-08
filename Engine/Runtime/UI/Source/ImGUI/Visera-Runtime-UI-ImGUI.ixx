@@ -139,7 +139,7 @@ export namespace Visera
         {
             if (RHI)
             {
-                RHI->GetDriver()->WaitIdle();
+                RHI->GetDriver()->WaitDeviceIdle();
             }
             LOG_TRACE("({}) Terminating Dear ImGUI Vulkan backend.", RuntimeName);
             ImGui_ImplVulkan_Shutdown();

@@ -85,4 +85,12 @@ export namespace Visera
     template<typename T, typename... Args>
     [[nodiscard]] TSharedPtr<T> MakeShared(Args&&... I_Args)
     { return TSharedPtr<T>(std::make_shared<T>(std::forward<Args>(I_Args)...)); }
+
+    /** Base class for types that need to obtain a TSharedPtr from this. Use TWeakPtr<T>(SharedFromThis()) when a weak reference is needed. */
+    template<typename T>
+    class VISERA_CORE_API FEnableSharedFromThis : public std::enable_shared_from_this<T>
+    {
+    public:
+        [[nodiscard]] TSharedPtr<T> SharedFromThis() { return TSharedPtr<T>(this->shared_from_this()); }
+    };
 }

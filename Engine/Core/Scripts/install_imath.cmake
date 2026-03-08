@@ -13,7 +13,8 @@ macro(link_imath in_target)
         set(IMATH_INSTALL               OFF)
         set(IMATH_INSTALL_PKG_CONFIG    OFF)
         add_subdirectory("${VISERA_CORE_EXTERNAL_DIR}/Imath")
-        # On macOS, avoid .o.dSYM so ninja dyndep does not fail (no build statement for .o.dSYM).
+        # Imath is a subproject with its own CXX.dd; on macOS with -g, dyndep lists .o.dSYM as output
+        # but no rule produces it. Use -g0 for this target only so the subproject build succeeds.
         if(APPLE)
             target_compile_options(Imath PRIVATE $<$<CONFIG:Debug>:-g0> $<$<CONFIG:Develop>:-g0>)
         endif()
