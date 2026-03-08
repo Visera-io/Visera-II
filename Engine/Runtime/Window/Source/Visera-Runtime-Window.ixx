@@ -22,16 +22,9 @@ export namespace Visera
     public:
         using FIconSet = FPlatformWindow::FIconSet;
 
+        /** True if the platform window should close. Call FPlatform::PollEvents() once per frame before checking. */
         [[nodiscard]] Bool
-        ShouldClose() const
-        {
-            if(!PlatformWindow->ShouldClose())
-            {
-                FPlatform::PollEvents();
-                return False;
-            }
-            return True;
-        }
+        ShouldClose() const { return PlatformWindow->ShouldClose(); }
         [[nodiscard]] EPresentMode
         GetPresentMode() const { return PresentMode; }
         void

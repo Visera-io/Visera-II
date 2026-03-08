@@ -180,12 +180,8 @@ export namespace Visera
 
          if (!OnTerminate.TryBind([this]
          {
-            for (FWindow* W : ManagedWindows)
-            {
-               auto Id = RHI->QuerySwapChainID(W);
-               if (Id != kInvalidSwapChainID) { RHI->MarkSwapChainDestroyed(Id); }
-            }
-            for (auto Id : ManagedHeadlessIDs) { RHI->MarkSwapChainDestroyed(Id); }
+            // Stop graphics thread first so it does not enter the long kMaxDirtyWaitMs
+            // loop after we mark swap chains destroyed (which makes IsSwapChainDirty true).
             if (GraphicsThread)
             {
                GraphicsThread->RequestStop();
