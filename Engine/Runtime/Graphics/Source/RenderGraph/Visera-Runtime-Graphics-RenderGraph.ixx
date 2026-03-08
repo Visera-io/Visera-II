@@ -153,9 +153,9 @@ export namespace Visera
         };
 
         FRDGTexture() = default;
-        explicit FRDGTexture(FRHITextureID I_Imported,
-                            const FCreateInfo& I_CreateInfo = {},
-                            ERHIImageLayout I_InitialLayout = ERHIImageLayout::Undefined)
+        explicit FRDGTexture(FRHITextureID     I_Imported,
+                            const FCreateInfo& I_CreateInfo,
+                            ERHIImageLayout    I_InitialLayout)
             : CreateInfo(I_CreateInfo), RHIID(I_Imported), KnownLayout(I_InitialLayout), bIsExternal(True) {}
         explicit FRDGTexture(const FCreateInfo& I_CreateInfo)
             : CreateInfo(I_CreateInfo), RHIID{}, KnownLayout(ERHIImageLayout::Undefined), bIsExternal(False) {}

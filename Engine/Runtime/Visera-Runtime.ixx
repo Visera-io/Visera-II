@@ -54,7 +54,7 @@ namespace Visera
         CreateApplication(FString I_Name, const FJSON& I_AppConfig);
 
         explicit FViseraEngine(const FJSON& I_EngineConfig);
-        ~FViseraEngine() { Terminate(); }
+        ~FViseraEngine();
 
         /** Explicitly shut down engine (terminate apps and services). Idempotent. Call before Reset() for clean exit. */
         void
@@ -287,6 +287,8 @@ namespace Visera
         if (EngineConfig.GetBool(TJSONRoute<"Graphics.Enable">(), False)) { (void)RegisterGlobal<FGraphics> (EService::Graphics); }
         Bootstrap();
     }
+
+    FViseraEngine::~FViseraEngine() { Terminate(); }
 
     void FViseraEngine::Bootstrap()
     {

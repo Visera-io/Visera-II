@@ -21,6 +21,9 @@ macro(link_imgui in_target)
                               glfw
                               freetype
         )
+        if(APPLE)
+            target_compile_options(ImGui PRIVATE $<$<CONFIG:Debug>:-g0> $<$<CONFIG:Develop>:-g0>)
+        endif()
         set_target_properties(ImGui PROPERTIES FOLDER "Visera/UI/External/ImGui")
     endif()
 

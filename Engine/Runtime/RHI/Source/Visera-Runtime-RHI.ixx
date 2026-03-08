@@ -51,6 +51,7 @@ export namespace Visera
         /** Create a swap chain. I_Window=nullptr creates a headless context. Blocks until RHI thread finishes allocation. Returns the new SwapChainID. */
         [[nodiscard]] FRHISwapChainID
         CreateSwapChain(FWindow* I_Window);
+        /** Blocks until the RHI thread has finished destroying the swap chain. */
         void
         DestroySwapChain(FWindow* I_Window);
         void
@@ -208,10 +209,6 @@ export namespace Visera
             void
             CreateSwapChain(FWindow* I_Window);
             void
-            DestroySwapChain(FWindow* I_Window);
-            void
-            DestroySwapChain(FRHISwapChainID I_ID);
-            void
             RecreateSwapChain(FWindow* I_Window);
             Bool
             Initialize();
@@ -230,9 +227,9 @@ export namespace Visera
             FRHISwapChainID
             ExecuteCreateHeadlessSwapChain();
             void
-            ExecuteDestroySwapChain(FWindow* I_Window);
+            ExecuteDestroySwapChain(FWindow* I_Window, FEvent* I_Done = nullptr);
             void
-            ExecuteDestroySwapChain(FRHISwapChainID I_ID);
+            ExecuteDestroySwapChain(FRHISwapChainID I_ID, FEvent* I_Done = nullptr);
             void
             ExecuteRecreateSwapChain(FWindow* I_Window);
             void
@@ -409,8 +406,14 @@ export namespace Visera
     void FRHI::
     DestroySwapChain(FWindow* I_Window)
     {
-        if (I_Window) { MarkSwapChainDestroyed(QuerySwapChainID(I_Window)); }
-        RHIThread.DestroySwapChain(I_Window);
+        if (!I_Window) { return; }
+        MarkSwapChainDestroyed(QuerySwapChainID(I_Window));
+        FEvent Done;
+        RHIThread.Execute([this, Window = I_Window, &Done]()
+        {
+            RHIThread.ExecuteDestroySwapChain(Window, &Done);
+        });
+        Done.Wait();
     }
 
     void FRHI::
@@ -418,7 +421,12 @@ export namespace Visera
     {
         if (I_SwapChainID == kInvalidSwapChainID) { return; }
         MarkSwapChainDestroyed(I_SwapChainID);
-        RHIThread.DestroySwapChain(I_SwapChainID);
+        FEvent Done;
+        RHIThread.Execute([this, ID = I_SwapChainID, &Done]()
+        {
+            RHIThread.ExecuteDestroySwapChain(ID, &Done);
+        });
+        Done.Wait();
     }
 
     void FRHI::
@@ -543,20 +551,6 @@ export namespace Visera
         Execute([this]() { ExecuteShutdown(); });
         ShutdownEvent.Wait();
         return bShutdownSuccess;
-    }
-
-    void FRHI::FRHIThread::
-    DestroySwapChain(FWindow* I_Window)
-    {
-        if (!I_Window) { return; }
-        Execute([this, Window = I_Window]() { ExecuteDestroySwapChain(Window); });
-    }
-
-    void FRHI::FRHIThread::
-    DestroySwapChain(FRHISwapChainID I_ID)
-    {
-        if (I_ID == kInvalidSwapChainID) { return; }
-        Execute([this, ID = I_ID]() { ExecuteDestroySwapChain(ID); });
     }
 
     void FRHI::FRHIThread::
@@ -715,9 +709,9 @@ export namespace Visera
     }
 
     void FRHI::FRHIThread::
-    ExecuteDestroySwapChain(FWindow* I_Window)
+    ExecuteDestroySwapChain(FWindow* I_Window, FEvent* I_Done)
     {
-        if (!I_Window) { return; }
+        if (!I_Window) { if (I_Done) { I_Done->Trigger(); } return; }
 
         if (auto It = WindowToSwapChainIndex.Find(I_Window); It != WindowToSwapChainIndex.end())
         {
@@ -727,12 +721,13 @@ export namespace Visera
             WindowToSwapChainIndex.Erase(I_Window);
         }
         Driver->DestroySwapChain(I_Window);
+        if (I_Done) { I_Done->Trigger(); }
     }
 
     void FRHI::FRHIThread::
-    ExecuteDestroySwapChain(FRHISwapChainID I_ID)
+    ExecuteDestroySwapChain(FRHISwapChainID I_ID, FEvent* I_Done)
     {
-        if (I_ID >= SwapChains.GetSize()) { return; }
+        if (I_ID >= SwapChains.GetSize()) { if (I_Done) { I_Done->Trigger(); } return; }
         auto& SC = SwapChains[I_ID];
         if (SC.Window)
         {
@@ -742,6 +737,7 @@ export namespace Visera
         LOG_TRACE("({}) ExecuteDestroySwapChain: (id:{}, headless:{}).",
             Owner->GetRuntimeName(), I_ID, SC.Window == nullptr);
         FreeSlot(I_ID);
+        if (I_Done) { I_Done->Trigger(); }
     }
 
     void FRHI::FRHIThread::
@@ -860,6 +856,14 @@ export namespace Visera
         auto& Frame = Ctx.InFlightFrames[Ctx.FrameIndex];
         Frame.TransferCalls.End();
         Frame.GraphicsCalls.End();
+
+        // Re-check bDestroyed before touching the driver (window close can set it after initial check).
+        if (Ctx.bDestroyed.Load(EMemoryOrder::Relaxed))
+        {
+            Ctx.bFrameActive = False;
+            ReleaseSlot();
+            return;
+        }
 
         if (auto* Win = Ctx.Window; Win)
         {

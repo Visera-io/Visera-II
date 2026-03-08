@@ -25,8 +25,12 @@ export namespace Visera
         [[nodiscard]] Bool
         ShouldClose() const
         {
-            FPlatform::PollEvents();
-            return PlatformWindow->ShouldClose();
+            if(!PlatformWindow->ShouldClose())
+            {
+                FPlatform::PollEvents();
+                return False;
+            }
+            return True;
         }
         [[nodiscard]] EPresentMode
         GetPresentMode() const { return PresentMode; }

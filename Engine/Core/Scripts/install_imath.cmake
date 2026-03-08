@@ -13,6 +13,10 @@ macro(link_imath in_target)
         set(IMATH_INSTALL               OFF)
         set(IMATH_INSTALL_PKG_CONFIG    OFF)
         add_subdirectory("${VISERA_CORE_EXTERNAL_DIR}/Imath")
+        # On macOS, avoid .o.dSYM so ninja dyndep does not fail (no build statement for .o.dSYM).
+        if(APPLE)
+            target_compile_options(Imath PRIVATE $<$<CONFIG:Debug>:-g0> $<$<CONFIG:Develop>:-g0>)
+        endif()
         set_target_properties(Imath PROPERTIES FOLDER "Visera/Core/External/Imath")
     endif()
 

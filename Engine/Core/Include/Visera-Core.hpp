@@ -72,12 +72,13 @@
 		(_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0)) \
 		)
 #else
+	/* Avoid __builtin_expect to prevent ambiguity with system assert / Spdlog in C++ modules. */
 	#if __DARWIN_UNIX03
 	#define	PLATFORM_ASSERT(e) \
-	(__builtin_expect(!(e), 0) ? __assert_rtn(__func__, __ASSERT_FILE_NAME, __LINE__, #e) : (void)0)
+	(!(e) ? __assert_rtn(__func__, __ASSERT_FILE_NAME, __LINE__, #e) : (void)0)
 	#else /* !__DARWIN_UNIX03 */
-	#define PLATFORM_ASSERT(e)  \
-	(__builtin_expect(!(e), 0) ? __assert (#e, __ASSERT_FILE_NAME, __LINE__) : (void)0)
+	#define PLATFORM_ASSERT(e) \
+	(!(e) ? __assert (#e, __ASSERT_FILE_NAME, __LINE__) : (void)0)
 	#endif /* __DARWIN_UNIX03 */
 #endif
 
