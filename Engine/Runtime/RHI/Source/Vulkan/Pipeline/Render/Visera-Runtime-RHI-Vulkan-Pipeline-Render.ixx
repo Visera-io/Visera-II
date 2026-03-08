@@ -28,13 +28,14 @@ namespace Visera
         [[nodiscard]] inline UInt32
         GetColorAttachmentCount() const { return ColorAttachmentCount; }
         inline FVulkanRenderPipeline*
-        SetColorAttachment(FVulkanColorAttachment* I_ColorAttachment);
-        inline FVulkanRenderPipeline*
         SetColorAttachments(FVulkanColorAttachment* const* I_ColorAttachments, UInt32 I_Count);
         [[nodiscard]] inline FVulkanDepthStencilAttachment*
         GetDepthStencilAttachment() const { return CurrentDepthStencilAttachment; }
         inline FVulkanRenderPipeline*
         SetDepthStencilAttachment(FVulkanDepthStencilAttachment* I_DepthStencilAttachment);
+        /** Clears depth/stencil attachment so VkRenderingInfo no longer has pDepthAttachment/pStencilAttachment. */
+        inline FVulkanRenderPipeline*
+        ClearDepthStencilAttachment();
         inline FVulkanRenderPipeline*
         SetRenderArea(const vk::Rect2D& I_RenderArea) { CurrentRenderingInfo.setRenderArea(I_RenderArea); return this; }
         [[nodiscard]] inline const vk::RenderingInfo&
@@ -65,8 +66,6 @@ namespace Visera
         }Settings;
 
     private:
-        enum : UInt32 { kMaxColorAttachments = 8 };
-
         vk::raii::Pipeline                Handle {nullptr};
         FVulkanPipelineLayout             Layout;
 
@@ -137,6 +136,7 @@ namespace Visera
                 .setDstAlphaBlendFactor (vk::BlendFactor::eZero)
                 .setAlphaBlendOp        (vk::BlendOp::eAdd)
             ;
+            CurrentRenderingInfo.setPDepthAttachment(nullptr).setPStencilAttachment(nullptr);
         }
 
         void Create(const vk::raii::Device& I_Device,
@@ -144,6 +144,8 @@ namespace Visera
         {
             CurrentRenderingInfo
                 .setLayerCount(1)
+                .setPDepthAttachment(nullptr)
+                .setPStencilAttachment(nullptr)
             ;
             vk::PipelineShaderStageCreateInfo ShaderStageCreateInfos[2]{};
             ShaderStageCreateInfos[0]
@@ -211,17 +213,14 @@ namespace Visera
     };
     
     FVulkanRenderPipeline* FVulkanRenderPipeline::
-    SetColorAttachment(FVulkanColorAttachment* I_ColorAttachment)
-    {
-        return SetColorAttachments(&I_ColorAttachment, 1);
-    }
-
-    FVulkanRenderPipeline* FVulkanRenderPipeline::
     SetColorAttachments(FVulkanColorAttachment* const* I_ColorAttachments, UInt32 I_Count)
     {
         VISERA_ASSERT(I_ColorAttachments != nullptr && I_Count > 0 && I_Count <= kMaxColorAttachments);
         for (UInt32 i = 0; i < I_Count; ++i)
-        { ColorAttachmentInfos[i] = I_ColorAttachments[i]->GetAttachmentInfo(vk::ImageLayout::eColorAttachmentOptimal); }
+        {
+            VISERA_ASSERT(I_ColorAttachments[i] != nullptr);
+            ColorAttachmentInfos[i] = I_ColorAttachments[i]->GetAttachmentInfo(vk::ImageLayout::eColorAttachmentOptimal);
+        }
         ColorAttachmentCount = I_Count;
         CurrentRenderingInfo
             .setColorAttachmentCount(I_Count)
@@ -232,7 +231,8 @@ namespace Visera
     FVulkanRenderPipeline* FVulkanRenderPipeline::
     SetDepthStencilAttachment(FVulkanDepthStencilAttachment* I_DepthStencilAttachment)
     {
-        VISERA_ASSERT(I_DepthStencilAttachment != nullptr);
+        if (I_DepthStencilAttachment == nullptr)
+        { return ClearDepthStencilAttachment(); }
         CurrentDepthStencilAttachment = I_DepthStencilAttachment;
         const auto Layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
         DepthAttachmentInfo   = CurrentDepthStencilAttachment->GetDepthAttachmentInfo(Layout);
@@ -240,6 +240,16 @@ namespace Visera
         CurrentRenderingInfo
             .setPDepthAttachment  (&DepthAttachmentInfo)
             .setPStencilAttachment(&StencilAttachmentInfo);
+        return this;
+    }
+
+    FVulkanRenderPipeline* FVulkanRenderPipeline::
+    ClearDepthStencilAttachment()
+    {
+        CurrentDepthStencilAttachment = nullptr;
+        CurrentRenderingInfo
+            .setPDepthAttachment  (nullptr)
+            .setPStencilAttachment(nullptr);
         return this;
     }
 }

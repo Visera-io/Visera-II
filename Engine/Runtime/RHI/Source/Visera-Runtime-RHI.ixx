@@ -13,8 +13,6 @@ export import Visera.Runtime.RHI.Barrier;
        import Visera.Runtime.Window;
        import Visera.Runtime.Global;
        import Visera.Core.OS.Thread;
-       import Visera.Core.OS.Thread.Sync.Event;
-       import Visera.Core.OS.Thread.Sync.RWLock;
        import Visera.Core.OS.Memory;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Map;
@@ -59,7 +57,7 @@ export namespace Visera
         void
         RecreateSwapChain(FWindow* I_Window);
         [[nodiscard]] FRHISwapChainID
-        QuerySwapChainID(FWindow* I_Window) const { auto It = RHIThread.WindowToSwapChainIndex.Find(I_Window); return It == RHIThread.WindowToSwapChainIndex.end() ? kInvalidSwapChainID : It->second; }
+        QuerySwapChainID(FWindow* I_Window) const { return RHIThread.QuerySwapChainID(I_Window); }
         [[nodiscard]] Bool
         IsSwapChainDirty(FRHISwapChainID I_SwapChainID) const;
         /** True if this swap chain should be submitted and presented (not destroyed, not minimized). */
@@ -158,7 +156,7 @@ export namespace Visera
 
             struct FImmediateCommandQueue
             {
-                TSPSCQueue<FImmediateTask> Queue;
+                TMPSCQueue<FImmediateTask> Queue;
                 void
                 Enqueue(FImmediateTask I_Task) { Queue.Enqueue(std::move(I_Task)); }
                 [[nodiscard]] TOptional<FImmediateTask>
@@ -188,6 +186,7 @@ export namespace Visera
             FVulkanTransferCommandPool          TransferCommandPool;
             TArray<FRHISwapChain>               SwapChains;
             TArray<UInt8>                       FreeSlots;  // Reusable swap chain indices for stable IDs.
+            mutable FRWLock                     WindowToSwapChainLock;
             TMap<FWindow*, FRHISwapChainID>     WindowToSwapChainIndex;
             /** Utility frame for synchronous one-off GPU work (e.g. DoReadbackTexture). */
             TOptional<FRHIInFlightFrame>        UtilityFrame;
@@ -232,6 +231,9 @@ export namespace Visera
             ExecuteDestroySwapChain(FWindow* I_Window, FEvent* I_Done = nullptr);
             void
             ExecuteDestroySwapChain(FRHISwapChainID I_ID, FEvent* I_Done = nullptr);
+            /** Thread-safe lookup; call from any thread. */
+            [[nodiscard]] FRHISwapChainID
+            QuerySwapChainID(FWindow* I_Window) const;
             void
             ExecuteRecreateSwapChain(FWindow* I_Window);
             void
@@ -381,12 +383,14 @@ export namespace Visera
             RHIThread.Execute([this, I_Window, &ResultID, &Done]()
             {
                 RHIThread.ExecuteCreateSwapChain(I_Window);
-                ResultID = RHIThread.WindowToSwapChainIndex.Contains(I_Window)
-                    ? RHIThread.WindowToSwapChainIndex[I_Window]
-                    : kInvalidSwapChainID;
+                ResultID = RHIThread.QuerySwapChainID(I_Window);
                 Done.Trigger();
             });
             Done.Wait();
+            if (ResultID != kInvalidSwapChainID)
+            {
+                I_Window->OnWindowClosing.Subscribe([this](FWindow* W) { MarkSwapChainDestroyed(QuerySwapChainID(W)); });
+            }
             return ResultID;
         }
         else
@@ -464,21 +468,24 @@ export namespace Visera
                 {
                     bExecuted = True;
                     auto Entry = std::move(R).GetValue();
-                    ExecuteImmediate(Entry.Cmd, Entry.SwapChainID);
-
-                    PROFILING_ONLY_FIELD(
-                    const auto& m = Entry.Cmd.GetProfilingMetrics();
-                    auto& agg = CommandListProfilingMetrics;
-                    if (m.PeakCommandCount > agg.PeakCommandCount) agg.PeakCommandCount = m.PeakCommandCount;
-                    if (m.PeakBufferSizeBytes > agg.PeakBufferSizeBytes) agg.PeakBufferSizeBytes = m.PeakBufferSizeBytes;
-                    if (m.PeakBufferCapacityBytes > agg.PeakBufferCapacityBytes) agg.PeakBufferCapacityBytes = m.PeakBufferCapacityBytes;
-                    if (m.PeakCommandBytes > agg.PeakCommandBytes)
+                    Bool bSkipExecute = (Entry.SwapChainID < SwapChains.GetSize()
+                        && SwapChains[Entry.SwapChainID].bDestroyed.Load(EMemoryOrder::Relaxed));
+                    if (!bSkipExecute)
                     {
-                        agg.PeakCommandBytes = m.PeakCommandBytes;
-                        agg.PeakCommandType  = m.PeakCommandType;
+                        ExecuteImmediate(Entry.Cmd, Entry.SwapChainID);
+                        PROFILING_ONLY_FIELD(
+                        const auto& m = Entry.Cmd.GetProfilingMetrics();
+                        auto& agg = CommandListProfilingMetrics;
+                        if (m.PeakCommandCount > agg.PeakCommandCount) agg.PeakCommandCount = m.PeakCommandCount;
+                        if (m.PeakBufferSizeBytes > agg.PeakBufferSizeBytes) agg.PeakBufferSizeBytes = m.PeakBufferSizeBytes;
+                        if (m.PeakBufferCapacityBytes > agg.PeakBufferCapacityBytes) agg.PeakBufferCapacityBytes = m.PeakBufferCapacityBytes;
+                        if (m.PeakCommandBytes > agg.PeakCommandBytes)
+                        {
+                            agg.PeakCommandBytes = m.PeakCommandBytes;
+                            agg.PeakCommandType  = m.PeakCommandType;
+                        }
+                        );
                     }
-                    );
-
                     Entry.Cmd.Reset();
                     Entry.Cmd.ShrinkTo(CommandListHighWaterMark);
                     FreeCommandListQueue.Enqueue(std::move(Entry.Cmd));
@@ -627,7 +634,10 @@ export namespace Visera
                 LOG_TRACE("({}) Destroy headless SwapChain (id:{}).", RuntimeName, Idx);
             }
         }
-        WindowToSwapChainIndex.Clear();
+        {
+            FScopeWriteLock WriteLock(&WindowToSwapChainLock);
+            WindowToSwapChainIndex.Clear();
+        }
         SwapChains.Clear();
         FreeSlots.Clear();
         UtilityFrame.Reset();
@@ -687,13 +697,17 @@ export namespace Visera
     ExecuteCreateSwapChain(FWindow* I_Window)
     {
         if (!I_Window) { return; }
-        if (WindowToSwapChainIndex.Contains(I_Window)) { return; }
-        Driver->CreateSwapChain(I_Window);
-        UInt8 SCIdx = AllocateSlot();
-        SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, &TransferCommandPool, I_Window);
-        SwapChains[SCIdx].CachedProxyTextureID = FRHITextureID::CreateUnmanaged(
-            FRHITextureHandle::CreateSwapChainProxy(SCIdx));
-        WindowToSwapChainIndex.Insert(I_Window, SCIdx);
+        UInt8 SCIdx = kInvalidSwapChainID;
+        {
+            FScopeWriteLock WriteLock(&WindowToSwapChainLock);
+            if (WindowToSwapChainIndex.Contains(I_Window)) { return; }
+            Driver->CreateSwapChain(I_Window);
+            SCIdx = AllocateSlot();
+            SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, &TransferCommandPool, I_Window);
+            SwapChains[SCIdx].CachedProxyTextureID = FRHITextureID::CreateUnmanaged(
+                FRHITextureHandle::CreateSwapChainProxy(SCIdx));
+            WindowToSwapChainIndex.Insert(I_Window, SCIdx);
+        }
         LOG_TRACE("({}) ExecuteCreateSwapChain: windowed (id:{}, title:{}).",
             Owner->GetRuntimeName(), SCIdx, I_Window->GetTitle());
     }
@@ -713,13 +727,21 @@ export namespace Visera
     {
         if (!I_Window) { if (I_Done) { I_Done->Trigger(); } return; }
 
-        if (auto It = WindowToSwapChainIndex.Find(I_Window); It != WindowToSwapChainIndex.end())
+        UInt8 Idx = kInvalidSwapChainID;
         {
-            UInt8 Idx = It->second;
+            FScopeWriteLock WriteLock(&WindowToSwapChainLock);
+            auto It = WindowToSwapChainIndex.Find(I_Window);
+            if (It != WindowToSwapChainIndex.end())
+            {
+                Idx = It->second;
+                WindowToSwapChainIndex.Erase(I_Window);
+            }
+        }
+        if (Idx != kInvalidSwapChainID)
+        {
             LOG_TRACE("({}) ExecuteDestroySwapChain: windowed (id:{}).", Owner->GetRuntimeName(), Idx);
             Driver->WaitSwapChainIdle(I_Window);
             FreeSlot(Idx);
-            WindowToSwapChainIndex.Erase(I_Window);
         }
         Driver->DestroySwapChain(I_Window);
         if (I_Done) { I_Done->Trigger(); }
@@ -738,6 +760,7 @@ export namespace Visera
         if (SC.Window)
         {
             Driver->DestroySwapChain(SC.Window);
+            FScopeWriteLock WriteLock(&WindowToSwapChainLock);
             WindowToSwapChainIndex.Erase(SC.Window);
         }
         LOG_TRACE("({}) ExecuteDestroySwapChain: (id:{}, headless:{}).",
@@ -746,10 +769,20 @@ export namespace Visera
         if (I_Done) { I_Done->Trigger(); }
     }
 
+    FRHISwapChainID FRHI::FRHIThread::
+    QuerySwapChainID(FWindow* I_Window) const
+    {
+        if (!I_Window) { return kInvalidSwapChainID; }
+        FScopeReadLock ReadLock(&WindowToSwapChainLock);
+        auto It = WindowToSwapChainIndex.Find(I_Window);
+        return It == WindowToSwapChainIndex.end() ? kInvalidSwapChainID : It->second;
+    }
+
     void FRHI::FRHIThread::
     ExecuteRecreateSwapChain(FWindow* I_Window)
     {
         if (!I_Window || !Driver) { return; }
+        FScopeReadLock ReadLock(&WindowToSwapChainLock);
         auto It = WindowToSwapChainIndex.Find(I_Window);
         if (It == WindowToSwapChainIndex.end()) { return; }
 
@@ -937,14 +970,22 @@ export namespace Visera
     void FRHI::
     Submit(FRHICommandList&& I_CommandList)
     {
-        VISERA_ASSERT(CurrentSwapChainID != kInvalidSwapChainID && "Call BeginFrame(SwapChainID) before Submit().");
+        if (CurrentSwapChainID == kInvalidSwapChainID)
+        {
+            LOG_TRACE("RHI Submit: dropped (no active frame; swap chain may have been destroyed).");
+            return;
+        }
         RHIThread.Enqueue(std::move(I_CommandList), CurrentSwapChainID);
     }
 
     void FRHI::
     Submit(const FRHICommandList& I_CommandList)
     {
-        VISERA_ASSERT(CurrentSwapChainID != kInvalidSwapChainID && "Call BeginFrame(SwapChainID) before Submit().");
+        if (CurrentSwapChainID == kInvalidSwapChainID)
+        {
+            LOG_TRACE("RHI Submit: dropped (no active frame; swap chain may have been destroyed).");
+            return;
+        }
         FRHICommandList Copy(I_CommandList);
         RHIThread.Enqueue(std::move(Copy), CurrentSwapChainID);
     }
@@ -1245,19 +1286,19 @@ export namespace Visera
         for (UInt32 i = 0; i < Payload.ColorTargetCount; ++i)
         {
             const auto& Slot = Payload.ColorSlots[i];
-            if (Slot.Handle == FRHITextureHandle{}) { continue; }
-            auto* ImageView = GetVulkanImageViewChecked(Slot.Handle);
+            if (Slot.ColorTexture == FRHITextureHandle{}) { continue; }
+            auto* ImageView = GetVulkanImageViewChecked(Slot.ColorTexture);
             if (!ImageView)
             {
                 LOG_WARN("ExecuteEnterRenderPass: slot {} has invalid ImageView (handle={}), skipping.",
-                    i, Slot.Handle);
+                    i, Slot.ColorTexture);
                 continue;
             }
             ColorAttachments[ValidCount] = FVulkanColorAttachment(ImageView);
-            ColorAttachments[ValidCount].SetLoadOp(TypeCast(Slot.LoadOp));
-            ColorAttachments[ValidCount].SetStoreOp(TypeCast(Slot.StoreOp));
+            ColorAttachments[ValidCount].SetLoadOp(TypeCast(Slot.ColorLoadOp));
+            ColorAttachments[ValidCount].SetStoreOp(TypeCast(Slot.ColorStoreOp));
             ColorAttachments[ValidCount].SetClearColor(vk::ClearColorValue(
-                Slot.ClearColor.R, Slot.ClearColor.G, Slot.ClearColor.B, Slot.ClearColor.A));
+                Slot.ColorClearValue.R, Slot.ColorClearValue.G, Slot.ColorClearValue.B, Slot.ColorClearValue.A));
             ColorAttachmentPtrs[ValidCount] = &ColorAttachments[ValidCount];
             ++ValidCount;
         }
@@ -1270,7 +1311,28 @@ export namespace Visera
 
         Pipeline->SetColorAttachments(ColorAttachmentPtrs, ValidCount);
 
-        auto* Image = GetVulkanImageChecked(Payload.ColorSlots[0].Handle);
+        const auto& DsSlot = Payload.DepthStencilSlot;
+        if (DsSlot.DepthStencilTexture != FRHITextureHandle{})
+        {
+            auto* DsImageView = GetVulkanImageViewChecked(DsSlot.DepthStencilTexture);
+            if (DsImageView)
+            {
+                FVulkanDepthStencilAttachment DepthStencilAttachment(DsImageView);
+                DepthStencilAttachment
+                    .SetDepthLoadOp   (TypeCast(DsSlot.DepthLoadOp))
+                    .SetDepthStoreOp  (TypeCast(DsSlot.DepthStoreOp))
+                    .SetStencilLoadOp (TypeCast(DsSlot.StencilLoadOp))
+                    .SetStencilStoreOp(TypeCast(DsSlot.StencilStoreOp))
+                    .SetClearDepthStencil(vk::ClearDepthStencilValue{DsSlot.DepthClearValue, DsSlot.StencilClearValue});
+                Pipeline->SetDepthStencilAttachment(&DepthStencilAttachment);
+            }
+            else
+            { Pipeline->ClearDepthStencilAttachment(); }
+        }
+        else
+        { Pipeline->ClearDepthStencilAttachment(); }
+
+        auto* Image = GetVulkanImageChecked(Payload.ColorSlots[0].ColorTexture);
         if (!Image)
         {
             LOG_WARN("ExecuteEnterRenderPass: could not resolve image for first color slot, skipping.");

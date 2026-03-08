@@ -91,12 +91,23 @@ export namespace Visera
             UInt8                     ColorTargetCount { 0 };
             struct alignas(8) FColorAttachmentSlot
             {
-                FRHITextureHandle      Handle;
-                ERHIAttachmentLoadOp   LoadOp     { ERHIAttachmentLoadOp::Clear  };
-                ERHIAttachmentStoreOp  StoreOp    { ERHIAttachmentStoreOp::Store };
-                FLinearColor           ClearColor { FLinearColor::Purple() };
+                FRHITextureHandle       ColorTexture    {};
+                ERHIAttachmentLoadOp   ColorLoadOp     { ERHIAttachmentLoadOp::Clear  };
+                ERHIAttachmentStoreOp  ColorStoreOp    { ERHIAttachmentStoreOp::Store };
+                FLinearColor           ColorClearValue { FLinearColor::Purple() };
             };
             FColorAttachmentSlot ColorSlots[kMaxColorAttachments];
+            struct alignas(8) FDepthStencilSlot
+            {
+                FRHITextureHandle       DepthStencilTexture {};
+                ERHIAttachmentLoadOp   DepthLoadOp        { ERHIAttachmentLoadOp::Clear };
+                ERHIAttachmentStoreOp  DepthStoreOp       { ERHIAttachmentStoreOp::Store };
+                Float                  DepthClearValue    { 1.0f };
+                ERHIAttachmentLoadOp   StencilLoadOp      { ERHIAttachmentLoadOp::DontCare };
+                ERHIAttachmentStoreOp  StencilStoreOp     { ERHIAttachmentStoreOp::DontCare };
+                UInt32                 StencilClearValue  { 0 };
+            };
+            FDepthStencilSlot DepthStencilSlot;
         };
         void inline
         EnterRenderPass(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments);
@@ -646,11 +657,19 @@ export namespace Visera
         {
             const auto& Src = I_Attachments.ColorTargets[i];
             auto& Dst = Payload.ColorSlots[i];
-            Dst.Handle     = Src.Texture;
-            Dst.LoadOp     =  Src.LoadOp;
-            Dst.StoreOp    = Src.StoreOp;
-            Dst.ClearColor = Src.ClearColor;
+            Dst.ColorTexture    = Src.Texture;
+            Dst.ColorLoadOp     = Src.LoadOp;
+            Dst.ColorStoreOp    = Src.StoreOp;
+            Dst.ColorClearValue = Src.ClearColor;
         }
+        const auto& Ds = I_Attachments.DepthStencil;
+        Payload.DepthStencilSlot.DepthStencilTexture = Ds.Texture;
+        Payload.DepthStencilSlot.DepthLoadOp          = Ds.DepthLoadOp;
+        Payload.DepthStencilSlot.DepthStoreOp         = Ds.DepthStoreOp;
+        Payload.DepthStencilSlot.DepthClearValue      = Ds.DepthClear;
+        Payload.DepthStencilSlot.StencilLoadOp        = Ds.StencilLoadOp;
+        Payload.DepthStencilSlot.StencilStoreOp       = Ds.StencilStoreOp;
+        Payload.DepthStencilSlot.StencilClearValue    = Ds.StencilClear;
         RecordCommand(ERHICommandType::EnterRenderPass, Payload);
     }
 

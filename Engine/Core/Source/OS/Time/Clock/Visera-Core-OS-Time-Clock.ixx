@@ -39,6 +39,14 @@ export namespace Visera
         TClock() noexcept : StartTimePoint{ Now() } { LastTickTimePoint = StartTimePoint; }
     };
 
-    using FHiResClock  = TClock<std::chrono::high_resolution_clock>;
-    using FSystemClock = TClock<std::chrono::system_clock>;
+    using FHiResClock       = TClock<std::chrono::high_resolution_clock>;
+    using FSystemClock      = TClock<std::chrono::system_clock>;
+    /** Time point from high-resolution clock; use with FHiResClock::Now() and frame pacing. */
+    using FHighResTimePoint = TTimePoint<std::chrono::high_resolution_clock>;
+    /** Time point from system clock; use with FSystemClock::Now(). */
+    using FSystemTimePoint  = TTimePoint<std::chrono::system_clock>;
+    /** Duration from high-resolution clock; e.g. FHiResClock::Now() - FrameStart. */
+    using FHighResDuration  = TDuration<std::chrono::high_resolution_clock>;
+    /** Duration from system clock; e.g. FSystemClock::Now() - Start. */
+    using FSystemDuration   = TDuration<std::chrono::system_clock>;
 }

@@ -22,9 +22,18 @@ export namespace Visera
     public:
         using FIconSet = FPlatformWindow::FIconSet;
 
-        /** True if the platform window should close. Call FPlatform::PollEvents() once per frame before checking. */
+        /** True if the platform window should close. Call FPlatform::PollEvents() once per frame before checking. On first true, broadcasts OnWindowClosing(this) once. */
         [[nodiscard]] Bool
-        ShouldClose() const { return PlatformWindow->ShouldClose(); }
+        ShouldClose()
+        {
+            Bool bShouldClose = PlatformWindow->ShouldClose();
+            if (bShouldClose && !bClosingNotified)
+            {
+                bClosingNotified = True;
+                OnWindowClosing.Broadcast(const_cast<FWindow*>(this));
+            }
+            return bShouldClose;
+        }
         [[nodiscard]] EPresentMode
         GetPresentMode() const { return PresentMode; }
         void
@@ -48,11 +57,13 @@ export namespace Visera
         /** Platform keyboard callback: key, scancode, action, mods. Subscribe from FInput etc. */
         TMulticastDelegate<Int32, Int32, Int32, Int32> OnKeyboardKey;
         /** Platform mouse button callback: button, action, mods. */
-        TMulticastDelegate<Int32, Int32, Int32>       OnMouseButton;
+        TMulticastDelegate<Int32, Int32, Int32>        OnMouseButton;
         /** Platform cursor move: x, y. */
-        TMulticastDelegate<Double, Double>            OnCursorMove;
+        TMulticastDelegate<Double, Double>             OnCursorMove;
         /** Platform scroll: offsetX, offsetY. */
-        TMulticastDelegate<Double, Double>            OnScroll;
+        TMulticastDelegate<Double, Double>             OnScroll;
+        /** Fired once when ShouldClose() first returns true. Argument is this window (for multi-window). */
+        TMulticastDelegate<FWindow*>                   OnWindowClosing;
 
         void
         SetIcon(const FIconSet& I_IconSet) { PlatformWindow->SetIcon(I_IconSet); }
@@ -63,7 +74,8 @@ export namespace Visera
 
     private:
         TUniquePtr<FPlatformWindow> PlatformWindow;
-        EPresentMode                PresentMode {EPresentMode::VSync};
+        EPresentMode                PresentMode      {EPresentMode::VSync};
+        Bool                        bClosingNotified {False};
 
     public:
         FWindow(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,

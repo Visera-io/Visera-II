@@ -1231,14 +1231,14 @@ export namespace Visera
     CreateRenderPipeline(FVulkanPipelineLayout*       I_PipelineLayout,
                          FVulkanShaderModule*         I_VertexShader,
                          FVulkanShaderModule*         I_FragmentShader,
-                         const TArray<vk::Format>&     I_ColorFormats,
+                         const TArray<vk::Format>&    I_ColorFormats,
                          vk::Format                   I_DepthStencilFormat)
     {
         LOG_TRACE("Creating a Vulkan Render Pipeline.");
         VISERA_ASSERT(I_PipelineLayout != nullptr);
         VISERA_ASSERT(I_VertexShader != nullptr);
         VISERA_ASSERT(I_FragmentShader != nullptr);
-        VISERA_ASSERT(I_ColorFormats.GetSize() > 0 && I_ColorFormats.GetSize() <= 8);
+        VISERA_ASSERT(I_ColorFormats.GetSize() > 0 && I_ColorFormats.GetSize() <= kMaxColorAttachments);
         auto NewRenderPipeline = FVulkanRenderPipeline(
                std::move(*I_PipelineLayout),
                std::move(*I_VertexShader),

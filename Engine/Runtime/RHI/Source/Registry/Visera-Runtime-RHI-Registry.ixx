@@ -930,47 +930,26 @@ export namespace Visera
         LOG_DEBUG("FRHIRegistry::ForceDestroyAll: destroying all resources.");
         DrainPendingUnregisters();
 
-        for (auto& CurrentItem : GarbageBinTextures)
-        {
-            const auto* Texture = Textures.Get(CurrentItem.ResourceHandle);
-            if (Texture) { RecycleBinTextures[Hash(Texture->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
-        }
+        // At shutdown we do not recycle: clear bins and then clear maps so every resource
+        // is destroyed exactly once (in the map destructors).
         GarbageBinTextures.Clear();
-        for (auto& CurrentItem : GarbageBinBuffers)
-        {
-            const auto* Buffer = Buffers.Get(CurrentItem.ResourceHandle);
-            if (Buffer) { RecycleBinBuffers[Hash(Buffer->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
-        }
         GarbageBinBuffers.Clear();
-        for (auto& CurrentItem : GarbageBinSamplers)
-        {
-            const auto* Sampler = Samplers.Get(CurrentItem.ResourceHandle);
-            if (Sampler) { RecycleBinSamplers[Hash(Sampler->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
-        }
         GarbageBinSamplers.Clear();
-        for (auto& CurrentItem : GarbageBinDescriptorSets)
-        {
-            const auto* DescriptorSet = DescriptorSets.Get(CurrentItem.ResourceHandle);
-            if (DescriptorSet) { RecycleBinDescriptorSets[Hash(DescriptorSet->GetInfo())].EmplaceBack(CurrentItem.ResourceHandle); }
-        }
         GarbageBinDescriptorSets.Clear();
-        for (auto& CurrentItem : GarbageBinShaders)
-        {
-            (void)Shaders.Erase(CurrentItem.ResourceHandle);
-        }
         GarbageBinShaders.Clear();
-        for (auto& CurrentItem : GarbageBinRenderPasses)
-        {
-            (void)RenderPasses.Erase(CurrentItem.ResourceHandle);
-        }
         GarbageBinRenderPasses.Clear();
-        for (auto& CurrentItem : GarbageBinComputePasses)
-        {
-            (void)ComputePasses.Erase(CurrentItem.ResourceHandle);
-        }
         GarbageBinComputePasses.Clear();
+        RecycleBinTextures.Clear();
+        RecycleBinBuffers.Clear();
+        RecycleBinSamplers.Clear();
+        RecycleBinDescriptorSets.Clear();
 
-        ClearGarbage();
+        PROFILING_ONLY_FIELD(
+        ProfilingMetrics.DestroyedTextures       += Textures.GetSize();
+        ProfilingMetrics.DestroyedBuffers        += Buffers.GetSize();
+        ProfilingMetrics.DestroyedSamplers       += Samplers.GetSize();
+        ProfilingMetrics.DestroyedDescriptorSets += DescriptorSets.GetSize();
+        );
 
         DescriptorSets.Clear();
         DescriptorSetLayouts.Clear();

@@ -43,7 +43,8 @@ export namespace Visera
 
       /** Render a headless (or direct ID-based) frame. Use the ID returned by RegisterHeadless(). */
       void
-      Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene);
+      Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene,
+             UInt32 I_ViewportWidth = 0, UInt32 I_ViewportHeight = 0);
 
       /** Create a headless rendering context. Returns a stable SwapChainID. */
       [[nodiscard]] FRHISwapChainID
@@ -108,6 +109,8 @@ export namespace Visera
             FRHI*                                 I_RHI,
             TSPSCChannel<TOptional<FRenderTask>>& I_ChannelFromMain,
             TAtomic<UInt32>&                      I_PendingDrawRenderTaskCount,
+            FCriticalSection*                     I_OverwriteSlotMutex,
+            TOptional<FRenderTask>*               I_OverwriteSlotPtr,
             const TArray<FPassEntry>*             I_PassEntries,
             UInt32                                I_MaxFrameRate);
 
@@ -125,9 +128,23 @@ export namespace Visera
          [[nodiscard]] FSwapChainGraphContext&
          GetOrCreateContext(FRHISwapChainID I_ID);
 
+         [[nodiscard]] Bool
+         TryReceiveTask(TOptional<FRenderTask>& OutTask);
+         void
+         WaitSwapChainReadyIfDirty(FRHISwapChainID SwapChainID);
+         void
+         ImportCachedTextures(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot,
+                             UInt32 ViewportWidth, UInt32 ViewportHeight);
+         void
+         ExportGraphToCache(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot);
+         void
+         ApplyFramePacing(FHighResTimePoint FrameStart);
+
          FRHI*                                 RHI {nullptr};
          TSPSCChannel<TOptional<FRenderTask>>& ChannelFromMain;
          TAtomic<UInt32>&                      PendingDrawRenderTaskCount;
+         FCriticalSection*                     OverwriteSlotMutex {nullptr};
+         TOptional<FRenderTask>*               OverwriteSlotPtr {nullptr};
          UInt32                                MaxFrameRate {0};
          FHiResClock                           FramePacingClock;
          TUniquePtr<FThread>                   Thread;
@@ -140,7 +157,9 @@ export namespace Visera
       TSharedPtr<FRHI>                         RHI;
       TSPSCChannel<TOptional<FRenderTask>>     ChannelToGraphics;
       TAtomic<UInt32>                          PendingDrawRenderTaskCount {0};
-      TArray<FWindow*>                        ManagedWindows;
+      FCriticalSection                         OverwriteSlotMutex;
+      TOptional<FRenderTask>                   OverwriteSlot;
+      TArray<FWindow*>                         ManagedWindows;
       TUniquePtr<FGraphicsThread>              GraphicsThread;
       TArray<FRHISwapChainID>                  ManagedHeadlessIDs;
       TArray<FPassEntry>                       PassEntries;
@@ -173,6 +192,7 @@ export namespace Visera
                UInt32 MaxFrameRate = GetConfig().GetNumber(TJSONRoute<"Graphics.MaxFrameRate">(), 0);
                GraphicsThread = MakeUnique<FGraphicsThread>(
                   RHI.Get(), ChannelToGraphics, PendingDrawRenderTaskCount,
+                  &OverwriteSlotMutex, &OverwriteSlot,
                   &PassEntries, MaxFrameRate);
                GraphicsThread->Start();
                if (MaxFrameRate > 0) { LOG_INFO("Graphics: thread started (MaxFrameRate={}).", MaxFrameRate); }
@@ -236,11 +256,15 @@ export namespace Visera
       FRHI*                                 I_RHI,
       TSPSCChannel<TOptional<FRenderTask>>& I_ChannelFromMain,
       TAtomic<UInt32>&                      I_PendingDrawRenderTaskCount,
+      FCriticalSection*                     I_OverwriteSlotMutex,
+      TOptional<FRenderTask>*               I_OverwriteSlotPtr,
       const TArray<FPassEntry>*             I_PassEntries,
       UInt32                                I_MaxFrameRate)
        : RHI(I_RHI)
        , ChannelFromMain(I_ChannelFromMain)
        , PendingDrawRenderTaskCount(I_PendingDrawRenderTaskCount)
+       , OverwriteSlotMutex(I_OverwriteSlotMutex)
+       , OverwriteSlotPtr(I_OverwriteSlotPtr)
        , MaxFrameRate(I_MaxFrameRate)
        , PassEntries(I_PassEntries)
    {
@@ -286,42 +310,39 @@ export namespace Visera
 
       while (True)
       {
-         auto Received = ChannelFromMain.Receive();
-         if (!Received.GetValue().HasValue())
+         TOptional<FRenderTask> TaskToProcess;
+         // 1. Receive task
+         if (!TryReceiveTask(TaskToProcess))
          {
             LOG_DEBUG("({}) Graphics thread stopped.", RHI->GetRuntimeName());
             break;
          }
-
+         const FRenderTask& RenderTask = TaskToProcess.GetValue();
          auto FrameStart = FramePacingClock.Now();
-         PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
-         const FRenderTask& RenderTask = Received.GetValue().GetValue();
 
+         // 2. Validate swap chain
          FRHISwapChainID SwapChainID = RenderTask.SwapChainID;
          if (SwapChainID == kInvalidSwapChainID) { continue; }
          if (!RHI->IsValidSwapChain(SwapChainID)) { continue; }
 
+         // 3. Validate passes
          if (!PassEntries || PassEntries->IsEmpty())
          {
             LOG_TRACE("Graphics thread: no passes registered, skipping frame.");
             continue;
          }
 
+         // 4. Wait swap chain if dirty
          const Bool bHasWindow = RHI->HasWindow(SwapChainID);
+         WaitSwapChainReadyIfDirty(SwapChainID);
 
-         if (bHasWindow && RHI->IsSwapChainDirty(SwapChainID))
-         {
-            RHI->WaitDeviceIdle();
-            for (UInt32 Waited = 0; Waited < kMaxDirtyWaitMs && RHI->IsSwapChainDirty(SwapChainID); Waited += 1)
-            { LOG_TRACE("Graphics thread: waiting for swapchain to be ready... ({}/{})", Waited, kMaxDirtyWaitMs); FThread::Sleep(1); }
-         }
-
+         // 5. BeginFrame
          FRHITextureID BackBuffer = RHI->BeginFrame(SwapChainID);
          if (BackBuffer.IsNull())
          { LOG_DEBUG("Graphics thread: skipping frame SwapChainID={}, BackBuffer is null (swapchain destroyed or unavailable).", SwapChainID); continue; }
 
+         // 6. Build context and graph
          auto& SCContext = GetOrCreateContext(SwapChainID);
-
          FRenderContext Ctx{
             .RHI            = RHI,
             .Data           = &RenderTask.Data,
@@ -333,49 +354,26 @@ export namespace Visera
             .ViewportHeight = RenderTask.ViewportHeight,
          };
          auto Graph = MakeUnique<FRenderGraph>(SwapChainID, BackBuffer);
-
          const UInt32 MaxInFlight = RHI->GetMaxInFlightFrames();
          const UInt32 FrameSlot = MaxInFlight > 0
             ? static_cast<UInt32>(SCContext.FrameSerial % MaxInFlight)
             : 0;
          ++SCContext.FrameSerial;
-
          if (bHasWindow && RHI->IsSwapChainDirty(SwapChainID))
          { SCContext.InvalidateCache(); }
-
          auto& CacheSlot = SCContext.InFlightCaches[FrameSlot];
-         for (auto& [CachedName, CachedTex] : CacheSlot)
-         {
-            if (CachedTex.Width  == RenderTask.ViewportWidth &&
-                CachedTex.Height == RenderTask.ViewportHeight)
-            {
-               auto Imported = Graph->RegisterExternalTexture(
-                  CachedName,
-                  CachedTex.ID,
-                  FRDGTextureCreateInfo{
-                     .Width  = CachedTex.Width,
-                     .Height = CachedTex.Height,
-                     .Format = CachedTex.Format,
-                  },
-                  CachedTex.KnownLayout);
-               LOG_TRACE("Cache import: '{}' RHI={} Layout={} -> GfxID valid={}",
-                  CachedName.GetNameString(), CachedTex.ID.GetHandle().GetIndex(),
-                  static_cast<int>(CachedTex.KnownLayout), Imported.IsValid());
-            }
-            else
-            {
-               LOG_DEBUG("Cache skip '{}': size mismatch (cached={}x{} vs viewport={}x{})",
-                  CachedName.GetNameString(), CachedTex.Width, CachedTex.Height,
-                  RenderTask.ViewportWidth, RenderTask.ViewportHeight);
-            }
-         }
 
+         // 7. Import cached textures
+         ImportCachedTextures(*Graph, CacheSlot, RenderTask.ViewportWidth, RenderTask.ViewportHeight);
+
+         // 8. Run passes
          for (const auto& Entry : *PassEntries)
          {
             LOG_TRACE("Graphics thread: running pass factory '{}'.", Entry.Name.GetNameString());
             Entry.Factory(*Graph, Ctx);
          }
 
+         // 9. PresentTransition
          if (bHasWindow && Graph->HasBackBuffer())
          {
             auto BB = Graph->GetBackBuffer();
@@ -387,44 +385,124 @@ export namespace Visera
                [](const FRDGPassContext&) { });
          }
 
+         // 10. Compile, execute, submit
          auto CmdList = RHI->CreateCommandList();
          Graph->Compile(RHI)->Execute(&CmdList);
+         if (!RHI->IsValidSwapChain(SwapChainID))
+         {
+            LOG_DEBUG("Graphics thread: skipping Submit/Present for SwapChainID={} (destroyed during frame).", SwapChainID);
+            RHI->EndFrame();
+            continue;
+         }
          RHI->Submit(std::move(CmdList));
 
-         CacheSlot.Clear();
-         for (const auto& [Name, GfxID] : Graph->GetNamedTextures())
-         {
-            const auto* Entry = Graph->GetTextureEntry(GfxID);
-            if (!Entry || !Graph->IsTextureLive(GfxID) || Entry->GetRHIID().IsNull()) { continue; }
-            LOG_TRACE("Cache export: '{}' -> RHI={} Layout={} (external={})",
-               Name.GetNameString(), Entry->GetRHIID().GetHandle().GetIndex(),
-               static_cast<int>(Entry->GetKnownLayout()),
-               Entry->IsExternal());
-            const auto& Info = Entry->GetCreateInfo();
-            CacheSlot.InsertOrAssign(Name,
-               FCachedTexture{
-                  Entry->GetRHIID(),
-                  Info.Width,
-                  Info.Height,
-                  Info.Format,
-                  ERHIImageLayout::Undefined,
-               });
-         }
-
+         // 11. Export cache and present
+         ExportGraphToCache(*Graph, CacheSlot);
          RHI->Present(SwapChainID);
          RHI->EndFrame();
 
-         if (MaxFrameRate > 0)
+         // 12. Frame pacing
+         ApplyFramePacing(FrameStart);
+      }
+   }
+
+   [[nodiscard]] Bool FGraphics::FGraphicsThread::
+   TryReceiveTask(TOptional<FRenderTask>& OutTask)
+   {
+      auto Received = ChannelFromMain.Receive();
+      if (!Received.GetValue().HasValue())
+      { return false; }
+      if (OverwriteSlotMutex && OverwriteSlotPtr)
+      {
+         FScopeLock Lock(OverwriteSlotMutex);
+         if (OverwriteSlotPtr->HasValue())
          {
-            UInt32 const TargetMs = 1000 / MaxFrameRate;
-            auto Elapsed = FramePacingClock.Now() - FrameStart;
-            UInt32 ElapsedMs = Elapsed.Milliseconds();
-            if (ElapsedMs + 2U < TargetMs)
-            { FThread::Sleep(TargetMs - ElapsedMs - 2U); }
-            while ((FramePacingClock.Now() - FrameStart).Milliseconds() < TargetMs)
-            { /* spin last ~2ms for precise pacing */ }
+            OutTask = std::move(*OverwriteSlotPtr);
+            OverwriteSlotPtr->Reset();
          }
       }
+      if (!OutTask.HasValue())
+      { OutTask = std::move(Received.GetValue()); }
+      PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
+      return true;
+   }
+
+   void FGraphics::FGraphicsThread::
+   WaitSwapChainReadyIfDirty(FRHISwapChainID SwapChainID)
+   {
+      if (!RHI->HasWindow(SwapChainID) || !RHI->IsSwapChainDirty(SwapChainID))
+      { return; }
+      RHI->WaitDeviceIdle();
+      for (UInt32 Waited = 0; Waited < kMaxDirtyWaitMs && RHI->IsSwapChainDirty(SwapChainID); Waited += 1)
+      { LOG_TRACE("Graphics thread: waiting for swapchain to be ready... ({}/{})", Waited, kMaxDirtyWaitMs); FThread::Sleep(1); }
+   }
+
+   void FGraphics::FGraphicsThread::
+   ImportCachedTextures(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot,
+                       UInt32 ViewportWidth, UInt32 ViewportHeight)
+   {
+      for (auto& [CachedName, CachedTex] : CacheSlot)
+      {
+         if (CachedTex.Width  == ViewportWidth &&
+             CachedTex.Height == ViewportHeight)
+         {
+            auto Imported = Graph.RegisterExternalTexture(
+               CachedName,
+               CachedTex.ID,
+               FRDGTextureCreateInfo{
+                  .Width  = CachedTex.Width,
+                  .Height = CachedTex.Height,
+                  .Format = CachedTex.Format,
+               },
+               CachedTex.KnownLayout);
+            LOG_TRACE("Cache import: '{}' RHI={} Layout={} -> GfxID valid={}",
+               CachedName.GetNameString(), CachedTex.ID.GetHandle().GetIndex(),
+               static_cast<int>(CachedTex.KnownLayout), Imported.IsValid());
+         }
+         else
+         {
+            LOG_DEBUG("Cache skip '{}': size mismatch (cached={}x{} vs viewport={}x{})",
+               CachedName.GetNameString(), CachedTex.Width, CachedTex.Height,
+               ViewportWidth, ViewportHeight);
+         }
+      }
+   }
+
+   void FGraphics::FGraphicsThread::
+   ExportGraphToCache(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot)
+   {
+      CacheSlot.Clear();
+      for (const auto& [Name, GfxID] : Graph.GetNamedTextures())
+      {
+         const auto* Entry = Graph.GetTextureEntry(GfxID);
+         if (!Entry || !Graph.IsTextureLive(GfxID) || Entry->GetRHIID().IsNull()) { continue; }
+         LOG_TRACE("Cache export: '{}' -> RHI={} Layout={} (external={})",
+            Name.GetNameString(), Entry->GetRHIID().GetHandle().GetIndex(),
+            static_cast<int>(Entry->GetKnownLayout()),
+            Entry->IsExternal());
+         const auto& Info = Entry->GetCreateInfo();
+         CacheSlot.InsertOrAssign(Name,
+            FCachedTexture{
+               Entry->GetRHIID(),
+               Info.Width,
+               Info.Height,
+               Info.Format,
+               ERHIImageLayout::Undefined,
+            });
+      }
+   }
+
+   void FGraphics::FGraphicsThread::
+   ApplyFramePacing(FHighResTimePoint FrameStart)
+   {
+      if (MaxFrameRate == 0) { return; }
+      UInt32 const TargetMs = 1000 / MaxFrameRate;
+      auto Elapsed = FramePacingClock.Now() - FrameStart;
+      UInt32 ElapsedMs = Elapsed.Milliseconds();
+      if (ElapsedMs + 2U < TargetMs)
+      { FThread::Sleep(TargetMs - ElapsedMs - 2U); }
+      while ((FramePacingClock.Now() - FrameStart).Milliseconds() < TargetMs)
+      { /* spin last ~2ms for precise pacing */ }
    }
 
    // =================================================================
@@ -476,42 +554,35 @@ export namespace Visera
       }
       RHI->UpdateSwapChainMinimized(SwapChainID, I_Window->IsMinimized());
 
-      UInt32 Prev = PendingDrawRenderTaskCount.FetchAdd(1, EMemoryOrder::Relaxed);
-      if (Prev >= kMaxPendingDrawRenderTasks)
-      {
-         PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
-         LOG_TRACE("Graphics render queue full, dropping draw intent.");
-         return;
-      }
-      const UInt32 VW = static_cast<UInt32>(I_Window->GetWidth()  > 0 ? I_Window->GetWidth()  : 1);
-      const UInt32 VH = static_cast<UInt32>(I_Window->GetHeight() > 0 ? I_Window->GetHeight() : 1);
-      FRenderData data;
-      FRenderView renderView;
-      I_Scene.BuildRenderData(data);
-      renderView = I_Scene.BuildRenderView();
-      ChannelToGraphics.Send(TOptional<FRenderTask>{{SwapChainID, std::move(data), std::move(renderView), VW, VH}});
+      const UInt32 ViewportWidth  = I_Window->GetWidth()  > 0 ? static_cast<UInt32>(I_Window->GetWidth())  : 1u;
+      const UInt32 ViewportHeight = I_Window->GetHeight() > 0 ? static_cast<UInt32>(I_Window->GetHeight()) : 1u;
+      Render(SwapChainID, I_Scene, ViewportWidth, ViewportHeight);
    }
 
    void FGraphics::
-   Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene)
+   Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene,
+          UInt32 I_ViewportWidth, UInt32 I_ViewportHeight)
    {
       if (I_SwapChainID == kInvalidSwapChainID)
       {
          LOG_WARN("FGraphics::Render called with invalid SwapChainID.");
          return;
       }
-      UInt32 Prev = PendingDrawRenderTaskCount.FetchAdd(1, EMemoryOrder::Relaxed);
-      if (Prev >= kMaxPendingDrawRenderTasks)
+      UInt32 PreviousCount = PendingDrawRenderTaskCount.FetchAdd(1, EMemoryOrder::Relaxed);
+      FRenderData RenderData;
+      FRenderView RenderView;
+      I_Scene.BuildRenderData(RenderData);
+      RenderView = I_Scene.BuildRenderView();
+      TOptional<FRenderTask> RenderTask{{I_SwapChainID, std::move(RenderData), std::move(RenderView), I_ViewportWidth, I_ViewportHeight}};
+      if (PreviousCount >= kMaxPendingDrawRenderTasks)
       {
          PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
-         LOG_TRACE("Graphics render queue full, dropping draw intent (id:{}).", I_SwapChainID);
+         FScopeLock ScopeLock(&OverwriteSlotMutex);
+         OverwriteSlot = std::move(RenderTask);
+         LOG_TRACE("Graphics render queue full, overwriting oldest with latest draw intent (id:{}, ring semantics).", I_SwapChainID);
          return;
       }
-      FRenderData data;
-      FRenderView renderView;
-      I_Scene.BuildRenderData(data);
-      renderView = I_Scene.BuildRenderView();
-      ChannelToGraphics.Send(TOptional<FRenderTask>{{I_SwapChainID, std::move(data), std::move(renderView), 0, 0}});
+      ChannelToGraphics.Send(std::move(RenderTask));
    }
 
    Float FGraphics::
