@@ -16,6 +16,9 @@ export namespace Visera
         [[nodiscard]] T* Get() const noexcept { return Self.get(); }
         [[nodiscard]] std::unique_ptr<T, Deleter>& GetNative() noexcept { return Self; }
         [[nodiscard]] const std::unique_ptr<T, Deleter>& GetNative() const noexcept { return Self; }
+        /** @return Reference to the deleter. */
+        [[nodiscard]] Deleter& GetDeleter() noexcept { return Self.get_deleter(); }
+        [[nodiscard]] const Deleter& GetDeleter() const noexcept { return Self.get_deleter(); }
         /** Releases ownership and returns the raw pointer. */
         [[nodiscard]] T* Release() noexcept { return Self.release(); }
         /** Replaces the managed object. */
@@ -70,7 +73,7 @@ export namespace Visera
         ~TUniquePtr() = default;
     };
 
-    /** Non-owning reference to an object held by TUniquePtr. Supports polymorphism: can be constructed from TUniquePtr<Derived> when returning TUniqueRef<Base>. */
+    /** Non-owning reference to an object held by TUniquePtr. Use only while the owning TUniquePtr is alive; do not use after the TUniquePtr has been moved or Reset(), or the reference becomes dangling. Supports polymorphism: can be constructed from TUniquePtr<Derived> when returning TUniqueRef<Base>. */
     template<typename T>
     class VISERA_CORE_API TUniqueRef
     {

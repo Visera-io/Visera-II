@@ -6,12 +6,12 @@ export module Visera.Core.Types.Pointer.Shared;
 
 export namespace Visera
 {
-    template<typename U> class FWeakPtr;
+    template<typename U> class TWeakPtr;
 
     template<typename T>
     class VISERA_CORE_API TSharedPtr
     {
-        template<typename U> friend class FWeakPtr;
+        template<typename U> friend class TWeakPtr;
         template<typename U> friend class TSharedPtr;
 
     public:
@@ -21,6 +21,8 @@ export namespace Visera
         [[nodiscard]] const std::shared_ptr<T>& GetNative() const noexcept { return Self; }
         /** @return Number of TSharedPtr instances sharing ownership. */
         [[nodiscard]] long GetUseCount() const noexcept { return Self.use_count(); }
+        /** Strict weak ordering based on control block. Use for ordered containers (e.g. std::map). */
+        [[nodiscard]] Bool OwnerBefore(const TSharedPtr& I_Other) const noexcept { return Self.owner_before(I_Other.Self); }
         /** Replaces the managed object (drops current ownership). */
         void Reset() noexcept { Self.reset(); }
         /** Swaps managed objects with I_Other. */
@@ -54,6 +56,7 @@ export namespace Visera
     public:
         TSharedPtr() = default;
         TSharedPtr(std::nullptr_t) noexcept : Self(nullptr) {}
+        /** Creates a new control block for I_Ptr. For types inheriting FEnableSharedFromThis, prefer MakeShared or construction from an existing TSharedPtr to avoid multiple control blocks. */
         explicit TSharedPtr(T* I_Ptr) : Self(I_Ptr) {}
         TSharedPtr(const TSharedPtr&) = default;
         TSharedPtr(TSharedPtr&&) noexcept = default;
@@ -79,6 +82,7 @@ export namespace Visera
         ~TSharedPtr() = default;
     };
 
+    /** Alias for const TSharedPtr<T>&. Use for function parameters that accept a shared pointer by reference without taking ownership. Distinct from TUniqueRef (non-owning raw view). */
     template<typename T>
     using TSharedRef   = const TSharedPtr<T>&;
 
@@ -86,11 +90,12 @@ export namespace Visera
     [[nodiscard]] TSharedPtr<T> MakeShared(Args&&... I_Args)
     { return TSharedPtr<T>(std::make_shared<T>(std::forward<Args>(I_Args)...)); }
 
-    /** Base class for types that need to obtain a TSharedPtr from this. Use TWeakPtr<T>(SharedFromThis()) when a weak reference is needed. */
+    /** Base class for types that need to obtain a TSharedPtr from this. Use WeakFromThis(*this) when a weak reference is needed. Must be created via MakeShared or from an existing TSharedPtr; do not construct TSharedPtr from raw pointer for this type. */
     template<typename T>
     class VISERA_CORE_API FEnableSharedFromThis : public std::enable_shared_from_this<T>
     {
     public:
         [[nodiscard]] TSharedPtr<T> SharedFromThis() { return TSharedPtr<T>(this->shared_from_this()); }
+        [[nodiscard]] TSharedPtr<T> SharedFromThis() const { return TSharedPtr<T>(this->shared_from_this()); }
     };
 }

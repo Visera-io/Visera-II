@@ -21,6 +21,8 @@ export namespace Visera
         [[nodiscard]] long GetUseCount() const noexcept { return Self.use_count(); }
         /** @return True if no TSharedPtr shares ownership. */
         [[nodiscard]] Bool IsExpired() const noexcept { return Self.expired(); }
+        /** Strict weak ordering based on control block. Use for ordered containers (e.g. std::map). */
+        [[nodiscard]] Bool OwnerBefore(const TWeakPtr& I_Other) const noexcept { return Self.owner_before(I_Other.Self); }
         /** Releases the reference to the managed object. */
         void Reset() noexcept { Self.reset(); }
         /** Swaps managed objects with I_Other. */
@@ -60,10 +62,12 @@ export namespace Visera
         TWeakPtr() = default;
         TWeakPtr(std::nullptr_t) noexcept : Self() {}
         TWeakPtr(const TSharedPtr<T>& I_Shared) noexcept : Self(I_Shared.GetNative()) {}
+        /** After construction, I_Shared is empty; do not use it further. */
         TWeakPtr(TSharedPtr<T>&& I_Shared) noexcept : Self(I_Shared.GetNative()) {}
         template<typename U>
         requires std::convertible_to<U*, T*>
         TWeakPtr(const TSharedPtr<U>& I_Shared) noexcept : Self(I_Shared.GetNative()) {}
+        /** After construction, I_Shared is empty; do not use it further. */
         template<typename U>
         requires std::convertible_to<U*, T*>
         TWeakPtr(TSharedPtr<U>&& I_Shared) noexcept : Self(I_Shared.GetNative()) {}
@@ -94,4 +98,24 @@ export namespace Visera
 
         ~TWeakPtr() = default;
     };
+
+    /** Strict weak ordering: TSharedPtr vs TWeakPtr. Use for ordered containers (e.g. std::map). */
+    template<typename T>
+    [[nodiscard]] Bool OwnerBefore(const TSharedPtr<T>& I_Lhs, const TWeakPtr<T>& I_Rhs) noexcept
+    { return I_Lhs.GetNative().owner_before(I_Rhs.GetNative()); }
+
+    /** Strict weak ordering: TWeakPtr vs TSharedPtr. Use for ordered containers (e.g. std::map). */
+    template<typename T>
+    [[nodiscard]] Bool OwnerBefore(const TWeakPtr<T>& I_Lhs, const TSharedPtr<T>& I_Rhs) noexcept
+    { return I_Lhs.GetNative().owner_before(I_Rhs.GetNative()); }
+
+    /** Returns a TWeakPtr to the same object. Use from types that inherit FEnableSharedFromThis. */
+    template<typename T>
+    [[nodiscard]] TWeakPtr<T> WeakFromThis(FEnableSharedFromThis<T>& I_Obj) noexcept
+    { return TWeakPtr<T>(I_Obj.weak_from_this()); }
+
+    /** Returns a TWeakPtr to the same object (const overload). */
+    template<typename T>
+    [[nodiscard]] TWeakPtr<T> WeakFromThis(const FEnableSharedFromThis<T>& I_Obj) noexcept
+    { return TWeakPtr<T>(I_Obj.weak_from_this()); }
 }
