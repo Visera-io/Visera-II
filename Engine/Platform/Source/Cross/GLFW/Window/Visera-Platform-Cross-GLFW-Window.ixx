@@ -15,6 +15,10 @@ export namespace Visera
     class VISERA_PLATFORM_API FGLFWWindow : public IPlatformWindow
     {
     public:
+        /** Currently focused GLFW window (for input). Set by focus callback; cleared when window loses focus or is destroyed. */
+        [[nodiscard]] static IPlatformWindow*
+        GetFocusedPlatformWindow();
+
         [[nodiscard]] void*
         GetHandle() const override { return Handle; }
         [[nodiscard]] Bool
@@ -41,7 +45,8 @@ export namespace Visera
         ~FGLFWWindow() override;
 
     private:
-        static inline TAtomic<Int32> ContextCount{0};
+        static inline IPlatformWindow*   FocusedWindow{nullptr};
+        static inline TAtomic<Int32>     ContextCount{0};
         GLFWwindow*                      Handle = nullptr;
     };
 
@@ -93,7 +98,12 @@ export namespace Visera
         glfwSetCursorPosCallback          (Handle, [](GLFWwindow* I_Window, Double I_PosX, Double I_PosY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->CursorMoveCallback.Invoke(I_PosX, I_PosY); });
         glfwSetScrollCallback             (Handle, [](GLFWwindow* I_Window, Double I_OffsetX, Double I_OffsetY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->ScrollCallback.Invoke(I_OffsetX, I_OffsetY); });
         glfwSetKeyCallback                (Handle, [](GLFWwindow* I_Window, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->KeyboardCallback.Invoke(I_Key, I_ScanCode, I_Action, I_Mods); });
-        
+        glfwSetWindowFocusCallback        (Handle, [](GLFWwindow* I_Window, Int32 I_Focused) {
+            auto* P = static_cast<IPlatformWindow*>(glfwGetWindowUserPointer(I_Window));
+            if (I_Focused) { FGLFWWindow::FocusedWindow = P; }
+            else if (FGLFWWindow::FocusedWindow == P) { FGLFWWindow::FocusedWindow = nullptr; }
+        });
+
         glfwSetFramebufferSizeCallback    (Handle, [](GLFWwindow* I_Window, Int32 I_Width, Int32 I_Height) {
             if (auto* Self = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window)))
             {
@@ -105,11 +115,18 @@ export namespace Visera
         });
     }
 
+    IPlatformWindow*
+    FGLFWWindow::GetFocusedPlatformWindow()
+    {
+        return FocusedWindow;
+    }
+
     FGLFWWindow::
     ~FGLFWWindow()
     {
         if (Handle)
         {
+            if (FocusedWindow == this) { FocusedWindow = nullptr; }
             // Prevent callbacks from touching destroyed engine singletons during teardown.
             glfwSetMouseButtonCallback       (Handle, nullptr);
             glfwSetCursorPosCallback         (Handle, nullptr);
@@ -117,6 +134,7 @@ export namespace Visera
             glfwSetKeyCallback               (Handle, nullptr);
             glfwSetFramebufferSizeCallback   (Handle, nullptr);
             glfwSetWindowContentScaleCallback(Handle, nullptr);
+            glfwSetWindowFocusCallback       (Handle, nullptr);
             glfwSetWindowUserPointer         (Handle, nullptr);
 
             glfwDestroyWindow(Handle);

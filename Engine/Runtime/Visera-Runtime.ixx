@@ -45,6 +45,7 @@ namespace Visera
         [[nodiscard]] FAudio*      GetAudio()    const { return GetGlobalService<FAudio>    (EService::Audio);    }
         [[nodiscard]] FAssetHub*   GetAssetHub() const { return GetGlobalService<FAssetHub> (EService::AssetHub); }
         [[nodiscard]] FGraphics*   GetGraphics() const { return GetGlobalService<FGraphics> (EService::Graphics); }
+        [[nodiscard]] FInput*      GetInput()    const { return GetGlobalService<FInput>    (EService::Input);    }
 
         [[nodiscard]] FJSON&       GetConfig()       { return Config.GetRoot(); }
         [[nodiscard]] const FJSON& GetConfig() const { return Config.GetRoot(); }
@@ -285,6 +286,7 @@ namespace Visera
         if (EngineConfig.GetBool(TJSONRoute<"Audio.Enable">(), False))    { (void)RegisterGlobal<FAudio>    (EService::Audio);    }
         if (EngineConfig.GetBool(TJSONRoute<"AssetHub.Enable">(), False)) { (void)RegisterGlobal<FAssetHub> (EService::AssetHub); }
         if (EngineConfig.GetBool(TJSONRoute<"Graphics.Enable">(), False)) { (void)RegisterGlobal<FGraphics> (EService::Graphics); }
+        if (EngineConfig.GetBool(TJSONRoute<"Input.Enable">(), False))    { (void)RegisterGlobal<FInput>    (EService::Input);    }
         Bootstrap();
     }
 
@@ -390,7 +392,6 @@ namespace Visera
     {
         auto AppConfigView = OwnerEngine->Config.GetAppConfig(AppName);
         if (AppConfigView.GetBool(TJSONRoute<"Window.Enable">(), False)) { (void)RegisterLocal<FWindow> (EService::Window); }
-        if (AppConfigView.GetBool(TJSONRoute<"Input.Enable">(), False))  { (void)RegisterLocal<FInput>  (EService::Input);  }
         if (AppConfigView.GetBool(TJSONRoute<"UI.Enable">(), False))     { (void)RegisterLocal<FUI>     (EService::UI);     }
     }
 

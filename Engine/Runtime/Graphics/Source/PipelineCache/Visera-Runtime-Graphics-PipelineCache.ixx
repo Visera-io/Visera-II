@@ -15,12 +15,12 @@ export namespace Visera
 		/** Get or create a PSO for the given material shaders compiled against the specified render target formats. */
 		[[nodiscard]] FRHIRenderPassID
 		GetOrCreate(FRHI*                     I_RHI,
-		            const FMaterial&          I_Material,
+		            const FMaterial*          I_Material,
 		            const TArray<ERHIFormat>& I_ColorFormats,
 		            ERHIFormat                I_DepthFormat = ERHIFormat::Undefined)
 		{
-			const auto VertHandle = I_Material.GetVertexShader().GetHandle();
-			const auto FragHandle = I_Material.GetFragmentShader().GetHandle();
+			const auto VertHandle = I_Material->GetVertexShader().GetHandle();
+			const auto FragHandle = I_Material->GetFragmentShader().GetHandle();
 
 			for (const auto& Entry : Entries)
 			{

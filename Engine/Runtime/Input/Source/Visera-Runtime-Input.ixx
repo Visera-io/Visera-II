@@ -1,12 +1,11 @@
 module;
 #include <Visera-Input.hpp>
 export module Visera.Runtime.Input;
-#define VISERA_MODULE_NAME "Runtime.Inpu"
+#define VISERA_MODULE_NAME "Runtime.Input"
 export import Visera.Runtime.Input.Action;
 export import Visera.Runtime.Input.Device;
 export import Visera.Runtime.Input.Mapping;
        import Visera.Runtime.Global;
-       import Visera.Runtime.Window;
        import Visera.Platform;
        import Visera.Platform.Interface.Window;
        import Visera.Core.Log;
@@ -15,16 +14,28 @@ export import Visera.Runtime.Input.Mapping;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Map;
+       import Visera.Core.Algorithm.Ranges;
+       import Visera.Core.Types.Tuple;
 
 export namespace Visera
 {
+    /**
+     * Global input service: one keyboard (global state), per-window mouse state in Mice, and action/mapping (e.g. .vinputmap).
+     * Events are routed by source window (Notify* receive I_SourceWindow). Mice[DummyWindow] is used when no window or unknown window.
+     * Call PollAndSync() on the main thread each frame; GetMouse() returns the mouse for the current focused window (or dummy).
+     */
     class VISERA_RUNTIME_API FInput : public IRuntimeService
     {
     public:
+        /** Key for DummyMouse in Mice; nullptr means no window / dummy. */
+        static constexpr IPlatformWindow*
+        DummyWindow = nullptr;
+        /** Global keyboard; never null after construction. */
         [[nodiscard]] inline FKeyboard*
-        GetKeyboard() { return &Keyboard; }
-        [[nodiscard]] inline FMouse*
-        GetMouse()    { return &Mouse; }
+        GetKeyboard() { return Keyboard.Get(); }
+        /** Mouse for the current focused window, or Mice[DummyWindow] if no focus or window not in Mice. Never returns nullptr. */
+        [[nodiscard]] FMouse*
+        GetMouse();
 
         /** Get or create an input action by name (UE5: UInputAction). */
         [[nodiscard]] FInputAction*
@@ -40,9 +51,9 @@ export namespace Visera
 
         /** Remove all mappings for the given action. */
         void
-        RemoveMappingsForAction(FName I_ActionName);
+        RemoveMappings(FName I_ActionName);
 
-        /** Load mappings from .vinputmap JSON file. Creates actions as needed. Returns false on parse/file error. */
+        /** Load mappings from .vinputmap JSON file. Creates actions as needed. Returns False on parse/file error. */
         [[nodiscard]] Bool
         LoadInputMap(const FPath& I_Path);
 
@@ -50,141 +61,181 @@ export namespace Visera
         [[nodiscard]] Bool
         IsActionActive(FName I_ActionName) const;
 
-        /** Process input events (PollEvents) and update polling state (Sync). Uses platform window set via SetWindowForSync (e.g. by FWindow). */
+        /** Process input events (PollEvents) and update polling state (Sync). Uses focused window from FPlatform::GetFocusedWindow(). Must be called on the main thread. */
         void
         PollAndSync();
 
-        /** Set the platform window used for keyboard Sync in PollAndSync. Call with nullptr when window is gone. */
+        /** Bind to platform window input callbacks. Call when a window is created (e.g. from FWindow::OnBootstrap). Returns False if any callback failed to bind. */
+        [[nodiscard]] Bool
+        RegisterWindow(IPlatformWindow* I_PlatformWindow);
+        /** Remove window from per-window mouse state and unbind. Call when a platform window is destroyed (e.g. from FWindow::OnTerminate). */
         void
-        SetWindowForSync(IPlatformWindow* I_PlatformWindow) { PlatformWindowForSync = I_PlatformWindow; }
+        UnregisterWindow(IPlatformWindow* I_PlatformWindow);
 
-        /** Notify mouse button (called by FWindow from PlatformWindow callback). */
+        /** Notify mouse button. Routed to the FMouse for I_SourceWindow (event source); fallback to DummyMouse if not in Mice. */
         void
-        NotifyMouseButton(FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods);
-        /** Notify key (called by FWindow from PlatformWindow callback). */
+        NotifyMouseButton(IPlatformWindow* I_SourceWindow, FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods);
+        /** Notify key (global keyboard state). I_SourceWindow for API consistency; keyboard is not per-window. */
         void
-        NotifyKeyboardKey(FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods);
-        /** Notify cursor move (called by FWindow from PlatformWindow callback). */
+        NotifyKeyboardKey(IPlatformWindow* I_SourceWindow, FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods);
+        /** Notify cursor move. Routed to the FMouse for I_SourceWindow; fallback to DummyMouse if not in Mice. */
         void
-        NotifyCursorMove(Float I_PosX, Float I_PosY);
-        /** Notify scroll (called by FWindow from PlatformWindow callback). */
+        NotifyCursorMove(IPlatformWindow* I_SourceWindow, Float I_PosX, Float I_PosY);
+        /** Notify scroll. Routed to the FMouse for I_SourceWindow; fallback to DummyMouse if not in Mice. */
         void
-        NotifyScroll(Float I_OffsetX, Float I_OffsetY);
+        NotifyScroll(IPlatformWindow* I_SourceWindow, Float I_OffsetX, Float I_OffsetY);
 
     private:
         void TriggerMatchingActions(EInputSource I_SourceType, Int32 I_SourceValue, UInt8 I_Action, UInt8 I_Mods);
+        void RebuildReverseIndex();
 
     private:
-        FKeyboard                    Keyboard;
-        FMouse                       Mouse;
-        IPlatformWindow*             PlatformWindowForSync {nullptr};
-        TMap<FName, TUniquePtr<FInputAction>> Actions;
-        TArray<FInputMapping>        Mappings;
-        TMulticastDelegate<Int32, Int32, Int32, Int32>::FHandle SubHandleKeyboard    {0};
-        TMulticastDelegate<Int32, Int32, Int32>::FHandle       SubHandleMouseButton {0};
-        TMulticastDelegate<Double, Double>::FHandle            SubHandleCursorMove  {0};
-        TMulticastDelegate<Double, Double>::FHandle            SubHandleScroll       {0};
+        TUniquePtr<FKeyboard>                      Keyboard;
+        /** Per-window mouse state; DummyWindow (nullptr) always holds the dummy mouse. */
+        TMap<IPlatformWindow*, TUniquePtr<FMouse>> Mice;
+        /** Updated each PollAndSync() from FPlatform::GetFocusedWindow(). */
+        IPlatformWindow*                           CurrentFocusedWindow {nullptr};
+        TMap<FName, TUniquePtr<FInputAction>>      Actions;
+        TArray<FInputMapping>                      Mappings;
+        /** Key for reverse index: (SourceType, SourceValue) only. Sorted by this to binary-search mapping set. */
+        struct FInputMappingReverseKey
+        {
+            EInputSource SourceType{};
+            Int32        SourceValue{0};
+            [[nodiscard]] friend Bool operator<(const FInputMappingReverseKey& A, const FInputMappingReverseKey& B)
+            {
+                if (A.SourceType != B.SourceType)
+                { return static_cast<UInt8>(A.SourceType) < static_cast<UInt8>(B.SourceType); }
+                return A.SourceValue < B.SourceValue;
+            }
+        };
+        /** Sorted by (SourceType, SourceValue); each entry is (key, index into Mappings). Used for O(log N + K) lookup in TriggerMatchingActions. Rebuilt when bReverseIndexDirty. */
+        TArray<TPair<FInputMappingReverseKey, UInt64>> ReverseIndex;
+        /** True when Mappings changed and ReverseIndex must be rebuilt before next lookup. */
+        Bool                                           bReverseIndexDirty {True};
 
     public:
         FInput(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
                TMulticastDelegate<const FJSONRoute&>* I_OnConfigChange, FStringView I_RuntimeName)
             : IRuntimeService(I_Name, I_Registry, std::move(I_ConfigView), I_OnConfigChange, I_RuntimeName)
         {
-            if (I_Registry && I_Registry->Contains(EService::Window))
-            { Dependencies = { EService::Window }; }
-            else
-            { Dependencies = {}; }
+            Dependencies = {};
+            Keyboard = MakeUnique<FKeyboard>();
+            Mice.InsertOrAssign(DummyWindow, MakeUnique<FMouse>());
 
-            if (!OnBootstrap.TryBind([this]
-            {
-                auto WinPtr = GetService<FWindow>(EService::Window).Lock();
-                if (WinPtr && WinPtr->GetPlatformWindow())
-                {
-                    SetWindowForSync(WinPtr->GetPlatformWindow().Get());
-                    SubHandleKeyboard    = WinPtr->OnKeyboardKey   .Subscribe([this](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
-                    { NotifyKeyboardKey(static_cast<FKeyboard::EKey>(I_Key), I_ScanCode, static_cast<FKeyboard::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); });
-                    SubHandleMouseButton = WinPtr->OnMouseButton  .Subscribe([this](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
-                    { NotifyMouseButton(static_cast<FMouse::EButton>(I_Button), static_cast<FMouse::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); });
-                    SubHandleCursorMove  = WinPtr->OnCursorMove   .Subscribe([this](Double I_PosX, Double I_PosY)
-                    { NotifyCursorMove(static_cast<Float>(I_PosX), static_cast<Float>(I_PosY)); });
-                    SubHandleScroll      = WinPtr->OnScroll       .Subscribe([this](Double I_OffsetX, Double I_OffsetY)
-                    { NotifyScroll(static_cast<Float>(I_OffsetX), static_cast<Float>(I_OffsetY)); });
-                }
-                return True;
-            }))
-            { LOG_FATAL("Failed to bind bootstrap function!"); }
-
-            if (!OnTerminate.TryBind([this]
-            {
-                SetWindowForSync(nullptr);
-                if (auto WinPtr = GetService<FWindow>(EService::Window).Lock())
-                {
-                    if (SubHandleKeyboard)    { WinPtr->OnKeyboardKey   .Unsubscribe(SubHandleKeyboard);    SubHandleKeyboard    = 0; }
-                    if (SubHandleMouseButton) { WinPtr->OnMouseButton   .Unsubscribe(SubHandleMouseButton); SubHandleMouseButton = 0; }
-                    if (SubHandleCursorMove)  { WinPtr->OnCursorMove    .Unsubscribe(SubHandleCursorMove);  SubHandleCursorMove  = 0; }
-                    if (SubHandleScroll)      { WinPtr->OnScroll        .Unsubscribe(SubHandleScroll);      SubHandleScroll      = 0; }
-                }
-                return True;
-            }))
-            { LOG_FATAL("Failed to bind terminate function!"); }
+            if (!OnBootstrap.TryBind([] { return True; }))
+            { LOG_FATAL("Failed to bind FInput OnBootstrap!"); }
+            if (!OnTerminate.TryBind([] { return True; }))
+            { LOG_FATAL("Failed to bind FInput OnTerminate!"); }
         }
     };
 
-    void FInput::NotifyMouseButton(FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods)
+    inline FMouse*
+    FInput::GetMouse()
     {
+        FMouse* Mouse = Mice[CurrentFocusedWindow].Get();
+        return Mouse ? Mouse : Mice[DummyWindow].Get();
+    }
+
+    Bool
+    FInput::RegisterWindow(IPlatformWindow* I_PlatformWindow)
+    {
+        if (!I_PlatformWindow)
+        { LOG_ERROR("({}) RegisterWindow: null platform window.", GetRuntimeName()); return False; }
+
+        if (!I_PlatformWindow->KeyboardCallback.TryBind([this, I_PlatformWindow](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
+            { NotifyKeyboardKey(I_PlatformWindow, static_cast<FKeyboard::EKey>(I_Key), I_ScanCode, static_cast<FKeyboard::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); }))
+        { LOG_ERROR("({}) RegisterWindow: failed to bind KeyboardCallback.", GetRuntimeName()); return False; }
+        if (!I_PlatformWindow->MouseButtonCallback.TryBind([this, I_PlatformWindow](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
+            { NotifyMouseButton(I_PlatformWindow, static_cast<FMouse::EButton>(I_Button), static_cast<FMouse::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); }))
+        { LOG_ERROR("({}) RegisterWindow: failed to bind MouseButtonCallback.", GetRuntimeName()); return False; }
+        if (!I_PlatformWindow->CursorMoveCallback.TryBind([this, I_PlatformWindow](Double I_PosX, Double I_PosY)
+            { NotifyCursorMove(I_PlatformWindow, static_cast<Float>(I_PosX), static_cast<Float>(I_PosY)); }))
+        { LOG_ERROR("({}) RegisterWindow: failed to bind CursorMoveCallback.", GetRuntimeName()); return False; }
+        if (!I_PlatformWindow->ScrollCallback.TryBind([this, I_PlatformWindow](Double I_OffsetX, Double I_OffsetY)
+            { NotifyScroll(I_PlatformWindow, static_cast<Float>(I_OffsetX), static_cast<Float>(I_OffsetY)); }))
+        { LOG_ERROR("({}) RegisterWindow: failed to bind ScrollCallback.", GetRuntimeName()); return False; }
+
+        Mice.InsertOrAssign(I_PlatformWindow, MakeUnique<FMouse>());
+        LOG_DEBUG("({}) Registered platform window for input (Mice size {}).", GetRuntimeName(), Mice.GetSize());
+        return True;
+    }
+
+    void
+    FInput::UnregisterWindow(IPlatformWindow* I_PlatformWindow)
+    {
+        if (!I_PlatformWindow) { return; }  // never erase Mice[DummyWindow]
+        if (CurrentFocusedWindow == I_PlatformWindow)
+        { CurrentFocusedWindow = nullptr; }
+        Mice.Erase(I_PlatformWindow);
+        LOG_DEBUG("({}) Unregistered platform window (Mice size {}).", GetRuntimeName(), Mice.GetSize());
+    }
+
+    void FInput::NotifyMouseButton(IPlatformWindow* I_SourceWindow, FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods)
+    {
+        FMouse* TargetMouse = Mice[I_SourceWindow].Get();
+        if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
         TriggerMatchingActions(EInputSource::MouseButton, static_cast<Int32>(I_Button), static_cast<UInt8>(I_Action), I_Mods);
         switch (I_Action)
         {
-        case FMouse::EAction::Release : Mouse.OnReleased.Broadcast(I_Button); break;
-        case FMouse::EAction::Press   : Mouse.OnPressed.Broadcast(I_Button); break;
-        case FMouse::EAction::Hold    : Mouse.OnHeld.Broadcast(I_Button); break;
+        case FMouse::EAction::Release : TargetMouse->OnReleased.Broadcast(I_Button); break;
+        case FMouse::EAction::Press   : TargetMouse->OnPressed.Broadcast(I_Button); break;
+        case FMouse::EAction::Hold    : TargetMouse->OnHeld.Broadcast(I_Button); break;
         default: LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), static_cast<Int32>(I_Action));
         }
     }
 
-    void FInput::NotifyKeyboardKey(FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods)
+    void FInput::NotifyKeyboardKey(IPlatformWindow* I_SourceWindow, FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods)
     {
+        (void)I_SourceWindow;  // keyboard is global; param for API consistency
+        if (!Keyboard) { return; }
         TriggerMatchingActions(EInputSource::KeyboardKey, static_cast<Int32>(I_Key), static_cast<UInt8>(I_Action), I_Mods);
         switch (I_Action)
         {
-        case FKeyboard::EAction::Release : Keyboard.OnReleased.Broadcast(I_Key); break;
-        case FKeyboard::EAction::Press   : Keyboard.OnPressed.Broadcast(I_Key); break;
-        case FKeyboard::EAction::Hold    : Keyboard.OnHeld.Broadcast(I_Key); break;
+        case FKeyboard::EAction::Release : Keyboard->OnReleased.Broadcast(I_Key); break;
+        case FKeyboard::EAction::Press   : Keyboard->OnPressed.Broadcast(I_Key); break;
+        case FKeyboard::EAction::Hold    : Keyboard->OnHeld.Broadcast(I_Key); break;
         default: LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), static_cast<UInt8>(I_Action));
         }
     }
 
-    void FInput::NotifyCursorMove(Float I_PosX, Float I_PosY)
+    void FInput::NotifyCursorMove(IPlatformWindow* I_SourceWindow, Float I_PosX, Float I_PosY)
     {
-        Mouse.OnCursorMoved.Broadcast(I_PosX, I_PosY);
+        FMouse* TargetMouse = Mice[I_SourceWindow].Get();
+        if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
+        TargetMouse->OnCursorMoved.Broadcast(I_PosX, I_PosY);
     }
 
-    void FInput::NotifyScroll(Float I_OffsetX, Float I_OffsetY)
+    void FInput::NotifyScroll(IPlatformWindow* I_SourceWindow, Float I_OffsetX, Float I_OffsetY)
     {
-        Mouse.OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
+        FMouse* TargetMouse = Mice[I_SourceWindow].Get();
+        if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
+        TargetMouse->OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
     }
 
     FInputAction*
     FInput::GetOrAddAction(FName I_ActionName)
     {
-        auto It = Actions.Find(I_ActionName);
-        if (It != Actions.end())
-        { return It->second.Get(); }
-        auto [NewIt, _] = Actions.Emplace(I_ActionName, MakeUnique<FInputAction>(I_ActionName));
-        return NewIt->second.Get();
+        auto Iterator = Actions.Find(I_ActionName);
+        if (Iterator != Actions.end())
+        { return Iterator->second.Get(); }
+        auto [NewIterator, Inserted] = Actions.Emplace(I_ActionName, MakeUnique<FInputAction>(I_ActionName));
+        (void)Inserted;
+        return NewIterator->second.Get();
     }
 
     FInputAction*
     FInput::GetAction(FName I_ActionName) const
     {
-        auto It = Actions.Find(I_ActionName);
-        return (It != Actions.end()) ? It->second.Get() : nullptr;
+        auto Iterator = Actions.Find(I_ActionName);
+        return (Iterator != Actions.end()) ? Iterator->second.Get() : nullptr;
     }
 
     void
     FInput::AddMapping(const FInputMapping& I_Mapping)
     {
         Mappings.PushBack(I_Mapping);
+        bReverseIndexDirty = True;
     }
 
     Bool
@@ -196,76 +247,110 @@ export namespace Visera
         auto MappingsOpt = ParseInputMap(JsonOpt.GetValue());
         if (!MappingsOpt.HasValue())
         { LOG_ERROR("({}) Failed to parse input map: {}", GetRuntimeName(), I_Path.GetString()); return False; }
-        for (const auto& M : MappingsOpt.GetValue())
+        for (const auto& ParsedMapping : MappingsOpt.GetValue())
         {
-            (void)GetOrAddAction(M.ActionName);
-            AddMapping(M);
+            (void)GetOrAddAction(ParsedMapping.ActionName);
+            AddMapping(ParsedMapping);
         }
+        bReverseIndexDirty = True;
+        LOG_DEBUG("({}) Loaded input map: {} ({} mappings).", GetRuntimeName(), I_Path.GetString(), MappingsOpt.GetValue().GetSize());
         return True;
     }
 
+    /** Rebuild ReverseIndex from current Mappings (sorted by SourceType, SourceValue). Clears bReverseIndexDirty. */
     void
-    FInput::RemoveMappingsForAction(FName I_ActionName)
+    FInput::RebuildReverseIndex()
     {
-        for (auto It = Mappings.begin(); It != Mappings.end(); )
+        ReverseIndex.Clear();
+        const UInt64 MappingCount = Mappings.GetSize();
+        for (UInt64 Index = 0; Index < MappingCount; ++Index)
         {
-            if (It->ActionName == I_ActionName)
-            { It = Mappings.Erase(It); }
-            else
-            { ++It; }
+            const FInputMapping& MappingEntry = Mappings[static_cast<std::size_t>(Index)];
+            ReverseIndex.PushBack(TPair<FInputMappingReverseKey, UInt64>{
+                FInputMappingReverseKey{MappingEntry.SourceType, MappingEntry.SourceValue}, Index});
         }
+        Algorithm::Sort(ReverseIndex, [](const TPair<FInputMappingReverseKey, UInt64>& Left, const TPair<FInputMappingReverseKey, UInt64>& Right)
+            { return Left.first < Right.first; });
+        bReverseIndexDirty = False;
+        LOG_DEBUG("({}) Rebuilt reverse index ({} entries).", GetRuntimeName(), ReverseIndex.GetSize());
+    }
+
+    void
+    FInput::RemoveMappings(FName I_ActionName)
+    {
+        for (auto Iter = Mappings.begin(); Iter != Mappings.end(); )
+        {
+            if (Iter->ActionName == I_ActionName)
+            { Iter = Mappings.Erase(Iter); }
+            else
+            { ++Iter; }
+        }
+        bReverseIndexDirty = True;
     }
 
     Bool
     FInput::IsActionActive(FName I_ActionName) const
     {
-        for (const auto& M : Mappings)
+        for (const auto& Mapping : Mappings)
         {
-            if (M.ActionName != I_ActionName) { continue; }
-            if (M.SourceType != EInputSource::KeyboardKey) { continue; }
-            const auto Key = static_cast<FKeyboard::EKey>(M.SourceValue);
-            const auto KeyAct = Keyboard.GetKeyAction(Key);
-            const auto Trig = static_cast<UInt8>(M.Trigger);
-            Bool bActive = False;
-            if (Trig == static_cast<UInt8>(EInputTrigger::Press))
-            { bActive = (KeyAct == FKeyboard::EAction::Press); }
-            else if (Trig == static_cast<UInt8>(EInputTrigger::Release))
-            { bActive = (KeyAct == FKeyboard::EAction::Release); }
-            else if (Trig == static_cast<UInt8>(EInputTrigger::Hold))
-            { bActive = (KeyAct == FKeyboard::EAction::Press || KeyAct == FKeyboard::EAction::Hold); }
-            if (bActive) { return True; }
+            if (Mapping.ActionName != I_ActionName) { continue; }
+            if (Mapping.SourceType != EInputSource::KeyboardKey) { continue; }
+            const auto Key = static_cast<FKeyboard::EKey>(Mapping.SourceValue);
+            const auto KeyAction = Keyboard ? Keyboard->GetKeyAction(Key) : static_cast<FKeyboard::EAction>(0);
+            const auto Trigger = static_cast<UInt8>(Mapping.Trigger);
+            Bool IsActive = False;
+            if (Trigger == static_cast<UInt8>(EInputTrigger::Press))
+            { IsActive = (KeyAction == FKeyboard::EAction::Press); }
+            else if (Trigger == static_cast<UInt8>(EInputTrigger::Release))
+            { IsActive = (KeyAction == FKeyboard::EAction::Release); }
+            else if (Trigger == static_cast<UInt8>(EInputTrigger::Hold))
+            { IsActive = (KeyAction == FKeyboard::EAction::Press || KeyAction == FKeyboard::EAction::Hold); }
+            if (IsActive) { return True; }
         }
         return False;
     }
 
+    /** Fire OnTriggered for actions whose mapping matches this raw input. Uses reverse index for O(log N + K) lookup. */
     void
     FInput::TriggerMatchingActions(EInputSource I_SourceType, Int32 I_SourceValue, UInt8 I_Action, UInt8 I_Mods)
     {
-        for (const auto& Mapping : Mappings)
+        if (bReverseIndexDirty)
+        { RebuildReverseIndex(); }
+        const FInputMappingReverseKey LookupKey{I_SourceType, I_SourceValue};
+        auto KeyProjection =
+        [](const TPair<FInputMappingReverseKey, UInt64>& Pair)
+        -> const FInputMappingReverseKey&
         {
-            Bool bMatch = False;
+             return Pair.first;
+        };
+        auto EqualRange = Algorithm::BinarySearch(ReverseIndex, LookupKey, KeyProjection);
+        for (const auto& Entry : EqualRange)
+        {
+            const UInt64 MappingIndex = Entry.second;
+            const FInputMapping& Mapping = Mappings[static_cast<std::size_t>(MappingIndex)];
+            Bool IsMatch = False;
             if (I_SourceType == EInputSource::KeyboardKey)
-            { bMatch = Mapping.MatchesKey(I_SourceValue, I_Action, I_Mods); }
+            { IsMatch = Mapping.MatchesKey(I_SourceValue, I_Action, I_Mods); }
             else if (I_SourceType == EInputSource::MouseButton)
-            { bMatch = Mapping.MatchesButton(I_SourceValue, I_Action, I_Mods); }
-            if (!bMatch) { continue; }
+            { IsMatch = Mapping.MatchesButton(I_SourceValue, I_Action, I_Mods); }
+            if (!IsMatch) { continue; }
 
-            if (auto* A = GetAction(Mapping.ActionName))
+            if (FInputAction* Action = GetAction(Mapping.ActionName))
             {
-                auto& D = A->OnTriggered;
-                D.Broadcast(A);
+                Action->OnTriggered.Broadcast(Action);
             }
         }
     }
 
     void FInput::PollAndSync()
     {
-        if (!PlatformWindowForSync) { FPlatform::PollEvents(); }
-        
-        if (PlatformWindowForSync)
+        FPlatform::PollEvents();
+        CurrentFocusedWindow = FPlatform::GetFocusedWindow();
+        if (CurrentFocusedWindow)
         {
-            Keyboard.Sync([this](FKeyboard::EKey I_Key)->FKeyboard::EAction
-            { return static_cast<FKeyboard::EAction>(PlatformWindowForSync->GetKeyboardKey(static_cast<Int32>(I_Key))); });
+            // Sync global keyboard state from focused window's physical key state
+            Keyboard->Sync([this](FKeyboard::EKey I_Key)->FKeyboard::EAction
+            { return static_cast<FKeyboard::EAction>(CurrentFocusedWindow->GetKeyboardKey(static_cast<Int32>(I_Key))); });
         }
     }
 }

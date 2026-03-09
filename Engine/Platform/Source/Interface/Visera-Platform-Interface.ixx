@@ -45,6 +45,9 @@ export namespace Visera
         PollEvents() const = 0;
         virtual void
         WaitEvents() const = 0;
+        /** Currently focused platform window (e.g. for input). May be nullptr. */
+        [[nodiscard]] virtual IPlatformWindow*
+        GetFocusedWindow() const = 0;
         [[nodiscard]] inline EPlatform
         GetType() const { return Type; }
 

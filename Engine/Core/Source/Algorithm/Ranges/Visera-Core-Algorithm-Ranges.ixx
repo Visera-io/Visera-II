@@ -36,4 +36,24 @@ export namespace Visera::Algorithm
 			std::forward<Range>(I_Range),
 			std::forward<Pattern>(I_Pattern));
 	}
+
+	/** Comparer that uses operator<. Used as default for BinarySearch so user types with operator< work (e.g. across namespaces). */
+	struct Less
+	{
+		template<typename Left, typename Right>
+		[[nodiscard]] constexpr Bool operator()(Left&& I_Left, Right&& I_Right) const
+		{
+			return static_cast<Bool>(std::forward<Left>(I_Left) < std::forward<Right>(I_Right));
+		}
+	};
+
+	/** Binary search: returns the subrange of elements equal to I_Value in the sorted range (O(log N)). Proj projects range elements for comparison; Comp defaults to Less (operator<). */
+	template<std::ranges::forward_range Range, typename T, typename Proj = std::identity, typename Comp = Less>
+		requires std::indirect_strict_weak_order<Comp, std::projected<std::ranges::iterator_t<Range>, Proj>, const T*>
+		&& std::indirect_strict_weak_order<Comp, const T*, std::projected<std::ranges::iterator_t<Range>, Proj>>
+	[[nodiscard]] constexpr auto
+	BinarySearch(Range&& I_Range, const T& I_Value, Proj I_Proj = {}, Comp I_Comp = {})
+	{
+		return std::ranges::equal_range(std::forward<Range>(I_Range), I_Value, std::move(I_Comp), std::move(I_Proj));
+	}
 }

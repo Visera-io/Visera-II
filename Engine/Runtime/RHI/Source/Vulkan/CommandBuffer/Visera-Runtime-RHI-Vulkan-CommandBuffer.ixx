@@ -202,7 +202,7 @@ export namespace Visera
         using Super = TVulkanCommandBufferCommon<EVulkanQueueFamily::Graphics>;
 
     private:
-        TOptional<vk::Viewport>     CurrentViewport;
+        TOptional<vk::Viewport>    CurrentViewport;
         TOptional<vk::Rect2D>      CurrentScissor;
         FVulkanRenderPipeline*     CurrentRenderPipeline{nullptr};
 

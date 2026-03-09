@@ -46,6 +46,8 @@ export namespace Visera
         PollEvents() const override { EventLoop.PollEvents(); }
         void
         WaitEvents() const override { EventLoop.WaitEvents(); }
+        [[nodiscard]] IPlatformWindow*
+        GetFocusedWindow() const override { return nullptr; }
 
     public:
         FMacOSPlatform();

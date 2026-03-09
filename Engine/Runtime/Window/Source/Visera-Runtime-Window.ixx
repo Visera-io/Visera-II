@@ -3,6 +3,7 @@ module;
 export module Visera.Runtime.Window;
 #define VISERA_MODULE_NAME "Runtime.Window"
 import Visera.Runtime.Global;
+import Visera.Runtime.Input;
 import Visera.Platform;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Text;
@@ -54,14 +55,6 @@ export namespace Visera
         [[nodiscard]] const TUniqueRef<FPlatformWindow>
         GetPlatformWindow() const { return PlatformWindow; }
 
-        /** Platform keyboard callback: key, scancode, action, mods. Subscribe from FInput etc. */
-        TMulticastDelegate<Int32, Int32, Int32, Int32> OnKeyboardKey;
-        /** Platform mouse button callback: button, action, mods. */
-        TMulticastDelegate<Int32, Int32, Int32>        OnMouseButton;
-        /** Platform cursor move: x, y. */
-        TMulticastDelegate<Double, Double>             OnCursorMove;
-        /** Platform scroll: offsetX, offsetY. */
-        TMulticastDelegate<Double, Double>             OnScroll;
         /** Fired once when ShouldClose() first returns true. Argument is this window (for multi-window). */
         TMulticastDelegate<FWindow*>                   OnWindowClosing;
 
@@ -74,6 +67,7 @@ export namespace Visera
 
     private:
         TUniquePtr<FPlatformWindow> PlatformWindow;
+        FInput*                     Input            {nullptr};
         EPresentMode                PresentMode      {EPresentMode::VSync};
         Bool                        bClosingNotified {False};
 
@@ -98,21 +92,12 @@ export namespace Visera
                 PlatformWindow = FPlatform::CreateWindow(Title, Width, Height);
                 if (!PlatformWindow) { return False; }
 
+                Input = GetService<FInput>(EService::Input).Lock().Get();
+                if (Input && !Input->RegisterWindow(PlatformWindow.Get()))
+                { LOG_FATAL("Failed to register window with FInput!"); }
+
                 if (!PlatformWindow->WindowResizeCallback.TryBind([](Int32, Int32) { /* RHI detects resize via BeginFrame/Present and bDirty */ }))
                 { LOG_FATAL("Failed to bind resize window event!"); }
-
-                if (!PlatformWindow->KeyboardCallback.TryBind([this](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
-                { OnKeyboardKey.Broadcast(I_Key, I_ScanCode, I_Action, I_Mods); }))
-                { LOG_ERROR("Failed to bind KeyboardCallback event!"); }
-                if (!PlatformWindow->MouseButtonCallback.TryBind([this](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
-                { OnMouseButton.Broadcast(I_Button, I_Action, I_Mods); }))
-                { LOG_ERROR("Failed to bind MouseButtonCallback event!"); }
-                if (!PlatformWindow->CursorMoveCallback.TryBind([this](Double I_PosX, Double I_PosY)
-                { OnCursorMove.Broadcast(I_PosX, I_PosY); }))
-                { LOG_ERROR("Failed to bind CursorMoveCallback event!"); }
-                if (!PlatformWindow->ScrollCallback.TryBind([this](Double I_OffsetX, Double I_OffsetY)
-                { OnScroll.Broadcast(I_OffsetX, I_OffsetY); }))
-                { LOG_ERROR("Failed to bind ScrollCallback event!"); }
 
                 return True;
             }))
@@ -120,6 +105,8 @@ export namespace Visera
 
             if (!OnTerminate.TryBind([this]
             {
+                if (PlatformWindow && Input)
+                { Input->UnregisterWindow(PlatformWindow.Get()); }
                 return True;
             }))
             { LOG_FATAL("Failed to bind terminate function!"); }

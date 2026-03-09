@@ -58,6 +58,9 @@ export namespace Visera
         PollEvents() { Get()->PollEvents(); }
         static inline void
         WaitEvents() { Get()->WaitEvents(); }
+        /** Currently focused platform window for input. May be nullptr. */
+        [[nodiscard]] static inline IPlatformWindow*
+        GetFocusedWindow() { return Get()->GetFocusedWindow(); }
         [[nodiscard]] static inline Bool
         ExistsFile(const FPath& I_Path) { return Get()->GetFileSystem().ExistsFile(MakePlatformPath(I_Path)); }
         [[nodiscard]] static inline Bool

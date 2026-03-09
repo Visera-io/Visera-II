@@ -29,6 +29,7 @@ export namespace Visera
             Config.Set(TJSONRoute<"Engine.Audio.Engine">(),    "Wwise");
             Config.Set(TJSONRoute<"Engine.AssetHub.Enable">(), True);
             Config.Set(TJSONRoute<"Engine.Graphics.Enable">(), True);
+            Config.Set(TJSONRoute<"Engine.Input.Enable">(),    True);
             break;
         case EEngineMode::Forge:
             Config.Set(TJSONRoute<"Engine.Tasks.Enable">(),    True);
