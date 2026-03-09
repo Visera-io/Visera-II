@@ -32,7 +32,7 @@ export namespace Visera
             break;
         case EEngineMode::Forge:
             Config.Set(TJSONRoute<"Engine.Tasks.Enable">(),    True);
-            Config.Set(TJSONRoute<"Engine.RHI.Enable">(),      True);
+            Config.Set(TJSONRoute<"Engine.RHI.Enable">(),      False);
             Config.Set(TJSONRoute<"Engine.AssetHub.Enable">(), True);
             break;
         default:

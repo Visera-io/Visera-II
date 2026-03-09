@@ -20,7 +20,7 @@ export namespace Visera
         using FLayout = FRHIShaderLayout;
 
         static constexpr UInt32 ShaderMagic = 0x52485356u; // "VSHR" little-endian
-        static constexpr UInt32 ShaderVersion = 3u;
+        static constexpr UInt32 ShaderVersion = 4u;
         static constexpr UInt32 ShaderChunkTypeSPIRV = 0u;
         static constexpr UInt32 ShaderChunkTypeReflection = 1u;
         static constexpr UInt32 HeaderSize = 4u + 4u + 4u;
@@ -233,9 +233,16 @@ export namespace Visera
                     PC.Size = FShader::ReadU32(p);
                     PC.Stages = FShader::ResourceStageFromU8(FShader::ReadU8(p));
                 }
-                else
+                else if (I_ShaderVersion < 4u)
                 {
                     if (p + 8 > end) return False;
+                    PC.Size = FShader::ReadU32(p);
+                    PC.Stages = static_cast<ERHIShaderStage>(FShader::ReadU32(p));
+                }
+                else
+                {
+                    if (p + 12 > end) return False;
+                    PC.Offset = FShader::ReadU32(p);
                     PC.Size = FShader::ReadU32(p);
                     PC.Stages = static_cast<ERHIShaderStage>(FShader::ReadU32(p));
                 }
@@ -285,6 +292,7 @@ export namespace Visera
         FShader::WriteU32(Out, static_cast<UInt32>(I_Reflection.PushConstants.GetSize()));
         for (const auto& PC : I_Reflection.PushConstants)
         {
+            FShader::WriteU32(Out, PC.Offset);
             FShader::WriteU32(Out, PC.Size);
             FShader::WriteU32(Out, static_cast<UInt32>(PC.Stages));
         }

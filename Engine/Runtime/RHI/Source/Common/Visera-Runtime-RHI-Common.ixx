@@ -381,6 +381,8 @@ export namespace Visera
         };
         struct FPushConstant
         {
+            /** Offset in bytes within the push-constant block (for merging Vertex/Fragment layouts). */
+            UInt32           Offset = 0;
             /** Size in bytes of the push-constant block. */
             UInt32           Size = 0;
             /** Which stage(s) access this push-constant block. */

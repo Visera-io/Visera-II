@@ -32,6 +32,7 @@ export namespace Visera::Forge
         struct FPushConstant
         {
             FString Name;
+            UInt32  Offset = 0;
             UInt32  Size = 0;
             TArray<FString> Stages;
         };
@@ -279,6 +280,10 @@ export namespace Visera::Forge
         // EntryPoints[0] only.
         Reflection.EntryPoints.PushBack({ FString(CurrentEP->getName()), FString(StageName) });
 
+        constexpr auto kPushConstantCat = slang::ParameterCategory::PushConstantBuffer;
+        // Per Slang docs: getSize()/getOffset() with no layout unit default to Uniform and return *bytes*.
+        constexpr auto kUniformCat = slang::ParameterCategory::Uniform;
+
         auto ArrayUnwrap = [](slang::TypeReflection* I_Type, UInt32& O_ArrayCount) -> slang::TypeReflection*
         {
             O_ArrayCount = 1;
@@ -300,14 +305,35 @@ export namespace Visera::Forge
             auto* Type = Var->getType();
             if (!Type) return;
 
-            if (VarLayout->getCategory() == slang::ParameterCategory::PushConstantBuffer)
+            if (VarLayout->getCategory() == kPushConstantCat)
             {
                 const char* Name = Var->getName();
                 const FStringView PCName = (Name && Name[0] != '\0') ? FStringView(Name) : FStringView("PushConstants");
-                const UInt32 Size = static_cast<UInt32>(VarLayout->getTypeLayout()->getSize(slang::ParameterCategory::PushConstantBuffer));
+                auto* TypeLayout = VarLayout->getTypeLayout();
+                // Unwrap ConstantBuffer: the buffer itself has 0 fields; fields live in its element type (the struct).
+                slang::TypeLayoutReflection* StructLayout = TypeLayout;
+                if (Type->getKind() == slang::TypeReflection::Kind::ConstantBuffer)
+                {
+                    auto* ElementLayout = TypeLayout->getElementTypeLayout();
+                    if (ElementLayout) { StructLayout = ElementLayout; }
+                }
+                size_t sizeBytes = StructLayout->getSize(kUniformCat);
+                if (sizeBytes == 0u)
+                {
+                    const unsigned int nFields = StructLayout->getFieldCount();
+                    if (nFields > 0u)
+                    {
+                        auto* LastField = StructLayout->getFieldByIndex(nFields - 1);
+                        auto* FieldTypeLayout = LastField->getTypeLayout();
+                        const size_t off = LastField->getOffset(kUniformCat);
+                        const size_t fsz = FieldTypeLayout->getSize(kUniformCat);
+                        sizeBytes = off + fsz;
+                    }
+                }
                 FRHIShaderLayout::FPushConstant PC;
                 PC.Name = FString(PCName);
-                PC.Size = Size;
+                PC.Offset = static_cast<UInt32>(VarLayout->getOffset(kPushConstantCat));
+                PC.Size = static_cast<UInt32>(sizeBytes);
                 PC.Stages.PushBack(FString(StageName));
                 Reflection.PushConstants.PushBack(std::move(PC));
                 return;
@@ -344,6 +370,8 @@ export namespace Visera::Forge
                     case SLANG_TEXTURE_CUBE: Res.Type = "TextureCube"; break;
                     case SLANG_TEXTURE_3D: Res.Type = "Texture3D"; break;
                     case SLANG_TEXTURE_1D: Res.Type = "Texture1D"; break;
+                    case SLANG_STRUCTURED_BUFFER: Res.Type = "StructuredBuffer"; break;
+                    case SLANG_BYTE_ADDRESS_BUFFER: Res.Type = "ByteAddressBuffer"; break;
                     default: return;
                     }
                     const auto Access = BaseType->getResourceAccess();
@@ -379,11 +407,16 @@ export namespace Visera::Forge
             Reflection.Resources.PushBack(std::move(Res));
         };
 
-        // Only current entry point's parameters (program layout has one entry point when built for one).
-        const auto ParamCount = ShaderLayout->getParameterCount();
-        for (unsigned i = 0; i < ParamCount; ++i)
+        // Iterate over both global program parameters and entry-point parameters (push constants/resources can be on either).
+        const auto GlobalParamCount = ShaderLayout->getParameterCount();
+        for (unsigned i = 0; i < GlobalParamCount; ++i)
         {
             ExtractResourceLike(ShaderLayout->getParameterByIndex(i));
+        }
+        const auto EpParamCount = CurrentEP->getParameterCount();
+        for (unsigned i = 0; i < EpParamCount; ++i)
+        {
+            ExtractResourceLike(CurrentEP->getParameterByIndex(i));
         }
 
         return Reflection;

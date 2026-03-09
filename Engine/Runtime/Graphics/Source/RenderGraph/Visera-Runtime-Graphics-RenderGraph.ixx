@@ -131,10 +131,10 @@ export namespace Visera
     // =========================================================================
     struct FRDGNode
     {
-        const char*                           Name {""};
-        TArray<FRDGResourceAccess>             Reads;
-        TArray<FRDGResourceAccess>             Writes;
-        TFunction<void(const FRDGPassContext&)> ExecuteFn;
+        const char*                       Name {""};
+        TArray<FRDGResourceAccess>        Reads;
+        TArray<FRDGResourceAccess>        Writes;
+        TFunction<void(FRDGPassContext&)> ExecuteFn;
     };
 
     // =========================================================================
@@ -434,7 +434,7 @@ export namespace Visera
             .Name      = I_Name,
             .Reads     = std::move(Builder.Reads),
             .Writes    = std::move(Builder.Writes),
-            .ExecuteFn = TFunction<void(const FRDGPassContext&)>(std::forward<ExecFn>(I_Execute)),
+            .ExecuteFn = TFunction<void(FRDGPassContext&)>(std::forward<ExecFn>(I_Execute)),
         });
         LOG_TRACE("RenderGraph: added pass '{}'.", I_Name);
     }

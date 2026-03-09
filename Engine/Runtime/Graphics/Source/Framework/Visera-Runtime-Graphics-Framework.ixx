@@ -13,8 +13,8 @@ export namespace Visera
       FRHISwapChainID SwapChainID     {kInvalidSwapChainID};
       FRenderData     Data;
       FRenderView     RenderView;
-      UInt32          ViewportWidth   {0};
-      UInt32          ViewportHeight  {0};
+      UInt32          RenderWidth     {0};
+      UInt32          RenderHeight    {0};
    };
 
    /** Per-frame context passed to registered pass factories. Contains RHI, render data and view, swap chain, and back buffer for the current frame. */
@@ -26,8 +26,8 @@ export namespace Visera
       FRHISwapChainID       SwapChainID    {kInvalidSwapChainID};
       FRHITextureID         BackBuffer;
       FPipelineCache*       PipelineCache  {nullptr};
-      UInt32                ViewportWidth  {0};
-      UInt32                ViewportHeight {0};
+      UInt32                RenderWidth    {0};
+      UInt32                RenderHeight   {0};
    };
 
    struct VISERA_RUNTIME_API ERenderPassPriority

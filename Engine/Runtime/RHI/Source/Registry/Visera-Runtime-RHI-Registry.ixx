@@ -714,16 +714,14 @@ export namespace Visera
         }
 
         TArray<vk::PushConstantRange> PCRanges;
-        UInt32 Offset = 0;
         for (const auto& PC : VSRefl.PushConstants)
         {
             if (PC.Size > 0)
             {
                 PCRanges.EmplaceBack(vk::PushConstantRange{}
-                    .setOffset    (Offset)
+                    .setOffset    (PC.Offset)
                     .setSize     (PC.Size)
                     .setStageFlags(TypeCast(PC.Stages)));
-                Offset += PC.Size;
             }
         }
         for (const auto& PC : FSRefl.PushConstants)
@@ -731,10 +729,9 @@ export namespace Visera
             if (PC.Size > 0)
             {
                 PCRanges.EmplaceBack(vk::PushConstantRange{}
-                    .setOffset    (Offset)
+                    .setOffset    (PC.Offset)
                     .setSize     (PC.Size)
                     .setStageFlags(TypeCast(PC.Stages)));
-                Offset += PC.Size;
             }
         }
 
@@ -797,16 +794,14 @@ export namespace Visera
         }
 
         TArray<vk::PushConstantRange> PCRanges;
-        UInt32 Offset = 0;
         for (const auto& PC : CSRefl.PushConstants)
         {
             if (PC.Size > 0)
             {
                 PCRanges.EmplaceBack(vk::PushConstantRange{}
-                    .setOffset    (Offset)
+                    .setOffset    (PC.Offset)
                     .setSize     (PC.Size)
                     .setStageFlags(TypeCast(PC.Stages)));
-                Offset += PC.Size;
             }
         }
 

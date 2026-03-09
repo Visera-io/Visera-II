@@ -4,12 +4,12 @@
   "title": "Visera Material",
   "type": "object",
   "additionalProperties": false,
-  "required": ["Version", "Shader", "Surface", "Textures"],
+  "required": ["Version", "Shader"],
   "properties": {
     "Version": {
       "type": "integer",
-      "minimum": 1,
-      "description": "Visera material asset format version."
+      "enum": [1],
+      "description": "Visera material asset format version (1)."
     },
     "Name": {
       "type": "string",
@@ -24,50 +24,78 @@
         "Vert": {
           "type": "string",
           "minLength": 1,
-          "description": "Vertex shader .vshader filename (e.g. Sprite.VertMain.vshader)."
+          "description": "Vertex shader .vshader path (e.g. ../Shader/Sprite.VertMain.vshader)."
         },
         "Frag": {
           "type": "string",
           "minLength": 1,
-          "description": "Fragment shader .vshader filename (e.g. Sprite.FragMain.vshader)."
+          "description": "Fragment shader .vshader path (e.g. ../Shader/Sprite.FragMain.vshader)."
         }
       }
     },
-    "Surface": {
-      "oneOf": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["Type"],
-          "description": "Surface type (blend mode).",
-          "properties": {
-            "Type": {
-              "type": "string",
-              "enum": ["Opaque", "Masked", "Transparent"],
-              "description": "High-level surface type."
-            }
-          }
-        },
-        {
+    "State": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pipeline state: surface type, cull mode, depth write.",
+      "properties": {
+        "Surface": {
           "type": "string",
           "enum": ["Opaque", "Masked", "Transparent"],
-          "description": "Legacy: Surface type only."
+          "default": "Opaque",
+          "description": "Surface / blend mode."
+        },
+        "CullMode": {
+          "type": "string",
+          "enum": ["None", "Front", "Back", "TwoSided"],
+          "default": "Back",
+          "description": "Rasterization cull mode."
+        },
+        "ZWrite": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable depth write."
         }
-      ],
-      "description": "Surface type. Use object { Type } or legacy string."
+      }
+    },
+    "Parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "number" },
+        "description": "Initial/default values for push constants or uniforms (e.g. [0,0] for Vector2F, [1,1,1,1] for Vector4F)."
+      },
+      "description": "Optional default values keyed by shader parameter name (from reflection)."
     },
     "Textures": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["BaseColor"],
-      "description": "Texture bindings by semantic name. Paths/ids resolved by AssetHub (VFS).",
-      "properties": {
-        "BaseColor": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Base color texture asset path/id."
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Image asset path for this texture binding."
+      },
+      "description": "Texture name (from shader reflection) -> image path."
+    },
+    "Samplers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Filter": {
+            "type": "string",
+            "enum": ["Linear", "Nearest"],
+            "default": "Linear",
+            "description": "Sampler filter."
+          },
+          "AddressMode": {
+            "type": "string",
+            "enum": ["Repeat", "MirroredRepeat", "Clamp", "ClampToBorder", "MirrorClampToEdge"],
+            "default": "Repeat",
+            "description": "Sampler address mode (Clamp = ClampToEdge)."
+          }
         }
-      }
+      },
+      "description": "Sampler name (from reflection) -> { Filter, AddressMode }."
     }
   }
 }

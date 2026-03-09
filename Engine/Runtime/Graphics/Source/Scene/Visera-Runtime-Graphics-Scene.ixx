@@ -7,14 +7,15 @@ export import Visera.Runtime.Graphics.Scene.Light;
 export import Visera.Runtime.Graphics.Scene.Renderable;
        import Visera.Core.Containers.Array;
        import Visera.Core.Types.Pointer;
+       import Visera.Core.Math.Algebra.Vector;
 
 export namespace Visera
 {
-    /** Per-frame scene payload: renderables and lights. Read-only on the graphics thread. */
+    /** Per-frame scene payload: renderables and lights. Read-only on the graphics thread. Cursor position is passed via FRenderContext, not here. */
     struct VISERA_RUNTIME_API FRenderData
     {
         TArray<TSharedPtr<IRenderable>> Renderables;
-        TArray<FLight>                 Lights;
+        TArray<FLight>                   Lights;
 
         [[nodiscard]] const TArray<TSharedPtr<IRenderable>>&
         GetRenderables() const { return Renderables; }

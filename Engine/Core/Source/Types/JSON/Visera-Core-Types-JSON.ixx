@@ -350,6 +350,16 @@ export namespace Visera
                     return TOptional<TArray<FString>>(std::move(Result));
                 }
             }
+            else if constexpr (std::same_as<T, FJSON>)
+            {
+                if (auto Opt = Root.TryGet<Json>(I_Key.GetNative()); Opt.has_value() && Opt->GetNative().is_array())
+                {
+                    TArray<FJSON> Result;
+                    for (const auto& El : Opt->GetNative())
+                    { Result.PushBack(FJSON(Json(El))); }
+                    return TOptional<TArray<FJSON>>(std::move(Result));
+                }
+            }
             else if (auto Vec = Root.TryGet<std::vector<T>>(I_Key.GetNative()); Vec.has_value())
             {
                 return TOptional<TArray<T>>(TArray<T>(std::move(Vec.value())));
@@ -369,6 +379,16 @@ export namespace Visera
                     for (auto& s : Vec.value())
                     { Result.PushBack(FString(std::move(s))); }
                     return TOptional<TArray<FString>>(std::move(Result));
+                }
+            }
+            else if constexpr (std::same_as<T, FJSON>)
+            {
+                if (auto Opt = Root.TryGet<Json>(I_Route); Opt.has_value() && Opt->GetNative().is_array())
+                {
+                    TArray<FJSON> Result;
+                    for (const auto& El : Opt->GetNative())
+                    { Result.PushBack(FJSON(Json(El))); }
+                    return TOptional<TArray<FJSON>>(std::move(Result));
                 }
             }
             else if (auto Vec = Root.TryGet<std::vector<T>>(I_Route); Vec.has_value())

@@ -11,4 +11,6 @@ namespace Visera
     inline constexpr UInt64 kUtilityFenceTimeoutNs = 5'000'000'000ULL;   // 5s
     inline constexpr UInt64 kAcquireTimeoutNs      = 3'000'000'000ULL;   // 3s
     inline constexpr UInt64 kCommandListHighWaterMarkBytes = 64ULL * 1024; // 64KB
+    /** Push constant data (offset + up to 128 bytes). Must be called inside a render pass with a pipeline that has push constants. */
+    inline constexpr UInt8  kMaxPushConstantSize   = 128U;
 }

@@ -26,6 +26,7 @@ import Visera.Core.Containers.Array;
     RHI_COMMAND(LeaveRenderPass) \
     RHI_COMMAND(BindVertexBuffer) \
     RHI_COMMAND(BindDescriptorSet) \
+    RHI_COMMAND(PushConstants) \
     RHI_COMMAND(Draw) \
     RHI_COMMAND(DrawIndexed) \
     RHI_COMMAND(EnterComputePass) \
@@ -91,7 +92,7 @@ export namespace Visera
             UInt8                     ColorTargetCount { 0 };
             struct alignas(8) FColorAttachmentSlot
             {
-                FRHITextureHandle       ColorTexture    {};
+                FRHITextureHandle      ColorTexture    {};
                 ERHIAttachmentLoadOp   ColorLoadOp     { ERHIAttachmentLoadOp::Clear  };
                 ERHIAttachmentStoreOp  ColorStoreOp    { ERHIAttachmentStoreOp::Store };
                 FLinearColor           ColorClearValue { FLinearColor::Purple() };
@@ -135,6 +136,15 @@ export namespace Visera
         };
         void inline
         BindDescriptorSet(const FRHIDescriptorSetID& I_DescriptorSet, UInt32 I_SetIndex = 0);
+
+        struct alignas(8) FPushConstants
+        {
+            UInt32 Offset {0};
+            UInt32 Size   {0};
+            FByte  Data[kMaxPushConstantSize];
+        };
+        void inline
+        PushConstants(const void* I_Data, UInt32 I_Offset, UInt32 I_Size);
 
         struct alignas(8) FDraw
         {
@@ -646,7 +656,7 @@ export namespace Visera
         const auto Handle = I_RenderPass.GetHandle();
         FEnterRenderPass Payload{};
         Payload.RenderPass        = Handle;
-        Payload.ColorTargetCount  = static_cast<UInt8>(I_Attachments.ColorTargets.GetSize());
+        Payload.ColorTargetCount  = static_cast<UInt8>(I_Attachments.ColorAttachments.GetSize());
         if (Payload.ColorTargetCount > kMaxColorAttachments)
         {
             LOG_ERROR("EnterRenderPass: ColorTargetCount {} exceeds kMaxColorAttachments ({}), clamping.",
@@ -655,21 +665,21 @@ export namespace Visera
         }
         for (UInt32 i = 0; i < Payload.ColorTargetCount; ++i)
         {
-            const auto& Src = I_Attachments.ColorTargets[i];
+            const auto& Src = I_Attachments.ColorAttachments[i];
             auto& Dst = Payload.ColorSlots[i];
             Dst.ColorTexture    = Src.Texture;
             Dst.ColorLoadOp     = Src.LoadOp;
             Dst.ColorStoreOp    = Src.StoreOp;
-            Dst.ColorClearValue = Src.ClearColor;
+            Dst.ColorClearValue = Src.ColorClearValue;
         }
-        const auto& Ds = I_Attachments.DepthStencil;
+        const auto& Ds = I_Attachments.DepthStencilAttachment;
         Payload.DepthStencilSlot.DepthStencilTexture = Ds.Texture;
         Payload.DepthStencilSlot.DepthLoadOp          = Ds.DepthLoadOp;
         Payload.DepthStencilSlot.DepthStoreOp         = Ds.DepthStoreOp;
-        Payload.DepthStencilSlot.DepthClearValue      = Ds.DepthClear;
+        Payload.DepthStencilSlot.DepthClearValue      = Ds.DepthClearValue;
         Payload.DepthStencilSlot.StencilLoadOp        = Ds.StencilLoadOp;
         Payload.DepthStencilSlot.StencilStoreOp       = Ds.StencilStoreOp;
-        Payload.DepthStencilSlot.StencilClearValue    = Ds.StencilClear;
+        Payload.DepthStencilSlot.StencilClearValue    = Ds.StencilClearValue;
         RecordCommand(ERHICommandType::EnterRenderPass, Payload);
     }
 
@@ -710,6 +720,24 @@ export namespace Visera
             .DescriptorSet = Handle,
             .SetIndex      = I_SetIndex,
         });
+    }
+
+    void FRHICommandList::
+    PushConstants(const void* I_Data, UInt32 I_Offset, UInt32 I_Size)
+    {
+        if (I_Data == nullptr || I_Size == 0 || I_Size > kMaxPushConstantSize)
+        {
+            if (I_Size > kMaxPushConstantSize)
+            { LOG_ERROR("PushConstants: Size {} exceeds kMaxPushConstantSize {}.", I_Size, kMaxPushConstantSize); }
+            return;
+        }
+        FPushConstants Payload
+        {
+            .Offset = I_Offset,
+            .Size   = I_Size,
+        };
+        Memory::Memcpy(Payload.Data, I_Data, I_Size);
+        RecordCommand(ERHICommandType::PushConstants, Payload);
     }
 
     void FRHICommandList::

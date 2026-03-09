@@ -297,6 +297,8 @@ export namespace Visera
             void
             ExecuteBindDescriptorSet(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
+            ExecutePushConstants(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+            void
             ExecuteDraw(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
             ExecuteDrawIndexed(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
@@ -1064,6 +1066,7 @@ export namespace Visera
                 case ERHICommandType::SetScissor:          ExecuteSetScissor(Frame, Command); break;
                 case ERHICommandType::BindVertexBuffer:    ExecuteBindVertexBuffer(Frame, Command); break;
                 case ERHICommandType::BindDescriptorSet:   ExecuteBindDescriptorSet(Frame, Command); break;
+                case ERHICommandType::PushConstants:        ExecutePushConstants(Frame, Command); break;
                 case ERHICommandType::Draw:                ExecuteDraw(Frame, Command); break;
                 case ERHICommandType::DrawIndexed:         ExecuteDrawIndexed(Frame, Command); break;
                 case ERHICommandType::EnterComputePass:
@@ -1412,6 +1415,14 @@ export namespace Visera
         if (!I_Frame.GraphicsCalls.IsInsideRenderPass()) { return; }
         const auto& Payload = DecodePayload<FRHICommandList::FDraw>(I_Cmd);
         I_Frame.GraphicsCalls.Draw(Payload.VertexCount, Payload.InstanceCount, Payload.FirstVertex, Payload.FirstInstance);
+    }
+
+    void FRHI::FRHIThread::
+    ExecutePushConstants(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
+    {
+        if (!I_Frame.GraphicsCalls.IsInsideRenderPass()) { return; }
+        const auto& Payload = DecodePayload<FRHICommandList::FPushConstants>(I_Cmd);
+        I_Frame.GraphicsCalls.PushConstants(Payload.Data, Payload.Offset, Payload.Size);
     }
 
     void FRHI::FRHIThread::

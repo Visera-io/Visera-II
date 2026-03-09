@@ -35,7 +35,7 @@ namespace Visera
         FVulkanImageView* ImageView {nullptr};
 
         vk::AttachmentLoadOp    LoadOp     { vk::AttachmentLoadOp::eClear  };
-        vk::AttachmentStoreOp    StoreOp    { vk::AttachmentStoreOp::eStore };
+        vk::AttachmentStoreOp   StoreOp    { vk::AttachmentStoreOp::eStore };
         vk::ClearColorValue     ClearColor { vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f) };
 
     public:

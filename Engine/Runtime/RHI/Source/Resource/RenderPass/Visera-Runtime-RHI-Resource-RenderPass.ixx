@@ -14,26 +14,26 @@ export namespace Visera
     struct FRHIColorAttachmentDesc
     {
         FRHITextureHandle      Texture;
-        ERHIAttachmentLoadOp   LoadOp     { ERHIAttachmentLoadOp::Clear };
-        ERHIAttachmentStoreOp  StoreOp    { ERHIAttachmentStoreOp::Store };
-        FLinearColor           ClearColor { FLinearColor::Purple() };
+        ERHIAttachmentLoadOp   LoadOp           { ERHIAttachmentLoadOp::Clear };
+        ERHIAttachmentStoreOp  StoreOp          { ERHIAttachmentStoreOp::Store };
+        FLinearColor           ColorClearValue  { FLinearColor::Purple() };
     };
 
     struct FRHIDepthStencilAttachmentDesc
     {
         FRHITextureHandle      Texture;
-        ERHIAttachmentLoadOp   DepthLoadOp    { ERHIAttachmentLoadOp::Clear };
-        ERHIAttachmentStoreOp  DepthStoreOp   { ERHIAttachmentStoreOp::Store };
-        Float                  DepthClear     { 1.0f };
-        ERHIAttachmentLoadOp   StencilLoadOp  { ERHIAttachmentLoadOp::DontCare };
-        ERHIAttachmentStoreOp  StencilStoreOp { ERHIAttachmentStoreOp::DontCare };
-        UInt32                 StencilClear   { 0 };
+        ERHIAttachmentLoadOp   DepthLoadOp       { ERHIAttachmentLoadOp::Clear };
+        ERHIAttachmentStoreOp  DepthStoreOp      { ERHIAttachmentStoreOp::Store };
+        Float                  DepthClearValue   { 1.0f };
+        ERHIAttachmentLoadOp   StencilLoadOp     { ERHIAttachmentLoadOp::DontCare };
+        ERHIAttachmentStoreOp  StencilStoreOp    { ERHIAttachmentStoreOp::DontCare };
+        UInt32                 StencilClearValue { 0 };
     };
 
     struct FRHIRenderPassAttachments
     {
-        TArray<FRHIColorAttachmentDesc> ColorTargets;
-        FRHIDepthStencilAttachmentDesc  DepthStencil;  // Texture = null/invalid means none
+        TArray<FRHIColorAttachmentDesc>    ColorAttachments;
+        FRHIDepthStencilAttachmentDesc     DepthStencilAttachment;  // Texture = null/invalid means none
     };
 
     struct VISERA_RUNTIME_API FRHIVertexAttribute
@@ -100,7 +100,7 @@ export namespace Visera
             ERHIBlendOp Mode { ERHIBlendOp::Add }; // None == Disable
         }AlphaBlend;
 
-        /** Color attachment formats; length must match render pass ColorTargets. For MRT (e.g. color RGBA8 + normal R16F). */
+        /** Color attachment formats; length must match render pass ColorAttachments. For MRT (e.g. color RGBA8 + normal R16F). */
         TArray<ERHIFormat>  ColorFormats;
         /** Depth/stencil format when using a depth attachment; Undefined if no depth. */
         ERHIFormat          DepthStencilFormat { ERHIFormat::Undefined };

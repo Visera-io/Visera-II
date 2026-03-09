@@ -127,13 +127,14 @@ namespace Visera::Forge
                     StagesMask
                 });
             }
+            // Runtime FRHIShaderLayout::FPushConstant has no Name; Material validates PushConstants.Data by total size only.
             Refl.PushConstants.Reserve(ReflSlang.PushConstants.GetSize());
             for (const auto& PC : ReflSlang.PushConstants)
             {
                 ERHIShaderStage StagesMask = ERHIShaderStage::Undefined;
                 for (const auto& S : PC.Stages) { StagesMask |= StageFromString(S); }
                 if (StagesMask == ERHIShaderStage::Undefined) { StagesMask = ERHIShaderStage::All; }
-                Refl.PushConstants.PushBack({ PC.Size, StagesMask });
+                Refl.PushConstants.PushBack({ PC.Offset, PC.Size, StagesMask });
             }
 
             FPath OutputPath = I_SourcePath;
@@ -147,6 +148,7 @@ namespace Visera::Forge
             OutputName.Append(".vshader");
             OutputPath = *OutputPath.GetParent() / FPath(OutputName);
 
+            WriteReflectionMeta(OutputPath, Refl);
             if (!AssetHub->SaveShader({std::move(SPIRV), std::move(Refl)}, OutputPath))
             {
                 LOG_ERROR("Failed to save shader: {}", OutputPath);

@@ -41,10 +41,10 @@ export namespace Visera
       void
       Render(FWindow* I_Window, const FScene& I_Scene);
 
-      /** Render a headless (or direct ID-based) frame. Use the ID returned by RegisterHeadless(). */
+      /** Render a headless (or direct ID-based) frame. Use the ID returned by RegisterHeadless(). I_RenderWidth/Height = internal resolution for scene passes; output size is SwapChain. */
       void
       Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene,
-             UInt32 I_ViewportWidth = 0, UInt32 I_ViewportHeight = 0);
+             UInt32 I_RenderWidth = 0, UInt32 I_RenderHeight = 0);
 
       /** Create a headless rendering context. Returns a stable SwapChainID. */
       [[nodiscard]] FRHISwapChainID
@@ -133,8 +133,8 @@ export namespace Visera
          void
          WaitSwapChainReadyIfDirty(FRHISwapChainID SwapChainID);
          void
-         ImportCachedTextures(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot,
-                             UInt32 ViewportWidth, UInt32 ViewportHeight);
+         ImportCachedTextures(FRenderGraph* Graph, TMap<FName, FCachedTexture>& CacheSlot,
+                             UInt32 RenderWidth, UInt32 RenderHeight);
          void
          ExportGraphToCache(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot);
          void
@@ -350,8 +350,8 @@ export namespace Visera
             .SwapChainID    = SwapChainID,
             .BackBuffer     = BackBuffer,
             .PipelineCache  = &SCContext.PipelineCache,
-            .ViewportWidth  = RenderTask.ViewportWidth,
-            .ViewportHeight = RenderTask.ViewportHeight,
+            .RenderWidth    = RenderTask.RenderWidth,
+            .RenderHeight   = RenderTask.RenderHeight,
          };
          auto Graph = MakeUnique<FRenderGraph>(SwapChainID, BackBuffer);
          const UInt32 MaxInFlight = RHI->GetMaxInFlightFrames();
@@ -364,7 +364,7 @@ export namespace Visera
          auto& CacheSlot = SCContext.InFlightCaches[FrameSlot];
 
          // 7. Import cached textures
-         ImportCachedTextures(*Graph, CacheSlot, RenderTask.ViewportWidth, RenderTask.ViewportHeight);
+         ImportCachedTextures(Graph.Get(), CacheSlot, RenderTask.RenderWidth, RenderTask.RenderHeight);
 
          // 8. Run passes
          for (const auto& Entry : *PassEntries)
@@ -382,7 +382,7 @@ export namespace Visera
                   PB.Read(BB, ERGResourceUsage::Present);
                   PB.Write(BB, ERGResourceUsage::Present);
                },
-               [](const FRDGPassContext&) { });
+               [](FRDGPassContext&) { });
          }
 
          // 10. Compile, execute, submit
@@ -438,33 +438,26 @@ export namespace Visera
    }
 
    void FGraphics::FGraphicsThread::
-   ImportCachedTextures(FRenderGraph& Graph, TMap<FName, FCachedTexture>& CacheSlot,
-                       UInt32 ViewportWidth, UInt32 ViewportHeight)
+   ImportCachedTextures(FRenderGraph* Graph, TMap<FName, FCachedTexture>& CacheSlot,
+                       UInt32 RenderWidth, UInt32 RenderHeight)
    {
+      if (!Graph) { return; }
       for (auto& [CachedName, CachedTex] : CacheSlot)
       {
-         if (CachedTex.Width  == ViewportWidth &&
-             CachedTex.Height == ViewportHeight)
-         {
-            auto Imported = Graph.RegisterExternalTexture(
-               CachedName,
-               CachedTex.ID,
-               FRDGTextureCreateInfo{
-                  .Width  = CachedTex.Width,
-                  .Height = CachedTex.Height,
-                  .Format = CachedTex.Format,
-               },
-               CachedTex.KnownLayout);
-            LOG_TRACE("Cache import: '{}' RHI={} Layout={} -> GfxID valid={}",
-               CachedName.GetNameString(), CachedTex.ID.GetHandle().GetIndex(),
-               static_cast<int>(CachedTex.KnownLayout), Imported.IsValid());
-         }
-         else
-         {
-            LOG_DEBUG("Cache skip '{}': size mismatch (cached={}x{} vs viewport={}x{})",
-               CachedName.GetNameString(), CachedTex.Width, CachedTex.Height,
-               ViewportWidth, ViewportHeight);
-         }
+         if (CachedTex.Width != RenderWidth || CachedTex.Height != RenderHeight)
+         { continue; }
+         auto Imported = Graph->RegisterExternalTexture(
+            CachedName,
+            CachedTex.ID,
+            FRDGTextureCreateInfo{
+               .Width  = CachedTex.Width,
+               .Height = CachedTex.Height,
+               .Format = CachedTex.Format,
+            },
+            CachedTex.KnownLayout);
+         LOG_TRACE("Cache import: '{}' RHI={} Layout={} -> GfxID valid={}",
+            CachedName.GetNameString(), CachedTex.ID.GetHandle().GetIndex(),
+            static_cast<Int32>(CachedTex.KnownLayout), Imported.IsValid());
       }
    }
 
@@ -554,14 +547,14 @@ export namespace Visera
       }
       RHI->UpdateSwapChainMinimized(SwapChainID, I_Window->IsMinimized());
 
-      const UInt32 ViewportWidth  = I_Window->GetWidth()  > 0 ? static_cast<UInt32>(I_Window->GetWidth())  : 1u;
-      const UInt32 ViewportHeight = I_Window->GetHeight() > 0 ? static_cast<UInt32>(I_Window->GetHeight()) : 1u;
-      Render(SwapChainID, I_Scene, ViewportWidth, ViewportHeight);
+      const UInt32 RenderWidth  = I_Window->GetWidth()  > 0 ? static_cast<UInt32>(I_Window->GetWidth())  : 1u;
+      const UInt32 RenderHeight = I_Window->GetHeight() > 0 ? static_cast<UInt32>(I_Window->GetHeight()) : 1u;
+      Render(SwapChainID, I_Scene, RenderWidth, RenderHeight);
    }
 
    void FGraphics::
    Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene,
-          UInt32 I_ViewportWidth, UInt32 I_ViewportHeight)
+          UInt32 I_RenderWidth, UInt32 I_RenderHeight)
    {
       if (I_SwapChainID == kInvalidSwapChainID)
       {
@@ -573,7 +566,7 @@ export namespace Visera
       FRenderView RenderView;
       I_Scene.BuildRenderData(RenderData);
       RenderView = I_Scene.BuildRenderView();
-      TOptional<FRenderTask> RenderTask{{I_SwapChainID, std::move(RenderData), std::move(RenderView), I_ViewportWidth, I_ViewportHeight}};
+      TOptional<FRenderTask> RenderTask{{I_SwapChainID, std::move(RenderData), std::move(RenderView), I_RenderWidth, I_RenderHeight}};
       if (PreviousCount >= kMaxPendingDrawRenderTasks)
       {
          PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);

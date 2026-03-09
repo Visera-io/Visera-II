@@ -92,7 +92,9 @@ export namespace Visera
                 FText Title(GetConfig().GetString(TJSONRoute<"Window.Title">(), "Visera"));
                 UInt32  Width  = GetConfig().GetNumber(TJSONRoute<"Window.Width">(), 512);
                 UInt32  Height = GetConfig().GetNumber(TJSONRoute<"Window.Height">(), 512);
-                
+                PresentMode = GetConfig().GetBool(TJSONRoute<"Window.VSync">(), True)
+                    ? EPresentMode::VSync : EPresentMode::Mailbox;
+
                 PlatformWindow = FPlatform::CreateWindow(Title, Width, Height);
                 if (!PlatformWindow) { return False; }
 
@@ -137,6 +139,11 @@ export namespace Visera
                     UInt32 Width  = GetConfig().GetNumber(TJSONRoute<"Window.Width">(), 512);
                     UInt32 Height = GetConfig().GetNumber(TJSONRoute<"Window.Height">(), 512);
                     PlatformWindow->SetSize(Width, Height);
+                }
+                else if (Route == FStringView("Window.VSync").GetNative())
+                {
+                    PresentMode = GetConfig().GetBool(TJSONRoute<"Window.VSync">(), True)
+                        ? EPresentMode::VSync : EPresentMode::Mailbox;
                 }
             }))
             { LOG_FATAL("Failed to bind OnConfigChange function!"); }

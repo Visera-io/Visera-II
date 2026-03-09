@@ -85,6 +85,105 @@ export namespace Visera::Forge
     }
 
     /**
+     * Write .vshader.meta with I_Refl as JSON (same layout as from Validate).
+     * Use this from the Compile path so .meta is generated from the exact reflection being saved, not from re-reading the binary.
+     */
+    inline void WriteReflectionMeta(const FPath& I_VshaderPath, const FRHIShaderLayout& I_Refl)
+    {
+        auto EscapeJSONString = [](FStringView S) -> FString
+        {
+            FString Out;
+            for (UInt64 i = 0; i < S.GetSize(); ++i)
+            {
+                const char C = S[static_cast<FStringView::SizeType>(i)];
+                switch (C)
+                {
+                case '\\': Out.Append("\\\\"); break;
+                case '\"':  Out.Append("\\\""); break;
+                case '\n':  Out.Append("\\n"); break;
+                case '\r':  Out.Append("\\r"); break;
+                case '\t':  Out.Append("\\t"); break;
+                default:    Out.Append(C); break;
+                }
+            }
+            return Out;
+        };
+        auto Indent = [](Int32 N) -> FString { return FString(static_cast<UInt64>(N), ' '); };
+        auto AppendStagesArray = [&](FString& IO, Int32 IndentSpaces, ERHIShaderStage Mask)
+        {
+            IO.Append(Indent(IndentSpaces)).Append("\"Stages\": [");
+            Bool First = True;
+            auto Add = [&](const char* S)
+            {
+                if (!First) IO.Append(", ");
+                IO.Append("\"").Append(S).Append("\"");
+                First = False;
+            };
+            const UInt32 V = static_cast<UInt32>(Mask);
+            if (V & static_cast<UInt32>(ERHIShaderStage::Vertex)) Add("Vertex");
+            if (V & static_cast<UInt32>(ERHIShaderStage::Fragment)) Add("Fragment");
+            if (V & static_cast<UInt32>(ERHIShaderStage::Compute)) Add("Compute");
+            if (First) Add("All");
+            IO.Append("]");
+        };
+        FString Meta;
+        Meta.Append("{\n");
+        Meta.Append(Indent(4)).Append("\"Reflection\": {\n");
+        Meta.Append(Indent(8)).Append("\"EntryPoints\": [\n");
+        for (UInt64 i = 0; i < I_Refl.EntryPoints.GetSize(); ++i)
+        {
+            const auto& EP = I_Refl.EntryPoints[i];
+            Meta.Append(Indent(12)).Append("{\n");
+            Meta.Append(Indent(16)).Append("\"Name\": \"").Append(EscapeJSONString(EP.Name)).Append("\",\n");
+            Meta.Append(Indent(16)).Append("\"Stage\": \"").Append(ShaderStageToString(EP.Stage)).Append("\"\n");
+            Meta.Append(Indent(12)).Append("}");
+            Meta.Append(i + 1 < I_Refl.EntryPoints.GetSize() ? ",\n" : "\n");
+        }
+        Meta.Append(Indent(8)).Append("],\n");
+        Meta.Append(Indent(8)).Append("\"PushConstants\": [\n");
+        for (UInt64 i = 0; i < I_Refl.PushConstants.GetSize(); ++i)
+        {
+            const auto& PC = I_Refl.PushConstants[i];
+            Meta.Append(Indent(12)).Append("{\n");
+            Meta.Append(Indent(16)).Append(FString::Format("\"Offset\": {}", static_cast<UInt64>(PC.Offset))).Append(",\n");
+            Meta.Append(Indent(16)).Append(FString::Format("\"Size\": {}", static_cast<UInt64>(PC.Size))).Append(",\n");
+            AppendStagesArray(Meta, 16, PC.Stages);
+            Meta.Append("\n");
+            Meta.Append(Indent(12)).Append("}");
+            Meta.Append(i + 1 < I_Refl.PushConstants.GetSize() ? ",\n" : "\n");
+        }
+        Meta.Append(Indent(8)).Append("],\n");
+        Meta.Append(Indent(8)).Append("\"Resources\": [\n");
+        for (UInt64 i = 0; i < I_Refl.Resources.GetSize(); ++i)
+        {
+            const auto& R = I_Refl.Resources[i];
+            Meta.Append(Indent(12)).Append("{\n");
+            Meta.Append(Indent(16)).Append(FString::Format("\"Set\": {},\n", static_cast<UInt64>(R.Set)));
+            Meta.Append(Indent(16)).Append(FString::Format("\"Binding\": {},\n", static_cast<UInt64>(R.Binding)));
+            Meta.Append(Indent(16)).Append(FString::Format("\"ArrayCount\": {},\n", static_cast<UInt64>(R.ArrayCount)));
+            Meta.Append(Indent(16)).Append("\"Name\": \"").Append(EscapeJSONString(R.Name)).Append("\",\n");
+            Meta.Append(Indent(16)).Append("\"Type\": \"").Append(ShaderTypeToString(R.Type)).Append("\",\n");
+            AppendStagesArray(Meta, 16, R.Stages);
+            if (R.Access != ERHIResourceAccess::Read)
+            {
+                Meta.Append(",\n");
+                Meta.Append(Indent(16)).Append("\"Access\": \"").Append(ShaderAccessToString(R.Access)).Append("\"");
+            }
+            Meta.Append("\n");
+            Meta.Append(Indent(12)).Append("}");
+            Meta.Append(i + 1 < I_Refl.Resources.GetSize() ? ",\n" : "\n");
+        }
+        Meta.Append(Indent(8)).Append("]\n");
+        Meta.Append(Indent(4)).Append("}\n");
+        Meta.Append("}\n");
+        FString MetaFileName(*I_VshaderPath.GetFileName());
+        MetaFileName += ".meta";
+        const FPath MetaPath = *I_VshaderPath.GetParent() / FPath(MetaFileName);
+        const auto& MetaStr = Meta.GetNative();
+        (void)FPlatform::WriteFile(MetaPath, MetaStr.data(), MetaStr.size());
+    }
+
+    /**
      * Validate a binary .vshader asset: header/chunks, PascalCase for all Names in Reflection chunk.
      * Path must be to the .vshader file (single binary with Header + ChunkTable + SPIRV + Reflection).
      * When I_OutputMeta is true (default), writes .vshader.meta with reflection as JSON for development inspection.
@@ -125,111 +224,7 @@ export namespace Visera::Forge
         }
 
         if (I_OutputMeta)
-        {
-            // NOTE: Visera::FJSON is backed by nlohmann::json (std::map), which sorts object keys.
-            // For human inspection, we want stable custom key order, so we emit JSON manually.
-            auto EscapeJSONString = [](FStringView S) -> FString
-            {
-                FString Out;
-                for (UInt64 i = 0; i < S.GetSize(); ++i)
-                {
-                    const char C = S[static_cast<FStringView::SizeType>(i)];
-                    switch (C)
-                    {
-                    case '\\\\': Out.Append("\\\\"); Out.Append("\\\\"); break;
-                    case '\"':  Out.Append("\\\\"); Out.Append("\""); break;
-                    case '\n':  Out.Append("\\\\n"); break;
-                    case '\r':  Out.Append("\\\\r"); break;
-                    case '\t':  Out.Append("\\\\t"); break;
-                    default:    Out.Append(C); break;
-                    }
-                }
-                return Out;
-            };
-
-            auto Indent = [](Int32 N) -> FString { return FString(static_cast<UInt64>(N), ' '); };
-
-            auto AppendStagesArray = [&](FString& IO, Int32 IndentSpaces, ERHIShaderStage Mask)
-            {
-                IO.Append(Indent(IndentSpaces)).Append("\"Stages\": [");
-                Bool First = True;
-                auto Add = [&](const char* S)
-                {
-                    if (!First) IO.Append(", ");
-                    IO.Append("\"").Append(S).Append("\"");
-                    First = False;
-                };
-                const UInt32 V = static_cast<UInt32>(Mask);
-                if (V & static_cast<UInt32>(ERHIShaderStage::Vertex)) Add("Vertex");
-                if (V & static_cast<UInt32>(ERHIShaderStage::Fragment)) Add("Fragment");
-                if (V & static_cast<UInt32>(ERHIShaderStage::Compute)) Add("Compute");
-                if (First) Add("All");
-                IO.Append("]");
-            };
-
-            FString Meta;
-            Meta.Append("{\n");
-            Meta.Append(Indent(4)).Append("\"Reflection\": {\n");
-
-            // EntryPoints
-            Meta.Append(Indent(8)).Append("\"EntryPoints\": [\n");
-            for (UInt64 i = 0; i < Refl.EntryPoints.GetSize(); ++i)
-            {
-                const auto& EP = Refl.EntryPoints[i];
-                Meta.Append(Indent(12)).Append("{\n");
-                Meta.Append(Indent(16)).Append("\"Name\": \"").Append(EscapeJSONString(EP.Name)).Append("\",\n");
-                Meta.Append(Indent(16)).Append("\"Stage\": \"").Append(ShaderStageToString(EP.Stage)).Append("\"\n");
-                Meta.Append(Indent(12)).Append("}");
-                Meta.Append(i + 1 < Refl.EntryPoints.GetSize() ? ",\n" : "\n");
-            }
-            Meta.Append(Indent(8)).Append("],\n");
-
-            // PushConstants
-            Meta.Append(Indent(8)).Append("\"PushConstants\": [\n");
-            for (UInt64 i = 0; i < Refl.PushConstants.GetSize(); ++i)
-            {
-                const auto& PC = Refl.PushConstants[i];
-                Meta.Append(Indent(12)).Append("{\n");
-                Meta.Append(Indent(16)).Append(FString::Format("\"Size\": {}", static_cast<UInt64>(PC.Size))).Append(",\n");
-                AppendStagesArray(Meta, 16, PC.Stages);
-                Meta.Append("\n");
-                Meta.Append(Indent(12)).Append("}");
-                Meta.Append(i + 1 < Refl.PushConstants.GetSize() ? ",\n" : "\n");
-            }
-            Meta.Append(Indent(8)).Append("],\n");
-
-            // Resources
-            Meta.Append(Indent(8)).Append("\"Resources\": [\n");
-            for (UInt64 i = 0; i < Refl.Resources.GetSize(); ++i)
-            {
-                const auto& R = Refl.Resources[i];
-                Meta.Append(Indent(12)).Append("{\n");
-                Meta.Append(Indent(16)).Append(FString::Format("\"Set\": {},\n", static_cast<UInt64>(R.Set)));
-                Meta.Append(Indent(16)).Append(FString::Format("\"Binding\": {},\n", static_cast<UInt64>(R.Binding)));
-                Meta.Append(Indent(16)).Append(FString::Format("\"ArrayCount\": {},\n", static_cast<UInt64>(R.ArrayCount)));
-                Meta.Append(Indent(16)).Append("\"Name\": \"").Append(EscapeJSONString(R.Name)).Append("\",\n");
-                Meta.Append(Indent(16)).Append("\"Type\": \"").Append(ShaderTypeToString(R.Type)).Append("\",\n");
-                AppendStagesArray(Meta, 16, R.Stages);
-                if (R.Access != ERHIResourceAccess::Read)
-                {
-                    Meta.Append(",\n");
-                    Meta.Append(Indent(16)).Append("\"Access\": \"").Append(ShaderAccessToString(R.Access)).Append("\"");
-                }
-                Meta.Append("\n");
-                Meta.Append(Indent(12)).Append("}");
-                Meta.Append(i + 1 < Refl.Resources.GetSize() ? ",\n" : "\n");
-            }
-            Meta.Append(Indent(8)).Append("]\n");
-
-            Meta.Append(Indent(4)).Append("}\n");
-            Meta.Append("}\n");
-
-            FString MetaFileName(*I_VshaderPath.GetFileName());
-            MetaFileName += ".meta";
-            const FPath MetaPath = *I_VshaderPath.GetParent() / FPath(MetaFileName);
-            const auto& MetaStr = Meta.GetNative();
-            (void)FPlatform::WriteFile(MetaPath, MetaStr.data(), MetaStr.size());
-        }
+            WriteReflectionMeta(I_VshaderPath, Refl);
 
         return Result;
     }
