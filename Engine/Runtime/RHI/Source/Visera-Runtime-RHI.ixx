@@ -224,7 +224,7 @@ export namespace Visera
             void
             ExecuteShutdown();
             void
-            ExecuteCreateSwapChain(FWindow* I_Window);
+            ExecuteCreateSwapChain(FWindow* I_Window, void* I_PreCreatedSurface = nullptr);
             FRHISwapChainID
             ExecuteCreateHeadlessSwapChain();
             void
@@ -382,11 +382,17 @@ export namespace Visera
     {
         if (I_Window)
         {
+            // Pre-create VkSurface on the calling thread (main thread).
+            // macOS requires AppKit/CAMetalLayer operations on the main thread;
+            // deferring glfwCreateWindowSurface to the RHI thread produces a
+            // layer that is never composited, resulting in a blank window.
+            void* PreCreatedSurface = I_Window->GetPlatformWindow()
+                ->CreateVulkanSurface(*RHIThread.Driver->GetInstance());
             FRHISwapChainID ResultID = kInvalidSwapChainID;
             FEvent Done;
-            RHIThread.Execute([this, I_Window, &ResultID, &Done]()
+            RHIThread.Execute([this, I_Window, PreCreatedSurface, &ResultID, &Done]()
             {
-                RHIThread.ExecuteCreateSwapChain(I_Window);
+                RHIThread.ExecuteCreateSwapChain(I_Window, PreCreatedSurface);
                 ResultID = RHIThread.QuerySwapChainID(I_Window);
                 Done.Trigger();
             });
@@ -698,14 +704,14 @@ export namespace Visera
     }
 
     void FRHI::FRHIThread::
-    ExecuteCreateSwapChain(FWindow* I_Window)
+    ExecuteCreateSwapChain(FWindow* I_Window, void* I_PreCreatedSurface)
     {
         if (!I_Window) { return; }
         UInt8 SCIdx = kInvalidSwapChainID;
         {
             FScopeWriteLock WriteLock(&WindowToSwapChainLock);
             if (WindowToSwapChainIndex.Contains(I_Window)) { return; }
-            Driver->CreateSwapChain(I_Window);
+            Driver->CreateSwapChain(I_Window, I_PreCreatedSurface);
             SCIdx = AllocateSlot();
             SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, &TransferCommandPool, I_Window);
             SwapChains[SCIdx].CachedProxyTextureID = FRHITextureID::CreateUnmanaged(
@@ -914,7 +920,9 @@ export namespace Visera
                            &Ctx.RenderFinishedSemaphores[ImageIndex],
                            &Frame.ExecuteFence);
             if (!Driver->Present(Win, &Ctx.RenderFinishedSemaphores[ImageIndex]))
-            { RequestRecreateSwapChain(I_SwapChainID); }
+            {
+                RequestRecreateSwapChain(I_SwapChainID);
+            }
             else
             {
                 auto Interval = Ctx.FrameTimer.Elapsed();
@@ -1040,7 +1048,9 @@ export namespace Visera
         if (!Ctx->bFrameActive)
         {
             if (!BeginFrame(I_SwapChainID))
-            { LOG_TRACE("RHI ExecuteImmediate: BeginFrame({}) failed, skipping command list.", I_SwapChainID); return; }
+            {
+                LOG_TRACE("RHI ExecuteImmediate: BeginFrame({}) failed, skipping command list.", I_SwapChainID); return;
+            }
         }
         FRHIInFlightFrame& Frame = Ctx->InFlightFrames[Ctx->FrameIndex];
         VISERA_ASSERT(Frame.GraphicsCalls.IsRecording());

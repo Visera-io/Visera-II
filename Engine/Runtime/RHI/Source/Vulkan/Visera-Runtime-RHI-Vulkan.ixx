@@ -221,7 +221,7 @@ export namespace Visera
         [[nodiscard]] Bool
         HasSwapChain(FWindow* I_Window) const;
         void
-        CreateSwapChain(FWindow* I_Window);
+        CreateSwapChain(FWindow* I_Window, void* I_PreCreatedSurface = nullptr);
         void
         DestroySwapChain(FWindow* I_Window);
         void
@@ -350,7 +350,7 @@ export namespace Visera
     }
 
     void FVulkanDriver::
-    CreateSwapChain(FWindow* I_Window)
+    CreateSwapChain(FWindow* I_Window, void* I_PreCreatedSurface)
     {
         VISERA_ASSERT(*Instance && I_Window);
 
@@ -369,9 +369,16 @@ export namespace Visera
         }
         else
         {
-            auto InstanceHandle = *Instance;
-            auto SurfaceHandle  = static_cast<vk::SurfaceKHR::NativeType>(
-                I_Window->GetPlatformWindow()->CreateVulkanSurface(InstanceHandle));
+            vk::SurfaceKHR::NativeType SurfaceHandle;
+            if (I_PreCreatedSurface)
+            {
+                SurfaceHandle = static_cast<vk::SurfaceKHR::NativeType>(I_PreCreatedSurface);
+            }
+            else
+            {
+                SurfaceHandle = static_cast<vk::SurfaceKHR::NativeType>(
+                    I_Window->GetPlatformWindow()->CreateVulkanSurface(*Instance));
+            }
             if (!SurfaceHandle) { LOG_ERROR("Failed to create vulkan surface!"); return; }
             SC = new FSwapChain();
             SC->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
@@ -1027,6 +1034,8 @@ export namespace Visera
 #else
 
 #endif
+        ->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
+
         ;
 
         // Extensions
@@ -1037,6 +1046,8 @@ export namespace Visera
 
 #endif
 #if defined(VISERA_ON_APPLE_SYSTEM)
+        ->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
+
             ->AddInstanceExtension(vk::KHRPortabilityEnumerationExtensionName)
 #endif
         ;

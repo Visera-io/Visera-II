@@ -572,7 +572,6 @@ export namespace Visera
          PendingDrawRenderTaskCount.FetchSub(1, EMemoryOrder::Relaxed);
          FScopeLock ScopeLock(&OverwriteSlotMutex);
          OverwriteSlot = std::move(RenderTask);
-         LOG_TRACE("Graphics render queue full, overwriting oldest with latest draw intent (id:{}, ring semantics).", I_SwapChainID);
          return;
       }
       ChannelToGraphics.Send(std::move(RenderTask));
