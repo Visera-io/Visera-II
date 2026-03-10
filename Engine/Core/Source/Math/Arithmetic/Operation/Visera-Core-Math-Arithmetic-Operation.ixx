@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Math.Arithmetic.Operation;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Constants;
+import Visera.Core.Limits.Numeric;
 
 export namespace Visera::Concepts
 {
@@ -23,11 +24,11 @@ export namespace Visera::Math
 	Min(NumT I_NumA, NumT I_NumB) noexcept { return std::min(I_NumA, I_NumB); }
 
 	template<Concepts::Arithmetical NumT> [[nodiscard]] constexpr NumT
-    Epsilon() noexcept { return std::numeric_limits<NumT>::epsilon(); }
-    template<Concepts::Arithmetical NumT> [[nodiscard]] constexpr NumT
-	UpperBound() noexcept { return std::numeric_limits<NumT>::max(); }
-    template<Concepts::Arithmetical NumT> [[nodiscard]] constexpr NumT
-	LowerBound() noexcept { return std::numeric_limits<NumT>::lowest(); }
+	Epsilon() noexcept { return Limits::Epsilon<NumT>(); }
+	template<Concepts::Arithmetical NumT> [[nodiscard]] constexpr NumT
+	UpperBound() noexcept { return Limits::UpperBound<NumT>(); }
+	template<Concepts::Arithmetical NumT> [[nodiscard]] constexpr NumT
+	LowerBound() noexcept { return Limits::LowerBound<NumT>(); }
 	template<Concepts::Arithmetical BoundT, Concepts::Arithmetical NumT> [[nodiscard]] constexpr Bool
 	IsWithinBounds(NumT I_Num) noexcept
 	{
