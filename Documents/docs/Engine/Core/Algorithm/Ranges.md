@@ -38,4 +38,4 @@ Bool none = NoneOf(arr, [](int x) { return x > 10; });  // true
 ## See also
 - [Algorithm](index.md) — Parent module
 - [Core](../index.md)
-- [Containers.Array](../Containers/Array.md) — TArray satisfies random_access_range etc.
+- [Containers.Array](../Containers/Array/index.md) — TArray satisfies random_access_range etc.

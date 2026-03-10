@@ -53,7 +53,10 @@ nav:
                   - SPSC: Engine/Core/Concurrency/Channel/SPSC.md
           - Containers:
               - Overview: Engine/Core/Containers/index.md
-              - Array: Engine/Core/Containers/Array.md
+              - Array:
+                  - Overview: Engine/Core/Containers/Array/index.md
+                  - Inline: Engine/Core/Containers/Array/Inline.md
+                  - PMR: Engine/Core/Containers/Array/PMR.md
               - Cache:
                   - Overview: Engine/Core/Containers/Cache/index.md
                   - LRU: Engine/Core/Containers/Cache/LRU.md
@@ -76,6 +79,14 @@ nav:
           - Log:
               - Overview: Engine/Core/Log/index.md
               - Logger: Engine/Core/Log/Logger.md
+          - Limits:
+              - Overview: Engine/Core/Limits/index.md
+              - Numeric: Engine/Core/Limits/Numeric.md
+          - Membership:
+              - Overview: Engine/Core/Membership/index.md
+              - Probabilistic:
+                  - Overview: Engine/Core/Membership/Probabilistic/index.md
+                  - CuckooFilter: Engine/Core/Membership/Probabilistic/CuckooFilter.md
           - Math:
               - Overview: Engine/Core/Math/index.md
               - Algebra:

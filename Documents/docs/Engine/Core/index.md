@@ -23,7 +23,9 @@ Core is organized as C++20 modules (`.ixx`). The root module `Visera.Core` aggre
 | [Font](Font/index.md) | Font types and utilities for asset loading and text rendering. |
 | [Image](Image/index.md) | Image and pixel types, common formats and layouts. |
 | [Log](Log/index.md) | Logging API and Logger (levels, sinks, formatting). |
+| [Limits](Limits/index.md) | Numeric bounds and epsilon: `Limits::Epsilon`, `UpperBound`, `LowerBound` (wraps `std::numeric_limits`). |
 | [Math](Math/index.md) | Math: algebra (vector/matrix/quaternion), arithmetic, geometry, color, hash, random, trigonometry, bit ops, interpolation, kernels. |
+| [Membership](Membership/index.md) | Approximate set-membership: probabilistic structures (e.g. Cuckoo filter) for insert / contain / delete with false positives. |
 | [Meta](Meta/index.md) | Metaprogramming and safe/unsafe cast utilities. |
 | [OS](OS/index.md) | OS abstraction: file system and file I/O, memory and Arena, thread and sync (atomic, critical section, event, RW lock, spinlock), time (clock, duration, time point). |
 | [Traits](Traits/index.md) | Type traits and enum flags utilities. |

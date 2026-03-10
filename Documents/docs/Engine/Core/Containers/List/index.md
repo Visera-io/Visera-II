@@ -11,4 +11,4 @@ List container aggregate. Re-exports intrusive list.
 ## See also
 
 - [Containers](../index.md) — parent module
-- [Array](../Array.md) — dynamic array
+- [Array](../Array/index.md) — dynamic array

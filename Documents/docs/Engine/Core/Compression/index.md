@@ -17,9 +17,9 @@
 
 ## Dependencies
 
-- Uses [OS.Memory](../OS/Memory/index.md) for memory copy, [Containers.Array](../Containers/Array.md) as output container, [Types.String](../Types/String.md) `FStringView` as input view, [Log](../Log/index.md) for errors.
+- Uses [OS.Memory](../OS/Memory/index.md) for memory copy, [Containers.Array](../Containers/Array/index.md) as output container, [Types.String](../Types/String.md) `FStringView` as input view, [Log](../Log/index.md) for errors.
 
 ## See also
 - [Core](../index.md) — Parent module
 - [OS.Memory](../OS/Memory/index.md) — Memory operations
-- [Containers.Array](../Containers/Array.md) — Output container
+- [Containers.Array](../Containers/Array/index.md) — Output container

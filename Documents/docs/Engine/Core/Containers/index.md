@@ -13,7 +13,7 @@
 ## Submodules
 | Module | Description |
 |------|------|
-| [Array](Array.md) | dynamic array `TArray<T>`.  |
+| [Array](Array/index.md) | TArray; [Inline](Array/Inline.md), [PMR](Array/PMR.md).  |
 | [Cache](Cache/index.md) | cache abstraction; [LRU](Cache/LRU.md) implementation.  |
 | [List](List/index.md) | list; [Intrusive](List/Intrusive.md) intrusive list.  |
 | [Map](Map.md) | associative map `TMap`.  |

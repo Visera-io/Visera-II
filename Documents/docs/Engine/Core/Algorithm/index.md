@@ -5,7 +5,7 @@
 ## Responsibilities
 - Thin wrappers over `std::ranges` algorithms with standard behavior and complexity.
 - Comparators (e.g. `Less`) and projection support for use in generic code.
-- All functions are templates and work with any type satisfying `range`/`viewable_range` (e.g. `TArray`, `FStringView`, `std::span`).
+- All functions are templates and work with any type satisfying `range`/`viewable_range` (e.g. `TArray`, `FStringView`, `TSpan`).
 
 ## Submodules
 | Module | Description |
@@ -16,4 +16,4 @@
 - [Core](../index.md) — Parent module
 - [Ranges](Ranges.md) — API reference
 - [Types.String](../Types/String.md) — FString/FStringView as range
-- [Containers.Array](../Containers/Array.md) — TArray satisfies range concept
+- [Containers.Array](../Containers/Array/index.md) — TArray satisfies range concept
