@@ -106,6 +106,7 @@
 #include <cassert>
 #include <chrono>
 #include <coroutine>
+#include <span>
 #include <spdlog/fmt/fmt.h>
 
 
@@ -214,6 +215,9 @@ namespace Visera
     using Int64  	    = std::int64_t;
     using UInt64 	    = std::uint64_t;
 	using UInt128		= std::pair<UInt64, UInt64>;
+
+	template<typename T>
+	using TSpan = std::span<T>;
 
     constexpr Bool True  = true;
     constexpr Bool False = false;

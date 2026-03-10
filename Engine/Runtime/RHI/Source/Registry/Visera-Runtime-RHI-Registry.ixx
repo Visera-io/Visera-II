@@ -698,22 +698,23 @@ export namespace Visera
             }
         }
 
-        TArray<UInt32> SetIndices;
+        TInlineArray<UInt32, 8> SetIndices;
         for (const auto& [SetIdx, _] : SetToBindings)
-        { SetIndices.PushBack(SetIdx); }
+        { VISERA_ASSERT(!SetIndices.IsFull()); SetIndices.PushBack(SetIdx); }
         Algorithm::Sort(SetIndices);
 
-        TArray<vk::DescriptorSetLayout> DSLHandles;
-        TArray<FVulkanDescriptorSetLayout> DSLStorage;
+        TInlineArray<vk::DescriptorSetLayout, 8>    DSLHandles;
+        TInlineArray<FVulkanDescriptorSetLayout, 8> DSLStorage;
         for (UInt32 SetIdx : SetIndices)
         {
             auto& Binds = SetToBindings[SetIdx];
             Algorithm::Sort(Binds, [](const auto& A, const auto& B) { return A.binding < B.binding; });
+            VISERA_ASSERT(!DSLStorage.IsFull());
             DSLStorage.PushBack(Driver->CreateDescriptorSetLayout(Binds));
             DSLHandles.PushBack(DSLStorage.Back().GetHandle());
         }
 
-        TArray<vk::PushConstantRange> PCRanges;
+        TInlineArray<vk::PushConstantRange, 8> PCRanges;
         for (const auto& PC : VSRefl.PushConstants)
         {
             if (PC.Size > 0)
@@ -739,8 +740,8 @@ export namespace Visera
         auto VertShaderModule = Driver->CreateShaderModule(pVS->GetInfo().SPIRV);
         auto FragShaderModule = Driver->CreateShaderModule(pFS->GetInfo().SPIRV);
 
-        TArray<vk::Format> ColorFormats;
-        ColorFormats.Reserve(I_Info.PSO.ColorFormats.GetSize());
+        VISERA_ASSERT(I_Info.PSO.ColorFormats.GetSize() <= kMaxColorAttachments);
+        TInlineArray<vk::Format, kMaxColorAttachments> ColorFormats;
         for (ERHIFormat F : I_Info.PSO.ColorFormats)
         { ColorFormats.PushBack(TypeCast(F)); }
         if (ColorFormats.IsEmpty())
@@ -749,7 +750,7 @@ export namespace Visera
             &PipelineLayout,
             &VertShaderModule,
             &FragShaderModule,
-            ColorFormats,
+            TSpan<const vk::Format>(ColorFormats.Data(), ColorFormats.GetSize()),
             TypeCast(I_Info.PSO.DepthStencilFormat));
 
         FRHIRenderPassHandle Handle = RenderPasses.Insert(
@@ -778,22 +779,23 @@ export namespace Visera
                 .setStageFlags     (TypeCast(R.Stages)));
         }
 
-        TArray<UInt32> SetIndices;
+        TInlineArray<UInt32, 8> SetIndices;
         for (const auto& [SetIdx, _] : SetToBindings)
-        { SetIndices.PushBack(SetIdx); }
+        { VISERA_ASSERT(!SetIndices.IsFull()); SetIndices.PushBack(SetIdx); }
         Algorithm::Sort(SetIndices);
 
-        TArray<vk::DescriptorSetLayout> DSLHandles;
-        TArray<FVulkanDescriptorSetLayout> DSLStorage;
+        TInlineArray<vk::DescriptorSetLayout, 8> DSLHandles;
+        TInlineArray<FVulkanDescriptorSetLayout, 8> DSLStorage;
         for (UInt32 SetIdx : SetIndices)
         {
             auto& Binds = SetToBindings[SetIdx];
             Algorithm::Sort(Binds, [](const auto& A, const auto& B) { return A.binding < B.binding; });
+            VISERA_ASSERT(!DSLStorage.IsFull());
             DSLStorage.PushBack(Driver->CreateDescriptorSetLayout(Binds));
             DSLHandles.PushBack(DSLStorage.Back().GetHandle());
         }
 
-        TArray<vk::PushConstantRange> PCRanges;
+        TInlineArray<vk::PushConstantRange, 8> PCRanges;
         for (const auto& PC : CSRefl.PushConstants)
         {
             if (PC.Size > 0)

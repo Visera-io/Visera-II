@@ -32,9 +32,9 @@ export namespace Visera
     /// RHI-level swap chain context: frame resources and synchronization state.
     struct VISERA_RUNTIME_API FRHISwapChain
     {
+        TInlineArray<FRHIInFlightFrame, kMaxInFlightFrames> InFlightFrames;
+        TInlineArray<FVulkanSemaphore,  kMaxInFlightFrames> RenderFinishedSemaphores;
         FWindow*                  Window {nullptr};  // For Driver lookup; nullptr = offscreen
-        TArray<FRHIInFlightFrame> InFlightFrames;
-        TArray<FVulkanSemaphore>  RenderFinishedSemaphores;
         UInt8                     FrameIndex = 0;
         FRHITextureID             CachedProxyTextureID;
         Bool                      bFrameActive = False;
@@ -181,9 +181,12 @@ export namespace Visera
         auto* SC = I_Driver->GetSwapChain(Window);
         if (!SC) { LOG_WARN("BuildFrameResources: no vulkan swapchain!"); return; }
         const UInt32 ImageCount    = static_cast<UInt32>(SC->Images.GetSize());
+        VISERA_ASSERT(ImageCount <= kMaxInFlightFrames);
         const UInt32 InFlightCount = (ImageCount == 0) ? 1u
             : (kMaxInFlightFrames < ImageCount ? kMaxInFlightFrames : ImageCount);
-        InFlightFrames.Resize(InFlightCount);
+        InFlightFrames.Clear();
+        for (UInt32 i = 0; i < InFlightCount; ++i)
+        { InFlightFrames.EmplaceBack(); }
         RenderFinishedSemaphores.Clear();
         for (UInt32 Idx = 0; Idx < ImageCount; ++Idx)
         { RenderFinishedSemaphores.EmplaceBack(I_Driver->CreateSemaphore()); }
@@ -204,7 +207,9 @@ export namespace Visera
         FVulkanTransferCommandPool* I_TransferPool)
     {
         const UInt32 Count = (kMaxInFlightFrames > 0) ? kMaxInFlightFrames : 2u;
-        InFlightFrames.Resize(Count);
+        InFlightFrames.Clear();
+        for (UInt32 i = 0; i < Count; ++i)
+        { InFlightFrames.EmplaceBack(); }
         for (auto& Frame : InFlightFrames)
         {
             Frame.ExecuteFence              = I_Driver->CreateFence(True);

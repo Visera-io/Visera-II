@@ -27,25 +27,27 @@ namespace Visera
 
     public:
         FVulkanPipelineLayout() = default;
-        FVulkanPipelineLayout(const vk::raii::Device&                I_Device,
-                              const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                              const TArray<vk::PushConstantRange>&   I_PushConstants);
+        template<typename DSLContainer, typename PCRContainer>
+        FVulkanPipelineLayout(const vk::raii::Device& I_Device,
+                              const DSLContainer&     I_DescriptorSetLayouts,
+                              const PCRContainer&     I_PushConstants);
         FVulkanPipelineLayout(FVulkanPipelineLayout&&) = default;
         FVulkanPipelineLayout& operator=(FVulkanPipelineLayout&&) = default;
     };
 
+    template<typename DSLContainer, typename PCRContainer>
     FVulkanPipelineLayout::
-    FVulkanPipelineLayout(const vk::raii::Device&                I_Device,
-                          const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                          const TArray<vk::PushConstantRange>&   I_PushConstants)
+    FVulkanPipelineLayout(const vk::raii::Device& I_Device,
+                          const DSLContainer&     I_DescriptorSetLayouts,
+                          const PCRContainer&     I_PushConstants)
     {
         for (const auto& R : I_PushConstants)
         { CachedPushConstantStages |= R.stageFlags; }
         const auto PipelineLayoutInfo = vk::PipelineLayoutCreateInfo{}
-            .setSetLayoutCount          (I_DescriptorSetLayouts.GetSize())
+            .setSetLayoutCount          (static_cast<UInt32>(I_DescriptorSetLayouts.GetSize()))
             .setPSetLayouts             (I_DescriptorSetLayouts.Data())
-            .setPushConstantRangeCount  (I_PushConstants.GetSize())
-            .setPPushConstantRanges     (I_PushConstants.Data())
+            .setPushConstantRangeCount  (static_cast<UInt32>(I_PushConstants.GetSize()))
+            .setPPushConstantRanges    (I_PushConstants.Data())
         ;
         auto Result = I_Device.createPipelineLayout(PipelineLayoutInfo);
         if (!Result.has_value())

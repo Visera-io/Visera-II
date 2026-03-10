@@ -605,7 +605,7 @@ export namespace Visera
         UtilityFrame->TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
 
         // Pre-reserve so EmplaceBack never reallocates while Graphics thread holds references.
-        SwapChains.Reserve(kInvalidSwapChainID);
+        SwapChains.Reserve(kMaxSwapChainCount);
 
         bInitSuccess = True;
         LOG_DEBUG("({}) RHI initialized (no reserved headless slot; use CreateSwapChain(nullptr) for headless).", Owner->GetRuntimeName());
@@ -684,7 +684,7 @@ export namespace Visera
             SwapChains[Idx] = FRHISwapChain{};
             return Idx;
         }
-        VISERA_ASSERT(SwapChains.GetSize() < kInvalidSwapChainID
+        VISERA_ASSERT(SwapChains.GetSize() < kMaxSwapChainCount
             && "SwapChain slots exhausted.");
         SwapChains.EmplaceBack();
         return static_cast<UInt8>(SwapChains.GetSize() - 1);

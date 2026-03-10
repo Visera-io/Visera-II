@@ -150,19 +150,21 @@ export namespace Visera
          TUniquePtr<FThread>                   Thread;
          const TArray<FPassEntry>*             PassEntries {nullptr};
 
-         TArray<FSwapChainGraphContext>         SwapChainContexts;
+         TInlineArray<FSwapChainGraphContext, kMaxSwapChainCount> SwapChainContexts;
       };
 
-      TSharedPtr<FAssetHub>                    AssetHub;
-      TSharedPtr<FRHI>                         RHI;
-      TSPSCChannel<TOptional<FRenderTask>>     ChannelToGraphics;
-      TAtomic<UInt32>                          PendingDrawRenderTaskCount {0};
-      FCriticalSection                         OverwriteSlotMutex;
-      TOptional<FRenderTask>                   OverwriteSlot;
-      TArray<FWindow*>                         ManagedWindows;
-      TUniquePtr<FGraphicsThread>              GraphicsThread;
-      TArray<FRHISwapChainID>                  ManagedHeadlessIDs;
-      TArray<FPassEntry>                       PassEntries;
+      TSharedPtr<FAssetHub>                     AssetHub;
+      TSharedPtr<FRHI>                          RHI;
+      TSPSCChannel<TOptional<FRenderTask>>      ChannelToGraphics;
+      TAtomic<UInt32>                           PendingDrawRenderTaskCount {0};
+      FCriticalSection                          OverwriteSlotMutex;
+      TOptional<FRenderTask>                    OverwriteSlot;
+      
+      TUniquePtr<FGraphicsThread>               GraphicsThread;
+      TArray<FPassEntry>                        PassEntries;
+
+      TInlineArray<FRHISwapChainID, kMaxSwapChainCount> ManagedHeadlessIDs;
+      TInlineArray<FWindow*, kMaxSwapChainCount>        ManagedWindows;
 
    public:
       FGraphics(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
@@ -268,19 +270,17 @@ export namespace Visera
        , MaxFrameRate(I_MaxFrameRate)
        , PassEntries(I_PassEntries)
    {
-      SwapChainContexts.Resize(kInvalidSwapChainID);
-      for (auto& Ctx : SwapChainContexts)
-      { Ctx.Init(kMaxInFlightFrames); }
+      for (UInt32 i = 0; i < kMaxSwapChainCount; ++i)
+      {
+         SwapChainContexts.EmplaceBack();
+         SwapChainContexts.Back().Init(kMaxInFlightFrames);
+      }
    }
 
    FGraphics::FSwapChainGraphContext& FGraphics::FGraphicsThread::
    GetOrCreateContext(FRHISwapChainID I_ID)
    {
-      if (I_ID >= SwapChainContexts.GetSize())
-      {
-         SwapChainContexts.Resize(static_cast<UInt32>(I_ID) + 1);
-         SwapChainContexts[I_ID].Init(kMaxInFlightFrames);
-      }
+      VISERA_ASSERT(I_ID < SwapChainContexts.GetSize() && "SwapChain context ID must be < kMaxSwapChainCount");
       return SwapChainContexts[I_ID];
    }
 
@@ -507,9 +507,9 @@ export namespace Visera
    {
       if (!I_Window || !RHI) { return; }
       RHI->DestroySwapChain(I_Window);
-      for (auto It = ManagedWindows.begin(); It != ManagedWindows.end(); ++It)
+      for (size_t i = 0; i < ManagedWindows.GetSize(); ++i)
       {
-         if (*It == I_Window) { ManagedWindows.Erase(It); break; }
+         if (ManagedWindows[i] == I_Window) { ManagedWindows.RemoveAtSwap(static_cast<UInt32>(i)); break; }
       }
    }
 
@@ -519,6 +519,7 @@ export namespace Visera
       FRHISwapChainID ID = RHI->CreateSwapChain(nullptr);
       if (ID != kInvalidSwapChainID)
       {
+         VISERA_ASSERT(!ManagedHeadlessIDs.IsFull());
          ManagedHeadlessIDs.PushBack(ID);
          LOG_INFO("Registered headless rendering context (id:{}).", ID);
       }
@@ -543,6 +544,7 @@ export namespace Visera
          LOG_TRACE("Triggered the eager creation of the swapchain.");
          SwapChainID = RHI->CreateSwapChain(I_Window);
          if (SwapChainID == kInvalidSwapChainID) { return; }
+         VISERA_ASSERT(!ManagedWindows.IsFull());
          ManagedWindows.PushBack(I_Window);
       }
       RHI->UpdateSwapChainMinimized(SwapChainID, I_Window->IsMinimized());

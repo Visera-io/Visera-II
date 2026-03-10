@@ -1,19 +1,24 @@
+/** @file Visera-Core-Containers-Array-PMR.ixx
+ *  @brief Module Visera.Core.Containers.Array.PMR — PMR-backed dynamic array TPMRArray<T>.
+ *  Same interface as TArray but uses std::pmr::vector<T>; all constructors take an optional memory_resource*. */
 module;
 #include <Visera-Core.hpp>
+#include <memory_resource>
 #include <vector>
-export module Visera.Core.Containers.Array;
+export module Visera.Core.Containers.Array.PMR;
 #define VISERA_MODULE_NAME "Core.Containers"
-export import Visera.Core.Containers.Array.PMR;
-export import Visera.Core.Containers.Array.Inline;
+import Visera.Core.OS.Memory;
 
 export namespace Visera
 {
+    /** Dynamic array that allocates via a std::pmr::memory_resource. API matches TArray; use when allocations
+     *  must come from a specific pool/arena (e.g. Memory::GetDefaultResource() or a custom arena). */
     template<typename T>
-    class VISERA_CORE_API TArray
+    class VISERA_CORE_API TPMRArray
     {
     public:
         using ValueType             = T;
-        using ArrayType             = std::vector<T>;
+        using ArrayType             = std::pmr::vector<T>;
         using Iterator              = ArrayType::iterator;
         using ConstIterator         = ArrayType::const_iterator;
         using ReverseIterator       = ArrayType::reverse_iterator;
@@ -26,44 +31,49 @@ export namespace Visera
         ArrayType Array;
 
     public:
-        // Constructors and Destructor
-        TArray() = default;
-        ~TArray() = default;
-
-        explicit TArray(SizeType I_Count)
-            : Array(I_Count)
+        // Constructors and destructor (all take optional I_Resource; default from Memory::GetDefaultResource())
+        explicit TPMRArray(std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
+            : Array(I_Resource)
         {
         }
 
-        TArray(SizeType I_Count, const T& I_Value)
+        ~TPMRArray() = default;
+
+        explicit TPMRArray(SizeType I_Count, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
+            : Array(I_Count, I_Resource)
+        {
+        }
+
+        TPMRArray(SizeType I_Count, const T& I_Value, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
             requires std::copy_constructible<T>
-            : Array(I_Count, I_Value)
+            : Array(I_Count, I_Value, I_Resource)
         {
         }
 
         template<typename InputIt>
-        TArray(InputIt I_First, InputIt I_Last)
-            : Array(I_First, I_Last)
+        TPMRArray(InputIt I_First, InputIt I_Last, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
+            : Array(I_First, I_Last, I_Resource)
         {
         }
 
-        TArray(std::initializer_list<T> I_Init) requires std::copy_constructible<T>
-            : Array(I_Init)
+        TPMRArray(std::initializer_list<T> I_Init, std::pmr::memory_resource* I_Resource = Memory::GetDefaultResource())
+            requires std::copy_constructible<T>
+            : Array(I_Init, I_Resource)
         {
         }
 
-        // Copy constructor: only if T is copy constructible
-        TArray(const TArray& I_Other) 
+        // Copy constructor (only if T is copy constructible)
+        TPMRArray(const TPMRArray& I_Other)
             requires std::copy_constructible<T>
             : Array(I_Other.Array)
         {
         }
-        TArray(const TArray&) 
+        TPMRArray(const TPMRArray&)
             requires (!std::copy_constructible<T>)
             = delete;
-        
-        // Copy assignment: only if T is copyable (both copy constructible and copy assignable)
-        TArray& operator=(const TArray& I_Other) 
+
+        // Copy assignment (only if T is copyable)
+        TPMRArray& operator=(const TPMRArray& I_Other)
             requires (std::copy_constructible<T> && std::is_copy_assignable_v<T>)
         {
             if (this != &I_Other)
@@ -72,35 +82,22 @@ export namespace Visera
             }
             return *this;
         }
-        TArray& operator=(const TArray&) 
+        TPMRArray& operator=(const TPMRArray&)
             requires (!(std::copy_constructible<T> && std::is_copy_assignable_v<T>))
             = delete;
-        
-        // Move constructor: always available
-        TArray(TArray&& I_Other) noexcept = default;
 
-        /** Construct by moving from std::vector<T>. */
-        TArray(ArrayType&& I_Vec) noexcept : Array(std::move(I_Vec)) {}
+        // Move constructor and assignment (always available)
+        TPMRArray(TPMRArray&& I_Other) noexcept = default;
+        TPMRArray& operator=(TPMRArray&& I_Other) noexcept = default;
 
-        /** Construct by moving from std::vector<U> when U is convertible to T (e.g. vector<string> -> TArray<FString>). */
-        template<typename U>
-        TArray(std::vector<U>&& I_Vec) requires (std::convertible_to<U, T> && !std::same_as<U, T>)
-        {
-            Array.reserve(I_Vec.size());
-            for (auto& v : I_Vec) { Array.emplace_back(std::move(v)); }
-        }
-        
-        // Move assignment: always available  
-        TArray& operator=(TArray&& I_Other) noexcept = default;
-
-        TArray& operator=(std::initializer_list<T> I_Init)
+        TPMRArray& operator=(std::initializer_list<T> I_Init)
             requires std::is_copy_constructible_v<T>
         {
             Array = I_Init;
             return *this;
         }
 
-        // Capacity
+        // Capacity (same as TArray)
         [[nodiscard]] Bool IsEmpty() const
         {
             return Array.empty();
@@ -142,7 +139,7 @@ export namespace Visera
             Array.shrink_to_fit();
         }
 
-        // Element access
+        // Element access (same as TArray)
         [[nodiscard]] T& operator[](SizeType I_Index)
         {
             return Array[I_Index];
@@ -193,7 +190,7 @@ export namespace Visera
             return Array.data();
         }
 
-        // Iterators
+        // Iterators (std::vector iterators; range-compatible)
         [[nodiscard]] Iterator begin()
         {
             return Array.begin();
@@ -254,7 +251,7 @@ export namespace Visera
             return Array.crend();
         }
 
-        // Modifiers
+        // Modifiers (same as TArray; RemoveAtSwap for O(1) remove by swapping with back)
         void Clear()
         {
             Array.clear();
@@ -321,15 +318,9 @@ export namespace Visera
             return Array.erase(I_First, I_Last);
         }
 
-        void Swap(TArray& I_Other)
+        void Swap(TPMRArray& I_Other)
         {
             Array.swap(I_Other.Array);
-        }
-
-        [[nodiscard]] Bool operator==(const TArray& I_Other) const
-            requires (std::equality_comparable<T>)
-        {
-            return Array == I_Other.Array;
         }
 
         Iterator RemoveAtSwap(Iterator I_Iterator) requires (std::movable<T> && std::assignable_from<T&, T>)

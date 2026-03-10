@@ -17,6 +17,7 @@ export import Visera.Runtime.RHI.Vulkan.DescriptorSetLayout;
 export import Visera.Runtime.RHI.Vulkan.Sync;
        import Visera.Runtime.RHI.Vulkan.Loader;
        import Visera.Runtime.RHI.Vulkan.Allocator;
+       import Visera.Core.Limits.Numeric;
        import Visera.Core.Log;
        import Visera.Core.Algorithm;
        import Visera.Core.Math.Arithmetic;
@@ -50,14 +51,14 @@ export namespace Visera
         CreateCommandPool(Bool I_bTransient);
         [[nodiscard]] FVulkanShaderModule
         CreateShaderModule(const TArray<FByte>& I_SPIRVShader);
-        [[nodiscard]] FVulkanPipelineLayout
-        CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                             const TArray<vk::PushConstantRange>&   I_PushConstants);
+        template<typename DSLContainer, typename PCRContainer> [[nodiscard]] FVulkanPipelineLayout
+        CreatePipelineLayout(const DSLContainer& I_DescriptorSetLayouts,
+                             const PCRContainer& I_PushConstants);
         [[nodiscard]] FVulkanRenderPipeline
         CreateRenderPipeline(FVulkanPipelineLayout*       I_PipelineLayout,
                              FVulkanShaderModule*         I_VertexShader,
                              FVulkanShaderModule*         I_FragmentShader,
-                             const TArray<vk::Format>&    I_ColorFormats,
+                             TSpan<const vk::Format> I_ColorFormats,
                              vk::Format                   I_DepthStencilFormat = vk::Format::eUndefined);
         [[nodiscard]] FVulkanComputePipeline
         CreateComputePipeline(FVulkanPipelineLayout* I_PipelineLayout,
@@ -112,8 +113,8 @@ export namespace Visera
         vk::raii::Context     Context;
 
         vk::raii::Instance               Instance        {nullptr};
-        TArray<const char*>              InstanceLayers;
-        TArray<const char*>              InstanceExtensions;
+        TInlineArray<const char*, 32>    InstanceLayers;
+        TInlineArray<const char*, 32>    InstanceExtensions;
         vk::raii::DebugUtilsMessengerEXT DebugMessenger  {nullptr};
         struct FGPU
         {
@@ -121,19 +122,24 @@ export namespace Visera
             TSet<UInt32> GraphicsQueueFamilies{};
             TSet<UInt32> ComputeQueueFamilies {};
             TSet<UInt32> TransferQueueFamilies{};
-            TArray<vk::QueueFamilyProperties> QueueFamilyProperties{};
-            vk::PhysicalDeviceProperties  Properties;
+            TInlineArray<vk::QueueFamilyProperties, 8>
+            QueueFamilyProperties{};
+            vk::PhysicalDeviceProperties
+            Properties;
             vk::PhysicalDeviceProperties2 Properties2;
-            vk::PhysicalDeviceDescriptorIndexingProperties DescriptorIndexingProperties;
-            vk::PhysicalDeviceFeatures    Features;
-            vk::PhysicalDeviceFeatures2   Features2;
+            vk::PhysicalDeviceDescriptorIndexingProperties
+            DescriptorIndexingProperties;
+            vk::PhysicalDeviceFeatures
+            Features;
+            vk::PhysicalDeviceFeatures2
+            Features2;
         }GPU;
 
         struct FDevice
         {
             vk::raii::Device    Context        {nullptr};
-            TArray<const char*> Layers;
-            TArray<const char*> Extensions;
+            TInlineArray<const char*, 32> Layers;
+            TInlineArray<const char*, 32> Extensions;
             UInt32              GraphicsQueueFamilyIndex = 0U;
             vk::raii::Queue     GraphicsQueue  {nullptr};
             UInt32              TransferQueueFamilyIndex = 0U;
@@ -152,8 +158,8 @@ export namespace Visera
             vk::raii::SwapchainKHR          Context     {nullptr};
             vk::raii::SwapchainKHR          OldContext  {nullptr};
             vk::Extent2D                    Extent      {0U, 0U};
-            TArray<FVulkanSwapChainImage>   Images      {};
-            TArray<FVulkanImageView>        ImageViews;
+            TInlineArray<FVulkanSwapChainImage, 8> Images{};
+            TInlineArray<FVulkanImageView, 8>       ImageViews;
             UInt32                          Cursor      {0};
             vk::ImageUsageFlags             ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                          vk::ImageUsageFlagBits::eTransferDst};
@@ -174,13 +180,13 @@ export namespace Visera
 
         void inline PickPhysicalDevice(const FString& I_PreferredGPUName);
         inline FVulkanDriver*
-        AddInstanceLayer(const char* I_Layer)           { LOG_TRACE("Adding instance layer: {}", I_Layer); InstanceLayers.EmplaceBack(I_Layer);         return this; }
+        AddInstanceLayer(const char* I_Layer)           { VISERA_ASSERT(!InstanceLayers.IsFull()); LOG_TRACE("Adding instance layer: {}", I_Layer); InstanceLayers.EmplaceBack(I_Layer);         return this; }
         inline FVulkanDriver*
-        AddInstanceExtension(const char* I_Extension)   { LOG_TRACE("Adding instance extension: {}", I_Extension); InstanceExtensions.PushBack(I_Extension);    return this; }
+        AddInstanceExtension(const char* I_Extension)   { VISERA_ASSERT(!InstanceExtensions.IsFull()); LOG_TRACE("Adding instance extension: {}", I_Extension); InstanceExtensions.PushBack(I_Extension);    return this; }
         inline FVulkanDriver*
-        AddDeviceLayer(const char* I_Layer)             { LOG_TRACE("Adding device layer: {}", I_Layer); Device.Layers.PushBack(I_Layer);              return this; }
+        AddDeviceLayer(const char* I_Layer)             { VISERA_ASSERT(!Device.Layers.IsFull()); LOG_TRACE("Adding device layer: {}", I_Layer); Device.Layers.PushBack(I_Layer);              return this; }
         inline FVulkanDriver*
-        AddDeviceExtension(const char* I_Extension)     { LOG_TRACE("Adding device extension: {}", I_Extension); Device.Extensions.PushBack(I_Extension);      return this; }
+        AddDeviceExtension(const char* I_Extension)     { VISERA_ASSERT(!Device.Extensions.IsFull()); LOG_TRACE("Adding device extension: {}", I_Extension); Device.Extensions.PushBack(I_Extension);      return this; }
 
         void inline
         CollectInstanceLayersAndExtensions(const TArray<const char*>& I_InstanceExtensions);
@@ -429,7 +435,7 @@ export namespace Visera
         { LOG_FATAL("Failed to get the required surface capabilities!"); }
         const auto SurfaceCapabilities = std::move(*Result);
         {
-            if (SurfaceCapabilities.currentExtent.width != Math::UpperBound<UInt32>())
+            if (SurfaceCapabilities.currentExtent.width != Limits::UpperBound<UInt32>())
             { Entry.Extent = SurfaceCapabilities.currentExtent; }
             else
             {
@@ -468,8 +474,8 @@ export namespace Visera
             if (!R.has_value())
             { LOG_FATAL("Failed to retrieve Vulkan Swapchain Images!"); }
             auto SwapChainImages = std::move(*R);
+            VISERA_ASSERT(SwapChainImages.size() <= 8u && "FSwapChain Images capacity is 8");
             Entry.Images.Clear();
-            Entry.Images.Reserve(SwapChainImages.size());
             for (UInt8 Idx = 0; Idx < SwapChainImages.size(); ++Idx)
             {
                 Entry.Images.EmplaceBack(
@@ -680,6 +686,7 @@ export namespace Visera
 
             LOG_TRACE("Checking Queue Families...");
             auto QueueFamilies = Candidate.Dev.getQueueFamilyProperties();
+            VISERA_ASSERT(QueueFamilies.size() <= 8u && "QueueFamilyProperties capacity is 8");
             GPU.QueueFamilyProperties.Clear();
             for (const auto& QueueFamily : QueueFamilies)
             {
@@ -748,6 +755,7 @@ export namespace Visera
             {
                 LOG_TRACE("Expected GPU found: {}; running full suitability checks.", Candidate.Props.deviceName.data());
                 auto QueueFamilies = Candidate.Dev.getQueueFamilyProperties();
+                VISERA_ASSERT(QueueFamilies.size() <= 8u && "QueueFamilyProperties capacity is 8");
                 GPU.QueueFamilyProperties.Clear();
                 for (const auto& QueueFamily : QueueFamilies)
                 { GPU.QueueFamilyProperties.EmplaceBack(QueueFamily); }
@@ -901,14 +909,13 @@ export namespace Visera
         {
             UInt32 Family = vk::QueueFamilyIgnored;
             UInt32 Count  = 0;
-            TArray<Float> Priorities{};
+            TInlineArray<Float, 8> Priorities{};
             vk::DeviceQueueCreateInfo Info;
         };
 
         // Collect required queue counts per family
         // (Graphics family might request 1~3 queues; others request 1).
-        TArray<FFamilyQueues> Families;
-        Families.Reserve(3);
+        TInlineArray<FFamilyQueues, 4> Families;
 
         auto AddOrUpdateFamily = [&](UInt32 I_Family, UInt32 I_Count)
         {
@@ -923,8 +930,9 @@ export namespace Visera
             }
             if (FoundFamily == nullptr)
             {
+                VISERA_ASSERT(!Families.IsFull());
                 Families.EmplaceBack();
-                auto& NewFamily = Families[Families.GetSize() - 1];
+                auto& NewFamily = Families.Back();
                 NewFamily.Family = I_Family;
                 NewFamily.Count  = 0;
                 FoundFamily = &NewFamily;
@@ -941,13 +949,12 @@ export namespace Visera
 
         // Fill queue create infos
         constexpr Float Priority = 1.0f;
-        TArray<vk::DeviceQueueCreateInfo> DeviceQueueCreateInfos;
-        DeviceQueueCreateInfos.Reserve(Families.GetSize());
+        TInlineArray<vk::DeviceQueueCreateInfo, 4> DeviceQueueCreateInfos;
 
         for (auto& Family : Families)
         {
+            VISERA_ASSERT(Family.Count <= 8u);
             Family.Priorities.Clear();
-            Family.Priorities.Reserve(Family.Count);
             for (UInt32 Idx = 0; Idx < Family.Count; ++Idx)
             {
                 Family.Priorities.EmplaceBack(Priority);
@@ -1223,9 +1230,10 @@ export namespace Visera
     }
 
 
+    template<typename DSLContainer, typename PCRContainer>
     FVulkanPipelineLayout FVulkanDriver::
-    CreatePipelineLayout(const TArray<vk::DescriptorSetLayout>& I_DescriptorSetLayouts,
-                         const TArray<vk::PushConstantRange>&   I_PushConstants)
+    CreatePipelineLayout(const DSLContainer& I_DescriptorSetLayouts,
+                         const PCRContainer& I_PushConstants)
     {
         LOG_TRACE("Creating a Vulkan Pipeline Layout.");
         return FVulkanPipelineLayout(
@@ -1235,22 +1243,24 @@ export namespace Visera
     }
 
     FVulkanRenderPipeline FVulkanDriver::
-    CreateRenderPipeline(FVulkanPipelineLayout*       I_PipelineLayout,
-                         FVulkanShaderModule*         I_VertexShader,
-                         FVulkanShaderModule*         I_FragmentShader,
-                         const TArray<vk::Format>&    I_ColorFormats,
-                         vk::Format                   I_DepthStencilFormat)
+    CreateRenderPipeline(FVulkanPipelineLayout*     I_PipelineLayout,
+                         FVulkanShaderModule*       I_VertexShader,
+                         FVulkanShaderModule*       I_FragmentShader,
+                         TSpan<const vk::Format>    I_ColorFormats,
+                         vk::Format                 I_DepthStencilFormat)
     {
         LOG_TRACE("Creating a Vulkan Render Pipeline.");
         VISERA_ASSERT(I_PipelineLayout != nullptr);
         VISERA_ASSERT(I_VertexShader != nullptr);
         VISERA_ASSERT(I_FragmentShader != nullptr);
-        VISERA_ASSERT(I_ColorFormats.GetSize() > 0 && I_ColorFormats.GetSize() <= kMaxColorAttachments);
+        VISERA_ASSERT(I_ColorFormats.size() > 0 && I_ColorFormats.size() <= kMaxColorAttachments);
         auto NewRenderPipeline = FVulkanRenderPipeline(
                std::move(*I_PipelineLayout),
                std::move(*I_VertexShader),
                std::move(*I_FragmentShader));
-        NewRenderPipeline.Settings.ColorRTFormats = I_ColorFormats;
+        NewRenderPipeline.Settings.ColorRTFormats.Clear();
+        for (const auto& F : I_ColorFormats)
+            NewRenderPipeline.Settings.ColorRTFormats.PushBack(F);
         NewRenderPipeline.Settings.DepthRTFormat  = I_DepthStencilFormat;
         NewRenderPipeline.Settings.StencilRTFormat = I_DepthStencilFormat;
         NewRenderPipeline.Create(Device.Context, PipelineCache);

@@ -2,6 +2,7 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Math.Random.RNG.PCG;
 #define VISERA_MODULE_NAME "Core.Math"
+import Visera.Core.Limits.Numeric;
 import Visera.Core.Math.Arithmetic.Operation;
 
 export namespace Visera
@@ -34,31 +35,31 @@ export namespace Visera
             {
                 // https://stackoverflow.com/a/13208789
                 UInt32 V = Uniform<UInt32>();
-                if (V <= static_cast<UInt32>(Math::UpperBound<Int32>()))
+                if (V <= static_cast<UInt32>(Limits::UpperBound<Int32>()))
                 { return static_cast<Int32>(V); }
 
-                VISERA_ASSERT(V >= static_cast<UInt32>(std::numeric_limits<Int32>::min()));
+                VISERA_ASSERT(V >= static_cast<UInt32>(Limits::LowerBound<Int32>()));
 
-                return V - Math::UpperBound<Int32>() + Math::LowerBound<Int32>();
+                return V - Limits::UpperBound<Int32>() + Limits::LowerBound<Int32>();
             }
             else if constexpr (std::is_same_v<T, int64_t>)
             {
                 // https://stackoverflow.com/a/13208789
                 UInt64 V = Uniform<UInt64>();
-                if (V <= (UInt64)Math::UpperBound<Int64>())
+                if (V <= (UInt64)Limits::UpperBound<Int64>())
                     // Safe to type convert directly.
                         return int64_t(V);
-                VISERA_ASSERT(V >= (UInt64)Math::LowerBound<Int64>());
-                return int64_t(V - Math::LowerBound<Int64>()) +
-                       Math::LowerBound<Int64>();
+                VISERA_ASSERT(V >= (UInt64)Limits::LowerBound<Int64>());
+                return int64_t(V - Limits::LowerBound<Int64>()) +
+                       Limits::LowerBound<Int64>();
             }
             else if constexpr (std::is_same_v<T, Float>)
             {
-                return Math::Min<Float>(1.0f - Math::Epsilon<Float>(), Uniform<UInt32>() * 0x1p-32f);
+                return Math::Min<Float>(1.0f - Limits::Epsilon<Float>(), Uniform<UInt32>() * 0x1p-32f);
             }
             else if constexpr (std::is_same_v<T, Double>)
             {
-                return Math::Min<Double>(1.0 - Math::Epsilon<Double>(), Uniform<UInt64>() * 0x1p-64);
+                return Math::Min<Double>(1.0 - Limits::Epsilon<Double>(), Uniform<UInt64>() * 0x1p-64);
             }
             else
             {

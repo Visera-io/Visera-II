@@ -39,18 +39,22 @@ export namespace Visera
 				}
 			}
 
+			TInlineArray<ERHIFormat, kMaxColorAttachments> ColorFormatsInline;
+			for (const auto& F : I_ColorFormats) { ColorFormatsInline.PushBack(F); }
+			VISERA_ASSERT(I_ColorFormats.GetSize() <= kMaxColorAttachments);
+
 			FRHIRenderPassCreateInfo RPInfo
 			{
 				.VertexShader   = VertHandle,
 				.FragmentShader = FragHandle,
-				.PSO            = { .ColorFormats = I_ColorFormats, .DepthStencilFormat = I_DepthFormat },
+				.PSO            = { .ColorFormats = ColorFormatsInline, .DepthStencilFormat = I_DepthFormat },
 			};
 			FRHIRenderPassID Pipeline = I_RHI->CreateRenderPass(std::move(RPInfo));
 
 			Entries.PushBack(FCacheEntry{
 				.VertexShader   = VertHandle,
 				.FragmentShader = FragHandle,
-				.ColorFormats   = I_ColorFormats,
+				.ColorFormats   = ColorFormatsInline,
 				.DepthFormat    = I_DepthFormat,
 				.Pipeline       = Pipeline,
 			});
@@ -65,7 +69,7 @@ export namespace Visera
 		{
 			FRHIShaderHandle    VertexShader;
 			FRHIShaderHandle    FragmentShader;
-			TArray<ERHIFormat>  ColorFormats;
+			TInlineArray<ERHIFormat, kMaxColorAttachments> ColorFormats;
 			ERHIFormat          DepthFormat {ERHIFormat::Undefined};
 			FRHIRenderPassID    Pipeline;
 		};

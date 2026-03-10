@@ -32,8 +32,10 @@ export namespace Visera
 
     struct FRHIRenderPassAttachments
     {
-        TArray<FRHIColorAttachmentDesc>    ColorAttachments;
-        FRHIDepthStencilAttachmentDesc     DepthStencilAttachment;  // Texture = null/invalid means none
+        TInlineArray<FRHIColorAttachmentDesc, kMaxColorAttachments>
+        ColorAttachments;
+        FRHIDepthStencilAttachmentDesc
+        DepthStencilAttachment;  // Texture = null/invalid means none
     };
 
     struct VISERA_RUNTIME_API FRHIVertexAttribute
@@ -61,8 +63,8 @@ export namespace Visera
     public:
         struct
         {
-            TArray<FRHIVertexAttribute> Attributes;
-            TArray<FRHIVertexBinding>   Bindings;
+            TInlineArray<FRHIVertexAttribute, 8> Attributes;
+            TInlineArray<FRHIVertexBinding,   8> Bindings;
         }VertexInput; // layout(location = n) in type var
 
         struct
@@ -101,7 +103,7 @@ export namespace Visera
         }AlphaBlend;
 
         /** Color attachment formats; length must match render pass ColorAttachments. For MRT (e.g. color RGBA8 + normal R16F). */
-        TArray<ERHIFormat>  ColorFormats;
+        TInlineArray<ERHIFormat, kMaxColorAttachments> ColorFormats;
         /** Depth/stencil format when using a depth attachment; Undefined if no depth. */
         ERHIFormat          DepthStencilFormat { ERHIFormat::Undefined };
 

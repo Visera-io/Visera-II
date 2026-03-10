@@ -43,10 +43,8 @@ namespace Visera
 
         struct
         {
-            TArray<vk::VertexInputAttributeDescription>
-            VertexAttributes;
-            TArray<vk::VertexInputBindingDescription>
-            VertexBindings;
+            TInlineArray<vk::VertexInputAttributeDescription, 16> VertexAttributes;
+            TInlineArray<vk::VertexInputBindingDescription, 8>   VertexBindings;
             vk::PipelineInputAssemblyStateCreateInfo
             InputAssembly{};
             vk::PipelineViewportStateCreateInfo
@@ -58,7 +56,7 @@ namespace Visera
             vk::PipelineColorBlendAttachmentState
             ColorBlendAttachment{};
             /** One per color attachment; length must match PipelineRenderingCreateInfo. */
-            TArray<vk::Format> ColorRTFormats;
+            TInlineArray<vk::Format, kMaxColorAttachments> ColorRTFormats;
             vk::Format
             DepthRTFormat    {vk::Format::eUndefined};
             vk::Format
@@ -170,8 +168,7 @@ namespace Visera
             ;
             const UInt32 ColorAttachmentCount = Settings.ColorRTFormats.GetSize();
             VISERA_ASSERT(ColorAttachmentCount > 0 && ColorAttachmentCount <= kMaxColorAttachments);
-            TArray<vk::PipelineColorBlendAttachmentState> BlendAttachments;
-            BlendAttachments.Reserve(ColorAttachmentCount);
+            TInlineArray<vk::PipelineColorBlendAttachmentState, kMaxColorAttachments> BlendAttachments;
             for (UInt32 i = 0; i < ColorAttachmentCount; ++i)
             { BlendAttachments.PushBack(Settings.ColorBlendAttachment); }
             const auto ColorBlending = vk::PipelineColorBlendStateCreateInfo{}

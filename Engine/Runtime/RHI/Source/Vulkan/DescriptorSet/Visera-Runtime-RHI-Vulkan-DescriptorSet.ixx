@@ -275,20 +275,19 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteCombinedImageSamplerArray(UInt32                         I_Binding,
+    WriteCombinedImageSamplerArray(UInt32                           I_Binding,
                                    const TArray<FVulkanImageView*>& I_ImageViews,
                                    const TArray<FVulkanSampler*>&   I_Samplers,
-                                   vk::ImageLayout                I_ImageLayout,
-                                   UInt32                          I_FirstArrayElement /* = 0 */)
+                                   vk::ImageLayout                  I_ImageLayout,
+                                   UInt32                           I_FirstArrayElement /* = 0 */)
     {
         VISERA_ASSERT(I_ImageViews.GetSize() == I_Samplers.GetSize());
         
         const auto Count = I_ImageViews.GetSize();
         if (Count == 0) { return; }
+        VISERA_ASSERT(Count <= 32u && "DescriptorSet WriteCombinedImageSamplerArray capacity is 32");
 
-        TArray<vk::DescriptorImageInfo> ImageInfos;
-        ImageInfos.Reserve(Count);
-
+        TInlineArray<vk::DescriptorImageInfo, 32> ImageInfos;
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
             if (!I_ImageViews[Idx] || !I_Samplers[Idx])
@@ -323,17 +322,16 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteStorageImageArray(UInt32                         I_Binding,
+    WriteStorageImageArray(UInt32                           I_Binding,
                            const TArray<FVulkanImageView*>& I_ImageViews,
-                           vk::ImageLayout                I_ImageLayout,
-                           UInt32                         I_FirstArrayElement /* = 0 */)
+                           vk::ImageLayout                  I_ImageLayout,
+                           UInt32                           I_FirstArrayElement /* = 0 */)
     {
         const auto Count = I_ImageViews.GetSize();
         if (Count == 0) { return; }
+        VISERA_ASSERT(Count <= 32u && "DescriptorSet WriteStorageImageArray capacity is 32");
 
-        TArray<vk::DescriptorImageInfo> ImageInfos;
-        ImageInfos.Reserve(Count);
-
+        TInlineArray<vk::DescriptorImageInfo, 32> ImageInfos;
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
             if (!I_ImageViews[Idx])
@@ -368,16 +366,15 @@ namespace Visera
     }
 
     void FVulkanDescriptorSet::
-    WriteStorageBufferArray(UInt32                         I_Binding,
-                            const TArray<FVulkanBuffer*>&    I_Buffers,
-                            UInt32                          I_FirstArrayElement /* = 0 */)
+    WriteStorageBufferArray(UInt32                        I_Binding,
+                            const TArray<FVulkanBuffer*>& I_Buffers,
+                            UInt32                        I_FirstArrayElement /* = 0 */)
     {
         const auto Count = I_Buffers.GetSize();
         if (Count == 0) { return; }
+        VISERA_ASSERT(Count <= 32u && "DescriptorSet WriteStorageBufferArray capacity is 32");
 
-        TArray<vk::DescriptorBufferInfo> BufferInfos;
-        BufferInfos.Reserve(Count);
-
+        TInlineArray<vk::DescriptorBufferInfo, 32> BufferInfos;
         for (UInt32 Idx = 0; Idx < Count; ++Idx)
         {
             if (!I_Buffers[Idx])
