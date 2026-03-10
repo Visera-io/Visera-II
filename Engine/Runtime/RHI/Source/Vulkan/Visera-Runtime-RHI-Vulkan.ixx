@@ -1034,8 +1034,6 @@ export namespace Visera
 #else
 
 #endif
-        ->AddInstanceLayer("VK_LAYER_KHRONOS_validation")
-
         ;
 
         // Extensions
@@ -1046,9 +1044,7 @@ export namespace Visera
 
 #endif
 #if defined(VISERA_ON_APPLE_SYSTEM)
-        ->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
-
-            ->AddInstanceExtension(vk::KHRPortabilityEnumerationExtensionName)
+            ->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
 #endif
         ;
 

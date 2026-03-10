@@ -54,6 +54,17 @@ namespace Visera
         [[nodiscard]] FViseraApp*
         CreateApplication(FString I_Name, const FJSON& I_AppConfig);
 
+        /** Number of applications created and still alive. */
+        [[nodiscard]] size_t
+        GetApplicationCount() const { return CreatedApps.GetSize(); }
+        /** Application at index; returns nullptr if index >= GetApplicationCount(). */
+        [[nodiscard]] FViseraApp*
+        GetApplication(size_t I_Index) const
+        {
+            if (I_Index >= CreatedApps.GetSize()) { return nullptr; }
+            return CreatedApps[I_Index].Get();
+        }
+
         explicit FViseraEngine(const FJSON& I_EngineConfig);
         ~FViseraEngine();
 
