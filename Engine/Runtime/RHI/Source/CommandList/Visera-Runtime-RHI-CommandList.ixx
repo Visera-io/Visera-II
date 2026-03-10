@@ -20,6 +20,7 @@ import Visera.Core.Containers.Array;
     RHI_COMMAND(CopyImageToBuffer) \
     RHI_COMMAND(ClearColorImage) \
     RHI_COMMAND(BlitImage) \
+    RHI_COMMAND(CopyImage) \
     RHI_COMMAND(EnterRenderPass) \
     RHI_COMMAND(SetViewport) \
     RHI_COMMAND(SetScissor) \
@@ -262,6 +263,18 @@ export namespace Visera
         };
         void inline
         BlitImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture, ERHIFilter I_Filter,
+                  ERHIImageLayout I_SrcLayout = ERHIImageLayout::TransferSrc,
+                  ERHIImageLayout I_DstLayout = ERHIImageLayout::TransferDst);
+
+        struct alignas(8) FCopyImage
+        {
+            FRHITextureHandle SrcImage;
+            FRHITextureHandle DstImage;
+            ERHIImageLayout   SrcImageLayout;
+            ERHIImageLayout   DstImageLayout;
+        };
+        void inline
+        CopyImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture,
                   ERHIImageLayout I_SrcLayout = ERHIImageLayout::TransferSrc,
                   ERHIImageLayout I_DstLayout = ERHIImageLayout::TransferDst);
 
@@ -640,6 +653,31 @@ export namespace Visera
             .SrcImage       = SrcHandle,
             .DstImage       = DstHandle,
             .Filter         = I_Filter,
+            .SrcImageLayout = I_SrcLayout,
+            .DstImageLayout = I_DstLayout,
+        });
+    }
+
+    void FRHICommandList::
+    CopyImage(const FRHITextureID& I_SrcTexture, const FRHITextureID& I_DstTexture,
+              ERHIImageLayout I_SrcLayout, ERHIImageLayout I_DstLayout)
+    {
+        if(I_SrcTexture.IsNull())
+        {
+            LOG_ERROR("CopyImage: SrcTexture is null");
+            return;
+        }
+        if(I_DstTexture.IsNull())
+        {
+            LOG_ERROR("CopyImage: DstTexture is null");
+            return;
+        }
+        const auto SrcHandle = I_SrcTexture.GetHandle();
+        const auto DstHandle = I_DstTexture.GetHandle();
+        RecordCommand(ERHICommandType::CopyImage, FCopyImage
+        {
+            .SrcImage       = SrcHandle,
+            .DstImage       = DstHandle,
             .SrcImageLayout = I_SrcLayout,
             .DstImageLayout = I_DstLayout,
         });

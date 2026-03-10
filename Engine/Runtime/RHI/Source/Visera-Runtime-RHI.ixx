@@ -279,6 +279,8 @@ export namespace Visera
             void
             ExecuteBlitImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
+            ExecuteCopyImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+            void
             ExecuteCopyBufferToImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
             ExecuteCopyImageToBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
@@ -1057,6 +1059,7 @@ export namespace Visera
                 case ERHICommandType::BufferBarrier:       ExecuteBufferBarrier(Frame, Command); break;
                 case ERHICommandType::ClearColorImage:     ExecuteClearColorImage(Frame, Command); break;
                 case ERHICommandType::BlitImage:           ExecuteBlitImage(Frame, Command); break;
+                case ERHICommandType::CopyImage:           ExecuteCopyImage(Frame, Command); break;
                 case ERHICommandType::CopyBufferToImage:   ExecuteCopyBufferToImage(Frame, Command); break;
                 case ERHICommandType::CopyImageToBuffer:   ExecuteCopyImageToBuffer(Frame, Command); break;
                 case ERHICommandType::WriteBuffer:         ExecuteWriteBuffer(Frame, Command); break;
@@ -1197,6 +1200,16 @@ export namespace Visera
         auto* SrcImg = GetVulkanImageChecked(Payload.SrcImage);
         auto* DstImg = GetVulkanImageChecked(Payload.DstImage);
         I_Frame.GraphicsCalls.BlitImage(SrcImg, DstImg, TypeCast(Payload.Filter),
+            TypeCast(Payload.SrcImageLayout), TypeCast(Payload.DstImageLayout));
+    }
+
+    void FRHI::FRHIThread::
+    ExecuteCopyImage(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
+    {
+        const auto& Payload = DecodePayload<FRHICommandList::FCopyImage>(I_Cmd);
+        auto* SrcImg = GetVulkanImageChecked(Payload.SrcImage);
+        auto* DstImg = GetVulkanImageChecked(Payload.DstImage);
+        I_Frame.GraphicsCalls.CopyImage(SrcImg, DstImg,
             TypeCast(Payload.SrcImageLayout), TypeCast(Payload.DstImageLayout));
     }
 

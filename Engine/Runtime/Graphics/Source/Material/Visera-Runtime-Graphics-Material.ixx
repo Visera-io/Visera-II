@@ -6,6 +6,7 @@ export import Visera.Core.Types.Pointer;
 	   import Visera.Core.Types.JSON;
 	   import Visera.Core.Containers.Array;
 	   import Visera.Core.Containers.Map;
+	   import Visera.Core.Types.Optional;
 	   import Visera.Core.Types.String;
 	   import Visera.Core.Types.Path;
 	   import Visera.Core.Image;

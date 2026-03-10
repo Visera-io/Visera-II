@@ -10,8 +10,6 @@ export namespace Visera
     template<typename T>
     class VISERA_CORE_API TWeakPtr
     {
-        template<typename U> friend class TWeakPtr;
-
     public:
         /** Creates a new TSharedPtr sharing ownership if the object is still alive. */
         [[nodiscard]] TSharedPtr<T> Lock() const noexcept { return TSharedPtr<T>(Self.lock()); }

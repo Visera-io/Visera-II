@@ -6,14 +6,9 @@ export module Visera.Core.Types.Pointer.Shared;
 
 export namespace Visera
 {
-    template<typename U> class TWeakPtr;
-
     template<typename T>
     class VISERA_CORE_API TSharedPtr
     {
-        template<typename U> friend class TWeakPtr;
-        template<typename U> friend class TSharedPtr;
-
     public:
         /** @return Raw pointer to the managed object, or nullptr. */
         [[nodiscard]] T* Get() const noexcept { return Self.get(); }

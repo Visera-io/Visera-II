@@ -245,6 +245,10 @@ export namespace Visera
                       vk::Filter        I_Filter,
                       vk::ImageLayout   I_SrcImageLayout,
                       vk::ImageLayout   I_DstImageLayout);
+        void CopyImage(FVulkanImage*     I_SrcImage,
+                      FVulkanImage*     I_DstImage,
+                      vk::ImageLayout   I_SrcImageLayout,
+                      vk::ImageLayout   I_DstImageLayout);
         void CopyBufferToImage(FVulkanBuffer*  I_SrcBuffer,
                               FVulkanImage*   I_DstImage,
                               vk::ImageLayout I_DstImageLayout = vk::ImageLayout::eTransferDstOptimal);
@@ -719,6 +723,33 @@ export namespace Visera
             .setPRegions       (&BlitRegion)
             .setFilter         (I_Filter);
         Handle.blitImage2(BlitInfo);
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    CopyImage(FVulkanImage*     I_SrcImage,
+              FVulkanImage*     I_DstImage,
+              vk::ImageLayout   I_SrcImageLayout,
+              vk::ImageLayout   I_DstImageLayout)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SrcImage != nullptr);
+        VISERA_ASSERT(I_DstImage != nullptr);
+
+        const auto& SrcExtent = I_SrcImage->GetExtent();
+        const auto CopyRegion = vk::ImageCopy2{}
+            .setSrcSubresource(I_SrcImage->GetSubresourceLayers(0))
+            .setSrcOffset({0, 0, 0})
+            .setDstSubresource(I_DstImage->GetSubresourceLayers(0))
+            .setDstOffset({0, 0, 0})
+            .setExtent(SrcExtent);
+        const auto CopyInfo = vk::CopyImageInfo2{}
+            .setSrcImage       (I_SrcImage->GetHandle())
+            .setSrcImageLayout (I_SrcImageLayout)
+            .setDstImage       (I_DstImage->GetHandle())
+            .setDstImageLayout (I_DstImageLayout)
+            .setRegionCount    (1)
+            .setPRegions       (&CopyRegion);
+        Handle.copyImage2(CopyInfo);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::

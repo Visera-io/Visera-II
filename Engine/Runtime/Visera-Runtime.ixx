@@ -435,8 +435,9 @@ namespace Visera
         LocalServicesSorted.Clear();
         if (OwnerEngine)
         {
-            OwnerEngine->DestroyApplication(this);
+            auto* Engine = OwnerEngine;
             OwnerEngine = nullptr;
+            Engine->DestroyApplication(this);
         }
     }
 }
