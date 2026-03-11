@@ -6,6 +6,7 @@ module;
 #undef CreateDirectory
 #undef CreateWindow
 #undef SetEnvironmentVariable
+#undef GetEnvironmentVariable
 #include <Visera-Platform.hpp>
 export module Visera.Platform.Windows;
 #define VISERA_MODULE_NAME "Platform.Windows"

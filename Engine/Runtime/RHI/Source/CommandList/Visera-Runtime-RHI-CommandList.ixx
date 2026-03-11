@@ -146,6 +146,8 @@ export namespace Visera
         };
         void inline
         PushConstants(const void* I_Data, UInt32 I_Offset, UInt32 I_Size);
+        template<typename T> void inline
+        PushConstants(const T& I_Data, UInt32 I_Offset = 0) { PushConstants(&I_Data, I_Offset, static_cast<UInt32>(sizeof(T))); }
 
         struct alignas(8) FDraw
         {

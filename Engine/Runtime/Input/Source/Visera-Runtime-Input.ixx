@@ -345,8 +345,7 @@ export namespace Visera
     void FInput::PollAndSync()
     {
         FPlatform::PollEvents();
-        CurrentFocusedWindow = FPlatform::GetFocusedWindow();
-        if (CurrentFocusedWindow)
+        if (CurrentFocusedWindow = FPlatform::GetFocusedWindow(); CurrentFocusedWindow)
         {
             // Sync global keyboard state from focused window's physical key state
             Keyboard->Sync([this](FKeyboard::EKey I_Key)->FKeyboard::EAction

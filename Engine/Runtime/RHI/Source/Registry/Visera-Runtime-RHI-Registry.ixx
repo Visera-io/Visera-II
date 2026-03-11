@@ -1133,7 +1133,7 @@ export namespace Visera
         ProfilingMetrics.GarbageRecycledSamplers += RecycledSamplers;
         ProfilingMetrics.GarbageRecycledDescriptorSets += RecycledDescriptorSets;
         const UInt64 RecycleTexturesCount = CountRecycleHandles(RecycleBinTextures);
-        const UInt64 RecycleBuffersCount = CountRecycleHandles(RecycleBinBuffers);
+        const UInt64 RecycleBuffersCount  = CountRecycleHandles(RecycleBinBuffers);
         const UInt64 RecycleSamplersCount = CountRecycleHandles(RecycleBinSamplers);
         const UInt64 RecycleDescriptorSetsCount = CountRecycleHandles(RecycleBinDescriptorSets);
         if (RecycleTexturesCount > ProfilingMetrics.PeakRecycleTextures) { ProfilingMetrics.PeakRecycleTextures = RecycleTexturesCount; }

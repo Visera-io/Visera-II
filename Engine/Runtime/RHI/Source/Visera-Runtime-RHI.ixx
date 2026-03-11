@@ -1079,7 +1079,7 @@ export namespace Visera
                 case ERHICommandType::SetScissor:          ExecuteSetScissor(Frame, Command); break;
                 case ERHICommandType::BindVertexBuffer:    ExecuteBindVertexBuffer(Frame, Command); break;
                 case ERHICommandType::BindDescriptorSet:   ExecuteBindDescriptorSet(Frame, Command); break;
-                case ERHICommandType::PushConstants:        ExecutePushConstants(Frame, Command); break;
+                case ERHICommandType::PushConstants:       ExecutePushConstants(Frame, Command); break;
                 case ERHICommandType::Draw:                ExecuteDraw(Frame, Command); break;
                 case ERHICommandType::DrawIndexed:         ExecuteDrawIndexed(Frame, Command); break;
                 case ERHICommandType::EnterComputePass:

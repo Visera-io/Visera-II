@@ -103,6 +103,8 @@ export namespace Visera
             if (I_Focused) { FGLFWWindow::FocusedWindow = P; }
             else if (FGLFWWindow::FocusedWindow == P) { FGLFWWindow::FocusedWindow = nullptr; }
         });
+        // Newly created window is the focused one until the OS sends focus events (e.g. first message pump).
+        FocusedWindow = this;
 
         glfwSetFramebufferSizeCallback    (Handle, [](GLFWwindow* I_Window, Int32 I_Width, Int32 I_Height) {
             if (auto* Self = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window)))

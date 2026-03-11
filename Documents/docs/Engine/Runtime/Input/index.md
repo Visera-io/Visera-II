@@ -7,6 +7,8 @@
 - **Device**: Abstract input device; keyboard and mouse key/button and motion state.
 - **Mapping**: Map physical input (key code, button, axis) to actions; multiple mapping sets or runtime switch.
 
+- **PollAndSync**: Call each frame on the main thread. Polls platform events and sets the current focused window from `FPlatform::GetFocusedWindow()`. If the platform reports no focus yet (e.g. window just opened), a fallback uses the single registered window when exactly one non-dummy window exists, so keyboard and mouse state are available immediately after opening the window.
+
 Relation to [Platform.Cross.GLFW](../../Platform/Cross/GLFW/index.md): GLFW provides low-level window and input events; Runtime.Input consumes them and turns them into actions and device state for upper layers.
 
 ## Submodules

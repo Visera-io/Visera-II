@@ -82,11 +82,10 @@ nav:
           - Limits:
               - Overview: Engine/Core/Limits/index.md
               - Numeric: Engine/Core/Limits/Numeric.md
-          - Membership:
-              - Overview: Engine/Core/Membership/index.md
-              - Probabilistic:
-                  - Overview: Engine/Core/Membership/Probabilistic/index.md
-                  - CuckooFilter: Engine/Core/Membership/Probabilistic/CuckooFilter.md
+          - Indexing:
+              - Overview: Engine/Core/Indexing/index.md
+              - CuckooFilter: Engine/Core/Indexing/CuckooFilter.md
+              - SpatialHash: Engine/Core/Indexing/SpatialHash.md
           - Math:
               - Overview: Engine/Core/Math/index.md
               - Algebra:
