@@ -56,4 +56,11 @@ export namespace Visera::Algorithm
 	{
 		return std::ranges::equal_range(std::forward<Range>(I_Range), I_Value, std::move(I_Comp), std::move(I_Proj));
 	}
+
+	template<std::ranges::range Range, typename T>
+	constexpr void
+	Fill(Range&& I_Range, const T& I_Value)
+	{
+		std::ranges::fill(std::forward<Range>(I_Range), I_Value);
+	}
 }

@@ -14,6 +14,35 @@ import Visera.Core.Math.Algebra.Vector;
 
 export namespace Visera
 {
+    // =============================================================================
+    // Why Visera has integer Point types but no floating-point Point type:
+    //
+    // 1. Integer coordinates have discrete semantics (grid cells, pixels, tiles).
+    //    Point + Point is a common and subtle bug in grid math; a separate type
+    //    with constrained operators (Point - Point = Vector, Point + Vector = Point)
+    //    catches these mistakes at compile time.
+    //
+    // 2. Integer division is lossy. Affine constraints force the programmer to
+    //    write correct formulations (e.g. P + (Q - P) / 2 instead of (P + Q) / 2)
+    //    and confront truncation explicitly.
+    //
+    // 3. Integer Point and Vector genuinely differ in available operations:
+    //    Points have no Cross or Normalize; Vectors have no "cell index" semantics.
+    //    The operation sets are different enough to justify separate types.
+    //
+    // Floating-point coordinates do not share these problems:
+    //  - Float division is (nearly) lossless, so (P + Q) * 0.5f is fine.
+    //  - The Vector type already participates in transforms, interpolation,
+    //    projections, and rendering code throughout the engine. Introducing a
+    //    float Point type would add Point<->Vector conversions across the entire
+    //    Render/Scene/Camera/Physics stack with negligible safety gain.
+    //  - Industry precedent: Imath (ASWF/OpenEXR), Unreal (FVector), Unity
+    //    (Vector3), and Godot all use a single vector type for both positions
+    //    and directions in floating-point space.
+    //
+    // Conclusion: Integer separates Point/Vector; float uses FVector for both.
+    // =============================================================================
+    
     class VISERA_CORE_API FPoint2I
     {
     public:

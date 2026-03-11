@@ -7,13 +7,13 @@ import Visera.Core.Math.Algebra.Vector;
 
 export namespace Visera
 {
-    // class VISERA_CORE_API FBox2F
-    // {
-    // public:
-    //     [[nodiscard]] inline const FVector2F&
-    //     GetMax() { return reinterpret_cast<const FVector2F&>(Data.max); }
-    //
-    // private:
-    //     Imath::Box2f Data;
-    // };
+    struct VISERA_CORE_API FBox2F
+    {
+        FVector2F Min {0.0f, 0.0f};
+        FVector2F Max {0.0f, 0.0f};
+        [[nodiscard]] constexpr FVector2F
+        Center() const noexcept { return (Min + Max) / 2.0f; }
+        [[nodiscard]] constexpr Float
+        Area() const noexcept { return (Max.X - Min.X) * (Max.Y - Min.Y); }
+    };
 }
