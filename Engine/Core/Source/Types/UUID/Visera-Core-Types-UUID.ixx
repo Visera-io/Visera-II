@@ -2,45 +2,57 @@ module;
 #include <Visera-Core.hpp>
 export module Visera.Core.Types.UUID;
 #define VISERA_MODULE_NAME "Core.Types"
+import Visera.Core.Math.Random;
 import Visera.Core.OS.Memory;
 
 export namespace Visera
 {
     /*
-     * You can generate this via Visera.Platform (OS APIs).
-     * Ref: RFC 4122 (UUID)
+     * Ref: RFC 4122 (UUID).
+     * Generate in Core: static Generate() returns RFC 4122 version 4 (random) UUID; no Platform dependency.
+     * Alternatively generate via Visera.Platform (OS APIs).
      *
-     * Layout note:
-     * - Data[16] stores the UUID as a 16-octet sequence (canonical byte order as used by the RFC text form).
-     * - A/B/C/D are a convenience view for fast nil checks and simple comparisons.
-     * - Because Data <-> A/B/C/D depends on the host endianness, Platform code should prefer writing Data[16]
-     *   (canonical bytes), then call NormalizeWordsFromData() if it needs A/B/C/D.
+     * Layout: Data[16] stores the UUID as a 16-octet sequence (canonical byte order as used by the RFC text form).
      */
     class VISERA_CORE_API FUUID
     {
     public:
-#if defined(VISERA_ON_LITTLE_ENDIAN_PLATFORM)
-        union { struct { UInt32 A, B, C, D; }; FByte Data[16]{0}; };
-#else
-        union { struct { UInt32 D, C, B, A; }; FByte Data[16]{0}; };
-#endif
+        FByte Data[16]{0};
 
-        [[nodiscard]] constexpr Bool
-        IsNil() const { return A == 0 && B == 0 && C == 0 && D == 0; }
+        /** Returns a new RFC 4122 version 4 (random) UUID using Core.Math.Random. */
+        [[nodiscard]] static FUUID Generate();
 
-        [[nodiscard]] friend inline auto
-        operator<=>(const FUUID& I_Lhs, const FUUID& I_Rhs) noexcept
+        [[nodiscard]] constexpr Bool IsNil() const
         {
-            const int Cmp = Memory::Memcmp(I_Lhs.Data, I_Rhs.Data, 16);
-            if (Cmp < 0) { return std::strong_ordering::less;   }
-            if (Cmp > 0) { return std::strong_ordering::greater;}
-            return std::strong_ordering::equal;
+            for (int Index = 0; Index < 16; ++Index)
+            {
+                if (Data[Index] != 0) return False;
+            }
+            return True;
         }
 
-        [[nodiscard]] friend inline Bool
-        operator==(const FUUID& I_Lhs, const FUUID& I_Rhs) noexcept
-        {  return Memory::Memcmp(I_Lhs.Data, I_Rhs.Data, 16) == 0; }
+        [[nodiscard]] friend auto operator<=>(const FUUID&, const FUUID&) = default;
     };
+
+    inline FUUID FUUID::Generate()
+    {
+        thread_local FRandomSeed RandomSeed;
+        thread_local FPCG32 RandomGenerator(RandomSeed.Get<UInt64>(), RandomSeed.Get<UInt32>());
+
+        FUUID Result;
+        const UInt32 Randoms[4] = {
+            RandomGenerator.Uniform<UInt32>(),
+            RandomGenerator.Uniform<UInt32>(),
+            RandomGenerator.Uniform<UInt32>(),
+            RandomGenerator.Uniform<UInt32>()
+        };
+        Memory::Memcpy(Result.Data, Randoms, 16);
+
+        Result.Data[6] = static_cast<FByte>((Result.Data[6] & 0x0Fu) | 0x40u);
+        Result.Data[8] = static_cast<FByte>((Result.Data[8] & 0x3Fu) | 0x80u);
+
+        return Result;
+    }
 };
 
 VISERA_MAKE_FORMATTER(Visera::FUUID,
