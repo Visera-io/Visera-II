@@ -1,8 +1,8 @@
 module;
 #include <Visera-Tasks.hpp>
 export module Visera.Runtime.Tasks.Interface;
-import Visera.Core.Types.Function;
 #define VISERA_MODULE_NAME "Runtime.Tasks"
+import Visera.Core.Types.Function;
 
 export namespace Visera
 {

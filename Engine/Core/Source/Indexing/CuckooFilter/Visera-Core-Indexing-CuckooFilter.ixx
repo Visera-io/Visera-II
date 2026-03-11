@@ -1,7 +1,7 @@
 module;
 #include <Visera-Core.hpp>
-export module Visera.Core.Membership.Probabilistic.CuckooFilter;
-#define VISERA_MODULE_NAME "Core.Membership"
+export module Visera.Core.Indexing.CuckooFilter;
+#define VISERA_MODULE_NAME "Core.Indexing"
 import Visera.Core.Containers.Array;
 import Visera.Core.Math.Hash;
 import Visera.Core.Limits.Numeric;
@@ -270,12 +270,18 @@ export namespace Visera
 	class VISERA_CORE_API FCuckooFilter
 	{
 	public:
-		[[nodiscard]] Bool Insert(const ItemType& I_Item);
-		[[nodiscard]] Bool MayContain(const ItemType& I_Item) const noexcept;
-		[[nodiscard]] Bool Erase(const ItemType& I_Item);
-		[[nodiscard]] UInt64 GetSize() const { return NumItems; }
-		[[nodiscard]] UInt64 GetSizeInBytes() const { return Table.SizeInBytes(); }
-		[[nodiscard]] FString GetInfo() const;
+		[[nodiscard]] Bool
+		Insert(const ItemType& I_Item);
+		[[nodiscard]] Bool
+		MayContain(const ItemType& I_Item) const noexcept;
+		[[nodiscard]] Bool
+		Erase(const ItemType& I_Item);
+		[[nodiscard]] UInt64
+		GetSize() const { return NumItems; }
+		[[nodiscard]] UInt64
+		GetSizeInBytes() const { return Table.SizeInBytes(); }
+		[[nodiscard]] FString
+		GetInfo() const;
 
 		explicit FCuckooFilter(UInt64 I_MaxNumKeys);
 

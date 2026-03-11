@@ -11,11 +11,11 @@ export import Visera.Core.Font;
 export import Visera.Core.Image;
 export import Visera.Core.Limits;
 export import Visera.Core.Traits;
+export import Visera.Core.Indexing;
 export import Visera.Core.Delegate;
 export import Visera.Core.Algorithm;
 export import Visera.Core.Compression;
 export import Visera.Core.Concurrency;
-export import Visera.Core.Membership;
 
 export namespace Visera
 {
