@@ -14,6 +14,7 @@ export import Visera.Platform.MacOS.Library;
 export import Visera.Platform.MacOS.EventLoop;
 export import Visera.Platform.MacOS.FileSystem;
        import Visera.Platform.Cross.GLFW.Window;
+       import Visera.Core.Types.Optional;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Text;
@@ -36,6 +37,8 @@ export namespace Visera
         GetFrameworkDirectory() const override;
         [[nodiscard]] Bool
         SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const override;
+        [[nodiscard]] TOptional<FText>
+        GetEnvironmentVariable(const FText& I_Variable) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
         void
@@ -120,6 +123,16 @@ export namespace Visera
         LOG_DEBUG("Set environment variable {} as {}.",
                   Var, Val);
         return True;
+    }
+
+    TOptional<FText> FMacOSPlatform::
+    GetEnvironmentVariable(const FText& I_Variable) const
+    {
+        const std::string Var = MakePlatformString(I_Variable);
+        if (Var.empty()) { return std::nullopt; }
+        const char* Val = ::getenv(Var.c_str());
+        if (!Val) { return std::nullopt; }
+        return FText(FString(Val));
     }
 
     /**

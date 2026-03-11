@@ -9,6 +9,7 @@ export import Visera.Platform.Interface.EventLoop;
 export import Visera.Platform.Interface.FileSystem;
 export import Visera.Core.Types.Pointer.Unique;
 export import Visera.Core.Types.Text;
+       import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
@@ -35,6 +36,9 @@ export namespace Visera
         GetFrameworkDirectory() const = 0;
         [[nodiscard]] virtual Bool
         SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const = 0;
+        /** Returns the value if the variable is set; nullopt if unset. */
+        [[nodiscard]] virtual TOptional<FText>
+        GetEnvironmentVariable(const FText& I_Variable) const = 0;
         [[nodiscard]] virtual FUUID
         GenerateUUID() const = 0;
         virtual void

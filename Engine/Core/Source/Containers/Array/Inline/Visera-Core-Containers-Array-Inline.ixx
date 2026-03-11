@@ -7,6 +7,7 @@ module;
 #include <iterator>
 #include <algorithm>
 #include <functional>
+#include <initializer_list>
 export module Visera.Core.Containers.Array.Inline;
 #define VISERA_MODULE_NAME "Core.Containers"
 import Visera.Core.OS.Memory;
@@ -48,6 +49,14 @@ export namespace Visera
     public:
         // Constructors and destructor
         TInlineArray() = default;
+
+        TInlineArray(std::initializer_list<T> I_Init)
+            requires std::copy_constructible<T>
+        {
+            VISERA_ASSERT(I_Init.size() <= N);
+            Size = 0;
+            for (const T& E : I_Init) { PushBack(E); }
+        }
 
         ~TInlineArray()
         {

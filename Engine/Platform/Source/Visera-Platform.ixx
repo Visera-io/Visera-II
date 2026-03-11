@@ -48,6 +48,8 @@ export namespace Visera
         GetCacheDirectory();
         [[nodiscard]] static inline Bool
         SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) { return Get()->SetEnvironmentVariable(I_Variable, I_Value); }
+        [[nodiscard]] static inline TOptional<FText>
+        GetEnvironmentVariable(const FText& I_Variable) { return Get()->GetEnvironmentVariable(I_Variable); }
         [[nodiscard]] static inline FUUID
         GenerateUUID() { return Get()->GenerateUUID(); }
         [[nodiscard]] static inline EPlatform

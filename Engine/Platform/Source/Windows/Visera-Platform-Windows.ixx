@@ -15,6 +15,7 @@ export import Visera.Platform.Windows.FileSystem;
 export import Visera.Platform.Windows.EventLoop;
 export import Visera.Platform.Windows.Window;
 export import Visera.Platform.Windows.Library;
+       import Visera.Core.Types.Optional;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Text;
@@ -39,6 +40,8 @@ export namespace Visera
         GetFrameworkDirectory() const override;
         [[nodiscard]] Bool
         SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const override;
+        [[nodiscard]] TOptional<FText>
+        GetEnvironmentVariable(const FText& I_Variable) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
         void
@@ -111,6 +114,23 @@ export namespace Visera
                            const FText& I_Value) const
     {
         return SetEnvironmentVariableA(I_Variable.GetData(), I_Value.GetData());
+    }
+
+    TOptional<FText> FWindowsPlatform::
+    GetEnvironmentVariable(const FText& I_Variable) const
+    {
+        const std::wstring VarW = MakePlatformString(I_Variable);
+        if (VarW.empty()) { return std::nullopt; }
+        DWORD Size = GetEnvironmentVariableW(VarW.c_str(), nullptr, 0);
+        if (Size == 0) { return std::nullopt; }
+        std::wstring Buf(Size, L'\0');
+        if (GetEnvironmentVariableW(VarW.c_str(), Buf.data(), Size) == 0) { return std::nullopt; }
+        Buf.resize(Size - 1);
+        const int Utf8Len = WideCharToMultiByte(CP_UTF8, 0, Buf.data(), static_cast<int>(Buf.size()), nullptr, 0, nullptr, nullptr);
+        if (Utf8Len <= 0) { return std::nullopt; }
+        std::string Utf8(static_cast<std::size_t>(Utf8Len), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, Buf.data(), static_cast<int>(Buf.size()), Utf8.data(), Utf8Len, nullptr, nullptr);
+        return FText(FString(Utf8));
     }
 
     /**
