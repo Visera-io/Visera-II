@@ -1,9 +1,17 @@
 module;
 #include <Visera-Platform.hpp>
 #define GLFW_INCLUDE_VULKAN
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+  #define GLFW_EXPOSE_NATIVE_WIN32
+#endif
+#if defined(__APPLE__)
+  #define GLFW_EXPOSE_NATIVE_COCOA
+#endif
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 export module Visera.Platform.GLFW.Window;
 #define VISERA_MODULE_NAME "Platform.GLFW"
+import Visera.Platform.Interface.Device;
 import Visera.Platform.Interface.Window;
 import Visera.Core.OS.Thread;
 import Visera.Core.Log;
@@ -32,10 +40,16 @@ export namespace Visera
         void
         SetIcon(const FIconSet& I_IconSet) override;
 
-        [[nodiscard]] Int32
-        GetKeyboardKey(Int32 I_Key) const override;
-        [[nodiscard]] Int32
-        GetMouseButton(Int32 I_Button) const override;
+        [[nodiscard]] EPlatformKeyboardKeyState
+        QueryKeyboardKeyState(EPlatformKeyboardKey I_Key) const override;
+        [[nodiscard]] EPlatformMouseButtonState
+        QueryMouseButtonState(EPlatformMouseButton I_Button) const override;
+        void
+        QueryKeyboardState(TSpan<EPlatformKeyboardKeyState, kKeyboardStateTableSize> O_Out) const override;
+        void
+        QueryMouseButtonState(TSpan<EPlatformMouseButtonState, kMouseButtonStateTableSize> O_Out) const override;
+        [[nodiscard]] void*
+        GetNativeHandle() const override;
         [[nodiscard]] void*
         CreateVulkanSurface(void* I_Instance) const override;
         [[nodiscard]] static TArray<const char*>
@@ -85,10 +99,18 @@ export namespace Visera
         glfwSetWindowUserPointer          (Handle, this);
 
         glfwSetWindowContentScaleCallback (Handle, [](GLFWwindow* I_Window, Float I_ScaleX, Float I_ScaleY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->WindowContentScaleCallback.Invoke(I_ScaleX, I_ScaleY); });
-        glfwSetMouseButtonCallback        (Handle, [](GLFWwindow* I_Window, Int32 I_Button, Int32 I_Action, Int32 I_Mods) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->MouseButtonCallback.Invoke(I_Button, I_Action, I_Mods); });
+        // Cast GLFW ints to Interface.Device enums at the boundary; FInput receives only enums.
+        glfwSetMouseButtonCallback        (Handle, [](GLFWwindow* I_Window, Int32 I_Button, Int32 I_Action, Int32 I_Mods) {
+            auto* W = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window));
+            W->MouseButtonCallback.Invoke(static_cast<EPlatformMouseButton>(I_Button), I_Action == GLFW_RELEASE ? EPlatformMouseButtonState::Release : EPlatformMouseButtonState::Press, static_cast<EPlatformKeyboardModifier>(I_Mods));
+        });
         glfwSetCursorPosCallback          (Handle, [](GLFWwindow* I_Window, Double I_PosX, Double I_PosY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->CursorMoveCallback.Invoke(I_PosX, I_PosY); });
         glfwSetScrollCallback             (Handle, [](GLFWwindow* I_Window, Double I_OffsetX, Double I_OffsetY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->ScrollCallback.Invoke(I_OffsetX, I_OffsetY); });
-        glfwSetKeyCallback                (Handle, [](GLFWwindow* I_Window, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->KeyboardCallback.Invoke(I_Key, I_ScanCode, I_Action, I_Mods); });
+        glfwSetKeyCallback                (Handle, [](GLFWwindow* I_Window, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) {
+            auto* W = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window));
+            EPlatformKeyboardKeyState Action = (I_Action == GLFW_RELEASE) ? EPlatformKeyboardKeyState::Release : EPlatformKeyboardKeyState::Press;
+            W->KeyboardCallback.Invoke(static_cast<EPlatformKeyboardKey>(I_Key), I_ScanCode, Action, static_cast<EPlatformKeyboardModifier>(I_Mods));
+        });
         glfwSetWindowFocusCallback        (Handle, [](GLFWwindow* I_Window, Int32 I_Focused) {
             auto* P = static_cast<IPlatformWindow*>(glfwGetWindowUserPointer(I_Window));
             if (I_Focused) { FGLFWWindow::FocusedWindow = P; }
@@ -140,18 +162,51 @@ export namespace Visera
         // if (ContextCount.fetch_sub(1, std::memory_order_relaxed) == 1) { glfwTerminate(); }
     }
 
-    Int32 FGLFWWindow::
-    GetKeyboardKey(Int32 I_Key) const
+    EPlatformKeyboardKeyState FGLFWWindow::
+    QueryKeyboardKeyState(EPlatformKeyboardKey I_Key) const
     {
         VISERA_ASSERT(FThread::IsMainThread());
-        return Handle ? glfwGetKey(Handle, I_Key) : GLFW_RELEASE;
+        if (!Handle) { return EPlatformKeyboardKeyState::Release; }
+        return static_cast<EPlatformKeyboardKeyState>(glfwGetKey(Handle, static_cast<int>(I_Key)));
     }
 
-    Int32 FGLFWWindow::
-    GetMouseButton(Int32 I_Button) const
+    EPlatformMouseButtonState FGLFWWindow::
+    QueryMouseButtonState(EPlatformMouseButton I_Button) const
     {
         VISERA_ASSERT(FThread::IsMainThread());
-        return Handle ? glfwGetMouseButton(Handle, I_Button) : GLFW_RELEASE;
+        if (!Handle) { return EPlatformMouseButtonState::Release; }
+        return static_cast<EPlatformMouseButtonState>(glfwGetMouseButton(Handle, static_cast<int>(I_Button)));
+    }
+
+    void FGLFWWindow::
+    QueryKeyboardState(TSpan<EPlatformKeyboardKeyState, kKeyboardStateTableSize> O_Out) const
+    {
+        VISERA_ASSERT(FThread::IsMainThread());
+        if (!Handle) { return; }
+        for (size_t i = 0; i < kKeyboardStateTableSize; ++i)
+        { O_Out[i] = static_cast<EPlatformKeyboardKeyState>(glfwGetKey(Handle, static_cast<int>(i))); }
+    }
+
+    void FGLFWWindow::
+    QueryMouseButtonState(TSpan<EPlatformMouseButtonState, kMouseButtonStateTableSize> O_Out) const
+    {
+        VISERA_ASSERT(FThread::IsMainThread());
+        if (!Handle) { return; }
+        for (size_t i = 0; i < kMouseButtonStateTableSize; ++i)
+        { O_Out[i] = static_cast<EPlatformMouseButtonState>(glfwGetMouseButton(Handle, static_cast<int>(i))); }
+    }
+
+    void* FGLFWWindow::
+    GetNativeHandle() const
+    {
+        if (!Handle) { return nullptr; }
+#if defined(VISERA_ON_WINDOWS_SYSTEM)
+        return static_cast<void*>(glfwGetWin32Window(Handle));
+#elif defined(__APPLE__)
+        return static_cast<void*>(glfwGetCocoaWindow(Handle));
+#else
+        return nullptr;
+#endif
     }
 
     void FGLFWWindow::

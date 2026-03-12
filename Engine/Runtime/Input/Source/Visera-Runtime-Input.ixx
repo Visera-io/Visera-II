@@ -8,6 +8,7 @@ export import Visera.Runtime.Input.Mapping;
        import Visera.Runtime.Global;
        import Visera.Platform;
        import Visera.Platform.Interface.Window;
+       import Visera.Platform.Interface.Device;
        import Visera.Core.Log;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.JSON;
@@ -21,8 +22,15 @@ export namespace Visera
 {
     /**
      * Global input service: one keyboard (global state), per-window mouse state in Mice, and action/mapping (e.g. .vinputmap).
-     * Events are routed by source window (Notify* receive I_SourceWindow). Mice[DummyWindow] is used when no window or unknown window.
+     * Uses only Interface.Device enums (EPlatformKeyboardKey, EPlatformKeyboardKeyState, etc.); platform-specific
+     * handling and casts are confined to the Platform layer so FInput stays platform-agnostic.
      * Call PollAndSync() on the main thread each frame; GetMouse() returns the mouse for the current focused window (or dummy).
+     *
+     * ActionMapping semantics:
+     * - Window callbacks (NotifyKeyboardKey / NotifyMouseButton) only notify: they call TriggerMatchingActions
+     *   so that mapped actions receive OnTriggered. They do not modify key/button state (Action, HoldDuration, PressedAt).
+     * - Key and button state is updated solely in PollAndSync (via UpdateKeyboardState / UpdateMouseButtonState from
+     *   the platform state table). IsActionActive() and key/button OnPressed/OnReleased/OnHeld reflect that polled state.
      */
     class VISERA_RUNTIME_API FInput : public IRuntimeService
     {
@@ -72,10 +80,10 @@ export namespace Visera
         void
         UnregisterWindow(IPlatformWindow* I_PlatformWindow);
 
-        /** Notify mouse button. Routed to the FMouse for I_SourceWindow (event source); fallback to DummyMouse if not in Mice. */
+        /** Notify mouse button from window callback. Only triggers action mapping (TriggerMatchingActions); does not modify button state. */
         void
         NotifyMouseButton(IPlatformWindow* I_SourceWindow, FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods);
-        /** Notify key (global keyboard state). I_SourceWindow for API consistency; keyboard is not per-window. */
+        /** Notify key from window callback. Only triggers action mapping (TriggerMatchingActions); does not modify key state. */
         void
         NotifyKeyboardKey(IPlatformWindow* I_SourceWindow, FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods);
         /** Notify cursor move. Routed to the FMouse for I_SourceWindow; fallback to DummyMouse if not in Mice. */
@@ -86,8 +94,13 @@ export namespace Visera
         NotifyScroll(IPlatformWindow* I_SourceWindow, Float I_OffsetX, Float I_OffsetY);
 
     private:
+        /** Called by NotifyKeyboardKey/NotifyMouseButton only. Fires OnTriggered for matching actions; does not modify key/button state. */
         void TriggerMatchingActions(EInputSource I_SourceType, Int32 I_SourceValue, UInt8 I_Action, UInt8 I_Mods);
         void RebuildReverseIndex();
+        /** Sole updater of key state (Action, HoldDuration, PressedAt, OnPressed/OnReleased/OnHeld). Called from PollAndSync only. */
+        void UpdateKeyboardState(IPlatformWindow* I_Window);
+        /** Sole updater of button state (Action, HoldDuration, PressedAt, OnPressed/OnReleased/OnHeld). Called from PollAndSync only. */
+        void UpdateMouseButtonState(IPlatformWindow* I_Window);
 
     private:
         TUniquePtr<FKeyboard>                      Keyboard;
@@ -95,6 +108,9 @@ export namespace Visera
         TMap<IPlatformWindow*, TUniquePtr<FMouse>> Mice;
         /** Updated each PollAndSync() from FPlatform::GetFocusedWindow(). */
         IPlatformWindow*                           CurrentFocusedWindow {nullptr};
+        /** Caller-owned buffers passed to QueryKeyboardState/QueryMouseButtonState; filled by platform then used to update FKeyboard/FMouse. */
+        EPlatformKeyboardKeyState                  KeyboardStateTable[kKeyboardStateTableSize];
+        EPlatformMouseButtonState                  MouseButtonStateTable[kMouseButtonStateTableSize];
         TMap<FName, TUniquePtr<FInputAction>>      Actions;
         TArray<FInputMapping>                      Mappings;
         /** Key for reverse index: (SourceType, SourceValue) only. Sorted by this to binary-search mapping set. */
@@ -139,11 +155,12 @@ export namespace Visera
         if (!I_PlatformWindow)
         { LOG_ERROR("({}) RegisterWindow: null platform window.", GetRuntimeName()); return False; }
 
-        if (!I_PlatformWindow->KeyboardCallback.TryBind([this, I_PlatformWindow](Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods)
-            { NotifyKeyboardKey(I_PlatformWindow, static_cast<FKeyboard::EKey>(I_Key), I_ScanCode, static_cast<FKeyboard::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); }))
+        // Window callbacks use Interface.Device enums; convert to FKeyboard::EAction / FMouse::EAction here only.
+        if (!I_PlatformWindow->KeyboardCallback.TryBind([this, I_PlatformWindow](EPlatformKeyboardKey I_Key, Int32 I_ScanCode, EPlatformKeyboardKeyState I_Action, EPlatformKeyboardModifier I_Mods)
+            { NotifyKeyboardKey(I_PlatformWindow, I_Key, I_ScanCode, I_Action == EPlatformKeyboardKeyState::Release ? FKeyboard::EAction::Release : FKeyboard::EAction::Press, static_cast<UInt8>(I_Mods)); }))
         { LOG_ERROR("({}) RegisterWindow: failed to bind KeyboardCallback.", GetRuntimeName()); return False; }
-        if (!I_PlatformWindow->MouseButtonCallback.TryBind([this, I_PlatformWindow](Int32 I_Button, Int32 I_Action, Int32 I_Mods)
-            { NotifyMouseButton(I_PlatformWindow, static_cast<FMouse::EButton>(I_Button), static_cast<FMouse::EAction>(I_Action <= 2 ? I_Action : 0), static_cast<UInt8>(I_Mods)); }))
+        if (!I_PlatformWindow->MouseButtonCallback.TryBind([this, I_PlatformWindow](EPlatformMouseButton I_Button, EPlatformMouseButtonState I_Action, EPlatformKeyboardModifier I_Mods)
+            { NotifyMouseButton(I_PlatformWindow, I_Button, I_Action == EPlatformMouseButtonState::Release ? FMouse::EAction::Release : FMouse::EAction::Press, static_cast<UInt8>(I_Mods)); }))
         { LOG_ERROR("({}) RegisterWindow: failed to bind MouseButtonCallback.", GetRuntimeName()); return False; }
         if (!I_PlatformWindow->CursorMoveCallback.TryBind([this, I_PlatformWindow](Double I_PosX, Double I_PosY)
             { NotifyCursorMove(I_PlatformWindow, static_cast<Float>(I_PosX), static_cast<Float>(I_PosY)); }))
@@ -167,68 +184,21 @@ export namespace Visera
         LOG_DEBUG("({}) Unregistered platform window (Mice size {}).", GetRuntimeName(), Mice.GetSize());
     }
 
+    /** Window callback path: only notify action mapping; state is updated solely in PollAndSync (UpdateMouseButtonState). */
     void FInput::NotifyMouseButton(IPlatformWindow* I_SourceWindow, FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods)
     {
-        FMouse* TargetMouse = Mice[I_SourceWindow].Get();
-        if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
-        TriggerMatchingActions(EInputSource::MouseButton, static_cast<Int32>(I_Button), static_cast<UInt8>(I_Action), I_Mods);
-
         const auto ButtonIndex = static_cast<Int32>(I_Button);
-        if (ButtonIndex < 0 || ButtonIndex >= FMouse::LastButton) { return; }
-
-        FMouse::FButton& Button = TargetMouse->GetButton(I_Button);
-        Button.Action = I_Action;
-
-        const FHighResTimePoint Now = FHiResClock::Now();
-        if (I_Action == FMouse::EAction::Press)
-        {
-            Button.PressedAt = Now;
-            Button.HoldDuration = 0.f;
-            Button.OnPressed.Broadcast(Button);
-        }
-        else if (I_Action == FMouse::EAction::Release || I_Action == FMouse::EAction::Detach)
-        {
-            Button.HoldDuration = static_cast<Float>((Now - Button.PressedAt).Seconds());
-            Button.OnReleased.Broadcast(Button);
-        }
-        else if (I_Action == FMouse::EAction::Hold)
-        {
-            Button.HoldDuration = static_cast<Float>((Now - Button.PressedAt).Seconds());
-            Button.OnHeld.Broadcast(Button);
-        }
-        else
-        { LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), static_cast<Int32>(I_Action)); }
+        if (ButtonIndex < 0 || ButtonIndex > FMouse::LastButton) { return; }
+        TriggerMatchingActions(EInputSource::MouseButton, ButtonIndex, static_cast<UInt8>(I_Action), I_Mods);
     }
 
+    /** Window callback path: only notify action mapping; state is updated solely in PollAndSync (UpdateKeyboardState). */
     void FInput::NotifyKeyboardKey(IPlatformWindow* I_SourceWindow, FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods)
     {
         if (!Keyboard) { return; }
         const UInt32 Idx = static_cast<UInt32>(I_Key);
         if (Idx > static_cast<UInt32>(FKeyboard::LastKey)) { return; }
         TriggerMatchingActions(EInputSource::KeyboardKey, static_cast<Int32>(I_Key), static_cast<UInt8>(I_Action), I_Mods);
-
-        FKeyboard::FKey& K = Keyboard->GetKey(I_Key);
-        K.Action = I_Action;
-        const FHighResTimePoint Now = FHiResClock::Now();
-
-        if (I_Action == FKeyboard::EAction::Press)
-        {
-            K.PressedAt = Now;
-            K.HoldDuration = 0.f;
-            K.OnPressed.Broadcast(K);
-        }
-        else if (I_Action == FKeyboard::EAction::Release)
-        {
-            K.HoldDuration = static_cast<Float>((Now - K.PressedAt).Seconds());
-            K.OnReleased.Broadcast(K);
-        }
-        else if (I_Action == FKeyboard::EAction::Hold)
-        {
-            K.HoldDuration = static_cast<Float>((Now - K.PressedAt).Seconds());
-            K.OnHeld.Broadcast(K);
-        }
-        else
-        { LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), static_cast<UInt8>(I_Action)); }
     }
 
     void FInput::NotifyCursorMove(IPlatformWindow* I_SourceWindow, Float I_PosX, Float I_PosY)
@@ -346,12 +316,12 @@ export namespace Visera
         return False;
     }
 
-    /** Fire OnTriggered for actions whose mapping matches this raw input. Uses reverse index for O(log N + K) lookup. */
+    /** Fire OnTriggered for actions whose mapping matches this raw input. Does not modify key/button state (state is only updated in PollAndSync). */
     void
     FInput::TriggerMatchingActions(EInputSource I_SourceType, Int32 I_SourceValue, UInt8 I_Action, UInt8 I_Mods)
     {
-        if (bReverseIndexDirty)
-        { RebuildReverseIndex(); }
+        if (bReverseIndexDirty) { RebuildReverseIndex(); }
+
         const FInputMappingReverseKey LookupKey{I_SourceType, I_SourceValue};
         auto KeyProjection =
         [](const TPair<FInputMappingReverseKey, UInt64>& Pair)
@@ -359,6 +329,7 @@ export namespace Visera
         {
              return Pair.first;
         };
+
         auto EqualRange = Algorithm::BinarySearch(ReverseIndex, LookupKey, KeyProjection);
         for (const auto& Entry : EqualRange)
         {
@@ -378,63 +349,88 @@ export namespace Visera
         }
     }
 
+    void FInput::UpdateMouseButtonState(IPlatformWindow* I_Window)
+    {
+        I_Window->QueryMouseButtonState(MouseButtonStateTable);
+        const auto Now = FHiResClock::Now();
+        auto& ActiveMouse = Mice[I_Window];
+        for (Int32 i = FMouse::FirstButton; i <= FMouse::LastButton; ++i)
+        {
+            auto  ButtonValue = static_cast<FMouse::EButton>(i);
+            auto& Button = ActiveMouse->GetButton(ButtonValue);
+            if (EPlatformMouseButtonState::Press == MouseButtonStateTable[static_cast<size_t>(i)])
+            {
+                if (Button.Action == FMouse::EAction::Release)
+                {
+                    Button.Action       = FMouse::EAction::Press;
+                    Button.HoldDuration = 0.0f;
+                    Button.PressedAt    = Now;
+                    Button.OnPressed.Broadcast(Button);
+                }
+                else
+                {
+                    Button.Action       = FMouse::EAction::Hold;
+                    Button.HoldDuration = (Now - Button.PressedAt).Seconds();
+                    Button.OnHeld.Broadcast(Button);
+                }
+            }
+            else
+            {
+                if (Button.Action != FMouse::EAction::Release)
+                {
+                    Button.Action       = FMouse::EAction::Release;
+                    Button.HoldDuration = (Now - Button.PressedAt).Seconds();
+                    Button.OnReleased.Broadcast(Button);
+                    Button.HoldDuration = 0.0f;
+                }
+            }
+        }
+    }
+
+    void FInput::UpdateKeyboardState(IPlatformWindow* I_Window)
+    {
+        I_Window->QueryKeyboardState(KeyboardStateTable);
+        const auto Now = FHiResClock::Now();
+        for (Int32 i = FKeyboard::FirstKey; i <= FKeyboard::LastKey; ++i)
+        {
+            auto  KeyValue  = static_cast<FKeyboard::EKey>(i);
+            auto& ActiveKey = Keyboard->GetKey(KeyValue);
+            if (EPlatformKeyboardKeyState::Press == KeyboardStateTable[static_cast<size_t>(i)])
+            {
+                if (ActiveKey.Action == FKeyboard::EAction::Release)
+                {
+                    ActiveKey.Action       = FKeyboard::EAction::Press;
+                    ActiveKey.HoldDuration = 0.0f;
+                    ActiveKey.PressedAt    = Now;
+                    ActiveKey.OnPressed.Broadcast(ActiveKey);
+                }
+                else
+                {
+                    ActiveKey.Action       = FKeyboard::EAction::Hold;
+                    ActiveKey.HoldDuration = (Now - ActiveKey.PressedAt).Seconds();
+                    ActiveKey.OnHeld.Broadcast(ActiveKey);
+                }
+            }
+            else
+            {
+                if (ActiveKey.Action != FKeyboard::EAction::Release)
+                {
+                    ActiveKey.Action       = FKeyboard::EAction::Release;
+                    ActiveKey.HoldDuration = (Now - ActiveKey.PressedAt).Seconds();
+                    ActiveKey.OnReleased.Broadcast(ActiveKey);
+                    ActiveKey.HoldDuration = 0.0f;
+                }
+            }
+        }
+    }
+
     void FInput::PollAndSync()
     {
         FPlatform::PollEvents();
         CurrentFocusedWindow = FPlatform::GetFocusedWindow();
+        if (!CurrentFocusedWindow) { return; } //[NOTE]: We ignore the dummy window for now.
 
-        const FHighResTimePoint Now = FHiResClock::Now();
-
-        for (auto It = Mice.begin(); It != Mice.end(); ++It)
-        {
-            FMouse* Mouse = It->second.Get();
-            if (!Mouse) { continue; }
-            for (Int32 i = 0; i < FMouse::LastButton; ++i)
-            {
-                FMouse::FButton& Button = Mouse->GetButton(static_cast<FMouse::EButton>(i));
-                if (Button.Action != FMouse::EAction::Press && Button.Action != FMouse::EAction::Hold) { continue; }
-                Button.HoldDuration = static_cast<Float>((Now - Button.PressedAt).Seconds());
-                if (Button.Action == FMouse::EAction::Press)
-                { Button.Action = FMouse::EAction::Hold; }
-            }
-        }
-
-        if (Keyboard && CurrentFocusedWindow)
-        {
-            for (Int32 i = FKeyboard::FirstKey; i <= FKeyboard::LastKey; ++i)
-            {
-                const auto Key = static_cast<FKeyboard::EKey>(i);
-                const UInt32 Idx = static_cast<UInt32>(Key);
-                if (Idx > static_cast<UInt32>(FKeyboard::LastKey)) { continue; }
-                const Int32 Phys = CurrentFocusedWindow->GetKeyboardKey(static_cast<Int32>(Key));
-                const Bool PhysDown = (Phys != 0);
-                FKeyboard::FKey& K = Keyboard->GetKey(Key);
-                if (PhysDown)
-                {
-                    if (K.Action == FKeyboard::EAction::Release)
-                    {
-                        K.Action       = FKeyboard::EAction::Press;
-                        K.HoldDuration = 0.f;
-                        K.PressedAt    = Now;
-                        K.OnPressed.Broadcast(K);
-                    }
-                    else
-                    {
-                        K.Action = FKeyboard::EAction::Hold;
-                        K.HoldDuration = (Now - K.PressedAt).Seconds();
-                        K.OnHeld.Broadcast(K);
-                    }
-                }
-                else
-                {
-                    if (K.Action != FKeyboard::EAction::Release)
-                    {
-                        K.Action = FKeyboard::EAction::Release;
-                        K.HoldDuration = (Now - K.PressedAt).Seconds();
-                        K.OnReleased.Broadcast(K);
-                    }
-                }
-            }
-        }
+        UpdateMouseButtonState (CurrentFocusedWindow);
+        UpdateKeyboardState    (CurrentFocusedWindow);
     }
 }

@@ -14,7 +14,8 @@ export namespace Visera
     public:
         using EButton = EPlatformMouseButton;
 
-        static constexpr Int32 LastButton = static_cast<Int32>(EPlatformMouseButton::Button8);
+        static constexpr Int32 FirstButton = static_cast<Int32>(EPlatformMouseButton::Left);
+        static constexpr Int32 LastButton  = static_cast<Int32>(EPlatformMouseButton::Button8);
 
         enum class EAction : Int32
         {
@@ -64,13 +65,13 @@ export namespace Visera
         [[nodiscard]] FButton& GetButton(EButton I_Button)
         {
             const auto Button = static_cast<Int32>(I_Button);
-            VISERA_ASSERT(Button >= 0 && Button < LastButton);
+            VISERA_ASSERT(Button >= FirstButton && Button <= LastButton);
             return Buttons[Button];
         }
         [[nodiscard]] const FButton& GetButton(EButton I_Button) const
         {
             const auto Button = static_cast<Int32>(I_Button);
-            VISERA_ASSERT(Button >= 0 && Button < LastButton);
+            VISERA_ASSERT(Button >= FirstButton && Button <= LastButton);
             return Buttons[Button];
         }
 

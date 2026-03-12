@@ -1,7 +1,8 @@
 module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform.Interface.Window;
-#define VISERA_MODULE_NAME "Platform.Window"
+#define VISERA_MODULE_NAME "Platform.Interface"
+export import Visera.Platform.Interface.Device;
 export import Visera.Core.Types.String;
 export import Visera.Core.Types.Pointer.Unique;
        import Visera.Core.Delegate.Unicast;
@@ -9,6 +10,8 @@ export import Visera.Core.Types.Pointer.Unique;
 
 export namespace Visera
 {
+    /** Platform window abstraction. Input query and callbacks use Interface.Device enums so
+        Runtime.Input stays platform-agnostic; Platform layer performs any cast at the boundary. */
     class VISERA_PLATFORM_API IPlatformWindow
     {
     public:
@@ -23,9 +26,11 @@ export namespace Visera
         };
         /* void(Float I_ScaleX, Float I_ScaleY) */ TUnicastDelegate<void(Float, Float)>
         WindowContentScaleCallback;
-        /* void(Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) */ TUnicastDelegate<void(Int32, Int32, Int32, Int32)>
+        /** Key, platform scancode, action (Press/Release), modifier flags. Types from Interface.Device. */
+        TUnicastDelegate<void(EPlatformKeyboardKey I_Key, Int32 I_ScanCode, EPlatformKeyboardKeyState I_Action, EPlatformKeyboardModifier I_Mods)>
         KeyboardCallback;
-        /* void(Int32 I_Button, Int32 I_Action, Int32 I_Mods) */ TUnicastDelegate<void(Int32, Int32, Int32)>
+        /** Button, action (Press/Release), modifier flags. Types from Interface.Device. */
+        TUnicastDelegate<void(EPlatformMouseButton I_Button, EPlatformMouseButtonState I_Action, EPlatformKeyboardModifier I_Mods)>
         MouseButtonCallback;
         /* void(Double I_PosX, Double I_PosY) */ TUnicastDelegate<void(Double, Double)>
         CursorMoveCallback;
@@ -47,10 +52,21 @@ export namespace Visera
         SetTitle(const FText& I_Title) = 0;
         virtual void
         SetIcon(const FIconSet& I_IconSet) = 0;
-        [[nodiscard]] virtual Int32
-        GetKeyboardKey(Int32 I_Key) const = 0;
-        [[nodiscard]] virtual Int32
-        GetMouseButton(Int32 I_Button) const = 0;
+        /** Current key state for this window. Platform-agnostic enum; cast to platform int only in Platform layer. */
+        [[nodiscard]] virtual EPlatformKeyboardKeyState
+        QueryKeyboardKeyState(EPlatformKeyboardKey I_Key) const = 0;
+        /** Current mouse button state for this window. */
+        [[nodiscard]] virtual EPlatformMouseButtonState
+        QueryMouseButtonState(EPlatformMouseButton I_Button) const = 0;
+        /** Fill caller-owned keyboard state table. Index = EPlatformKeyboardKey value; table length kKeyboardStateTableSize. */
+        virtual void
+        QueryKeyboardState(TSpan<EPlatformKeyboardKeyState, kKeyboardStateTableSize> O_Out) const = 0;
+        /** Fill caller-owned mouse button state table. Index = button 0..7; table length kMouseButtonStateTableSize. */
+        virtual void
+        QueryMouseButtonState(TSpan<EPlatformMouseButtonState, kMouseButtonStateTableSize> O_Out) const = 0;
+        /** Native window handle (e.g. HWND on Windows, NSWindow* on MacOS). nullptr if not available. */
+        [[nodiscard]] virtual void*
+        GetNativeHandle() const = 0;
         [[nodiscard]] virtual void*
         CreateVulkanSurface(void* I_Instance) const = 0;
         [[nodiscard]] inline const FText&

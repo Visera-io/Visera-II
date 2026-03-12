@@ -106,10 +106,11 @@ export namespace Visera
         return Out;
     }
 
+    /** Create window: FWindowsWindow (inherits FGLFWWindow) so Query*State use GetKeyboardState+VK mapping in this module. */
     TUniquePtr<IPlatformWindow> FWindowsPlatform::
     CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const
     {
-        return GLFW.CreateWindow(I_Title, I_Width, I_Height);
+        return MakeUnique<FWindowsWindow>(I_Title, I_Width, I_Height);
     }
 
     Bool FWindowsPlatform::

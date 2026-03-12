@@ -1,10 +1,11 @@
 module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform.Interface;
-#define VISERA_MODULE_NAME "Platform"
+#define VISERA_MODULE_NAME "Platform.Interface"
 export import Visera.Platform.Interface.Library;
 export import Visera.Platform.Interface.Path;
 export import Visera.Platform.Interface.Window;
+export import Visera.Platform.Interface.Device;
 export import Visera.Platform.Interface.EventLoop;
 export import Visera.Platform.Interface.FileSystem;
 export import Visera.Core.Types.Pointer.Unique;

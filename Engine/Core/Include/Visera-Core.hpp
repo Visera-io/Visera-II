@@ -224,8 +224,9 @@ namespace Visera
     using UInt64 	    = std::uint64_t;
 	using UInt128		= std::pair<UInt64, UInt64>;
 
-	template<typename T>
-	using TSpan = std::span<T>;
+	/** Span type; second parameter allows fixed extent (e.g. TSpan<T, N>) for compile-time table size. */
+	template<typename T, std::size_t Extent = std::dynamic_extent>
+	using TSpan = std::span<T, Extent>;
 
     constexpr Bool True  = true;
     constexpr Bool False = false;

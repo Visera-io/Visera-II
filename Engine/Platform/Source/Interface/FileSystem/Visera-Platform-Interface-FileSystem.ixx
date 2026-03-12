@@ -1,7 +1,7 @@
 module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform.Interface.FileSystem;
-#define VISERA_MODULE_NAME "Platform.FileSystem"
+#define VISERA_MODULE_NAME "Platform.Interface"
 export import Visera.Platform.Interface.Path;
        import Visera.Core.OS.FileSystem;
        import Visera.Core.Containers.Array;

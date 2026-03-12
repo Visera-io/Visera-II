@@ -2,6 +2,9 @@ module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform;
 #define VISERA_MODULE_NAME "Platform"
+// Device enums (key, key state, mouse button, etc.) come from Interface.Device so Runtime.Input
+// stays platform-agnostic; platform-specific code and casts stay in Platform layer.
+export import Visera.Platform.Interface.Device;
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 import Visera.Platform.Windows;
 export import Visera.Platform.Windows.Device;
@@ -28,22 +31,13 @@ export namespace Visera
     using FPlatformLibrary        = FWindowsLibrary;
     using FPlatformPath           = FWindowsPath;
     using FPlatformFileSystem     = FWindowsPlatformFileSystem;
-    using EPlatformMouseButton    = EWindowsMouseButton;
-    using EPlatformKeyboardKey    = EWindowsKeyboardKey;
-    using EPlatformKeyboardAction = EWindowsKeyboardAction;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
     using EPlatformIOStatus       = EMacOSIOStatus;
     using FPlatformWindow         = FMacOSWindow;
     using FPlatformLibrary        = FMacOSLibrary;
     using FPlatformPath           = FMacOSPath;
     using FPlatformFileSystem     = FMacOSPlatformFileSystem;
-    using EPlatformMouseButton    = EMacOSMouseButton;
-    using EPlatformKeyboardKey    = EMacOSKeyboardKey;
-    using EPlatformKeyboardAction = EMacOSKeyboardAction;
 #else
-    using EPlatformMouseButton    = EGLFWMouseButton;
-    using EPlatformKeyboardKey    = EGLFWKeyboardKey;
-    using EPlatformKeyboardAction = EGLFWKeyboardAction;
 #endif
 
     enum class EPlatform
