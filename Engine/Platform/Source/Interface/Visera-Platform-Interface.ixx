@@ -9,21 +9,16 @@ export import Visera.Platform.Interface.EventLoop;
 export import Visera.Platform.Interface.FileSystem;
 export import Visera.Core.Types.Pointer.Unique;
 export import Visera.Core.Types.Text;
+export import Visera.Core.Types.String;
        import Visera.Core.Types.Optional;
 
 export namespace Visera
 {
-    enum class EPlatform
-    {
-        Unknown,
-
-        Windows,
-        MacOS,
-    };
-
     class VISERA_PLATFORM_API IPlatform
     {
     public:
+        /** Platform identifier for branching (e.g. FPlatform::IsPlatform). */
+        [[nodiscard]] virtual FStringView GetPlatformName() const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformWindow>
         CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const = 0;
         [[nodiscard]] virtual TSharedPtr<IPlatformLibrary>
@@ -43,7 +38,8 @@ export namespace Visera
         GenerateUUID() const = 0;
         virtual void
         SetCurrentThreadName(const FText& I_Name) const = 0;
-        [[nodiscard]] virtual IPlatformFileSystem&
+        /** May be nullptr if platform has no file system (e.g. Null). */
+        [[nodiscard]] virtual IPlatformFileSystem*
         GetFileSystem() const = 0;
         virtual void
         PollEvents() const = 0;
@@ -52,15 +48,9 @@ export namespace Visera
         /** Currently focused platform window (e.g. for input). May be nullptr. */
         [[nodiscard]] virtual IPlatformWindow*
         GetFocusedWindow() const = 0;
-        [[nodiscard]] inline EPlatform
-        GetType() const { return Type; }
 
     public:
-        explicit IPlatform() = delete;
-        explicit IPlatform(EPlatform I_Type) : Type(I_Type) {};
+        explicit IPlatform() = default;
         virtual ~IPlatform() {}
-
-    private:
-        const EPlatform Type;
     };   
 }

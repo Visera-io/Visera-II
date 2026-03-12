@@ -11,15 +11,20 @@ export namespace Visera
 {
     class VISERA_CORE_API FThread
     {
+        static inline auto MainThreadID = std::this_thread::get_id();
     public:
-        using FFn = TFunction<void()>;
+        using FFunction = TFunction<void()>;
+
+        [[nodiscard]] static Bool
+        IsMainThread()
+        { return std::this_thread::get_id() == MainThreadID; }
 
         static void
         Sleep(UInt32 I_MilliSeconds)
         { std::this_thread::sleep_for(std::chrono::milliseconds(I_MilliSeconds)); }
 
         void
-        Start(FFn I_Fn)
+        Start(FFunction I_Fn)
         {
             VISERA_ASSERT(!Worker.joinable());
             bStopRequested.Store(False, EMemoryOrder::Release);

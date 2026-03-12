@@ -926,12 +926,12 @@ export namespace Visera
             else
             {
                 auto Interval = Ctx.FrameTimer.Elapsed();
-                Float Seconds = static_cast<Float>(Interval.Microseconds()) / 1e6f;
-                Float InstantFPS = (Seconds > 1e-7f) ? (1.f / Seconds) : 0.f;
-                constexpr Float kSmoothing = 0.05f;
-                Float Smoothed = Ctx.FrameRate.Load(EMemoryOrder::Relaxed);
-                Smoothed = (Smoothed == 0.f) ? InstantFPS : Smoothed + kSmoothing * (InstantFPS - Smoothed);
-                Ctx.FrameRate.Store(Smoothed, EMemoryOrder::Relaxed);
+                Double Seconds = Interval.Seconds();
+                Double InstantFPS = (Seconds > 1e-7) ? (1.0 / Seconds) : 0.0;
+                constexpr Double kSmoothing = 0.05;
+                Double Smoothed = static_cast<Double>(Ctx.FrameRate.Load(EMemoryOrder::Relaxed));
+                Smoothed = (Smoothed == 0.0) ? InstantFPS : Smoothed + kSmoothing * (InstantFPS - Smoothed);
+                Ctx.FrameRate.Store(static_cast<Float>(Smoothed), EMemoryOrder::Relaxed);
                 Ctx.FrameTimer.Reset();
             }
         }

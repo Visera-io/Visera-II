@@ -2,10 +2,10 @@ module;
 #include <Visera-Platform.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-export module Visera.Platform.Cross.GLFW.Window;
-#define VISERA_MODULE_NAME "Platform.Cross"
+export module Visera.Platform.GLFW.Window;
+#define VISERA_MODULE_NAME "Platform.GLFW"
 import Visera.Platform.Interface.Window;
-import Visera.Core.OS.Thread.Sync.Atomic;
+import Visera.Core.OS.Thread;
 import Visera.Core.Log;
 import Visera.Core.Containers.Array;
 import Visera.Core.Types.Text;
@@ -22,13 +22,13 @@ export namespace Visera
         [[nodiscard]] void*
         GetHandle() const override { return Handle; }
         [[nodiscard]] Bool
-        ShouldClose() const override { return glfwWindowShouldClose(Handle); }
+        ShouldClose() const override { VISERA_ASSERT(FThread::IsMainThread()); return glfwWindowShouldClose(Handle); }
         void
-        SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
+        SetSize(Int32 I_NewWidth, Int32 I_NewHeight) override { VISERA_ASSERT(FThread::IsMainThread()); glfwSetWindowSize(Handle, I_NewWidth, I_NewHeight); Width = I_NewWidth; Height = I_NewHeight; }
         void
-        SetPosition(Int32 I_X, Int32 I_Y) const override { glfwSetWindowPos(Handle, I_X, I_Y); }
+        SetPosition(Int32 I_X, Int32 I_Y) const override { VISERA_ASSERT(FThread::IsMainThread()); glfwSetWindowPos(Handle, I_X, I_Y); }
         void
-        SetTitle(const FText& I_Title) override { Title = I_Title; glfwSetWindowTitle(Handle, I_Title.GetData()); }
+        SetTitle(const FText& I_Title) override { VISERA_ASSERT(FThread::IsMainThread()); Title = I_Title; glfwSetWindowTitle(Handle, I_Title.GetData()); }
         void
         SetIcon(const FIconSet& I_IconSet) override;
 
@@ -54,18 +54,9 @@ export namespace Visera
     FGLFWWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height)
     : IPlatformWindow(I_Title, I_Width, I_Height)
     {
-        if (ContextCount.FetchAdd(1, EMemoryOrder::AcqRel) == 0)
-        {
-            glfwSetErrorCallback([](Int32 I_Error, const char* I_Message)
-            { LOG_ERROR("{} (error:{})", I_Message, I_Error); });
-
-            if (!glfwInit())
-            {
-                LOG_ERROR("Failed to initialize GLFW!");
-                ContextCount.FetchSub(1, EMemoryOrder::AcqRel);
-                return;
-            }
-        }
+        (void)ContextCount.FetchAdd(1, EMemoryOrder::AcqRel);
+        if (!glfwInit())
+        { LOG_ERROR("Failed to initialize GLFW!"); return; }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE,	GLFW_TRUE);
@@ -120,12 +111,14 @@ export namespace Visera
     IPlatformWindow*
     FGLFWWindow::GetFocusedPlatformWindow()
     {
+        VISERA_ASSERT(FThread::IsMainThread());
         return FocusedWindow;
     }
 
     FGLFWWindow::
     ~FGLFWWindow()
     {
+        VISERA_ASSERT(FThread::IsMainThread());
         if (Handle)
         {
             if (FocusedWindow == this) { FocusedWindow = nullptr; }
@@ -150,18 +143,21 @@ export namespace Visera
     Int32 FGLFWWindow::
     GetKeyboardKey(Int32 I_Key) const
     {
+        VISERA_ASSERT(FThread::IsMainThread());
         return Handle ? glfwGetKey(Handle, I_Key) : GLFW_RELEASE;
     }
 
     Int32 FGLFWWindow::
     GetMouseButton(Int32 I_Button) const
     {
+        VISERA_ASSERT(FThread::IsMainThread());
         return Handle ? glfwGetMouseButton(Handle, I_Button) : GLFW_RELEASE;
     }
 
     void FGLFWWindow::
     SetIcon(const FIconSet& I_IconSet)
     {
+        VISERA_ASSERT(FThread::IsMainThread());
         GLFWimage Icons[6]
         {
             { .width = 16, .height = 16,   .pixels = const_cast<unsigned char*>(I_IconSet.Icon16x16) },
@@ -177,7 +173,9 @@ export namespace Visera
     TArray<const char*> FGLFWWindow::
     GetVulkanRequiredInstanceExtensions()
     {
-        if (!glfwInit()) { LOG_FATAL("Failed to initialize GLFW!"); }
+        VISERA_ASSERT(FThread::IsMainThread());
+        if (!glfwInit())
+        { LOG_FATAL("Failed to GetVulkanRequiredInstanceExtensions -- failed to initialize GLFW!"); }
 
         TArray<const char*> Out;
         UInt32 Count = 0;
@@ -192,6 +190,7 @@ export namespace Visera
     void* FGLFWWindow::
     CreateVulkanSurface(void* I_Instance) const
     {
+        VISERA_ASSERT(FThread::IsMainThread());
         if (!Handle || !I_Instance) { return nullptr; }
         VkSurfaceKHR Surface = VK_NULL_HANDLE;
         VkResult Result = glfwCreateWindowSurface(

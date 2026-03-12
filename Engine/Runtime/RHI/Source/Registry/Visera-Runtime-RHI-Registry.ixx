@@ -703,7 +703,7 @@ export namespace Visera
         { VISERA_ASSERT(!SetIndices.IsFull()); SetIndices.PushBack(SetIdx); }
         Algorithm::Sort(SetIndices);
 
-        TInlineArray<vk::DescriptorSetLayout, 8>    DSLHandles;
+        TInlineArray<vk::DescriptorSetLayout,    8> DSLHandles;
         TInlineArray<FVulkanDescriptorSetLayout, 8> DSLStorage;
         for (UInt32 SetIdx : SetIndices)
         {

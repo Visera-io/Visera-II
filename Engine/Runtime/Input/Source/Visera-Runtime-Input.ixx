@@ -16,7 +16,7 @@ export import Visera.Runtime.Input.Mapping;
        import Visera.Core.Containers.Map;
        import Visera.Core.Algorithm.Ranges;
        import Visera.Core.Types.Tuple;
-
+       import Visera.Core.OS.Time;
 export namespace Visera
 {
     /**
@@ -34,8 +34,8 @@ export namespace Visera
         [[nodiscard]] inline FKeyboard*
         GetKeyboard() { return Keyboard.Get(); }
         /** Mouse for the current focused window, or Mice[DummyWindow] if no focus or window not in Mice. Never returns nullptr. */
-        [[nodiscard]] FMouse*
-        GetMouse();
+        [[nodiscard]] inline FMouse*
+        GetMouse() { return Mice[CurrentFocusedWindow].Get(); }
 
         /** Get or create an input action by name (UE5: UInputAction). */
         [[nodiscard]] FInputAction*
@@ -113,6 +113,7 @@ export namespace Visera
         TArray<TPair<FInputMappingReverseKey, UInt64>> ReverseIndex;
         /** True when Mappings changed and ReverseIndex must be rebuilt before next lookup. */
         Bool                                           bReverseIndexDirty {True};
+        FHiResClock                                    InputClock;
 
     public:
         FInput(FString I_Name, FServiceRegistry* I_Registry, FJSONView I_ConfigView,
@@ -121,7 +122,9 @@ export namespace Visera
         {
             Dependencies = {};
             Keyboard = MakeUnique<FKeyboard>();
-            Mice.InsertOrAssign(DummyWindow, MakeUnique<FMouse>());
+            auto& DummyMouse = Mice[DummyWindow];
+            DummyMouse = MakeUnique<FMouse>();
+            DummyMouse->GetCursor().Position = FVector2F(-1000.f, -1000.f);
 
             if (!OnBootstrap.TryBind([] { return True; }))
             { LOG_FATAL("Failed to bind FInput OnBootstrap!"); }
@@ -129,13 +132,6 @@ export namespace Visera
             { LOG_FATAL("Failed to bind FInput OnTerminate!"); }
         }
     };
-
-    inline FMouse*
-    FInput::GetMouse()
-    {
-        FMouse* Mouse = Mice[CurrentFocusedWindow].Get();
-        return Mouse ? Mouse : Mice[DummyWindow].Get();
-    }
 
     Bool
     FInput::RegisterWindow(IPlatformWindow* I_PlatformWindow)
@@ -176,41 +172,81 @@ export namespace Visera
         FMouse* TargetMouse = Mice[I_SourceWindow].Get();
         if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
         TriggerMatchingActions(EInputSource::MouseButton, static_cast<Int32>(I_Button), static_cast<UInt8>(I_Action), I_Mods);
-        switch (I_Action)
+
+        const auto ButtonIndex = static_cast<Int32>(I_Button);
+        if (ButtonIndex < 0 || ButtonIndex >= FMouse::LastButton) { return; }
+
+        FMouse::FButton& Button = TargetMouse->GetButton(I_Button);
+        Button.Action = I_Action;
+
+        const FHighResTimePoint Now = FHiResClock::Now();
+        if (I_Action == FMouse::EAction::Press)
         {
-        case FMouse::EAction::Release : TargetMouse->OnReleased.Broadcast(I_Button); break;
-        case FMouse::EAction::Press   : TargetMouse->OnPressed.Broadcast(I_Button); break;
-        case FMouse::EAction::Hold    : TargetMouse->OnHeld.Broadcast(I_Button); break;
-        default: LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), static_cast<Int32>(I_Action));
+            Button.PressedAt = Now;
+            Button.HoldDuration = 0.f;
+            Button.OnPressed.Broadcast(Button);
         }
+        else if (I_Action == FMouse::EAction::Release || I_Action == FMouse::EAction::Detach)
+        {
+            Button.HoldDuration = static_cast<Float>((Now - Button.PressedAt).Seconds());
+            Button.OnReleased.Broadcast(Button);
+        }
+        else if (I_Action == FMouse::EAction::Hold)
+        {
+            Button.HoldDuration = static_cast<Float>((Now - Button.PressedAt).Seconds());
+            Button.OnHeld.Broadcast(Button);
+        }
+        else
+        { LOG_ERROR("({}) Unhandled button action ({})!", GetRuntimeName(), static_cast<Int32>(I_Action)); }
     }
 
     void FInput::NotifyKeyboardKey(IPlatformWindow* I_SourceWindow, FKeyboard::EKey I_Key, Int32 I_ScanCode, FKeyboard::EAction I_Action, UInt8 I_Mods)
     {
-        (void)I_SourceWindow;  // keyboard is global; param for API consistency
         if (!Keyboard) { return; }
+        const UInt32 Idx = static_cast<UInt32>(I_Key);
+        if (Idx > static_cast<UInt32>(FKeyboard::LastKey)) { return; }
         TriggerMatchingActions(EInputSource::KeyboardKey, static_cast<Int32>(I_Key), static_cast<UInt8>(I_Action), I_Mods);
-        switch (I_Action)
+
+        FKeyboard::FKey& K = Keyboard->GetKey(I_Key);
+        K.Action = I_Action;
+        const FHighResTimePoint Now = FHiResClock::Now();
+
+        if (I_Action == FKeyboard::EAction::Press)
         {
-        case FKeyboard::EAction::Release : Keyboard->OnReleased.Broadcast(I_Key); break;
-        case FKeyboard::EAction::Press   : Keyboard->OnPressed.Broadcast(I_Key); break;
-        case FKeyboard::EAction::Hold    : Keyboard->OnHeld.Broadcast(I_Key); break;
-        default: LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), static_cast<UInt8>(I_Action));
+            K.PressedAt = Now;
+            K.HoldDuration = 0.f;
+            K.OnPressed.Broadcast(K);
         }
+        else if (I_Action == FKeyboard::EAction::Release)
+        {
+            K.HoldDuration = static_cast<Float>((Now - K.PressedAt).Seconds());
+            K.OnReleased.Broadcast(K);
+        }
+        else if (I_Action == FKeyboard::EAction::Hold)
+        {
+            K.HoldDuration = static_cast<Float>((Now - K.PressedAt).Seconds());
+            K.OnHeld.Broadcast(K);
+        }
+        else
+        { LOG_ERROR("({}) Unhandled key action ({})!", GetRuntimeName(), static_cast<UInt8>(I_Action)); }
     }
 
     void FInput::NotifyCursorMove(IPlatformWindow* I_SourceWindow, Float I_PosX, Float I_PosY)
     {
         FMouse* TargetMouse = Mice[I_SourceWindow].Get();
         if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
-        TargetMouse->OnCursorMoved.Broadcast(I_PosX, I_PosY);
+        FMouse::FCursor& C = TargetMouse->GetCursor();
+        C.Position = FVector2F(I_PosX, I_PosY);
+        C.OnMoved.Broadcast(C);
     }
 
     void FInput::NotifyScroll(IPlatformWindow* I_SourceWindow, Float I_OffsetX, Float I_OffsetY)
     {
         FMouse* TargetMouse = Mice[I_SourceWindow].Get();
         if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
-        TargetMouse->OnScrolled.Broadcast(I_OffsetX, I_OffsetY);
+        FMouse::FScroll& S = TargetMouse->GetScroll();
+        S.Offset = FVector2F(I_OffsetX, I_OffsetY);
+        S.OnScrolled.Broadcast(S);
     }
 
     FInputAction*
@@ -296,7 +332,7 @@ export namespace Visera
             if (Mapping.ActionName != I_ActionName) { continue; }
             if (Mapping.SourceType != EInputSource::KeyboardKey) { continue; }
             const auto Key = static_cast<FKeyboard::EKey>(Mapping.SourceValue);
-            const auto KeyAction = Keyboard ? Keyboard->GetKeyAction(Key) : static_cast<FKeyboard::EAction>(0);
+            const auto KeyAction = Keyboard ? Keyboard->GetKey(Key).Action : static_cast<FKeyboard::EAction>(0);
             const auto Trigger = static_cast<UInt8>(Mapping.Trigger);
             Bool IsActive = False;
             if (Trigger == static_cast<UInt8>(EInputTrigger::Press))
@@ -345,11 +381,60 @@ export namespace Visera
     void FInput::PollAndSync()
     {
         FPlatform::PollEvents();
-        if (CurrentFocusedWindow = FPlatform::GetFocusedWindow(); CurrentFocusedWindow)
+        CurrentFocusedWindow = FPlatform::GetFocusedWindow();
+
+        const FHighResTimePoint Now = FHiResClock::Now();
+
+        for (auto It = Mice.begin(); It != Mice.end(); ++It)
         {
-            // Sync global keyboard state from focused window's physical key state
-            Keyboard->Sync([this](FKeyboard::EKey I_Key)->FKeyboard::EAction
-            { return static_cast<FKeyboard::EAction>(CurrentFocusedWindow->GetKeyboardKey(static_cast<Int32>(I_Key))); });
+            FMouse* Mouse = It->second.Get();
+            if (!Mouse) { continue; }
+            for (Int32 i = 0; i < FMouse::LastButton; ++i)
+            {
+                FMouse::FButton& Button = Mouse->GetButton(static_cast<FMouse::EButton>(i));
+                if (Button.Action != FMouse::EAction::Press && Button.Action != FMouse::EAction::Hold) { continue; }
+                Button.HoldDuration = static_cast<Float>((Now - Button.PressedAt).Seconds());
+                if (Button.Action == FMouse::EAction::Press)
+                { Button.Action = FMouse::EAction::Hold; }
+            }
+        }
+
+        if (Keyboard && CurrentFocusedWindow)
+        {
+            for (Int32 i = FKeyboard::FirstKey; i <= FKeyboard::LastKey; ++i)
+            {
+                const auto Key = static_cast<FKeyboard::EKey>(i);
+                const UInt32 Idx = static_cast<UInt32>(Key);
+                if (Idx > static_cast<UInt32>(FKeyboard::LastKey)) { continue; }
+                const Int32 Phys = CurrentFocusedWindow->GetKeyboardKey(static_cast<Int32>(Key));
+                const Bool PhysDown = (Phys != 0);
+                FKeyboard::FKey& K = Keyboard->GetKey(Key);
+                if (PhysDown)
+                {
+                    if (K.Action == FKeyboard::EAction::Release)
+                    {
+                        K.Action       = FKeyboard::EAction::Press;
+                        K.HoldDuration = 0.f;
+                        K.PressedAt    = Now;
+                        K.OnPressed.Broadcast(K);
+                    }
+                    else
+                    {
+                        K.Action = FKeyboard::EAction::Hold;
+                        K.HoldDuration = (Now - K.PressedAt).Seconds();
+                        K.OnHeld.Broadcast(K);
+                    }
+                }
+                else
+                {
+                    if (K.Action != FKeyboard::EAction::Release)
+                    {
+                        K.Action = FKeyboard::EAction::Release;
+                        K.HoldDuration = (Now - K.PressedAt).Seconds();
+                        K.OnReleased.Broadcast(K);
+                    }
+                }
+            }
         }
     }
 }

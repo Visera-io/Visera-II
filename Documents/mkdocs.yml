@@ -191,16 +191,14 @@ nav:
               - Path: Engine/Platform/Interface/Path.md
               - FileSystem: Engine/Platform/Interface/FileSystem.md
               - Library: Engine/Platform/Interface/Library.md
-          - Cross:
-              - Overview: Engine/Platform/Cross/index.md
-              - GLFW:
-                  - Overview: Engine/Platform/Cross/GLFW/index.md
-                  - Window: Engine/Platform/Cross/GLFW/Window.md
-                  - Keyboard: Engine/Platform/Cross/GLFW/Keyboard.md
-                  - Mouse: Engine/Platform/Cross/GLFW/Mouse.md
-              - Null:
-                  - Overview: Engine/Platform/Cross/Null/index.md
-                  - Window: Engine/Platform/Cross/Null/Window.md
+          - GLFW:
+              - Overview: Engine/Platform/GLFW/index.md
+              - Device:
+                  - Keyboard: Engine/Platform/GLFW/Device/Keyboard.md
+                  - Mouse: Engine/Platform/GLFW/Device/Mouse.md
+              - Window: Engine/Platform/GLFW/Window.md
+          - Null:
+              - Overview: Engine/Platform/Null/index.md
           - Windows:
               - Overview: Engine/Platform/Windows/index.md
               - Window: Engine/Platform/Windows/Window.md

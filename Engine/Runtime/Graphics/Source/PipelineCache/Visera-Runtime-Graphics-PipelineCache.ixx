@@ -69,9 +69,13 @@ export namespace Visera
 		{
 			FRHIShaderHandle    VertexShader;
 			FRHIShaderHandle    FragmentShader;
-			TInlineArray<ERHIFormat, kMaxColorAttachments> ColorFormats;
-			ERHIFormat          DepthFormat {ERHIFormat::Undefined};
-			FRHIRenderPassID    Pipeline;
+			
+			TInlineArray<ERHIFormat, kMaxColorAttachments>
+			ColorFormats;
+			ERHIFormat
+			DepthFormat {ERHIFormat::Undefined};
+			FRHIRenderPassID
+			Pipeline;
 		};
 		TArray<FCacheEntry> Entries;
 	};

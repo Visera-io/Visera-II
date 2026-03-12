@@ -105,7 +105,7 @@ export namespace Visera
         /** Color attachment formats; length must match render pass ColorAttachments. For MRT (e.g. color RGBA8 + normal R16F). */
         TInlineArray<ERHIFormat, kMaxColorAttachments> ColorFormats;
         /** Depth/stencil format when using a depth attachment; Undefined if no depth. */
-        ERHIFormat          DepthStencilFormat { ERHIFormat::Undefined };
+        ERHIFormat DepthStencilFormat { ERHIFormat::Undefined };
 
         Bool operator==(const FRHIRenderPassState& I_Other) const
         {

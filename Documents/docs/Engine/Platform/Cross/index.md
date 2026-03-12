@@ -1,14 +1,11 @@
-# Platform.Cross (Visera.Platform.Cross)
+# Platform Cross (moved)
 
-**Platform.Cross** provides cross-platform or platform-agnostic implementation: **GLFW** and **Null**. GLFW provides window and input (keyboard, mouse) via GLFW on Windows, macOS, Linux; Null provides no-window, no-input placeholder for headless, unit test or server builds. Aligned with [Interface](../Interface/index.md) so switching between windowed and headless builds is easy.
+The cross-platform implementations are now under Platform at the same level as Windows and MacOS:
 
-## Submodules
-| Module | Description |
-|------|------|
-| [GLFW](GLFW/index.md) | GLFW window, [Keyboard](GLFW/Keyboard.md), [Mouse](GLFW/Mouse.md). |
-| [Null](Null/index.md) | Placeholder [Window](Null/Window.md). |
+- **[GLFW](../GLFW/index.md)** — window, Device (keyboard, mouse), event loop, file system.
+- **[Null](../Null/index.md)** — headless stub (no window, no file system; `GetFileSystem()` returns `nullptr`).
 
 ## See also
-- [Platform](../index.md) — Parent module
-- [Interface](../Interface/index.md) — Abstract API
-- [Runtime.Input](../../Runtime/Input/index.md) — Runtime input consumes GLFW events
+
+- [Platform](../index.md) — parent module
+- [Interface](../Interface/index.md) — abstract API

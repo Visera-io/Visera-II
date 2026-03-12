@@ -1,8 +1,8 @@
 module;
 #include <Visera-Platform.hpp>
 #include <GLFW/glfw3.h>
-export module Visera.Platform.Cross.GLFW.Mouse;
-#define VISERA_MODULE_NAME "Platform.Cross"
+export module Visera.Platform.GLFW.Device.Mouse;
+#define VISERA_MODULE_NAME "Platform.GLFW"
 
 export namespace Visera
 {

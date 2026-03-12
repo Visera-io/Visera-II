@@ -50,19 +50,20 @@ namespace Visera
         [[nodiscard]] FJSON&       GetConfig()       { return Config.GetRoot(); }
         [[nodiscard]] const FJSON& GetConfig() const { return Config.GetRoot(); }
 
-        /** Create application from JSON config. Bootstrap() is called automatically. */
-        [[nodiscard]] FViseraApp*
+        /** Create application from JSON config. Bootstrap() is called automatically. Returns a shared ptr; engine keeps only a weak ptr so the caller controls lifetime. */
+        [[nodiscard]] TSharedPtr<FViseraApp>
         CreateApplication(FString I_Name, const FJSON& I_AppConfig);
 
-        /** Number of applications created and still alive. */
+        /** Number of application slots (may include expired weak ptrs). */
         [[nodiscard]] size_t
         GetApplicationCount() const { return CreatedApps.GetSize(); }
-        /** Application at index; returns nullptr if index >= GetApplicationCount(). */
+        /** Application at index; returns nullptr if index >= GetApplicationCount() or the weak ptr has expired. */
         [[nodiscard]] FViseraApp*
         GetApplication(size_t I_Index) const
         {
             if (I_Index >= CreatedApps.GetSize()) { return nullptr; }
-            return CreatedApps[I_Index].Get();
+            if (TSharedPtr<FViseraApp> P = CreatedApps[I_Index].Lock()) { return P.Get(); }
+            return nullptr;
         }
 
         explicit FViseraEngine(const FJSON& I_EngineConfig);
@@ -101,11 +102,11 @@ namespace Visera
         void Bootstrap();
         void DestroyApplication(FViseraApp* I_App);
 
-        FString                            EngineName;
-        FEngineConfig                      Config;
-        FServiceRegistry                   GlobalRegistry;
+        FString                             EngineName;
+        FEngineConfig                       Config;
+        FServiceRegistry                    GlobalRegistry;
         TArray<TSharedPtr<IRuntimeService>> GlobalServices;
-        TArray<TUniquePtr<FViseraApp>>       CreatedApps;
+        TArray<TWeakPtr<FViseraApp>>        CreatedApps;
 
         FViseraEngine(const FViseraEngine&)            = delete;
         FViseraEngine& operator=(const FViseraEngine&) = delete;
@@ -319,14 +320,14 @@ namespace Visera
 
     void FViseraEngine::Terminate()
     {
-        if (!CreatedApps.IsEmpty())
-        { LOG_WARN("({}) Engine terminating with app(s) still registered; terminating them now.", EngineName); }
-        while (!CreatedApps.IsEmpty())
+                for (auto& CreatedApp : CreatedApps)
         {
-            auto* App = CreatedApps[0].Get();
-            if (!App) { CreatedApps.Erase(CreatedApps.begin()); continue; }
-            LOG_DEBUG("({}) Terminating app {}.", EngineName, App->AppName);
-            App->Terminate();
+            if (!CreatedApp.IsExpired())
+            {
+                auto App = CreatedApp.Lock();
+                LOG_WARN("Engine terminating app {}.", App->AppName);
+                App->Terminate();
+            }
         }
         // Always terminate global services so ~IRuntimeService does not see Bootstrapped (avoids "was NOT terminated!").
         for (auto idx = GlobalServices.GetSize(); idx != 0; )
@@ -343,7 +344,7 @@ namespace Visera
         GlobalServices.Clear();
     }
 
-    FViseraApp* FViseraEngine::CreateApplication(FString I_Name, const FJSON& I_AppConfig)
+    TSharedPtr<FViseraApp> FViseraEngine::CreateApplication(FString I_Name, const FJSON& I_AppConfig)
     {
         auto AppPath = FString::Format("{}.{}", kConfigKeyApps, I_Name);
         if (!I_AppConfig.IsNull())
@@ -357,26 +358,24 @@ namespace Visera
             Config.GetRoot().Set(FJSONRoute(AppPath.GetNative()), FJSON{});
         }
 
-        auto App = TUniquePtr<FViseraApp>(new FViseraApp(this, std::move(I_Name)));
+        auto App = TSharedPtr<FViseraApp>(new FViseraApp(this, std::move(I_Name)));
         if (!App) return nullptr;
         App->InjectEngineServices();
         App->RegisterLocalServices();
-        FViseraApp* Ptr = App.Get();
-        CreatedApps.PushBack(std::move(App));
-        Ptr->Bootstrap();
-        return Ptr;
+        CreatedApps.PushBack(App);
+        App->Bootstrap();
+        return App;
     }
 
     void FViseraEngine::DestroyApplication(FViseraApp* I_App)
     {
-        if (!I_App) return;
+        if (!I_App) { return; }
+        
         for (auto It = CreatedApps.begin(); It != CreatedApps.end(); ++It)
         {
-            if (It->Get() == I_App)
+            if (TSharedPtr<FViseraApp> P = It->Lock(); P && P.Get() == I_App)
             {
-                TUniquePtr<FViseraApp> Released = std::move(*It);
-                CreatedApps.Erase(It);
-                return;
+                CreatedApps.Erase(It); break;
             }
         }
     }

@@ -9,11 +9,11 @@ export module Visera.Platform.MacOS;
 #define VISERA_MODULE_NAME "Platform.MacOS"
 export import Visera.Platform.Interface;
 export import Visera.Platform.MacOS.Path;
+export import Visera.Platform.MacOS.Device;
 export import Visera.Platform.MacOS.Window;
 export import Visera.Platform.MacOS.Library;
-export import Visera.Platform.MacOS.EventLoop;
 export import Visera.Platform.MacOS.FileSystem;
-       import Visera.Platform.Cross.GLFW.Window;
+       import Visera.Platform.GLFW;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
@@ -43,14 +43,16 @@ export namespace Visera
         GenerateUUID() const override;
         void
         SetCurrentThreadName(const FText& I_Name) const override;
-        [[nodiscard]] IPlatformFileSystem&
-        GetFileSystem() const override { return FileSystem; }
+        [[nodiscard]] IPlatformFileSystem*
+        GetFileSystem() const override { return &FileSystem; }
         void
-        PollEvents() const override { EventLoop.PollEvents(); }
+        PollEvents() const override { GLFW.PollEvents(); }
         void
-        WaitEvents() const override { EventLoop.WaitEvents(); }
+        WaitEvents() const override { GLFW.WaitEvents(); }
         [[nodiscard]] IPlatformWindow*
-        GetFocusedWindow() const override { return nullptr; }
+        GetFocusedWindow() const override { return GLFW.GetFocusedWindow(); }
+        [[nodiscard]] FStringView
+        GetPlatformName() const override { return "MacOS"; }
 
     public:
         FMacOSPlatform();
@@ -60,10 +62,10 @@ export namespace Visera
         static std::string MakePlatformString(const FText& I_Text);
 
         mutable FMacOSPlatformFileSystem FileSystem;
-        mutable FMacOSEventLoop EventLoop;
+        mutable FGLFWPlatform              GLFW;
     };
 
-    FMacOSPlatform::FMacOSPlatform() : IPlatform{EPlatform::MacOS} {}
+    FMacOSPlatform::FMacOSPlatform() {}
 
     TUniquePtr<IPlatformPath> FMacOSPlatform::GetExecutableDirectory() const
     {

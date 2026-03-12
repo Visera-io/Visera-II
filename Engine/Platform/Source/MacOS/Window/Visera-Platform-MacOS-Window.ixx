@@ -2,7 +2,7 @@ module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform.MacOS.Window;
 #define VISERA_MODULE_NAME "Platform.MacOS"
-import Visera.Platform.Cross.GLFW.Window;
+import Visera.Platform.GLFW.Window;
 import Visera.Core.Types.Text;
 
 export namespace Visera

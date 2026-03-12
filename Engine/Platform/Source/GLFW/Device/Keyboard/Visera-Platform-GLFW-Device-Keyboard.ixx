@@ -2,8 +2,8 @@ module;
 #include <Visera-Platform.hpp>
 #include <GLFW/glfw3.h>
 #include <array>
-export module Visera.Platform.Cross.GLFW.Keyboard;
-#define VISERA_MODULE_NAME "Platform.Cross"
+export module Visera.Platform.GLFW.Device.Keyboard;
+#define VISERA_MODULE_NAME "Platform.GLFW"
 
 export namespace Visera
 {
@@ -155,7 +155,8 @@ export namespace Visera
         Menu = GLFW_KEY_MENU,
     };
 
-    inline constexpr EGLFWKeyboardKey GLFWKeyboardKeys[]{
+    inline constexpr EGLFWKeyboardKey GLFWKeyboardKeys[]
+    {
         EGLFWKeyboardKey::Space, EGLFWKeyboardKey::Apostrophe, EGLFWKeyboardKey::Comma,
         EGLFWKeyboardKey::Minus, EGLFWKeyboardKey::Period, EGLFWKeyboardKey::Slash,
         EGLFWKeyboardKey::Num0, EGLFWKeyboardKey::Num1, EGLFWKeyboardKey::Num2,

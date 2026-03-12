@@ -158,15 +158,15 @@ export namespace Visera
             vk::raii::SwapchainKHR          Context     {nullptr};
             vk::raii::SwapchainKHR          OldContext  {nullptr};
             vk::Extent2D                    Extent      {0U, 0U};
-            TInlineArray<FVulkanSwapChainImage, 8> Images{};
-            TInlineArray<FVulkanImageView, 8>       ImageViews;
+            TInlineArray<FVulkanSwapChainImage, 8> Images;
+            TInlineArray<FVulkanImageView,      8> ImageViews;
             UInt32                          Cursor      {0};
             vk::ImageUsageFlags             ImageUsage  {vk::ImageUsageFlagBits::eColorAttachment |
                                                          vk::ImageUsageFlagBits::eTransferDst};
             vk::Format                      ImageFormat {vk::Format::eB8G8R8A8Srgb};
             vk::ColorSpaceKHR               ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                          MinimalImageCount{3};
-            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eFifo};
+            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eMailbox};
             vk::SharingMode                 SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR   CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                            bClipped       {True};

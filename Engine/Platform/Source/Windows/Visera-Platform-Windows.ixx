@@ -10,12 +10,13 @@ module;
 #include <Visera-Platform.hpp>
 export module Visera.Platform.Windows;
 #define VISERA_MODULE_NAME "Platform.Windows"
-export import Visera.Platform.Windows.Path;
 export import Visera.Platform.Interface;
-export import Visera.Platform.Windows.FileSystem;
-export import Visera.Platform.Windows.EventLoop;
+export import Visera.Platform.Windows.Path;
+export import Visera.Platform.Windows.Device;
 export import Visera.Platform.Windows.Window;
 export import Visera.Platform.Windows.Library;
+export import Visera.Platform.Windows.FileSystem;
+       import Visera.Platform.GLFW;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
@@ -31,8 +32,8 @@ export namespace Visera
         CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
-        [[nodiscard]] IPlatformFileSystem&
-        GetFileSystem() const override { return FileSystem; }
+        [[nodiscard]] IPlatformFileSystem*
+        GetFileSystem() const override { return &FileSystem; }
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetExecutableDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
@@ -48,11 +49,13 @@ export namespace Visera
         void
         SetCurrentThreadName(const FText& I_Name) const override;
         void
-        PollEvents() const override { EventLoop.PollEvents(); }
+        PollEvents() const override { GLFW.PollEvents(); }
         void
-        WaitEvents() const override { EventLoop.WaitEvents(); }
+        WaitEvents() const override { GLFW.WaitEvents(); }
         [[nodiscard]] IPlatformWindow*
-        GetFocusedWindow() const override { return FGLFWWindow::GetFocusedPlatformWindow(); }
+        GetFocusedWindow() const override { return GLFW.GetFocusedWindow(); }
+        [[nodiscard]] FStringView
+        GetPlatformName() const override { return "Windows"; }
 
     public:
         FWindowsPlatform();
@@ -62,11 +65,10 @@ export namespace Visera
         static std::wstring MakePlatformString(const FText& I_Text);
 
         mutable FWindowsPlatformFileSystem FileSystem;
-        mutable FWindowsEventLoop          EventLoop;
+        mutable FGLFWPlatform              GLFW;
     };
 
     FWindowsPlatform::FWindowsPlatform()
-    : IPlatform{EPlatform::Windows}
     {
         SetConsoleOutputCP(65001);
         SetConsoleCP(65001);
@@ -107,7 +109,7 @@ export namespace Visera
     TUniquePtr<IPlatformWindow> FWindowsPlatform::
     CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const
     {
-        return MakeUnique<FWindowsWindow>(I_Title, I_Width, I_Height);
+        return GLFW.CreateWindow(I_Title, I_Width, I_Height);
     }
 
     Bool FWindowsPlatform::

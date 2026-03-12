@@ -4,11 +4,18 @@ export module Visera.Platform;
 #define VISERA_MODULE_NAME "Platform"
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
 import Visera.Platform.Windows;
+export import Visera.Platform.Windows.Device;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
 import Visera.Platform.MacOS;
+export import Visera.Platform.MacOS.Device;
+#else
+import Visera.Platform.GLFW;
+import Visera.Platform.Null;
+export import Visera.Platform.GLFW.Device;
 #endif
 export import Visera.Core.Types.Path;
 export import Visera.Core.Types.Text;
+       import Visera.Core.Types.String;
        import Visera.Core.Types.Optional;
        import Visera.Core.Containers.Array;
        import Visera.Core.Meta.Cast;
@@ -16,18 +23,38 @@ export import Visera.Core.Types.Text;
 export namespace Visera
 {
 #if defined(VISERA_ON_WINDOWS_SYSTEM)
-    using EPlatformIOStatus   = EWindowsIOStatus;
-    using FPlatformWindow     = FWindowsWindow;
-    using FPlatformLibrary    = FWindowsLibrary;
-    using FPlatformPath       = FWindowsPath;
-    using FPlatformFileSystem = FWindowsPlatformFileSystem;
+    using EPlatformIOStatus       = EWindowsIOStatus;
+    using FPlatformWindow         = FWindowsWindow;
+    using FPlatformLibrary        = FWindowsLibrary;
+    using FPlatformPath           = FWindowsPath;
+    using FPlatformFileSystem     = FWindowsPlatformFileSystem;
+    using EPlatformMouseButton    = EWindowsMouseButton;
+    using EPlatformKeyboardKey    = EWindowsKeyboardKey;
+    using EPlatformKeyboardAction = EWindowsKeyboardAction;
 #elif defined(VISERA_ON_APPLE_SYSTEM)
-    using EPlatformIOStatus   = EMacOSIOStatus;
-    using FPlatformWindow     = FMacOSWindow;
-    using FPlatformLibrary    = FMacOSLibrary;
-    using FPlatformPath       = FMacOSPath;
-    using FPlatformFileSystem = FMacOSPlatformFileSystem;
+    using EPlatformIOStatus       = EMacOSIOStatus;
+    using FPlatformWindow         = FMacOSWindow;
+    using FPlatformLibrary        = FMacOSLibrary;
+    using FPlatformPath           = FMacOSPath;
+    using FPlatformFileSystem     = FMacOSPlatformFileSystem;
+    using EPlatformMouseButton    = EMacOSMouseButton;
+    using EPlatformKeyboardKey    = EMacOSKeyboardKey;
+    using EPlatformKeyboardAction = EMacOSKeyboardAction;
+#else
+    using EPlatformMouseButton    = EGLFWMouseButton;
+    using EPlatformKeyboardKey    = EGLFWKeyboardKey;
+    using EPlatformKeyboardAction = EGLFWKeyboardAction;
 #endif
+
+    enum class EPlatform
+    {
+        Unknown,
+
+        Windows,
+        MacOS,
+        GLFW,
+        Null
+    };
 
     class VISERA_PLATFORM_API FPlatform
     {
@@ -52,39 +79,53 @@ export namespace Visera
         GetEnvironmentVariable(const FText& I_Variable) { return Get()->GetEnvironmentVariable(I_Variable); }
         [[nodiscard]] static inline FUUID
         GenerateUUID() { return Get()->GenerateUUID(); }
-        [[nodiscard]] static inline EPlatform
-        GetType() { return Get()->GetType(); }
+        [[nodiscard]] static inline FStringView
+        GetPlatformName() { return Get()->GetPlatformName(); }
+        [[nodiscard]] static inline Bool
+        IsPlatform(EPlatform I_Type) { return Get()->GetPlatformName() == NameFor(I_Type); }
         static inline void
         SetCurrentThreadName(const FText& I_Name) { Get()->SetCurrentThreadName(I_Name); }
         static inline void
         PollEvents() { Get()->PollEvents(); }
         static inline void
         WaitEvents() { Get()->WaitEvents(); }
+        [[nodiscard]] static inline Bool
+        ExistsFile(const FPath& I_Path) { return Get()->GetFileSystem()->ExistsFile(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline Bool
+        ExistsDirectory(const FPath& I_Path) { return Get()->GetFileSystem()->ExistsDirectory(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline TArray<FPath>
+        EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive = False) { return Get()->GetFileSystem()->EnumerateFiles(MakePlatformPath(I_Directory), I_bRecursive); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        CreateDirectories(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem()->CreateDirectories(MakePlatformPath(I_Path)))); }
+        [[nodiscard]] static inline TOptional<TArray<FByte>>
+        ReadFile(const FPath& I_Path) { return Get()->GetFileSystem()->ReadFile(MakePlatformPath(I_Path)); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        WriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem()->WriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        DeleteFile(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem()->DeleteFile(MakePlatformPath(I_Path)))); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        ReplaceFile(const FPath& I_Source, const FPath& I_Target) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem()->ReplaceFile(MakePlatformPath(I_Source), MakePlatformPath(I_Target)))); }
+        [[nodiscard]] static inline EPlatformIOStatus
+        AtomicWriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem()->AtomicWriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
+        [[nodiscard]] static inline auto
+        CreateTempFileNear(const FPath& I_Directory, const FPath& I_Prefix = FPath(".VTemp-")) { return Get()->GetFileSystem()->CreateTempFileNear(MakePlatformPath(I_Directory), MakePlatformPath(I_Prefix)); }
         /** Currently focused platform window for input. May be nullptr. */
         [[nodiscard]] static inline IPlatformWindow*
         GetFocusedWindow() { return Get()->GetFocusedWindow(); }
-        [[nodiscard]] static inline Bool
-        ExistsFile(const FPath& I_Path) { return Get()->GetFileSystem().ExistsFile(MakePlatformPath(I_Path)); }
-        [[nodiscard]] static inline Bool
-        ExistsDirectory(const FPath& I_Path) { return Get()->GetFileSystem().ExistsDirectory(MakePlatformPath(I_Path)); }
-        [[nodiscard]] static inline TArray<FPath>
-        EnumerateFiles(const FPath& I_Directory, Bool I_bRecursive = False) { return Get()->GetFileSystem().EnumerateFiles(MakePlatformPath(I_Directory), I_bRecursive); }
-        [[nodiscard]] static inline EPlatformIOStatus
-        CreateDirectories(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().CreateDirectories(MakePlatformPath(I_Path)))); }
-        [[nodiscard]] static inline TOptional<TArray<FByte>>
-        ReadFile(const FPath& I_Path) { return Get()->GetFileSystem().ReadFile(MakePlatformPath(I_Path)); }
-        [[nodiscard]] static inline EPlatformIOStatus
-        WriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().WriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
-        [[nodiscard]] static inline EPlatformIOStatus
-        DeleteFile(const FPath& I_Path) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().DeleteFile(MakePlatformPath(I_Path)))); }
-        [[nodiscard]] static inline EPlatformIOStatus
-        ReplaceFile(const FPath& I_Source, const FPath& I_Target) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().ReplaceFile(MakePlatformPath(I_Source), MakePlatformPath(I_Target)))); }
-        [[nodiscard]] static inline EPlatformIOStatus
-        AtomicWriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem().AtomicWriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
-        [[nodiscard]] static inline auto
-        CreateTempFileNear(const FPath& I_Directory, const FPath& I_Prefix = FPath(".VTemp-")) { return Get()->GetFileSystem().CreateTempFileNear(MakePlatformPath(I_Directory), MakePlatformPath(I_Prefix)); }
 
     private:
+        static inline FStringView NameFor(EPlatform I_Type)
+        {
+            switch (I_Type)
+            {
+            case EPlatform::Windows: return "Windows";
+            case EPlatform::MacOS:   return "MacOS";
+            case EPlatform::GLFW:    return "GLFW";
+            case EPlatform::Null:    return "Null";
+            default:                 return "Unknown";
+            }
+        }
+
         static inline TUniqueRef<IPlatform>
         Get()
         {
@@ -93,6 +134,8 @@ export namespace Visera
             = MakeUnique<FWindowsPlatform>()
 #elif defined(VISERA_ON_APPLE_SYSTEM)
             = MakeUnique<FMacOSPlatform>()
+#else
+            = FGLFWPlatform::IsSupported() ? MakeUnique<FGLFWPlatform>() : MakeUnique<FNullPlatform>()
 #endif
             ;
             return Platform;
@@ -144,9 +187,9 @@ export namespace Visera
         if (!Cache.HasValue())
         {
             Cache = GetResourceDirectory() / FPath{"Cache"};
-            if (!Get()->GetFileSystem().ExistsDirectory(MakePlatformPath(Cache.GetValue())))
+            if (!Get()->GetFileSystem()->ExistsDirectory(MakePlatformPath(Cache.GetValue())))
             {
-                const Int32 Err = Get()->GetFileSystem().CreateDirectories(MakePlatformPath(Cache.GetValue()));
+                const Int32 Err = Get()->GetFileSystem()->CreateDirectories(MakePlatformPath(Cache.GetValue()));
                 VISERA_ASSERT(Err == 0);
             }
         }

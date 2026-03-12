@@ -4,14 +4,17 @@ export module Visera.Runtime.Input.Device.Mouse;
 #define VISERA_MODULE_NAME "Runtime.Input"
 import Visera.Core.Delegate.Multicast;
 import Visera.Core.Math.Algebra.Vector;
-import Visera.Platform.Cross.GLFW.Mouse;
+import Visera.Core.OS.Time;
+import Visera.Platform;
 
 export namespace Visera
 {
     class VISERA_RUNTIME_API FMouse
     {
     public:
-        using EButton = EGLFWMouseButton;
+        using EButton = EPlatformMouseButton;
+
+        static constexpr Int32 LastButton = static_cast<Int32>(EPlatformMouseButton::Button8);
 
         enum class EAction : Int32
         {
@@ -21,36 +24,59 @@ export namespace Visera
             Detach  = Hold + 1, // Just Released  (a special Release action)
         };
 
-        using FButtonEvent = TMulticastDelegate<EButton>;
-        FButtonEvent     OnPressed;
-        FButtonEvent     OnReleased;
-        FButtonEvent     OnHeld;
+        struct FCursor
+        {
+            FVector2F Position {0,0};
+            FVector2F Offset   {0,0};
 
-        using FScrollEvent = TMulticastDelegate<Float, Float>;
-        FScrollEvent     OnScrolled;
+            TMulticastDelegate<const FCursor&>
+            OnMoved;
+        };
 
-        using FCursorMoveEvent = TMulticastDelegate<Float, Float>;
-        FCursorMoveEvent OnCursorMoved;
+        struct FButton
+        {
+            EAction           Action  {EAction::Release};
+            /** Time point when button was pressed; used by FInput to compute HoldDuration. */
+            FHighResTimePoint PressedAt {};
+            /** Duration the current Action has been active, in seconds. */
+            Float             HoldDuration {0};
 
-        [[nodiscard]] inline const FVector2F&
-        GetPosition() const { return Position; }
-        [[nodiscard]] inline const FVector2F&
-        GetOffset()   const { return Offset; }
+            TMulticastDelegate<const FButton&>
+            OnPressed;
+            TMulticastDelegate<const FButton&>
+            OnReleased;
+            TMulticastDelegate<const FButton&>
+            OnHeld;
+        };
+
+        struct FScroll
+        {
+            FVector2F Offset {0,0};
+
+            TMulticastDelegate<const FScroll&>
+            OnScrolled;
+        };
+
+        [[nodiscard]] FCursor& GetCursor() { return Cursor; }
+        [[nodiscard]] const FCursor& GetCursor() const { return Cursor; }
+        [[nodiscard]] FScroll& GetScroll() { return Scroll; }
+        [[nodiscard]] const FScroll& GetScroll() const { return Scroll; }
+        [[nodiscard]] FButton& GetButton(EButton I_Button)
+        {
+            const auto Button = static_cast<Int32>(I_Button);
+            VISERA_ASSERT(Button >= 0 && Button < LastButton);
+            return Buttons[Button];
+        }
+        [[nodiscard]] const FButton& GetButton(EButton I_Button) const
+        {
+            const auto Button = static_cast<Int32>(I_Button);
+            VISERA_ASSERT(Button >= 0 && Button < LastButton);
+            return Buttons[Button];
+        }
 
     private:
-        FVector2F Position{0,0};
-        FVector2F Offset  {0,0};
-
-    public:
-        FMouse()
-        {
-            OnCursorMoved.Subscribe([this](Float I_X, Float I_Y)
-            {
-                Offset.X = I_X - Position.X;
-                Offset.Y = I_Y - Position.Y;
-                Position.X = I_X;
-                Position.Y = I_Y;
-            });
-        }
+        FCursor Cursor;
+        FButton Buttons[LastButton + 1];
+        FScroll Scroll;
     };
 }
