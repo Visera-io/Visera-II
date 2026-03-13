@@ -140,7 +140,6 @@ export namespace Visera
             Keyboard = MakeUnique<FKeyboard>();
             auto& DummyMouse = Mice[DummyWindow];
             DummyMouse = MakeUnique<FMouse>();
-            DummyMouse->GetCursor().Position = FVector2F(-1000.f, -1000.f);
 
             if (!OnBootstrap.TryBind([] { return True; }))
             { LOG_FATAL("Failed to bind FInput OnBootstrap!"); }
@@ -188,7 +187,6 @@ export namespace Visera
     void FInput::NotifyMouseButton(IPlatformWindow* I_SourceWindow, FMouse::EButton I_Button, FMouse::EAction I_Action, UInt8 I_Mods)
     {
         const auto ButtonIndex = static_cast<Int32>(I_Button);
-        if (ButtonIndex < 0 || ButtonIndex > FMouse::LastButton) { return; }
         TriggerMatchingActions(EInputSource::MouseButton, ButtonIndex, static_cast<UInt8>(I_Action), I_Mods);
     }
 
@@ -197,25 +195,34 @@ export namespace Visera
     {
         if (!Keyboard) { return; }
         const UInt32 Idx = static_cast<UInt32>(I_Key);
-        if (Idx > static_cast<UInt32>(FKeyboard::LastKey)) { return; }
         TriggerMatchingActions(EInputSource::KeyboardKey, static_cast<Int32>(I_Key), static_cast<UInt8>(I_Action), I_Mods);
     }
 
     void FInput::NotifyCursorMove(IPlatformWindow* I_SourceWindow, Float I_PosX, Float I_PosY)
     {
         FMouse* TargetMouse = Mice[I_SourceWindow].Get();
-        if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
+        if (!TargetMouse)
+        { 
+            LOG_WARN("({}) NotifyCursorMove: no target mouse found for window.", GetRuntimeName());
+            TargetMouse = Mice[DummyWindow].Get();
+        }
         FMouse::FCursor& C = TargetMouse->GetCursor();
-        C.Position = FVector2F(I_PosX, I_PosY);
+        C.Position.X = I_PosX;
+        C.Position.Y = I_PosY;
         C.OnMoved.Broadcast(C);
     }
 
     void FInput::NotifyScroll(IPlatformWindow* I_SourceWindow, Float I_OffsetX, Float I_OffsetY)
     {
         FMouse* TargetMouse = Mice[I_SourceWindow].Get();
-        if (!TargetMouse) { TargetMouse = Mice[DummyWindow].Get(); }
+        if (!TargetMouse)
+        {
+            LOG_WARN("({}) NotifyScroll: no target mouse found for window.", GetRuntimeName());
+            TargetMouse = Mice[DummyWindow].Get();
+         }
         FMouse::FScroll& S = TargetMouse->GetScroll();
-        S.Offset = FVector2F(I_OffsetX, I_OffsetY);
+        S.Offset.X = I_OffsetX;
+        S.Offset.Y = I_OffsetY;
         S.OnScrolled.Broadcast(S);
     }
 

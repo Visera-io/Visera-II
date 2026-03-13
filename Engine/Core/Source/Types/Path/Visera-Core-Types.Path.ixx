@@ -183,6 +183,7 @@ export namespace Visera
     inline FString FPath::NormalizeString(FStringView I_Path)
     {
         if (I_Path.IsEmpty()) return FString();
+        const Bool Absolute = (I_Path.GetSize() > 0 && I_Path[0] == '/');
         FString Result;
         const auto N = I_Path.GetSize();
         FString::SizeType I = 0;
@@ -205,6 +206,14 @@ export namespace Visera
             }
             if (!Result.IsEmpty()) Result.Append('/');
             Result.Append(I_Path.GetNative().data() + Start, SegLen);
+        }
+        if (Absolute && !Result.IsEmpty())
+        {
+            FString WithLeading;
+            WithLeading.Reserve(1 + Result.GetSize());
+            WithLeading.Append('/');
+            WithLeading.Append(Result);
+            return WithLeading;
         }
         return Result;
     }

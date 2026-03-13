@@ -12,6 +12,14 @@
   #define VISERA_CORE_API __attribute__((visibility("default")))
 #endif
 
+//[WARN] MacOS is debugging on release
+#if defined(VISERA_ON_APPLE_SYSTEM)
+#if defined(VISERA_RELEASE_MODE)
+#undef VISERA_RELEASE_MODE
+#define VISERA_DEVELOP_MODE
+#endif
+#endif
+
 #if (defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__amd64__) || defined(__x86_64__)) && !defined(_M_ARM64EC)
 #define VISERA_ON_X86_CPU
 #endif
@@ -72,14 +80,9 @@
 		(_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0)) \
 		)
 #else
-	/* Avoid __builtin_expect to prevent ambiguity with system assert / Spdlog in C++ modules. */
-	#if __DARWIN_UNIX03
-	#define	PLATFORM_ASSERT(e) \
-	(!(e) ? __assert_rtn(__func__, __ASSERT_FILE_NAME, __LINE__, #e) : (void)0)
-	#else /* !__DARWIN_UNIX03 */
-	#define PLATFORM_ASSERT(e) \
-	(!(e) ? __assert (#e, __ASSERT_FILE_NAME, __LINE__) : (void)0)
-	#endif /* __DARWIN_UNIX03 */
+	#include <cassert>
+	/* Use standard assert so it is visible in C++ modules (__assert_rtn/__assert are not). */
+	#define PLATFORM_ASSERT(e) assert(e)
 #endif
 
 #if defined(VISERA_RELEASE_MODE)
@@ -98,14 +101,6 @@
 #define PROFILING_ONLY_FIELD(I_Content) I_Content
 #else
 #define PROFILING_ONLY_FIELD(I_Content)
-#endif
-
-//[WARN] MacOS is debugging on release
-#if defined(VISERA_ON_APPLE_SYSTEM)
-#if defined(VISERA_RELEASE_MODE)
-#undef VISERA_RELEASE_MODE
-#define VISERA_DEVELOP_MODE
-#endif
 #endif
 
 #define VISERA_UNIMPLEMENTED_API LOG_FATAL("Unimplemented function {}!", __FUNCTION__);

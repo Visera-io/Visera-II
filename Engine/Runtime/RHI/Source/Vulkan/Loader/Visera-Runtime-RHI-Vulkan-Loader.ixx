@@ -1,7 +1,6 @@
 module;
 #include <Visera-RHI.hpp>
-
-#include "vulkan/vulkan_core.h"
+#include <vulkan/vulkan_core.h>
 export module Visera.Runtime.RHI.Vulkan.Loader;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Core.Log;
@@ -21,8 +20,11 @@ namespace Visera
         ~FVulkanLoader();
 
     private:
+        DEBUG_ONLY_FIELD
+        (
         mutable Bool bLoadedInstance = False;
         mutable Bool bLoadedDevice   = False;
+        )
     };
 
     FVulkanLoader::
@@ -34,10 +36,13 @@ namespace Visera
     FVulkanLoader::
     ~FVulkanLoader()
     {
+        DEBUG_ONLY_FIELD
+        (
         if (!bLoadedInstance)
         { LOG_ERROR("Forgot to load VkInstance!"); }
         if (!bLoadedDevice)
         { LOG_ERROR("Forgot to load VkDevice!"); }
+        )
     }
 
     void FVulkanLoader::
@@ -46,7 +51,7 @@ namespace Visera
         VISERA_ASSERT(I_Instance != nullptr);
         vk::detail::defaultDispatchLoaderDynamic.init(vkGetInstanceProcAddr);
         vk::detail::defaultDispatchLoaderDynamic.init(I_Instance);
-        bLoadedInstance = True;
+        DEBUG_ONLY_FIELD(bLoadedInstance = True;)
     }
 
     void FVulkanLoader::
@@ -55,6 +60,6 @@ namespace Visera
         VISERA_ASSERT(I_Device != nullptr);
         VISERA_ASSERT(bLoadedInstance);
         vk::detail::defaultDispatchLoaderDynamic.init(I_Device);
-        bLoadedDevice = True;
+        DEBUG_ONLY_FIELD(bLoadedDevice = True;)
     }
 }

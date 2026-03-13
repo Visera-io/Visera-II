@@ -79,6 +79,9 @@ export namespace Visera
         GetScaleX() const  { return ScaleX; }
         [[nodiscard]] inline Float
         GetScaleY() const { return ScaleY; }
+        /** Update content scale (e.g. when window moves to another monitor). Called by platform from WindowContentScaleCallback. */
+        inline void
+        SetContentScale(Float I_ScaleX, Float I_ScaleY) { ScaleX = I_ScaleX; ScaleY = I_ScaleY; }
         [[nodiscard]] inline Bool
         IsInitialized() const { return Width && Height; }
         [[nodiscard]] inline Bool

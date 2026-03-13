@@ -1051,13 +1051,13 @@ export namespace Visera
 
 #endif
 #if defined(VISERA_ON_APPLE_SYSTEM)
-            ->AddInstanceExtension(vk::EXTDebugUtilsExtensionName)
+            ->AddInstanceExtension(vk::KHRPortabilityEnumerationExtensionName);
 #endif
         ;
 
-        for (const char* Ext : I_InstanceExtensions)
+        for (const char* Extension : I_InstanceExtensions)
         {
-            this->AddInstanceExtension(Ext);
+            this->AddInstanceExtension(Extension);
         }
     }
 

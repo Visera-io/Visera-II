@@ -98,13 +98,21 @@ export namespace Visera
         // Make static callbacks able to reach this instance.
         glfwSetWindowUserPointer          (Handle, this);
 
-        glfwSetWindowContentScaleCallback (Handle, [](GLFWwindow* I_Window, Float I_ScaleX, Float I_ScaleY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->WindowContentScaleCallback.Invoke(I_ScaleX, I_ScaleY); });
+        glfwSetWindowContentScaleCallback (Handle, [](GLFWwindow* I_Window, Float I_ScaleX, Float I_ScaleY) {
+            auto* W = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window));
+            W->SetContentScale(I_ScaleX, I_ScaleY);
+            W->WindowContentScaleCallback.Invoke(I_ScaleX, I_ScaleY);
+        });
         // Cast GLFW ints to Interface.Device enums at the boundary; FInput receives only enums.
         glfwSetMouseButtonCallback        (Handle, [](GLFWwindow* I_Window, Int32 I_Button, Int32 I_Action, Int32 I_Mods) {
             auto* W = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window));
             W->MouseButtonCallback.Invoke(static_cast<EPlatformMouseButton>(I_Button), I_Action == GLFW_RELEASE ? EPlatformMouseButtonState::Release : EPlatformMouseButtonState::Press, static_cast<EPlatformKeyboardModifier>(I_Mods));
         });
-        glfwSetCursorPosCallback          (Handle, [](GLFWwindow* I_Window, Double I_PosX, Double I_PosY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->CursorMoveCallback.Invoke(I_PosX, I_PosY); });
+        glfwSetCursorPosCallback          (Handle, [](GLFWwindow* I_Window, Double I_PosX, Double I_PosY) {
+            auto* W = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window));
+            W->CursorMoveCallback.Invoke(I_PosX * W->GetScaleX(),
+                                         I_PosY * W->GetScaleY());
+        });
         glfwSetScrollCallback             (Handle, [](GLFWwindow* I_Window, Double I_OffsetX, Double I_OffsetY) { static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window))->ScrollCallback.Invoke(I_OffsetX, I_OffsetY); });
         glfwSetKeyCallback                (Handle, [](GLFWwindow* I_Window, Int32 I_Key, Int32 I_ScanCode, Int32 I_Action, Int32 I_Mods) {
             auto* W = static_cast<FGLFWWindow*>(glfwGetWindowUserPointer(I_Window));
@@ -184,7 +192,12 @@ export namespace Visera
         VISERA_ASSERT(FThread::IsMainThread());
         if (!Handle) { return; }
         for (size_t i = 0; i < kKeyboardStateTableSize; ++i)
-        { O_Out[i] = static_cast<EPlatformKeyboardKeyState>(glfwGetKey(Handle, static_cast<int>(i))); }
+        {
+            if (i >= static_cast<size_t>(GLFW_KEY_SPACE) && i <= static_cast<size_t>(GLFW_KEY_LAST))
+                O_Out[i] = static_cast<EPlatformKeyboardKeyState>(glfwGetKey(Handle, static_cast<int>(i)));
+            else
+                O_Out[i] = EPlatformKeyboardKeyState::Release;
+        }
     }
 
     void FGLFWWindow::
