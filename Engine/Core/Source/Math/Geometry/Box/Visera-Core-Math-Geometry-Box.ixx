@@ -4,6 +4,7 @@ export module Visera.Core.Math.Geometry.Box;
 #define VISERA_MODULE_NAME "Core.Math"
 import Visera.Core.Math.Arithmetic.Operation;
 import Visera.Core.Math.Algebra.Vector;
+import Visera.Core.Math.Geometry.Point;
 
 export namespace Visera
 {

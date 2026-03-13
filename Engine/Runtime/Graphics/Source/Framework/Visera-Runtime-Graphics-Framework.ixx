@@ -8,13 +8,18 @@ import Visera.Runtime.Graphics.PipelineCache;
 
 export namespace Visera
 {
+   struct VISERA_RUNTIME_API FRenderArea
+   {
+      UInt32 Width  {0}; // 0 -> SwapChain size
+      UInt32 Height {0}; // 0 -> SwapChain size
+   };
+
    struct VISERA_RUNTIME_API FRenderTask
    {
-      FRHISwapChainID SwapChainID     {kInvalidSwapChainID};
+      FRHISwapChainID SwapChainID {kInvalidSwapChainID};
       FRenderData     Data;
       FRenderView     RenderView;
-      UInt32          RenderWidth     {0};
-      UInt32          RenderHeight    {0};
+      FRenderArea     RenderArea;
    };
 
    /** Per-frame context passed to registered pass factories. Contains RHI, render data and view, swap chain, and back buffer for the current frame. */
@@ -33,12 +38,12 @@ export namespace Visera
    struct VISERA_RUNTIME_API ERenderPassPriority
    {
       static constexpr UInt32
-      Setup       = 100;
+      Setup          = 100;
       static constexpr UInt32
-      Opaque      = 1000;
+      Opaque         = 1000;
       static constexpr UInt32
-      OpaqueSprites = 2000;
+      OpaqueSprites  = 2000;  // RenderArea.Width/Height is the internal resolution for scene passes.
       static constexpr UInt32
-      FinalBlit   = 10000; // FinalBlit is the last pass to be executed.
+      FinalBlit      = 10000; // FinalBlit is the last pass to be executed.
    };
 }

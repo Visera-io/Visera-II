@@ -26,6 +26,7 @@ The **Engine** section in the sidebar follows the same structure as the source: 
 
 Summary of recent modifications (engine, game, and tooling):
 
+- **Runtime.Graphics** — Render API now uses `FRenderArea` (Width/Height; 0 = SwapChain size). `FRenderTask` carries `RenderArea` instead of separate width/height; channel type is `TSPSCChannel<FRenderTask>` with **poison pill** = `FRenderTask{}` (`SwapChainID == kInvalidSwapChainID`). See [Framework](Engine/Runtime/Graphics/Framework.md).
 - **Core.Types.Path** — `FPath::NormalizeString` now preserves a leading slash for absolute paths (fixes shader/material loading from app bundle on macOS).
 - **Runtime.Input** — Mouse cursor position is in **framebuffer (pixel) space**: on macOS/Retina the GLFW window multiplies cursor coordinates by content scale before notifying Input. Keyboard key storage uses a dense array `Keys[FirstKey..LastKey]` with offset in `GetKey`, avoiding unused slots for low key codes.
 - **Platform.GLFW.Window** — Cursor position callback scales by `GetScaleX()`/`GetScaleY()`; `SetContentScale` updates scale when the window content-scale callback fires (e.g. moving to another monitor).
