@@ -24,6 +24,12 @@ export import Visera.Runtime.Graphics.RenderGraph;
        import Visera.Core.Types.Name;
        import Visera.Core.Log;
 
+/** Pre-created FName constant; avoids per-frame construction in the graphics thread hot path. */
+export namespace Visera::EName
+{
+   inline const FName PresentTransition {"PresentTransition"};
+}
+
 export namespace Visera
 {
    /** A registered pass factory entry. User, UI, debug overlays all use this same type. */
@@ -33,6 +39,47 @@ export namespace Visera
       FName   Name;
       TFunction<void(FRenderGraph&, const FRenderContext&)> Execute;
    };
+
+   /** Fills O_List by iterating I_Data, batching by (Material, PSO). Routes by surface (Opaque/Transparent). WireframeBatches is cleared but not filled. */
+   inline void
+   ExtractAndSortDrawList(const FRenderData&        I_Data,
+                          FRenderList&              O_List,
+                          FPipelineCache*           I_PipelineCache,
+                          FRHI*                     I_RHI,
+                          const TArray<ERHIFormat>&  I_ColorFormats,
+                          ERHIFormat                I_DepthFormat)
+   {
+      O_List.OpaqueBatches.Clear();
+      O_List.TransparentBatches.Clear();
+      O_List.WireframeBatches.Clear();
+      // Material pointer -> batch index, one map per surface type.
+      // Renderables sharing the same material collapse into one batch with multiple viewports.
+      TMap<const FMaterial*, UInt32> OpaqueMap;
+      TMap<const FMaterial*, UInt32> TransparentMap;
+      const auto& Renderables = I_Data.GetRenderables();
+      for (const auto& R : Renderables)
+      {
+         const FMaterial* Mat = R->GetMaterial().Get();
+         if (!Mat || !Mat->IsValid()) { continue; }
+         const FRHIViewport Viewport = R->GetViewport();
+         const ESurfaceType Surface = Mat->GetSurface();
+         const Bool bTransparent = (Surface == ESurfaceType::Transparent);
+         TArray<FRenderBatch>& FillBatches = bTransparent ? O_List.TransparentBatches : O_List.OpaqueBatches;
+         TMap<const FMaterial*, UInt32>& FillMap = bTransparent ? TransparentMap : OpaqueMap;
+         auto FillIt = FillMap.Find(Mat);
+         if (FillIt == FillMap.end())
+         {
+            FRHIRenderPassID Pipeline = I_PipelineCache->GetOrCreate(I_RHI, Mat, I_ColorFormats, I_DepthFormat);
+            FRenderBatch Batch { .Pipeline = Pipeline, .DescriptorSet = Mat->GetDescriptorSet(), .Viewports = {} };
+            Batch.Viewports.PushBack(Viewport);
+            const UInt32 Idx = FillBatches.GetSize();
+            FillBatches.PushBack(std::move(Batch));
+            FillMap.Insert(Mat, Idx);
+         }
+         else
+         { FillBatches[FillIt->second].Viewports.PushBack(Viewport); }
+      }
+   }
 
    class VISERA_RUNTIME_API FGraphics : public IRuntimeService
    {
@@ -112,6 +159,7 @@ export namespace Visera
             TAtomic<UInt32>&              I_PendingDrawRenderTaskCount,
             FEvent*                       I_FrameConsumedEvent,
             const TArray<FRenderPass>*    I_RenderPasses,
+            FRWLock*                      I_RenderPassesLock,
             UInt32                        I_MaxFrameRate);
 
          void
@@ -137,6 +185,8 @@ export namespace Visera
          ExportGraphToCache(FRenderGraph& I_Graph, TMap<FName, FCachedTexture>& I_CacheSlot);
          void
          ApplyFramePacing(FHighResTimePoint I_FrameStart);
+         void
+         CompileAndSubmit(const FRenderContext& RenderContext, FRenderGraph* Graph);
 
          FRHI*                                 RHI {nullptr};
          TSPSCChannel<FRenderTask>&            ChannelFromMain;
@@ -146,6 +196,7 @@ export namespace Visera
          FHiResClock                           FramePacingClock;
          TUniquePtr<FThread>                   Thread;
          const TArray<FRenderPass>*            RenderPasses {nullptr};
+         FRWLock*                              RenderPassesLock {nullptr};
 
          TInlineArray<FSwapChainGraphContext, kMaxSwapChainCount> SwapChainContexts;
       };
@@ -158,6 +209,7 @@ export namespace Visera
       TAtomic<Bool>                             bShuttingDown {False};
 
       TUniquePtr<FGraphicsThread>               GraphicsThread;
+      mutable FRWLock                           RenderPassesLock;
       TArray<FRenderPass>                       RenderPasses;
 
       TInlineArray<FRHISwapChainID, kMaxSwapChainCount> ManagedHeadlessIDs;
@@ -191,7 +243,7 @@ export namespace Visera
                UInt32 MaxFrameRate = GetConfig().GetNumber(TJSONRoute<"Graphics.MaxFrameRate">(), 0);
                GraphicsThread = MakeUnique<FGraphicsThread>(
                   RHI.Get(), ChannelToGraphics, PendingDrawRenderTaskCount,
-                  &FrameConsumedEvent, &RenderPasses, MaxFrameRate);
+                  &FrameConsumedEvent, &RenderPasses, &RenderPassesLock, MaxFrameRate);
                GraphicsThread->Start();
                if (MaxFrameRate > 0) { LOG_INFO("Graphics: thread started (MaxFrameRate={}).", MaxFrameRate); }
                else { LOG_INFO("Graphics: thread started (MaxFrameRate=Unlimited)."); }
@@ -234,6 +286,9 @@ export namespace Visera
    RegisterPass(UInt32 I_Priority, FName I_Name,
                 TFunction<void(FRenderGraph&, const FRenderContext&)> I_Execute)
    {
+      // Write-lock: RegisterPass may be called from the main thread while
+      // the graphics thread is reading the array (step 3 in Run()).
+      FScopeWriteLock Lock(&RenderPassesLock);
       UInt64 InsertIdx = 0;
       for (; InsertIdx < RenderPasses.GetSize(); ++InsertIdx)
       {
@@ -259,6 +314,7 @@ export namespace Visera
       TAtomic<UInt32>&                      I_PendingDrawRenderTaskCount,
       FEvent*                               I_FrameConsumedEvent,
       const TArray<FRenderPass>*            I_RenderPasses,
+      FRWLock*                              I_RenderPassesLock,
       UInt32                                I_MaxFrameRate)
        : RHI(I_RHI)
        , ChannelFromMain(I_ChannelFromMain)
@@ -266,6 +322,7 @@ export namespace Visera
        , FrameConsumedEvent(I_FrameConsumedEvent)
        , MaxFrameRate(I_MaxFrameRate)
        , RenderPasses(I_RenderPasses)
+       , RenderPassesLock(I_RenderPassesLock)
    {
       for (UInt32 i = 0; i < kMaxSwapChainCount; ++i)
       {
@@ -325,11 +382,18 @@ export namespace Visera
          if (SwapChainID == kInvalidSwapChainID) { continue; }
          if (!RHI->IsValidSwapChain(SwapChainID)) { continue; }
 
-         // 3. Validate passes
-         if (!RenderPasses || RenderPasses->IsEmpty())
+         // 3. Snapshot passes under read lock.
+         // Copy into a local array so the graphics thread iterates a stable set
+         // even if the main thread calls RegisterPass() concurrently.
+         TArray<FRenderPass> FramePasses;
          {
-            LOG_TRACE("Graphics thread: no passes registered, skipping frame.");
-            continue;
+            FScopeReadLock Lock(RenderPassesLock);
+            if (!RenderPasses || RenderPasses->IsEmpty())
+            {
+               LOG_TRACE("Graphics thread: no passes registered, skipping frame.");
+               continue;
+            }
+            FramePasses = *RenderPasses;
          }
 
          // 4. Wait swap chain if dirty
@@ -341,13 +405,16 @@ export namespace Visera
          if (BackBuffer.IsNull())
          { LOG_DEBUG("Graphics thread: skipping frame SwapChainID={}, BackBuffer is null (swapchain destroyed or unavailable).", SwapChainID); continue; }
 
-         // 6. Build context and graph
+         // 6. Extract draw list and build context
          auto& SCContext = GetOrCreateContext(SwapChainID);
+         FRenderList FrameRenderList;
+         static constexpr ERHIFormat kSceneColorFormat = ERHIFormat::R8G8B8A8_UNorm;
+         ExtractAndSortDrawList(RenderTask.Data, FrameRenderList, &SCContext.PipelineCache, RHI,
+                               TArray<ERHIFormat>{kSceneColorFormat}, ERHIFormat::Undefined);
          FRenderContext RenderContext
          {
+            .RenderList     = &FrameRenderList,
             .RHI            = RHI,
-            .Data           = &RenderTask.Data,
-            .RenderView     = &RenderTask.RenderView,
             .SwapChainID    = SwapChainID,
             .BackBuffer     = BackBuffer,
             .PipelineCache  = &SCContext.PipelineCache,
@@ -368,17 +435,20 @@ export namespace Visera
          ImportCachedTextures(Graph.Get(), CacheSlot, RenderTask.RenderArea.Width, RenderTask.RenderArea.Height);
 
          // 8. Run passes
-         for (const auto& RenderPass : *RenderPasses)
+         for (const auto& RenderPass : FramePasses)
          {
             LOG_TRACE("Graphics thread: running pass factory '{}'.", RenderPass.Name.GetNameString());
             RenderPass.Execute(*Graph, RenderContext);
          }
 
-         // 9. PresentTransition
+         // 9. PresentTransition — barrier-only pass (empty execute lambda).
+         // Both Read and Write are declared so TopologicalSort establishes a
+         // dependency on whatever pass last wrote the backbuffer (e.g. FinalBlit),
+         // and RDG inserts the TransferDst -> PresentSrc layout transition.
          if (bHasWindow && Graph->HasBackBuffer())
          {
             auto BB = Graph->GetBackBuffer();
-            Graph->AddPass("PresentTransition",
+            Graph->AddPass(EName::PresentTransition,
                [BB](FRDGPassBuilder& PB) {
                   PB.Read(BB, ERGResourceUsage::Present);
                   PB.Write(BB, ERGResourceUsage::Present);
@@ -387,15 +457,7 @@ export namespace Visera
          }
 
          // 10. Compile, execute, submit
-         auto CmdList = RHI->CreateCommandList();
-         Graph->Compile(RHI)->Execute(&CmdList);
-         if (!RHI->IsValidSwapChain(SwapChainID))
-         {
-            LOG_DEBUG("Graphics thread: skipping Submit/Present for SwapChainID={} (destroyed during frame).", SwapChainID);
-            RHI->EndFrame();
-            continue;
-         }
-         RHI->Submit(std::move(CmdList));
+         CompileAndSubmit(RenderContext, Graph.Get());
 
          // 11. Export cache and present
          ExportGraphToCache(*Graph, CacheSlot);
@@ -415,6 +477,18 @@ export namespace Visera
       RHI->WaitDeviceIdle();
       for (UInt32 Waited = 0; Waited < kMaxDirtyWaitMs && RHI->IsSwapChainDirty(I_SwapChainID); Waited += 1)
       { LOG_TRACE("Graphics thread: waiting for swapchain to be ready... ({}/{})", Waited, kMaxDirtyWaitMs); FThread::Sleep(1); }
+   }
+
+   void FGraphics::FGraphicsThread::
+   CompileAndSubmit(const FRenderContext& RenderContext, FRenderGraph* Graph)
+   {
+      if (!RenderContext.RHI->IsValidSwapChain(RenderContext.SwapChainID))
+      {
+         LOG_DEBUG("Graphics thread: skipping Submit/Present for SwapChainID={} (destroyed during frame).", RenderContext.SwapChainID);
+         RenderContext.RHI->EndFrame();
+         return;
+      }
+      Graph->Compile(RenderContext.RHI)->Execute(&RenderContext);
    }
 
    void FGraphics::FGraphicsThread::

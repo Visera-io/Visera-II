@@ -3,6 +3,7 @@ module;
 export module Visera.Runtime.Graphics.RenderGraph;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 import Visera.Runtime.RHI;
+import Visera.Runtime.Graphics.Framework;
 import Visera.Core.Containers.Array;
 import Visera.Core.Containers.Map;
 import Visera.Core.OS.Memory;
@@ -76,7 +77,8 @@ export namespace Visera
     // =========================================================================
     struct VISERA_RUNTIME_API FRDGPassContext
     {
-        FRHICommandList& CommandList;
+        FRHICommandList&   CommandList;
+        const FRenderList& RenderList;
 
         [[nodiscard]] const FRHITextureID&
         GetTexture(FGraphicsID I_ID) const;
@@ -87,8 +89,8 @@ export namespace Visera
     private:
         friend class FRenderGraph;
         const FRenderGraph* Graph {nullptr};
-        FRDGPassContext(FRHICommandList& I_CmdList, const FRenderGraph& I_Graph)
-            : CommandList(I_CmdList), Graph(&I_Graph) {}
+        FRDGPassContext(FRHICommandList& I_CmdList, const FRenderGraph& I_Graph, const FRenderList& I_RenderList)
+        : CommandList(I_CmdList), RenderList(I_RenderList), Graph(&I_Graph) {}
     };
 
     // =========================================================================
@@ -131,7 +133,7 @@ export namespace Visera
     // =========================================================================
     struct FRDGNode
     {
-        const char*                       Name {""};
+        FName                             Name;
         TArray<FRDGResourceAccess>        Reads;
         TArray<FRDGResourceAccess>        Writes;
         TFunction<void(FRDGPassContext&)> ExecuteFn;
@@ -267,12 +269,11 @@ export namespace Visera
     // =========================================================================
     // FRenderGraph
     // =========================================================================
-    using FSwapChainID = FRHISwapChainID;
 
     class VISERA_RUNTIME_API FRenderGraph final
     {
     public:
-        [[nodiscard]] FSwapChainID
+        [[nodiscard]] FRHISwapChainID
         GetSwapChainID() const;
 
         [[nodiscard]] Bool
@@ -294,11 +295,10 @@ export namespace Visera
         // Pass management (RDG-style: setup lambda + execute lambda)
         // -----------------------------------------------------------------
 
-        template<typename SetupFn, typename ExecFn>
         void
-        AddPass(const char*  I_Name,
-                SetupFn&&    I_Setup,
-                ExecFn&&     I_Execute);
+        AddPass(FName                             I_Name,
+                TFunction<void(FRDGPassBuilder&)> I_Setup,
+                TFunction<void(FRDGPassContext&)> I_Execute);
 
         // -----------------------------------------------------------------
         // Resource management
@@ -361,10 +361,10 @@ export namespace Visera
         Compile(FRHI* I_RHI);
 
         void
-        Execute(FRHICommandList* I_CommandList);
+        Execute(const FRenderContext* I_RenderContext);
 
-        explicit FRenderGraph(FSwapChainID I_SwapChainID);
-        FRenderGraph(FSwapChainID I_SwapChainID, FRHITextureID I_BackBuffer);
+        explicit FRenderGraph(FRHISwapChainID I_SwapChainID);
+        FRenderGraph(FRHISwapChainID I_SwapChainID, FRHITextureID I_BackBuffer);
 
         PROFILING_ONLY_FIELD(
         friend void LogRenderGraphCompileProfilingSummary()
@@ -381,7 +381,7 @@ export namespace Visera
         })
 
     private:
-        FSwapChainID          SwapChainID;
+        FRHISwapChainID          SwapChainID;
         Bool                  bHasBackBuffer {False};
         TArray<FRDGNode>       Nodes;
         TArray<FRDGTexture>    Textures;
@@ -422,28 +422,27 @@ export namespace Visera
     // FRenderGraph::AddPass — template, defined in header
     // =================================================================
 
-    template<typename SetupFn, typename ExecFn>
     void FRenderGraph::
-    AddPass(const char*  I_Name,
-            SetupFn&&    I_Setup,
-            ExecFn&&     I_Execute)
+    AddPass(FName                             I_Name,
+            TFunction<void(FRDGPassBuilder&)> I_Setup,
+            TFunction<void(FRDGPassContext&)> I_Execute)
     {
         FRDGPassBuilder Builder;
         I_Setup(Builder);
         Nodes.EmplaceBack(FRDGNode{
-            .Name      = I_Name,
+            .Name      = std::move(I_Name),
             .Reads     = std::move(Builder.Reads),
             .Writes    = std::move(Builder.Writes),
-            .ExecuteFn = TFunction<void(FRDGPassContext&)>(std::forward<ExecFn>(I_Execute)),
+            .ExecuteFn = std::move(I_Execute),
         });
-        LOG_TRACE("RenderGraph: added pass '{}'.", I_Name);
+        LOG_TRACE("RenderGraph: added pass '{}'.", Nodes.Back().Name.GetNameString());
     }
 
     // =================================================================
     // FRenderGraph — out-of-line definitions
     // =================================================================
 
-    FSwapChainID FRenderGraph::
+    FRHISwapChainID FRenderGraph::
     GetSwapChainID() const { return SwapChainID; }
 
     Bool FRenderGraph::
@@ -728,16 +727,19 @@ export namespace Visera
     // =================================================================
 
     void FRenderGraph::
-    Execute(FRHICommandList* I_CommandList)
+    Execute(const FRenderContext* I_RenderContext)
     {
-        FRDGPassContext Ctx(*I_CommandList, *this);
+        if (!I_RenderContext || !I_RenderContext->RHI) { return; }
+        VISERA_ASSERT(I_RenderContext->RenderList != nullptr && "Execute requires a valid RenderList.");
+        auto CmdList = I_RenderContext->RHI->CreateCommandList();
+        FRDGPassContext Ctx(CmdList, *this, *I_RenderContext->RenderList);
         for (UInt32 i = 0; i < Nodes.GetSize(); ++i)
         {
             if (i < PerNodeBarriers.GetSize())
             {
                 for (const auto& B : PerNodeBarriers[i])
                 {
-                    I_CommandList->TransitionTexture(FRHIImageBarrier{
+                    CmdList.TransitionTexture(FRHIImageBarrier{
                         .Image         = GetTexture(B.Resource),
                         .OldLayout     = B.OldLayout,
                         .NewLayout     = B.NewLayout,
@@ -749,10 +751,11 @@ export namespace Visera
             const auto& Node = Nodes[i];
             if (Node.ExecuteFn)
             {
-                LOG_TRACE("RenderGraph::Execute: running pass '{}'.", Node.Name);
+                LOG_TRACE("RenderGraph::Execute: running pass '{}'.", Node.Name.GetNameString());
                 Node.ExecuteFn(Ctx);
             }
         }
+        I_RenderContext->RHI->Submit(std::move(CmdList));
     }
 
     // =================================================================
@@ -760,10 +763,10 @@ export namespace Visera
     // =================================================================
 
     FRenderGraph::
-    FRenderGraph(FSwapChainID I_SwapChainID) : SwapChainID(I_SwapChainID) {}
+    FRenderGraph(FRHISwapChainID I_SwapChainID) : SwapChainID(I_SwapChainID) {}
 
     FRenderGraph::
-    FRenderGraph(FSwapChainID I_SwapChainID, FRHITextureID I_BackBuffer)
+    FRenderGraph(FRHISwapChainID I_SwapChainID, FRHITextureID I_BackBuffer)
         : SwapChainID(I_SwapChainID)
         , bHasBackBuffer(!I_BackBuffer.IsNull())
     {
@@ -775,14 +778,17 @@ export namespace Visera
     // CullDeadPasses
     // =================================================================
 
+    /** Removes passes whose outputs are never consumed by any live pass.
+     *  Algorithm: O(N+E) reverse BFS instead of the previous O(N^3) fixed-point iteration.
+     *    1. Build a ResourceWriters map (resource -> list of node indices that write it).
+     *    2. Seed the alive set with nodes writing to external resources (backbuffer, cached textures).
+     *    3. BFS backwards: for each alive node's reads, mark all writers of that resource alive.
+     *  Passes not reached by the BFS are dead and removed from the graph. */
     void FRenderGraph::
     CullDeadPasses(std::pmr::memory_resource* I_Scratch)
     {
         const UInt32 NodeCount = static_cast<UInt32>(Nodes.GetSize());
         if (NodeCount == 0) { return; }
-
-        TPMRArray<UInt8> Alive(I_Scratch);
-        Alive.Resize(NodeCount, 0);
 
         auto IsExternalResource = [this](FGraphicsID I_ID) -> Bool
         {
@@ -799,33 +805,51 @@ export namespace Visera
             return False;
         };
 
+        // Step 1: resource ID -> writer node indices (uses FGraphicsID::Value as slot index).
+        TPMRArray<TArray<UInt32>> ResourceWriters(I_Scratch);
+        auto EnsureSlot = [&ResourceWriters](UInt32 I_ResourceIndex)
+        {
+            while (ResourceWriters.GetSize() <= I_ResourceIndex)
+            { ResourceWriters.EmplaceBack(); }
+        };
         for (UInt32 i = 0; i < NodeCount; ++i)
         {
             for (const auto& W : Nodes[i].Writes)
             {
-                if (IsExternalResource(W.Resource)) { Alive[i] = 1; break; }
+                if (!W.Resource.IsValid()) { continue; }
+                const UInt32 Slot = W.Resource.Value;
+                EnsureSlot(Slot);
+                ResourceWriters[Slot].EmplaceBack(i);
             }
         }
 
-        Bool Changed = True;
-        while (Changed)
+        // Step 2: seed — any node that writes to an external resource is alive.
+        TPMRArray<UInt8> Alive(I_Scratch);
+        Alive.Resize(NodeCount, 0);
+        TPMRArray<UInt32> Queue(I_Scratch);
+        Queue.Reserve(NodeCount);
+
+        for (UInt32 i = 0; i < NodeCount; ++i)
         {
-            Changed = False;
-            for (UInt32 i = 0; i < NodeCount; ++i)
+            for (const auto& W : Nodes[i].Writes)
             {
-                if (Alive[i]) { continue; }
-                for (const auto& W : Nodes[i].Writes)
+                if (IsExternalResource(W.Resource)) { Alive[i] = 1; Queue.EmplaceBack(i); break; }
+            }
+        }
+
+        // Step 3: propagate liveness backwards through read dependencies.
+        UInt32 Head = 0;
+        while (Head < Queue.GetSize())
+        {
+            const UInt32 AliveNode = Queue[Head++];
+            for (const auto& R : Nodes[AliveNode].Reads)
+            {
+                if (!R.Resource.IsValid()) { continue; }
+                const UInt32 Slot = R.Resource.Value;
+                if (Slot >= ResourceWriters.GetSize()) { continue; }
+                for (UInt32 Writer : ResourceWriters[Slot])
                 {
-                    for (UInt32 j = 0; j < NodeCount; ++j)
-                    {
-                        if (!Alive[j]) { continue; }
-                        for (const auto& R : Nodes[j].Reads)
-                        {
-                            if (R.Resource == W.Resource) { Alive[i] = 1; Changed = True; break; }
-                        }
-                        if (Alive[i]) { break; }
-                    }
-                    if (Alive[i]) { break; }
+                    if (!Alive[Writer]) { Alive[Writer] = 1; Queue.EmplaceBack(Writer); }
                 }
             }
         }
@@ -841,7 +865,7 @@ export namespace Visera
             }
             else
             {
-                LOG_DEBUG("RenderGraph::Compile: culled dead pass '{}'.", Nodes[i].Name);
+                LOG_DEBUG("RenderGraph::Compile: culled dead pass '{}'.", Nodes[i].Name.GetNameString());
                 ++Culled;
             }
         }
@@ -854,6 +878,8 @@ export namespace Visera
 
     // =================================================================
     // TopologicalSort
+    // TODO: Deduplicate edges in adjacency list to avoid inflated InDegree
+    //       when multiple producers write the same resource.
     // =================================================================
 
     void FRenderGraph::
@@ -980,7 +1006,8 @@ export namespace Visera
                         .Resource      = Access.Resource,
                         .OldLayout     = Current,
                         .NewLayout     = Required,
-                        .MemoryBarrier = FRHIMemoryBarrier{
+                        .MemoryBarrier = FRHIMemoryBarrier
+                        {
                             .SourceStage  = Src.Stage,
                             .DestStage    = Dst.Stage,
                             .SourceAccess = Src.Access,

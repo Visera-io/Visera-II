@@ -741,17 +741,44 @@ export namespace Visera
         auto FragShaderModule = Driver->CreateShaderModule(pFS->GetInfo().SPIRV);
 
         VISERA_ASSERT(I_Info.PSO.ColorFormats.GetSize() <= kMaxColorAttachments);
-        TInlineArray<vk::Format, kMaxColorAttachments> ColorFormats;
+        FVulkanRenderPipeline::FSettings Settings;
         for (ERHIFormat F : I_Info.PSO.ColorFormats)
-        { ColorFormats.PushBack(TypeCast(F)); }
-        if (ColorFormats.IsEmpty())
-        { ColorFormats.PushBack(vk::Format::eB8G8R8A8Srgb); }
+        Settings.ColorRTFormats.PushBack(TypeCast(F));
+        Settings.DepthRTFormat   = TypeCast(I_Info.PSO.DepthStencilFormat);
+        Settings.StencilRTFormat = TypeCast(I_Info.PSO.DepthStencilFormat);
+        Settings.InputAssembly.setTopology(TypeCast(I_Info.PSO.VertexAssembly.Topology));
+        Settings.ViewportState
+            .setViewportCount(1)
+            .setPViewports(nullptr)
+            .setScissorCount(1)
+            .setPScissors(nullptr);
+        Settings.Rasterizer
+            .setDepthClampEnable(vk::False)
+            .setRasterizerDiscardEnable(vk::False)
+            .setPolygonMode(TypeCast(I_Info.PSO.Rasterization.PolygonMode))
+            .setCullMode(TypeCast(I_Info.PSO.Rasterization.CullMode))
+            .setFrontFace(TypeCast(I_Info.PSO.Rasterization.FrontFace))
+            .setDepthBiasEnable(vk::False)
+            .setDepthBiasSlopeFactor(1.0)
+            .setLineWidth(1.0);
+        Settings.Multisampling
+            .setRasterizationSamples(vk::SampleCountFlagBits::e1)
+            .setSampleShadingEnable(vk::False);
+        Settings.ColorBlendAttachment
+            .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                               vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)
+            .setBlendEnable(vk::True)
+            .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
+            .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
+            .setColorBlendOp(vk::BlendOp::eAdd)
+            .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
+            .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
+            .setAlphaBlendOp(vk::BlendOp::eAdd);
         FVulkanRenderPipeline Pipeline = Driver->CreateRenderPipeline(
             &PipelineLayout,
             &VertShaderModule,
             &FragShaderModule,
-            TSpan<const vk::Format>(ColorFormats.Data(), ColorFormats.GetSize()),
-            TypeCast(I_Info.PSO.DepthStencilFormat));
+            std::move(Settings));
 
         FRHIRenderPassHandle Handle = RenderPasses.Insert(
             FRHIRenderPass{std::move(I_Info), std::move(Pipeline)});

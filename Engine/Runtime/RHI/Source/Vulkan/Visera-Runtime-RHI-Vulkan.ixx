@@ -58,8 +58,7 @@ export namespace Visera
         CreateRenderPipeline(FVulkanPipelineLayout*       I_PipelineLayout,
                              FVulkanShaderModule*         I_VertexShader,
                              FVulkanShaderModule*         I_FragmentShader,
-                             TSpan<const vk::Format> I_ColorFormats,
-                             vk::Format                   I_DepthStencilFormat = vk::Format::eUndefined);
+                             FVulkanRenderPipeline::FSettings I_Settings);
         [[nodiscard]] FVulkanComputePipeline
         CreateComputePipeline(FVulkanPipelineLayout* I_PipelineLayout,
                               FVulkanShaderModule*   I_ComputeShader);
@@ -1243,26 +1242,21 @@ export namespace Visera
     }
 
     FVulkanRenderPipeline FVulkanDriver::
-    CreateRenderPipeline(FVulkanPipelineLayout*     I_PipelineLayout,
-                         FVulkanShaderModule*       I_VertexShader,
-                         FVulkanShaderModule*       I_FragmentShader,
-                         TSpan<const vk::Format>    I_ColorFormats,
-                         vk::Format                 I_DepthStencilFormat)
+    CreateRenderPipeline(FVulkanPipelineLayout*               I_PipelineLayout,
+                         FVulkanShaderModule*                 I_VertexShader,
+                         FVulkanShaderModule*                 I_FragmentShader,
+                         FVulkanRenderPipeline::FSettings     I_Settings)
     {
         LOG_TRACE("Creating a Vulkan Render Pipeline.");
         VISERA_ASSERT(I_PipelineLayout != nullptr);
         VISERA_ASSERT(I_VertexShader != nullptr);
         VISERA_ASSERT(I_FragmentShader != nullptr);
-        VISERA_ASSERT(I_ColorFormats.size() > 0 && I_ColorFormats.size() <= kMaxColorAttachments);
+        VISERA_ASSERT(I_Settings.ColorRTFormats.GetSize() > 0 && I_Settings.ColorRTFormats.GetSize() <= kMaxColorAttachments);
         auto NewRenderPipeline = FVulkanRenderPipeline(
                std::move(*I_PipelineLayout),
                std::move(*I_VertexShader),
                std::move(*I_FragmentShader));
-        NewRenderPipeline.Settings.ColorRTFormats.Clear();
-        for (const auto& F : I_ColorFormats)
-            NewRenderPipeline.Settings.ColorRTFormats.PushBack(F);
-        NewRenderPipeline.Settings.DepthRTFormat  = I_DepthStencilFormat;
-        NewRenderPipeline.Settings.StencilRTFormat = I_DepthStencilFormat;
+        NewRenderPipeline.Settings = std::move(I_Settings);
         NewRenderPipeline.Create(Device.Context, PipelineCache);
         return NewRenderPipeline;
     }

@@ -22,12 +22,29 @@ export namespace Visera
       FRenderArea     RenderArea;
    };
 
-   /** Per-frame context passed to registered pass factories. Contains RHI, render data and view, swap chain, and back buffer for the current frame. */
+   struct VISERA_RUNTIME_API FRenderBatch
+   {
+      // Shared Data
+      FRHIRenderPassID     Pipeline;
+      FRHIDescriptorSetID  DescriptorSet;
+      
+      // Data per Instance
+      TArray<FRHIViewport> Viewports;
+   };
+
+   /** List of render batches for each pass type (Sorted). */
+   struct VISERA_RUNTIME_API FRenderList
+   {
+      TArray<FRenderBatch> OpaqueBatches;
+      TArray<FRenderBatch> TransparentBatches;
+      TArray<FRenderBatch> WireframeBatches;
+   };
+
+   /** Per-frame context passed to registered pass factories. Draw passes use RenderList only (no raw Data). Setup passes use RenderWidth/RenderHeight. */
    struct VISERA_RUNTIME_API FRenderContext
    {
+      const FRenderList*    RenderList     {nullptr};
       FRHI*                 RHI            {nullptr};
-      const FRenderData*    Data           {nullptr};
-      const FRenderView*    RenderView     {nullptr};
       FRHISwapChainID       SwapChainID    {kInvalidSwapChainID};
       FRHITextureID         BackBuffer;
       FPipelineCache*       PipelineCache  {nullptr};

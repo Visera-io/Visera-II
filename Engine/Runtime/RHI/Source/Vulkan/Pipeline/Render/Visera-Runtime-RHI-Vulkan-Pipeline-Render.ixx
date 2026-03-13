@@ -41,20 +41,20 @@ namespace Visera
         [[nodiscard]] inline const vk::RenderingInfo&
         GetRenderingInfo() const { return CurrentRenderingInfo; }
 
-        struct
+        struct FSettings
         {
             TInlineArray<vk::VertexInputAttributeDescription, 16> VertexAttributes;
-            TInlineArray<vk::VertexInputBindingDescription, 8>   VertexBindings;
+            TInlineArray<vk::VertexInputBindingDescription,    8> VertexBindings;
             vk::PipelineInputAssemblyStateCreateInfo
-            InputAssembly{};
+            InputAssembly;
             vk::PipelineViewportStateCreateInfo
-            ViewportState{};
+            ViewportState;
             vk::PipelineRasterizationStateCreateInfo
-            Rasterizer{};
+            Rasterizer;
             vk::PipelineMultisampleStateCreateInfo
-            Multisampling{};
+            Multisampling;
             vk::PipelineColorBlendAttachmentState
-            ColorBlendAttachment{};
+            ColorBlendAttachment;
             /** One per color attachment; length must match PipelineRenderingCreateInfo. */
             TInlineArray<vk::Format, kMaxColorAttachments> ColorRTFormats;
             vk::Format
