@@ -12,8 +12,9 @@ export namespace Visera
     {
     public:
         using EKey = EPlatformKeyboardKey;
-        static constexpr auto FirstKey = static_cast<Int32>(EPlatformKeyboardKey::Space);
-        static constexpr auto LastKey  = static_cast<Int32>(EPlatformKeyboardKey::Menu);
+        static constexpr auto FirstKey = static_cast<Int32>(EKey::Space);
+        static constexpr auto LastKey  = static_cast<Int32>(EKey::Menu);
+        static constexpr auto KeyCount = static_cast<UInt32>(LastKey - FirstKey + 1);
 
         enum class EAction : UInt8
         {
@@ -42,17 +43,17 @@ export namespace Visera
         {
             const auto Key = static_cast<Int32>(I_Key);
             VISERA_ASSERT(Key >= FirstKey && Key <= LastKey);
-            return Keys[static_cast<UInt32>(Key)];
+            return Keys[static_cast<UInt32>(Key - FirstKey)];
         }
         [[nodiscard]] const FKey& GetKey(EKey I_Key) const
         {
             const auto Key = static_cast<Int32>(I_Key);
             VISERA_ASSERT(Key >= FirstKey && Key <= LastKey);
-            return Keys[static_cast<UInt32>(Key)];
+            return Keys[static_cast<UInt32>(Key - FirstKey)];
         }
 
     private:
-        FKey Keys[static_cast<UInt32>(LastKey) + 1];
+        FKey Keys[KeyCount];
 
     public:
         FKeyboard() = default;

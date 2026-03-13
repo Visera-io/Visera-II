@@ -14,8 +14,8 @@ export namespace Visera
     public:
         using EButton = EPlatformMouseButton;
 
-        static constexpr Int32 FirstButton = static_cast<Int32>(EPlatformMouseButton::Left);
-        static constexpr Int32 LastButton  = static_cast<Int32>(EPlatformMouseButton::Button8);
+        static constexpr Int32 FirstButton = static_cast<Int32>(EButton::Left);
+        static constexpr Int32 LastButton  = static_cast<Int32>(EButton::Button8);
 
         enum class EAction : Int32
         {
