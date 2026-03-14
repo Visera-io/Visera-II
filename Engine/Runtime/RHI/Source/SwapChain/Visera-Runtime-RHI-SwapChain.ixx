@@ -24,9 +24,6 @@ export namespace Visera
         FVulkanSemaphore  SwapChainReadySemaphore;
         FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>
         GraphicsCalls;
-        FVulkanCommandBuffer<EVulkanQueueFamily::Transfer>
-        TransferCalls;
-        FVulkanSemaphore  TransferFinishedSemaphore;
     };
 
     /// RHI-level swap chain context: frame resources and synchronization state.
@@ -65,25 +62,21 @@ export namespace Visera
         void Initialize(
             FVulkanDriver*                I_Driver,
             FVulkanGraphicsCommandPool*   I_GraphicsPool,
-            FVulkanTransferCommandPool*   I_TransferPool,
             FWindow*                      I_Window);
 
         /// Rebuild frame resources in-place after swap chain recreation. Preserves PendingPresentCount and FrameSlotFreeEvent to avoid underflow when Present tasks are still in flight.
         void Reinitialize(
             FVulkanDriver*                I_Driver,
-            FVulkanGraphicsCommandPool*   I_GraphicsPool,
-            FVulkanTransferCommandPool*   I_TransferPool);
+            FVulkanGraphicsCommandPool*   I_GraphicsPool);
 
     private:
         void MoveFrom(FRHISwapChain&& I_Other) noexcept;
         void BuildFrameResources(
             FVulkanDriver*                I_Driver,
-            FVulkanGraphicsCommandPool*   I_GraphicsPool,
-            FVulkanTransferCommandPool*   I_TransferPool);
+            FVulkanGraphicsCommandPool*   I_GraphicsPool);
         void BuildHeadlessFrameResources(
             FVulkanDriver*                I_Driver,
-            FVulkanGraphicsCommandPool*   I_GraphicsPool,
-            FVulkanTransferCommandPool*   I_TransferPool);
+            FVulkanGraphicsCommandPool*   I_GraphicsPool);
     };
 
     void FRHISwapChain::MoveFrom(FRHISwapChain&& I_Other) noexcept
@@ -131,19 +124,18 @@ export namespace Visera
     Initialize(
         FVulkanDriver*                 I_Driver,
         FVulkanGraphicsCommandPool*    I_GraphicsPool,
-        FVulkanTransferCommandPool*    I_TransferPool,
         FWindow*                       I_Window)
     {
         Window = I_Window;
         if (I_Window)
         {
-            BuildFrameResources(I_Driver, I_GraphicsPool, I_TransferPool);
+            BuildFrameResources(I_Driver, I_GraphicsPool);
             CachedWidth  = I_Window->GetWidth();
             CachedHeight = I_Window->GetHeight();
         }
         else
         {
-            BuildHeadlessFrameResources(I_Driver, I_GraphicsPool, I_TransferPool);
+            BuildHeadlessFrameResources(I_Driver, I_GraphicsPool);
         }
         FrameSlotFreeEvent = MakeUnique<FEvent>();
         FrameTimer.Reset();
@@ -152,20 +144,19 @@ export namespace Visera
     void FRHISwapChain::
     Reinitialize(
         FVulkanDriver*              I_Driver,
-        FVulkanGraphicsCommandPool* I_GraphicsPool,
-        FVulkanTransferCommandPool* I_TransferPool)
+        FVulkanGraphicsCommandPool* I_GraphicsPool)
     {
         InFlightFrames.Clear();
         RenderFinishedSemaphores.Clear();
         if (Window)
         {
-            BuildFrameResources(I_Driver, I_GraphicsPool, I_TransferPool);
+            BuildFrameResources(I_Driver, I_GraphicsPool);
             CachedWidth  = Window->GetWidth();
             CachedHeight = Window->GetHeight();
         }
         else
         {
-            BuildHeadlessFrameResources(I_Driver, I_GraphicsPool, I_TransferPool);
+            BuildHeadlessFrameResources(I_Driver, I_GraphicsPool);
         }
         FrameIndex   = 0;
         bFrameActive = False;
@@ -175,8 +166,7 @@ export namespace Visera
     void FRHISwapChain::
     BuildFrameResources(
         FVulkanDriver*              I_Driver,
-        FVulkanGraphicsCommandPool* I_GraphicsPool,
-        FVulkanTransferCommandPool* I_TransferPool)
+        FVulkanGraphicsCommandPool* I_GraphicsPool)
     {
         auto* SC = I_Driver->GetSwapChain(Window);
         if (!SC) { LOG_WARN("BuildFrameResources: no vulkan swapchain!"); return; }
@@ -195,16 +185,13 @@ export namespace Visera
             Frame.ExecuteFence              = I_Driver->CreateFence(True);
             Frame.SwapChainReadySemaphore   = I_Driver->CreateSemaphore();
             Frame.GraphicsCalls             = I_GraphicsPool->CreateCommandBuffer(True);
-            Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
-            Frame.TransferCalls             = I_TransferPool->CreateCommandBuffer(True);
         }
     }
 
     void FRHISwapChain::
     BuildHeadlessFrameResources(
         FVulkanDriver*              I_Driver,
-        FVulkanGraphicsCommandPool* I_GraphicsPool,
-        FVulkanTransferCommandPool* I_TransferPool)
+        FVulkanGraphicsCommandPool* I_GraphicsPool)
     {
         const UInt32 Count = (kMaxInFlightFrames > 0) ? kMaxInFlightFrames : 2u;
         InFlightFrames.Clear();
@@ -215,8 +202,6 @@ export namespace Visera
             Frame.ExecuteFence              = I_Driver->CreateFence(True);
             Frame.SwapChainReadySemaphore   = I_Driver->CreateSemaphore();
             Frame.GraphicsCalls             = I_GraphicsPool->CreateCommandBuffer(True);
-            Frame.TransferFinishedSemaphore = I_Driver->CreateSemaphore();
-            Frame.TransferCalls             = I_TransferPool->CreateCommandBuffer(True);
         }
     }
 }

@@ -104,40 +104,45 @@ export namespace Visera
 
         // Descriptor writes
         void
-        WriteDescriptorCombinedImageSampler(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                            const FRHITextureID& I_Texture, const FRHISamplerID& I_Sampler,
+        WriteDescriptorCombinedImageSampler(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                            FRHITextureID I_Texture, FRHISamplerID I_Sampler,
                                             ERHIImageLayout I_ImageLayout = ERHIImageLayout::ShaderReadOnly);
         void
-        WriteDescriptorUniformBuffer(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                     const FRHIBufferID& I_Buffer);
+        WriteDescriptorUniformBuffer(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                     FRHIBufferID I_Buffer);
         void
-        WriteDescriptorStorageBuffer(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                     const FRHIBufferID& I_Buffer);
+        WriteDescriptorStorageBuffer(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                     FRHIBufferID I_Buffer);
         void
-        WriteDescriptorStorageImage(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                    const FRHITextureID& I_Texture,
+        WriteDescriptorStorageImage(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                    FRHITextureID I_Texture,
                                     ERHIImageLayout I_ImageLayout = ERHIImageLayout::General);
         void
-        WriteDescriptorSampledImage(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                    const FRHITextureID& I_Texture,
+        WriteDescriptorSampledImage(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                    FRHITextureID I_Texture,
                                     ERHIImageLayout I_ImageLayout = ERHIImageLayout::ShaderReadOnly);
         void
-        WriteDescriptorSampler(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                               const FRHISamplerID& I_Sampler);
+        WriteDescriptorSampler(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                               FRHISamplerID I_Sampler);
 
-        // Texture upload via staging ring
+        // Texture upload via staging ring (dispatches to RHI thread, blocks until GPU finishes).
         void
-        UploadTexture(const FRHITextureID& I_Texture, const FByte* I_Data, UInt64 I_Size);
+        UploadTexture(FRHITextureID I_Texture, const FByte* I_Data, UInt64 I_ByteSize);
+        // Buffer upload via staging ring (dispatches to RHI thread, blocks until GPU finishes).
         void
-        UploadBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_Size, UInt64 I_Offset = 0);
+        UploadBuffer(FRHIBufferID I_Buffer, const FByte* I_Data, UInt64 I_ByteSize, UInt64 I_Offset = 0);
+        /** Direct CPU memcpy to a host-writable buffer (bHostWritable=true).
+         *  Runs on the calling thread -- no RHI thread dispatch, no staging, no GPU sync. */
+        void
+        WriteBufferDirect(FRHIBufferID I_Buffer, const FByte* I_Data, UInt64 I_ByteSize, UInt64 I_Offset = 0);
 
         /** Synchronously transition texture from I_OldLayout to I_NewLayout. */
         void
-        TransitionTexture(const FRHITextureID& I_Texture, ERHIImageLayout I_OldLayout, ERHIImageLayout I_NewLayout);
+        TransitionTexture(FRHITextureID I_Texture, ERHIImageLayout I_OldLayout, ERHIImageLayout I_NewLayout);
 
         /** Block until I_Texture (e.g. offscreen RT) is copied to I_OutData. Image region [0,0] to [I_Width, I_Height]. Does not expose Map. */
         void
-        ReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_Size, UInt32 I_Width, UInt32 I_Height);
+        ReadbackTexture(FRHITextureID I_Texture, void* I_OutData, UInt64 I_ByteSize, UInt32 I_Width, UInt32 I_Height);
 
         // Low-level API
         [[nodiscard]] const FVulkanDriver*
@@ -183,7 +188,6 @@ export namespace Visera
             TSharedPtr<FRHIRegistry>            Registry;
             TUniquePtr<FRHIStagingRingBuffer>   StagingRing;
             FVulkanGraphicsCommandPool          GraphicsCommandPool;
-            FVulkanTransferCommandPool          TransferCommandPool;
             TArray<FRHISwapChain>               SwapChains;
             TArray<UInt8>                       FreeSlots;  // Reusable swap chain indices for stable IDs.
             mutable FRWLock                     WindowToSwapChainLock;
@@ -247,7 +251,7 @@ export namespace Visera
             void
             WaitDeviceIdle() const;
             void
-            DoReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_Size, UInt32 I_Width, UInt32 I_Height);
+            DoReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_ByteSize, UInt32 I_Width, UInt32 I_Height);
             [[nodiscard]] FRHITextureID
             CreateTexture(FRHITextureCreateInfo&& I_Desc);
             [[nodiscard]] FRHIBufferID
@@ -261,9 +265,9 @@ export namespace Visera
             [[nodiscard]] FRHIRenderPassID
             CreateRenderPass(FRHIRenderPassCreateInfo&& I_Desc);
             void
-            UploadTexture(const FRHITextureID& I_Texture, const FByte* I_Data, UInt64 I_Size);
+            UploadTexture(const FRHITextureID& I_Texture, const FByte* I_Data, UInt64 I_ByteSize);
             void
-            UploadBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_Size, UInt64 I_Offset);
+            UploadBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_ByteSize, UInt64 I_Offset);
             void
             TransitionTexture(const FRHITextureID& I_Texture, ERHIImageLayout I_OldLayout, ERHIImageLayout I_NewLayout);
             [[nodiscard]] FVulkanDriver*
@@ -348,11 +352,6 @@ export namespace Visera
                     LOG_FATAL("Failed to initialize Vulkan driver on RHI thread!");
                     return False;
                 }
-
-                if (RHIThread.Driver->GetDevice().GraphicsQueueFamilyIndex
-                    !=
-                    RHIThread.Driver->GetDevice().TransferQueueFamilyIndex)
-                { LOG_WARN("({}) NOT support \"Queue Family Ownership Transfer\"!", GetRuntimeName()); }
 
                 if (RHIThread.PreferredGPUName.IsEmpty())
                 {
@@ -598,15 +597,11 @@ export namespace Visera
         Registry    = MakeShared<FRHIRegistry>(Driver.Get());
         StagingRing = MakeUnique<FRHIStagingRingBuffer>(Driver.Get(), 16_MB);
         GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>(False);
-        TransferCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Transfer>(False);
 
-        // Utility frame for synchronous one-off GPU work (readback, etc.).
         UtilityFrame.Emplace();
         UtilityFrame->ExecuteFence = Driver->CreateFence(True);
         UtilityFrame->SwapChainReadySemaphore = Driver->CreateSemaphore();
         UtilityFrame->GraphicsCalls = GraphicsCommandPool.CreateCommandBuffer(True);
-        UtilityFrame->TransferFinishedSemaphore = Driver->CreateSemaphore();
-        UtilityFrame->TransferCalls = TransferCommandPool.CreateCommandBuffer(True);
 
         // Pre-reserve so EmplaceBack never reallocates while Graphics thread holds references.
         SwapChains.Reserve(kMaxSwapChainCount);
@@ -657,7 +652,6 @@ export namespace Visera
         UtilityFrame.Reset();
 
         GraphicsCommandPool = {};
-        TransferCommandPool = {};
 
         Registry.Reset();
         StagingRing.Reset();
@@ -717,7 +711,7 @@ export namespace Visera
             if (WindowToSwapChainIndex.Contains(I_Window)) { return; }
             Driver->CreateSwapChain(I_Window, I_PreCreatedSurface);
             SCIdx = AllocateSlot();
-            SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, &TransferCommandPool, I_Window);
+            SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, I_Window);
             SwapChains[SCIdx].CachedProxyTextureID = FRHITextureID::CreateUnmanaged(
                 FRHITextureHandle::CreateSwapChainProxy(SCIdx));
             WindowToSwapChainIndex.Insert(I_Window, SCIdx);
@@ -730,7 +724,7 @@ export namespace Visera
     ExecuteCreateHeadlessSwapChain()
     {
         UInt8 SCIdx = AllocateSlot();
-        SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, &TransferCommandPool, nullptr);
+        SwapChains[SCIdx].Initialize(Driver.Get(), &GraphicsCommandPool, nullptr);
         LOG_TRACE("({}) ExecuteCreateHeadlessSwapChain: headless (id:{}, in-flight:{}).",
             Owner->GetRuntimeName(), SCIdx, SwapChains[SCIdx].InFlightFrames.GetSize());
         return SCIdx;
@@ -806,13 +800,12 @@ export namespace Visera
         {
             auto& Frame = Ctx.InFlightFrames[Ctx.FrameIndex];
             Frame.GraphicsCalls.End();
-            Frame.TransferCalls.End();
             Ctx.bFrameActive = False;
         }
 
         Driver->RecreateSwapChain(I_Window);
 
-        Ctx.Reinitialize(Driver.Get(), &GraphicsCommandPool, &TransferCommandPool);
+        Ctx.Reinitialize(Driver.Get(), &GraphicsCommandPool);
         Ctx.CachedProxyTextureID = FRHITextureID::CreateUnmanaged(
             FRHITextureHandle::CreateSwapChainProxy(Idx));
         Ctx.bDirty.Store(False, EMemoryOrder::Relaxed);
@@ -827,14 +820,17 @@ export namespace Visera
         if (Ctx.InFlightFrames.IsEmpty()) { return False; }
         auto& Frame = Ctx.InFlightFrames[Ctx.FrameIndex];
 
-        if (Frame.ExecuteFence.Wait(kFrameFenceTimeoutNs))
-        {
-            (void)Frame.ExecuteFence.Reset();
-        }
-        else LOG_ERROR("Failed to wait the fence of swapchain (id:{})", I_SwapChainID);
+        const Bool bFenceSignaled = Frame.ExecuteFence.Wait(kFrameFenceTimeoutNs);
+        if (!bFenceSignaled)
+        { LOG_ERROR("Failed to wait the fence of swapchain (id:{})", I_SwapChainID); }
 
+        // Do not reset the fence yet: CollectGarbage drains pending unregisters and
+        // assigns CurrentRetirementFence to them. Those buffers were used in the frame
+        // that just completed (this slot's previous use). If we reset before CollectGarbage,
+        // drained buffers get an unsignaled fence and are never recycled (per-frame realloc).
         Registry->SetCurrentRetirementFence(&Frame.ExecuteFence);
         Registry->CollectGarbage();
+        if (bFenceSignaled) { (void)Frame.ExecuteFence.Reset(); }
 
         if (auto* Win = Ctx.Window)
         {
@@ -867,8 +863,6 @@ export namespace Visera
 
         Frame.GraphicsCalls.Reset();
         Frame.GraphicsCalls.Begin();
-        Frame.TransferCalls.Reset();
-        Frame.TransferCalls.Begin();
         Ctx.bFrameActive = True;
         return True;
     }
@@ -903,7 +897,6 @@ export namespace Visera
         }
 
         auto& Frame = Ctx.InFlightFrames[Ctx.FrameIndex];
-        Frame.TransferCalls.End();
         Frame.GraphicsCalls.End();
 
         // Re-check bDestroyed before touching the driver (window close can set it after initial check).
@@ -941,9 +934,8 @@ export namespace Visera
         }
         else
         {
-            // Headless: submit Transfer then Graphics; no vkQueuePresent.
-            Driver->Submit(&Frame.TransferCalls, nullptr, &Frame.TransferFinishedSemaphore, nullptr);
-            Driver->Submit(&Frame.GraphicsCalls, &Frame.TransferFinishedSemaphore, nullptr, &Frame.ExecuteFence);
+            // Headless: single graphics submission; no vkQueuePresent.
+            Driver->Submit(&Frame.GraphicsCalls, nullptr, nullptr, &Frame.ExecuteFence);
         }
 
         Ctx.bFrameActive = False;
@@ -1058,7 +1050,6 @@ export namespace Visera
         }
         FRHIInFlightFrame& Frame = Ctx->InFlightFrames[Ctx->FrameIndex];
         VISERA_ASSERT(Frame.GraphicsCalls.IsRecording());
-        VISERA_ASSERT(Frame.TransferCalls.IsRecording());
 
         {
             FScopeReadLock ReadLock(&Registry->GetLock());
@@ -1264,14 +1255,14 @@ export namespace Visera
             auto DepInfo = vk::DependencyInfo{}
                 .setImageMemoryBarrierCount(1)
                 .setPImageMemoryBarriers   (&Barrier);
-            I_Frame.TransferCalls.GetHandle().pipelineBarrier2(DepInfo);
+            I_Frame.GraphicsCalls.GetHandle().pipelineBarrier2(DepInfo);
         };
 
         MakeImageBarrier(InitialLayout, TransferDst,
             vk::PipelineStageFlagBits2::eTopOfPipe, vk::AccessFlagBits2::eNone,
             vk::PipelineStageFlagBits2::eTransfer,  vk::AccessFlagBits2::eTransferWrite);
 
-        I_Frame.TransferCalls.CopyBufferToImage(VulkanBuffer, VulkanImage, TransferDst);
+        I_Frame.GraphicsCalls.CopyBufferToImage(VulkanBuffer, VulkanImage, TransferDst);
 
         MakeImageBarrier(TransferDst, FinalLayout,
             vk::PipelineStageFlagBits2::eTransfer,     vk::AccessFlagBits2::eTransferWrite,
@@ -1286,7 +1277,7 @@ export namespace Visera
         auto* DestBuffer  = GetVulkanBufferChecked(Payload.DestBuffer);
         const vk::Offset2D ImageOffset = TypeCast(Payload.ImageOffset);
         const vk::Extent2D ImageExtent = TypeCast(Payload.ImageExtent);
-        I_Frame.TransferCalls.CopyImageToBuffer(SourceImage, DestBuffer, Payload.DestBufferOffset,
+        I_Frame.GraphicsCalls.CopyImageToBuffer(SourceImage, DestBuffer, Payload.DestBufferOffset,
             ImageOffset, ImageExtent, vk::ImageLayout::eTransferSrcOptimal);
     }
 
@@ -1296,7 +1287,7 @@ export namespace Visera
         const auto& Payload = DecodePayload<FRHICommandList::FWriteBuffer>(I_Cmd);
         auto* TargetBuffer  = GetVulkanBufferChecked(Payload.TargetBuffer);
         auto* StagingBuf = GetVulkanBufferChecked(Payload.StagingBuffer);
-        I_Frame.TransferCalls.CopyBuffer(StagingBuf, TargetBuffer);
+        I_Frame.GraphicsCalls.CopyBuffer(StagingBuf, TargetBuffer);
     }
 
     void FRHI::FRHIThread::
@@ -1660,8 +1651,8 @@ export namespace Visera
     // --- Descriptor Write APIs ---
 
     void FRHI::
-    WriteDescriptorCombinedImageSampler(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                        const FRHITextureID& I_Texture, const FRHISamplerID& I_Sampler,
+    WriteDescriptorCombinedImageSampler(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                        FRHITextureID I_Texture, FRHISamplerID I_Sampler,
                                         ERHIImageLayout I_ImageLayout)
     {
         auto* DS  = RHIThread.Registry->Get(I_DS.GetHandle());
@@ -1673,8 +1664,8 @@ export namespace Visera
     }
 
     void FRHI::
-    WriteDescriptorUniformBuffer(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                 const FRHIBufferID& I_Buffer)
+    WriteDescriptorUniformBuffer(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                 FRHIBufferID I_Buffer)
     {
         auto* DS  = RHIThread.Registry->Get(I_DS.GetHandle());
         auto* Buf = RHIThread.Registry->Get(I_Buffer.GetHandle());
@@ -1683,8 +1674,8 @@ export namespace Visera
     }
 
     void FRHI::
-    WriteDescriptorStorageBuffer(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                 const FRHIBufferID& I_Buffer)
+    WriteDescriptorStorageBuffer(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                 FRHIBufferID I_Buffer)
     {
         auto* DS  = RHIThread.Registry->Get(I_DS.GetHandle());
         auto* Buf = RHIThread.Registry->Get(I_Buffer.GetHandle());
@@ -1693,8 +1684,8 @@ export namespace Visera
     }
 
     void FRHI::
-    WriteDescriptorStorageImage(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                const FRHITextureID& I_Texture,
+    WriteDescriptorStorageImage(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                FRHITextureID I_Texture,
                                 ERHIImageLayout I_ImageLayout)
     {
         auto* DS  = RHIThread.Registry->Get(I_DS.GetHandle());
@@ -1704,8 +1695,8 @@ export namespace Visera
     }
 
     void FRHI::
-    WriteDescriptorSampledImage(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                                const FRHITextureID& I_Texture,
+    WriteDescriptorSampledImage(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                                FRHITextureID I_Texture,
                                 ERHIImageLayout I_ImageLayout)
     {
         auto* DS  = RHIThread.Registry->Get(I_DS.GetHandle());
@@ -1715,8 +1706,8 @@ export namespace Visera
     }
 
     void FRHI::
-    WriteDescriptorSampler(const FRHIDescriptorSetID& I_DS, UInt32 I_Binding,
-                           const FRHISamplerID& I_Sampler)
+    WriteDescriptorSampler(FRHIDescriptorSetID I_DS, UInt32 I_Binding,
+                           FRHISamplerID I_Sampler)
     {
         auto* DS  = RHIThread.Registry->Get(I_DS.GetHandle());
         auto* Smp = RHIThread.Registry->Get(I_Sampler.GetHandle());
@@ -1727,49 +1718,92 @@ export namespace Visera
     // --- Texture Upload via Staging Ring ---
 
     void FRHI::
-    UploadTexture(const FRHITextureID& I_Texture, const FByte* I_Data, UInt64 I_Size)
+    UploadTexture(FRHITextureID I_Texture, const FByte* I_Data, UInt64 I_ByteSize)
     {
-        RHIThread.UploadTexture(I_Texture, I_Data, I_Size);
-    }
-
-    void FRHI::
-    UploadBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_Size, UInt64 I_Offset)
-    {
-        RHIThread.UploadBuffer(I_Buffer, I_Data, I_Size, I_Offset);
-    }
-
-    void FRHI::
-    TransitionTexture(const FRHITextureID& I_Texture, ERHIImageLayout I_OldLayout, ERHIImageLayout I_NewLayout)
-    {
-        RHIThread.TransitionTexture(I_Texture, I_OldLayout, I_NewLayout);
-    }
-
-    void FRHI::
-    ReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_Size, UInt32 I_Width, UInt32 I_Height)
-    {
-        if (!I_OutData || I_Size == 0 || I_Width == 0 || I_Height == 0) { return; }
         FEvent Done;
-        const FRHITextureHandle TextureHandle = I_Texture.GetHandle();
-        RHIThread.Execute([this, TextureHandle, I_OutData, I_Size, I_Width, I_Height, EventPtr = &Done]() noexcept
+        RHIThread.Execute([this, I_Texture, I_Data, I_ByteSize, EventPtr = &Done]() noexcept
         {
-            RHIThread.DoReadbackTexture(FRHITextureID::CreateUnmanaged(TextureHandle), I_OutData, I_Size, I_Width, I_Height);
+            RHIThread.UploadTexture(I_Texture, I_Data, I_ByteSize);
+            EventPtr->Trigger();
+        });
+        Done.WaitAndReset();
+    }
+
+    void FRHI::
+    UploadBuffer(FRHIBufferID I_Buffer, const FByte* I_Data, UInt64 I_ByteSize, UInt64 I_Offset)
+    {
+        FEvent Done;
+        RHIThread.Execute([this, I_Buffer, I_Data, I_ByteSize, I_Offset, EventPtr = &Done]() noexcept
+        {
+            RHIThread.UploadBuffer(I_Buffer, I_Data, I_ByteSize, I_Offset);
+            EventPtr->Trigger();
+        });
+        Done.WaitAndReset();
+    }
+
+    void FRHI::
+    WriteBufferDirect(FRHIBufferID I_Buffer, const FByte* I_Data, UInt64 I_ByteSize, UInt64 I_Offset)
+    {
+        if (!I_Data || I_ByteSize == 0) { return; }
+        auto* Buffer = RHIThread.Registry->Get(I_Buffer.GetHandle());
+        if (!Buffer)
+        { LOG_ERROR("WriteBufferDirect: invalid buffer handle."); return; }
+
+        auto* VulkanBuffer = Buffer->GetVulkanBuffer();
+        void* MappedPointer = VulkanBuffer->GetMappedPtr();
+        if (MappedPointer)
+        {
+            // Fast path: persistently mapped -- direct memcpy at the requested offset.
+            Memory::Memcpy(static_cast<FByte*>(MappedPointer) + I_Offset, I_Data, I_ByteSize);
+        }
+        else
+        {
+            // Fallback: VMA chose device-local memory (no persistent mapping).
+            // Use the map-write-unmap path provided by FVulkanBuffer.
+            VulkanBuffer->Write(I_Data, I_ByteSize);
+        }
+    }
+
+    void FRHI::
+    TransitionTexture(FRHITextureID I_Texture, ERHIImageLayout I_OldLayout, ERHIImageLayout I_NewLayout)
+    {
+        FEvent Done;
+        RHIThread.Execute([this, I_Texture, I_OldLayout, I_NewLayout, EventPtr = &Done]() noexcept
+        {
+            RHIThread.TransitionTexture(I_Texture, I_OldLayout, I_NewLayout);
+            EventPtr->Trigger();
+        });
+        Done.WaitAndReset();
+    }
+
+    void FRHI::
+    ReadbackTexture(FRHITextureID I_Texture, void* I_OutData, UInt64 I_ByteSize, UInt32 I_Width, UInt32 I_Height)
+    {
+        if (!I_OutData || I_ByteSize == 0 || I_Width == 0 || I_Height == 0) { return; }
+        FEvent Done;
+        RHIThread.Execute([this, I_Texture, I_OutData, I_ByteSize, I_Width, I_Height, EventPtr = &Done]() noexcept
+        {
+            RHIThread.DoReadbackTexture(I_Texture, I_OutData, I_ByteSize, I_Width, I_Height);
             EventPtr->Trigger();
         });
         Done.WaitAndReset();
     }
 
     void FRHI::FRHIThread::
-    UploadTexture(const FRHITextureID& I_Texture, const FByte* I_Data, UInt64 I_Size)
+    UploadTexture(const FRHITextureID& I_Texture, const FByte* I_Data, UInt64 I_ByteSize)
     {
-        VISERA_ASSERT(I_Data && I_Size > 0);
+        VISERA_ASSERT(I_Data && I_ByteSize > 0);
 
         auto* Tex = Registry->Get(I_Texture.GetHandle());
         if (!Tex) { LOG_ERROR("UploadTexture: invalid texture handle."); return; }
 
-        auto Alloc = StagingRing->Allocate(I_Size);
+        auto Alloc = StagingRing->Allocate(I_ByteSize);
         if (!Alloc.IsValid())
-        { LOG_ERROR("UploadTexture: staging ring allocation failed for {} bytes.", I_Size); return; }
-        StagingRing->Write(Alloc, I_Data, I_Size);
+        { LOG_ERROR("UploadTexture: staging ring allocation failed for {} bytes.", I_ByteSize); return; }
+        StagingRing->Write(Alloc, I_Data, I_ByteSize);
+
+        if (!UtilityFrame.HasValue())
+        { LOG_ERROR("UploadTexture: UtilityFrame not available."); return; }
 
         auto* VulkanImage   = Tex->GetVulkanImage();
         auto* StagingBuffer = StagingRing->GetVulkanBuffer();
@@ -1804,29 +1838,27 @@ export namespace Visera
             I_CmdBuf.pipelineBarrier2(DepInfo);
         };
 
-        auto Cmd = TransferCommandPool.CreateCommandBuffer(True);
-        Cmd.Begin();
-        MakeImageBarrier(Cmd.GetHandle(),
+        FRHIInFlightFrame& Frame = UtilityFrame.GetValue();
+        Frame.GraphicsCalls.Reset();
+        Frame.GraphicsCalls.Begin();
+        MakeImageBarrier(Frame.GraphicsCalls.GetHandle(),
             vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
             vk::PipelineStageFlagBits2::eTopOfPipe, vk::AccessFlagBits2::eNone,
             vk::PipelineStageFlagBits2::eTransfer,  vk::AccessFlagBits2::eTransferWrite);
 
-        Cmd.CopyBufferToImage(StagingBuffer, VulkanImage, Alloc.Offset, vk::ImageLayout::eTransferDstOptimal);
+        Frame.GraphicsCalls.CopyBufferToImage(StagingBuffer, VulkanImage, Alloc.Offset, vk::ImageLayout::eTransferDstOptimal);
 
-        MakeImageBarrier(Cmd.GetHandle(),
+        MakeImageBarrier(Frame.GraphicsCalls.GetHandle(),
             vk::ImageLayout::eTransferDstOptimal, DstLayout,
             vk::PipelineStageFlagBits2::eTransfer,     vk::AccessFlagBits2::eTransferWrite,
             vk::PipelineStageFlagBits2::eBottomOfPipe, vk::AccessFlagBits2::eNone);
-        Cmd.End();
+        Frame.GraphicsCalls.End();
 
-        FVulkanFence Fence = Driver->CreateFence(False);
-        Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-        // Fence wait is required: (1) StagingRing correctness - AdvanceFence must run only after the GPU
-        // finishes reading from this staging region, else the next allocation could overwrite in-flight data;
-        // (2) API contract - this is a synchronous API, caller expects data ready on return.
-        // For async uploads, use CommandList (WriteBuffer, CopyBufferToImage) instead.
-        if (!Fence.Wait(kUploadFenceTimeoutNs))
+        (void)Frame.ExecuteFence.Reset();
+        Driver->Submit(&Frame.GraphicsCalls, nullptr, nullptr, &Frame.ExecuteFence);
+        if (!Frame.ExecuteFence.Wait(kUploadFenceTimeoutNs))
         { LOG_FATAL("UploadTexture: fence wait failed!"); }
+        (void)Frame.ExecuteFence.Reset();
 
         StagingRing->AdvanceFence(Alloc.Offset + Alloc.Size);
     }
@@ -1836,6 +1868,9 @@ export namespace Visera
     {
         auto* Tex = Registry->Get(I_Texture.GetHandle());
         if (!Tex) { LOG_ERROR("TransitionTexture: invalid texture handle."); return; }
+
+        if (!UtilityFrame.HasValue())
+        { LOG_ERROR("TransitionTexture: UtilityFrame not available."); return; }
 
         auto* VulkanImage = Tex->GetVulkanImage();
         vk::ImageLayout OldLayout = TypeCast(I_OldLayout);
@@ -1861,28 +1896,30 @@ export namespace Visera
             .setImage              (VulkanImage->GetHandle())
             .setSubresourceRange   (SubresourceRange);
 
-        auto Cmd = GraphicsCommandPool.CreateCommandBuffer(True);
-        Cmd.Begin();
+        FRHIInFlightFrame& Frame = UtilityFrame.GetValue();
+        Frame.GraphicsCalls.Reset();
+        Frame.GraphicsCalls.Begin();
         auto DepInfo = vk::DependencyInfo{}
             .setImageMemoryBarrierCount(1)
             .setPImageMemoryBarriers   (&Barrier);
-        Cmd.GetHandle().pipelineBarrier2(DepInfo);
-        Cmd.End();
+        Frame.GraphicsCalls.GetHandle().pipelineBarrier2(DepInfo);
+        Frame.GraphicsCalls.End();
 
-        FVulkanFence Fence = Driver->CreateFence(False);
-        Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-        if (!Fence.Wait(kUploadFenceTimeoutNs))
+        (void)Frame.ExecuteFence.Reset();
+        Driver->Submit(&Frame.GraphicsCalls, nullptr, nullptr, &Frame.ExecuteFence);
+        if (!Frame.ExecuteFence.Wait(kUploadFenceTimeoutNs))
         { LOG_FATAL("TransitionTexture: fence wait failed!"); }
+        (void)Frame.ExecuteFence.Reset();
     }
 
     void FRHI::FRHIThread::
-    DoReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_Size, UInt32 I_Width, UInt32 I_Height)
+    DoReadbackTexture(const FRHITextureID& I_Texture, void* I_OutData, UInt64 I_ByteSize, UInt32 I_Width, UInt32 I_Height)
     {
         auto* Tex = Registry->Get(I_Texture.GetHandle());
         if (!Tex) { LOG_ERROR("DoReadbackTexture: invalid texture handle."); return; }
 
         FRHIBufferCreateInfo StagingInfo;
-        StagingInfo.Size   = I_Size;
+        StagingInfo.Size   = I_ByteSize;
         StagingInfo.Usages = ERHIBufferUsage::TransferDst;
         FRHIBufferID StagingBufferID = CreateBuffer(std::move(StagingInfo));
 
@@ -1893,53 +1930,53 @@ export namespace Visera
         FVulkanBuffer* VulkanBuffer = GetVulkanBufferChecked(StagingBufferID.GetHandle());
 
         FRHIInFlightFrame& Frame = UtilityFrame.GetValue();
-        Frame.TransferCalls.Reset();
-        Frame.TransferCalls.Begin();
-        // Image is already in TransferSrc from the caller's command list (e.g. after clear + transition). Copy only.
-        Frame.TransferCalls.CopyImageToBuffer(VulkanImage, VulkanBuffer, 0,
+        Frame.GraphicsCalls.Reset();
+        Frame.GraphicsCalls.Begin();
+        Frame.GraphicsCalls.CopyImageToBuffer(VulkanImage, VulkanBuffer, 0,
             vk::Offset2D{0, 0}, vk::Extent2D{I_Width, I_Height}, vk::ImageLayout::eTransferSrcOptimal);
-        Frame.TransferCalls.End();
+        Frame.GraphicsCalls.End();
 
         (void)Frame.ExecuteFence.Reset();
-        Driver->Submit(&Frame.TransferCalls, nullptr, nullptr, &Frame.ExecuteFence);
+        Driver->Submit(&Frame.GraphicsCalls, nullptr, nullptr, &Frame.ExecuteFence);
         if (!Frame.ExecuteFence.Wait(kUtilityFenceTimeoutNs))
         { LOG_ERROR("DoReadbackTexture: utility fence wait timed out."); return; }
         (void)Frame.ExecuteFence.Reset();
 
         void* MappedPointer = VulkanBuffer->GetMappedPtr();
-        if (MappedPointer) { Memory::Memcpy(I_OutData, MappedPointer, I_Size); }
+        if (MappedPointer) { Memory::Memcpy(I_OutData, MappedPointer, I_ByteSize); }
         else { LOG_ERROR("DoReadbackTexture: staging buffer not mappable."); }
     }
 
     void FRHI::FRHIThread::
-    UploadBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_Size, UInt64 I_Offset)
+    UploadBuffer(const FRHIBufferID& I_Buffer, const FByte* I_Data, UInt64 I_ByteSize, UInt64 I_Offset)
     {
-        VISERA_ASSERT(I_Data && I_Size > 0);
+        VISERA_ASSERT(I_Data && I_ByteSize > 0);
 
         auto* Buf = Registry->Get(I_Buffer.GetHandle());
         if (!Buf) { LOG_ERROR("UploadBuffer: invalid buffer handle."); return; }
 
-        auto Alloc = StagingRing->Allocate(I_Size);
+        auto Alloc = StagingRing->Allocate(I_ByteSize);
         if (!Alloc.IsValid())
-        { LOG_ERROR("UploadBuffer: staging ring allocation failed for {} bytes.", I_Size); return; }
-        StagingRing->Write(Alloc, I_Data, I_Size);
+        { LOG_ERROR("UploadBuffer: staging ring allocation failed for {} bytes.", I_ByteSize); return; }
+        StagingRing->Write(Alloc, I_Data, I_ByteSize);
+
+        if (!UtilityFrame.HasValue())
+        { LOG_ERROR("UploadBuffer: UtilityFrame not available."); return; }
 
         auto* TargetBuffer  = Buf->GetVulkanBuffer();
         auto* StagingBuffer = StagingRing->GetVulkanBuffer();
 
-        auto Cmd = TransferCommandPool.CreateCommandBuffer(True);
-        Cmd.Begin();
-        Cmd.CopyBuffer(StagingBuffer, TargetBuffer, Alloc.Offset, I_Offset, I_Size);
-        Cmd.End();
+        FRHIInFlightFrame& Frame = UtilityFrame.GetValue();
+        Frame.GraphicsCalls.Reset();
+        Frame.GraphicsCalls.Begin();
+        Frame.GraphicsCalls.CopyBuffer(StagingBuffer, TargetBuffer, Alloc.Offset, I_Offset, I_ByteSize);
+        Frame.GraphicsCalls.End();
 
-        FVulkanFence Fence = Driver->CreateFence(False);
-        Driver->Submit(&Cmd, nullptr, nullptr, &Fence);
-        // Fence wait is required: (1) StagingRing correctness - AdvanceFence must run only after the GPU
-        // finishes reading from this staging region, else the next allocation could overwrite in-flight data;
-        // (2) API contract - this is a synchronous API, caller expects data ready on return.
-        // For async uploads, use CommandList (WriteBuffer, CopyBufferToImage) instead.
-        if (!Fence.Wait(kUploadFenceTimeoutNs))
+        (void)Frame.ExecuteFence.Reset();
+        Driver->Submit(&Frame.GraphicsCalls, nullptr, nullptr, &Frame.ExecuteFence);
+        if (!Frame.ExecuteFence.Wait(kUploadFenceTimeoutNs))
         { LOG_FATAL("UploadBuffer: fence wait failed!"); }
+        (void)Frame.ExecuteFence.Reset();
 
         StagingRing->AdvanceFence(Alloc.Offset + Alloc.Size);
     }

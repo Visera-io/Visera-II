@@ -62,7 +62,7 @@ export namespace Visera
         FVulkanCommandBufferBase() = default;
 
         static vk::CommandBuffer
-        Allocate(const vk::raii::CommandPool& I_Pool,
+        Allocate(const vk::raii::CommandPool&         I_Pool,
                  const vk::CommandBufferAllocateInfo& I_Info)
         {
             auto Results = I_Pool.getDevice().allocateCommandBuffers(I_Info);
@@ -210,12 +210,12 @@ export namespace Visera
         using Super::Super;
 
         void ConvertImageLayout(FVulkanImage*           I_Image,
-                               vk::ImageLayout         I_OldLayout,
-                               vk::ImageLayout         I_NewLayout,
-                               EVulkanGraphicsStage    I_SrcStage,
-                               EVulkanGraphicsAccess   I_SrcAccess,
-                               EVulkanGraphicsStage    I_DstStage,
-                               EVulkanGraphicsAccess   I_DstAccess);
+                                vk::ImageLayout         I_OldLayout,
+                                vk::ImageLayout         I_NewLayout,
+                                EVulkanGraphicsStage    I_SrcStage,
+                                EVulkanGraphicsAccess   I_SrcAccess,
+                                EVulkanGraphicsStage    I_DstStage,
+                                EVulkanGraphicsAccess   I_DstAccess);
         void ClearColorImage(FVulkanImage* I_Image, const vk::ClearColorValue& I_ClearColor,
                             vk::ImageLayout I_ImageLayout);
         void SetViewport(const vk::Viewport& I_Viewport);
@@ -224,14 +224,14 @@ export namespace Visera
         /** Bind a different graphics pipeline within an active render pass (no vkCmdBeginRendering). */
         void BindGraphicsPipeline(FVulkanRenderPipeline* I_RenderPipeline);
         void BindVertexBuffer(UInt32         I_Binding,
-                             FVulkanBuffer* I_VertexBuffer,
-                             UInt64         I_BufferOffset);
-        void BindIndexBuffer(FVulkanBuffer* I_IndexBuffer,
-                            vk::IndexType   I_IndexType,
-                            UInt64          I_Offset);
+                              FVulkanBuffer* I_VertexBuffer,
+                              UInt64         I_BufferOffset);
+        void BindIndexBuffer(FVulkanBuffer*  I_IndexBuffer,
+                             vk::IndexType   I_IndexType,
+                             UInt64          I_Offset);
         void PushConstants(const void* I_Data,
-                          UInt32      I_Offset,
-                          UInt32      I_Size);
+                           UInt32      I_Offset,
+                           UInt32      I_Size);
         template<class T> void
         PushConstants(const T& I_Data, UInt32 I_Offset = 0)
         {
@@ -246,17 +246,32 @@ export namespace Visera
                         UInt32 I_FirstInstance) const;
         void LeaveRenderPipeline();
         void BlitImage(FVulkanImage*     I_SrcImage,
-                      FVulkanImage*     I_DstImage,
-                      vk::Filter        I_Filter,
-                      vk::ImageLayout   I_SrcImageLayout,
-                      vk::ImageLayout   I_DstImageLayout);
+                       FVulkanImage*     I_DstImage,
+                       vk::Filter        I_Filter,
+                       vk::ImageLayout   I_SrcImageLayout,
+                       vk::ImageLayout   I_DstImageLayout);
         void CopyImage(FVulkanImage*     I_SrcImage,
-                      FVulkanImage*     I_DstImage,
-                      vk::ImageLayout   I_SrcImageLayout,
-                      vk::ImageLayout   I_DstImageLayout);
-        void CopyBufferToImage(FVulkanBuffer*  I_SrcBuffer,
-                              FVulkanImage*   I_DstImage,
-                              vk::ImageLayout I_DstImageLayout = vk::ImageLayout::eTransferDstOptimal);
+                       FVulkanImage*     I_DstImage,
+                       vk::ImageLayout   I_SrcImageLayout,
+                       vk::ImageLayout   I_DstImageLayout);
+        void CopyBuffer(FVulkanBuffer*   I_SrcBuffer,
+                        FVulkanBuffer*   I_DstBuffer,
+                        UInt64           I_SrcOffset = 0,
+                        UInt64           I_DstOffset = 0,
+                        UInt64           I_Size = 0);
+        void CopyBufferToImage(FVulkanBuffer*       I_SrcBuffer,
+                               FVulkanImage*        I_DstImage,
+                               vk::ImageLayout      I_DstImageLayout = vk::ImageLayout::eTransferDstOptimal);
+        void CopyBufferToImage(FVulkanBuffer*       I_SrcBuffer,
+                               FVulkanImage*        I_DstImage,
+                               UInt64               I_BufferOffset,
+                               vk::ImageLayout      I_DstImageLayout = vk::ImageLayout::eTransferDstOptimal);
+        void CopyImageToBuffer(FVulkanImage*        I_SourceImage,
+                               FVulkanBuffer*       I_DestBuffer,
+                               UInt64               I_BufferOffset,
+                               const vk::Offset2D&  I_ImageOffset,
+                               const vk::Extent2D&  I_ImageExtent,
+                               vk::ImageLayout      I_SourceImageLayout = vk::ImageLayout::eTransferSrcOptimal);
 
         [[nodiscard]] inline Bool
         IsInsideRenderPass() const { return Status == EStatus::InsideRenderPass; }
@@ -806,6 +821,96 @@ export namespace Visera
             .setRegionCount     (1)
             .setPRegions        (&CopyRegion);
         Handle.copyBufferToImage2(CopyInfo);
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    CopyBuffer(FVulkanBuffer* I_SrcBuffer,
+               FVulkanBuffer* I_DstBuffer,
+               UInt64         I_SrcOffset,
+               UInt64         I_DstOffset,
+               UInt64         I_Size)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SrcBuffer != nullptr);
+        VISERA_ASSERT(I_DstBuffer != nullptr);
+
+        const UInt64 CopySize = (I_Size > 0)
+            ? I_Size
+            : (std::min)(I_SrcBuffer->GetMemorySize() - I_SrcOffset,
+                         I_DstBuffer->GetMemorySize() - I_DstOffset);
+        VISERA_ASSERT(CopySize > 0);
+
+        const auto CopyRegion = vk::BufferCopy2{}
+            .setSrcOffset(I_SrcOffset)
+            .setDstOffset(I_DstOffset)
+            .setSize    (CopySize);
+
+        const auto CopyInfo = vk::CopyBufferInfo2{}
+            .setSrcBuffer   (I_SrcBuffer->GetHandle())
+            .setDstBuffer   (I_DstBuffer->GetHandle())
+            .setRegionCount (1)
+            .setPRegions    (&CopyRegion);
+
+        Handle.copyBuffer2(CopyInfo);
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    CopyBufferToImage(FVulkanBuffer* I_SrcBuffer,
+                      FVulkanImage*  I_DstImage,
+                      UInt64         I_BufferOffset,
+                      vk::ImageLayout I_DstImageLayout)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SrcBuffer != nullptr);
+        VISERA_ASSERT(I_DstImage  != nullptr);
+
+        auto CopyRegion = vk::BufferImageCopy2{}
+            .setBufferOffset      (I_BufferOffset)
+            .setBufferRowLength   (0)
+            .setBufferImageHeight (0)
+            .setImageSubresource  (I_DstImage->GetSubresourceLayers(0))
+            .setImageOffset       ({0, 0, 0})
+            .setImageExtent       (I_DstImage->GetExtent());
+        auto CopyInfo = vk::CopyBufferToImageInfo2{}
+            .setSrcBuffer      (I_SrcBuffer->GetHandle())
+            .setDstImage       (I_DstImage->GetHandle())
+            .setDstImageLayout (I_DstImageLayout)
+            .setRegionCount    (1)
+            .setPRegions       (&CopyRegion);
+        Handle.copyBufferToImage2(CopyInfo);
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    CopyImageToBuffer(FVulkanImage*  I_SourceImage,
+                      FVulkanBuffer* I_DestBuffer,
+                      UInt64         I_BufferOffset,
+                      const vk::Offset2D& I_ImageOffset,
+                      const vk::Extent2D& I_ImageExtent,
+                      vk::ImageLayout I_SourceImageLayout)
+    {
+        VISERA_ASSERT(IsRecording());
+        VISERA_ASSERT(I_SourceImage != nullptr);
+        VISERA_ASSERT(I_DestBuffer  != nullptr);
+
+        const auto ImageSubresourceLayers = vk::ImageSubresourceLayers{}
+            .setAspectMask     (vk::ImageAspectFlagBits::eColor)
+            .setMipLevel       (0)
+            .setBaseArrayLayer (0)
+            .setLayerCount     (1);
+        const auto CopyRegion = vk::BufferImageCopy2{}
+            .setBufferOffset       (I_BufferOffset)
+            .setBufferRowLength    (0)
+            .setBufferImageHeight (0)
+            .setImageSubresource  (ImageSubresourceLayers)
+            .setImageOffset        (vk::Offset3D{I_ImageOffset.x, I_ImageOffset.y, 0})
+            .setImageExtent       (vk::Extent3D{I_ImageExtent.width, I_ImageExtent.height, 1});
+        const auto CopyInfo = vk::CopyImageToBufferInfo2{}
+            .setSrcImage       (I_SourceImage->GetHandle())
+            .setSrcImageLayout (I_SourceImageLayout)
+            .setDstBuffer      (I_DestBuffer->GetHandle())
+            .setRegionCount    (1)
+            .setPRegions       (&CopyRegion);
+        Handle.copyImageToBuffer2(CopyInfo);
     }
 
     // ========== Compute implementations ==========

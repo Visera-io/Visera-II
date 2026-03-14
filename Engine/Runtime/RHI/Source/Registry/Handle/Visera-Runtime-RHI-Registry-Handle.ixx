@@ -40,12 +40,15 @@ export namespace Visera
         GetType() const { return static_cast<EType>((FHandle::GetGeneration() & TYPE_MASK) >> 27); }
         [[nodiscard]] constexpr Bool
         IsWritable() const { return ((Value >> 32) & WRITABLE_MASK) != 0; }
+        [[nodiscard]] constexpr Bool
+        IsSwapChainProxy() const { return GetType() == EType::Texture && GetGeneration() == 0; }
 
     public:
         FRHIResourceHandle() = default;
-        FRHIResourceHandle(UInt32 I_Generation, UInt32 I_Index,
+        FRHIResourceHandle(
+            UInt32 I_Generation, UInt32 I_Index,
             EType I_Type      = EType::Unknown,
-            Bool             I_bWritable = False)
+            Bool  I_bWritable = False)
         {
             const UInt32 GenerationBits = (I_Generation & GENERATION_MASK);
             const UInt32 TypeBits       = (static_cast<UInt32>(I_Type) & 0b1111U) << 27;

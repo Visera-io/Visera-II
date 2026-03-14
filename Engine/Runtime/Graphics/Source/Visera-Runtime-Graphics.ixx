@@ -99,7 +99,9 @@ export namespace Visera
 
    /** Creates per-batch SSBO + descriptor set for FInstanceData[].
     *  Called once per frame after ExtractAndSortDrawList, before RDG execution.
-    *  Buffer lifetime is tied to FRHIBufferID RAII -- destroyed when FRenderList goes out of scope. */
+    *  Buffer lifetime is tied to FRHIBufferID RAII -- destroyed when FRenderList goes out of scope.
+    *  Uses host-writable (persistently mapped) buffers so the CPU can memcpy
+    *  directly without staging or GPU-side transfers. */
    inline void
    UploadInstanceBuffers(FRenderList& IO_List, FRHI* I_RHI)
    {
@@ -110,11 +112,12 @@ export namespace Visera
             if (Batch.Instances.IsEmpty()) { continue; }
             const UInt64 Size = Batch.Instances.GetSize() * sizeof(FInstanceData);
             Batch.InstanceBuffer = I_RHI->CreateBuffer(FRHIBufferCreateInfo{
-               .Size   = Size,
-               .Usages = ERHIBufferUsage::StorageBuffer | ERHIBufferUsage::TransferDst,
+               .Size          = Size,
+               .Usages        = ERHIBufferUsage::StorageBuffer,
+               .bHostWritable = True,
             });
-            I_RHI->UploadBuffer(Batch.InstanceBuffer,
-               reinterpret_cast<const FByte*>(Batch.Instances.Data()), Size, 0);
+            I_RHI->WriteBufferDirect(Batch.InstanceBuffer,
+               reinterpret_cast<const FByte*>(Batch.Instances.Data()), Size);
 
             Batch.InstanceDescriptorSet = I_RHI->CreateDescriptorSet(FRHIDescriptorSetCreateInfo{
                .Bindings = {{
@@ -229,9 +232,11 @@ export namespace Visera
 
          void
          WaitSwapChainReadyIfDirty(FRHISwapChainID I_SwapChainID);
+         /** Inject cached textures from I_CacheSlot into I_Graph as external resources (see impl). */
          void
          ImportCachedTextures(FRenderGraph* I_Graph, TMap<FName, FCachedTexture>& I_CacheSlot,
                               UInt32 I_RenderWidth, UInt32 I_RenderHeight);
+         /** Persist named textures from I_Graph into I_CacheSlot for future frame reuse (see impl). */
          void
          ExportGraphToCache(FRenderGraph& I_Graph, TMap<FName, FCachedTexture>& I_CacheSlot);
          void
@@ -243,7 +248,7 @@ export namespace Visera
          TSPSCChannel<FRenderTask>&            ChannelFromMain;
          TAtomic<UInt32>&                      PendingDrawRenderTaskCount;
          FEvent*                               FrameConsumedEvent {nullptr};
-         UInt32                                MaxFrameRate {0};
+         UInt32                                MaxFrameRate {70};
          FHiResClock                           FramePacingClock;
          TUniquePtr<FThread>                   Thread;
          const TArray<FRenderPass>*            RenderPasses {nullptr};
@@ -291,7 +296,7 @@ export namespace Visera
 
             if (!GraphicsThread)
             {
-               UInt32 MaxFrameRate = GetConfig().GetNumber(TJSONRoute<"Graphics.MaxFrameRate">(), 0);
+               UInt32 MaxFrameRate = GetConfig().GetNumber(TJSONRoute<"Graphics.MaxFrameRate">(), 70);
                GraphicsThread = MakeUnique<FGraphicsThread>(
                   RHI.Get(), ChannelToGraphics, PendingDrawRenderTaskCount,
                   &FrameConsumedEvent, &RenderPasses, &RenderPassesLock, MaxFrameRate);
@@ -544,6 +549,11 @@ export namespace Visera
       Graph->Compile(RenderContext.RHI)->Execute(&RenderContext);
    }
 
+   /** Import textures from the per-frame cache slot into the render graph.
+    *  The cache slot corresponds to the same triple-buffer index used N frames ago
+    *  (e.g. frame 3 reuses slot 0 from frame 0). Textures whose size matches
+    *  I_RenderWidth x I_RenderHeight are registered as external so the RDG
+    *  reuses existing RHI textures instead of allocating new ones. */
    void FGraphics::FGraphicsThread::
    ImportCachedTextures(FRenderGraph* I_Graph, TMap<FName, FCachedTexture>& I_CacheSlot,
                        UInt32 I_RenderWidth, UInt32 I_RenderHeight)
@@ -568,6 +578,11 @@ export namespace Visera
       }
    }
 
+   /** Export all named textures from the compiled render graph into the cache slot.
+    *  The slot is cleared first, then each live named texture (RHI ID, size, format)
+    *  is stored. When the same triple-buffer slot is reused in a future frame,
+    *  ImportCachedTextures will inject these as external textures to avoid
+    *  reallocating intermediate targets (e.g. SceneColor). */
    void FGraphics::FGraphicsThread::
    ExportGraphToCache(FRenderGraph& I_Graph, TMap<FName, FCachedTexture>& I_CacheSlot)
    {

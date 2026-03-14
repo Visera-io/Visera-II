@@ -277,11 +277,15 @@ export namespace Visera
                 I_TextureDesc.ArrayLayerRange.Left, I_TextureDesc.ArrayLayerRange.Right);
         }
 
+        /** Collision-free key for buffer recycle bin: distinct (Size, Usages, bHostWritable) map to distinct keys.
+         *  Packing: Size low 31 bits, Usages next 31 bits, bHostWritable bit 62. Avoids "incompatible" allocs from hash collisions. */
         [[nodiscard]] UInt64
         Hash(const FRHIBufferCreateInfo& I_BufferDesc) const
         {
-            return Math::GoldenRatioHashCombine(0,
-                I_BufferDesc.Size, I_BufferDesc.Usages);
+            const UInt64 S = I_BufferDesc.Size & 0x7FFFFFFFu;
+            const UInt64 U = static_cast<UInt64>(I_BufferDesc.Usages) & 0x7FFFFFFFu;
+            const UInt64 B = I_BufferDesc.bHostWritable ? (1ULL << 62) : 0;
+            return S | (U << 31) | B;
         }
 
         [[nodiscard]] UInt64
@@ -373,19 +377,17 @@ export namespace Visera
         {
             TWeakPtr<FRHIRegistry> RegWeak = Block->Registry;
             auto                   Handle  = Block->Handle;
-            delete Block;
-            Block = nullptr;
+            delete Block; Block = nullptr;
             if (RegWeak.IsExpired())
             {
                 DEBUG_ONLY_FIELD(
                 // SwapChain proxy textures are CreateUnmanaged(Gen=0); they are not in the registry, so do not report as leak.
-                const Bool bSwapChainProxy = (Handle.GetType() == FRHIResourceHandle::EType::Texture && Handle.GetGeneration() == 0);
-                if (!bSwapChainProxy)
+                if (!Handle.IsSwapChainProxy())
                 { LOG_ERROR("App did not release RHI resources({}) before engine shutdown.", Handle); }
                 );  
                 return;
             }
-            if (auto Reg = RegWeak.Lock()) { Reg->EnqueueUnregister(Handle); }
+            if (auto Reg = RegWeak.Lock()) { Reg->EnqueueUnregister(Handle); } 
         }
         else { Block = nullptr; }
     }
@@ -529,8 +531,10 @@ export namespace Visera
     {
         FScopeWriteLock WriteLock(&RegistryLock);
         const UInt64 Key = Hash(I_BufferDesc);
+        UInt64 const Size = I_BufferDesc.Size;
 
         auto RecycleBinIter = RecycleBinBuffers.Find(Key);
+        const char* allocReason = "no_bin";
         if (RecycleBinIter != RecycleBinBuffers.end())
         {
             auto& Handles = RecycleBinIter->second;
@@ -539,14 +543,27 @@ export namespace Visera
             {
                 const FRHIBufferHandle Handle = Handles[Idx];
                 const FRHIBuffer*      Buffer = Buffers.Get(Handle);
-                if (Buffer == nullptr) { continue; }
-
-                if (Buffer->GetInfo().IsCompatibleWith(I_BufferDesc))
+                if (Buffer == nullptr)
                 {
                     Handles.RemoveAtSwap(Idx);
-                    PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedBuffers;);
-                    return TRHIRegistryEntry<FRHIBufferHandle>(SharedFromThis(), Handle);
+                    --Idx;
+                    continue;
                 }
+                if (Hash(Buffer->GetInfo()) != Key)
+                {
+                    Handles.RemoveAtSwap(Idx);
+                    --Idx;
+                    continue;
+                }
+                if (!Buffer->GetInfo().IsCompatibleWith(I_BufferDesc))
+                {
+                    Handles.RemoveAtSwap(Idx);
+                    --Idx;
+                    continue;
+                }
+                Handles.RemoveAtSwap(Idx);
+                PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedBuffers;);
+                return TRHIRegistryEntry<FRHIBufferHandle>(SharedFromThis(), Handle);
             }
         }
         // Create new resource
@@ -556,7 +573,17 @@ export namespace Visera
             .setSharingMode (vk::SharingMode::eExclusive)
         ;
         EVulkanMemoryProperty MemoryProperties = EVulkanMemoryProperty::None;
-        if (I_BufferDesc.Usages & ERHIBufferUsage::TransferSrc)
+        if (I_BufferDesc.bHostWritable)
+        {
+            // Persistent mapped host-visible memory for direct CPU writes (no staging).
+            // HostAccessSequentialWrite prefers HOST_VISIBLE | HOST_COHERENT;
+            // HostAccessAllowTransferInstead lets VMA fall back to device-local
+            // with internal staging on GPUs without resizable BAR.
+            MemoryProperties |= EVulkanMemoryProperty::Mapped |
+                                EVulkanMemoryProperty::HostAccessSequentialWrite |
+                                EVulkanMemoryProperty::HostAccessAllowTransferInstead;
+        }
+        else if (I_BufferDesc.Usages & ERHIBufferUsage::TransferSrc)
         {
             MemoryProperties |= EVulkanMemoryProperty::HostAccessAllowTransferInstead |
                                 EVulkanMemoryProperty::HostAccessSequentialWrite;
@@ -588,6 +615,7 @@ export namespace Visera
         const UInt64 Key = Hash(I_DescriptorSetDesc);
 
         auto RecycleBinIter = RecycleBinDescriptorSets.Find(Key);
+        const char* dsAllocReason = "no_bin";
         if (RecycleBinIter != RecycleBinDescriptorSets.end())
         {
             auto& CandidateHandles = RecycleBinIter->second;
@@ -595,12 +623,21 @@ export namespace Visera
             {
                 const FRHIDescriptorSetHandle Hdl = CandidateHandles[Idx];
                 const auto* DS = DescriptorSets.Get(Hdl);
-                if (DS && DS->GetInfo().IsCompatibleWith(I_DescriptorSetDesc))
+                if (DS == nullptr)
                 {
                     CandidateHandles.RemoveAtSwap(Idx);
-                    PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedDescriptorSets;);
-                    return TRHIRegistryEntry<FRHIDescriptorSetHandle>(SharedFromThis(), Hdl);
+                    --Idx;
+                    continue;
                 }
+                if (!DS->GetInfo().IsCompatibleWith(I_DescriptorSetDesc))
+                {
+                    CandidateHandles.RemoveAtSwap(Idx);
+                    --Idx;
+                    continue;
+                }
+                CandidateHandles.RemoveAtSwap(Idx);
+                PROFILING_ONLY_FIELD(++ProfilingMetrics.ReusedDescriptorSets;);
+                return TRHIRegistryEntry<FRHIDescriptorSetHandle>(SharedFromThis(), Hdl);
             }
         }
 

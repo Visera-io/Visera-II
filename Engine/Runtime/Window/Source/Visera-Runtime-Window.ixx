@@ -12,12 +12,6 @@ import Visera.Core.Delegate.Multicast;
 
 export namespace Visera
 {
-    enum class EPresentMode : UInt8
-    {
-        VSync,
-        Mailbox,
-    };
-
     class VISERA_RUNTIME_API FWindow : public IRuntimeService
     {
     public:
@@ -35,10 +29,6 @@ export namespace Visera
             }
             return bShouldClose;
         }
-        [[nodiscard]] EPresentMode
-        GetPresentMode() const { return PresentMode; }
-        void
-        SetPresentMode(EPresentMode I_Mode) { PresentMode = I_Mode; }
         [[nodiscard]] const FText&
         GetTitle()  const { return PlatformWindow->GetTitle(); }
         [[nodiscard]] UInt32
@@ -68,7 +58,6 @@ export namespace Visera
     private:
         TUniquePtr<FPlatformWindow> PlatformWindow;
         FInput*                     Input            {nullptr};
-        EPresentMode                PresentMode      {EPresentMode::VSync};
         Bool                        bClosingNotified {False};
 
     public:
@@ -86,8 +75,6 @@ export namespace Visera
                 FText Title(GetConfig().GetString(TJSONRoute<"Window.Title">(), "Visera"));
                 UInt32  Width  = GetConfig().GetNumber(TJSONRoute<"Window.Width">(), 512);
                 UInt32  Height = GetConfig().GetNumber(TJSONRoute<"Window.Height">(), 512);
-                PresentMode = GetConfig().GetBool(TJSONRoute<"Window.VSync">(), True)
-                    ? EPresentMode::VSync : EPresentMode::Mailbox;
 
                 PlatformWindow = FPlatform::CreateWindow(Title, Width, Height);
                 if (!PlatformWindow) { return False; }
@@ -126,11 +113,6 @@ export namespace Visera
                     UInt32 Width  = GetConfig().GetNumber(TJSONRoute<"Window.Width">(), 512);
                     UInt32 Height = GetConfig().GetNumber(TJSONRoute<"Window.Height">(), 512);
                     PlatformWindow->SetSize(Width, Height);
-                }
-                else if (Route == FStringView("Window.VSync").GetNative())
-                {
-                    PresentMode = GetConfig().GetBool(TJSONRoute<"Window.VSync">(), True)
-                        ? EPresentMode::VSync : EPresentMode::Mailbox;
                 }
             }))
             { LOG_FATAL("Failed to bind OnConfigChange function!"); }

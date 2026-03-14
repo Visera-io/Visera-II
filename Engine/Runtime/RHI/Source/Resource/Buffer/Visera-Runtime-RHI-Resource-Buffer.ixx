@@ -13,13 +13,18 @@ export namespace Visera
     public:
         struct VISERA_RUNTIME_API FCreateInfo
         {
-            UInt64           Size       {0};
-            ERHIBufferUsage  Usages     {ERHIBufferUsage::None};
+            UInt64           Size           {0};
+            ERHIBufferUsage  Usages         {ERHIBufferUsage::None};
+            /** When true the buffer is allocated in host-visible, persistently
+             *  mapped memory so the CPU can write directly without staging.
+             *  Ideal for per-frame data such as instance SSBOs. */
+            Bool             bHostWritable  {False};
 
             Bool operator==(const FCreateInfo&) const = default;
             Bool IsCompatibleWith(const FCreateInfo& I_Other) const
             { return (Size >= I_Other.Size) &&
-                     ((Usages & I_Other.Usages) == I_Other.Usages); }
+                     ((Usages & I_Other.Usages) == I_Other.Usages) &&
+                     (bHostWritable == I_Other.bHostWritable); }
         };
 
         [[nodiscard]] const FCreateInfo&

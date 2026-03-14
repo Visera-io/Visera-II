@@ -165,7 +165,7 @@ export namespace Visera
             vk::Format                      ImageFormat {vk::Format::eB8G8R8A8Srgb};
             vk::ColorSpaceKHR               ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                          MinimalImageCount{3};
-            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eMailbox};
+            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eMailbox};  // SwapChain default (spec-required)
             vk::SharingMode                 SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR   CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                            bClipped       {True};
@@ -386,10 +386,8 @@ export namespace Visera
             }
             if (!SurfaceHandle) { LOG_ERROR("Failed to create vulkan surface!"); return; }
             SC = new FSwapChain();
-            SC->Surface = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
-            SC->Extent = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
-            SC->PresentMode = (I_Window->GetPresentMode() == EPresentMode::VSync)
-                ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
+            SC->Surface     = vk::raii::SurfaceKHR(Instance, SurfaceHandle);
+            SC->Extent      = vk::Extent2D{ I_Window->GetWidth(), I_Window->GetHeight() };
             SwapChains[I_Window] = SC;
         }
 
@@ -400,21 +398,7 @@ export namespace Visera
 
         if (!bRecreate)
         {
-            Bool bFoundRequiredPresentMode {False};
-            auto Result = GPU.Context.getSurfacePresentModesKHR(SurfaceHandle);
-            if (!Result.has_value())
-            { LOG_FATAL("Failed to get the required Present Mode!"); }
-            for (const auto PresentModes = std::move(*Result);
-                 const auto& PresentMode : PresentModes)
-            {
-                if (PresentMode == Entry.PresentMode)
-                { bFoundRequiredPresentMode = True; break; }
-            }
-            if (!bFoundRequiredPresentMode)
-            {
-                LOG_WARN("Failed to find required present mode for SwapChain! Using FIFO by default.");
-                Entry.PresentMode = vk::PresentModeKHR::eFifo;
-            }
+            // PresentMode uses SwapChain default (eFifo); no per-window override.
             Bool bFoundRequiredFormatAndColorSpace {False};
             auto FormatResult = GPU.Context.getSurfaceFormatsKHR(SurfaceHandle);
             if (!FormatResult.has_value())
@@ -457,10 +441,10 @@ export namespace Visera
             .setImageUsage      (Entry.ImageUsage)
             .setImageSharingMode(Entry.SharingMode)
             .setImageArrayLayers(1U)
-            .setPreTransform   (SurfaceCapabilities.currentTransform)
-            .setCompositeAlpha (Entry.CompositeAlpha)
-            .setPresentMode    (Entry.PresentMode)
-            .setClipped       (Entry.bClipped);
+            .setPreTransform    (SurfaceCapabilities.currentTransform)
+            .setCompositeAlpha  (Entry.CompositeAlpha)
+            .setPresentMode     (Entry.PresentMode)
+            .setClipped         (Entry.bClipped);
         {
             auto R = Device.Context.createSwapchainKHR(CreateInfo);
             if (!R.has_value())
