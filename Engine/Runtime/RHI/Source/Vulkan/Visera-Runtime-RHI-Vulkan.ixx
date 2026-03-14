@@ -153,6 +153,7 @@ export namespace Visera
 
         struct FSwapChain
         {
+            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eMailbox};
             vk::raii::SurfaceKHR            Surface     {nullptr};
             vk::raii::SwapchainKHR          Context     {nullptr};
             vk::raii::SwapchainKHR          OldContext  {nullptr};
@@ -165,7 +166,6 @@ export namespace Visera
             vk::Format                      ImageFormat {vk::Format::eB8G8R8A8Srgb};
             vk::ColorSpaceKHR               ColorSpace  {vk::ColorSpaceKHR::eSrgbNonlinear};
             UInt32                          MinimalImageCount{3};
-            vk::PresentModeKHR              PresentMode {vk::PresentModeKHR::eMailbox};  // SwapChain default (spec-required)
             vk::SharingMode                 SharingMode {vk::SharingMode::eExclusive};
             vk::CompositeAlphaFlagBitsKHR   CompositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque};
             Bool                            bClipped       {True};
@@ -370,7 +370,7 @@ export namespace Visera
             WaitDeviceIdle();
             SC->ImageViews.Clear();
             SC->Images.Clear();
-            SC->Context.clear();
+            // Keep SC->Context for setOldSwapchain; replaced after new swapchain is created.
         }
         else
         {
@@ -398,7 +398,25 @@ export namespace Visera
 
         if (!bRecreate)
         {
-            // PresentMode uses SwapChain default (eFifo); no per-window override.
+
+            // Check if the required present mode is supported
+            Bool bFoundRequiredPresentMode {False};
+            auto PresentModeResult = GPU.Context.getSurfacePresentModesKHR(SurfaceHandle);
+            if (!PresentModeResult.has_value())
+            { LOG_FATAL("Failed to get the required present mode!"); }
+            for (const auto PresentModes = std::move(*PresentModeResult);
+                 const auto& PresentMode : PresentModes)
+            {
+                if (PresentMode == Entry.PresentMode)
+                { bFoundRequiredPresentMode = True; break; }
+            }
+            if (!bFoundRequiredPresentMode)
+            { 
+                LOG_WARN("Failed to find required present mode for swapchain -- Using FIFO.");
+                Entry.PresentMode = vk::PresentModeKHR::eFifo;
+            }
+
+            // Check if the required format and color space are supported
             Bool bFoundRequiredFormatAndColorSpace {False};
             auto FormatResult = GPU.Context.getSurfaceFormatsKHR(SurfaceHandle);
             if (!FormatResult.has_value())
@@ -406,7 +424,8 @@ export namespace Visera
             for (const auto AvailableFormats = std::move(*FormatResult);
                  const auto& AvailableFormat : AvailableFormats)
             {
-                if (AvailableFormat.format == Entry.ImageFormat && AvailableFormat.colorSpace == Entry.ColorSpace)
+                if (AvailableFormat.format     == Entry.ImageFormat &&
+                    AvailableFormat.colorSpace == Entry.ColorSpace)
                 { bFoundRequiredFormatAndColorSpace = True; break; }
             }
             if (!bFoundRequiredFormatAndColorSpace)
@@ -432,7 +451,8 @@ export namespace Visera
             return;
         }
         Entry.MinimalImageCount = Math::Max(SurfaceCapabilities.minImageCount, Entry.MinimalImageCount);
-        const auto CreateInfo = vk::SwapchainCreateInfoKHR{}
+
+        auto CreateInfo = vk::SwapchainCreateInfoKHR{}
             .setSurface         (SurfaceHandle)
             .setMinImageCount   (Entry.MinimalImageCount)
             .setImageFormat     (Entry.ImageFormat)
@@ -444,7 +464,11 @@ export namespace Visera
             .setPreTransform    (SurfaceCapabilities.currentTransform)
             .setCompositeAlpha  (Entry.CompositeAlpha)
             .setPresentMode     (Entry.PresentMode)
-            .setClipped         (Entry.bClipped);
+            .setClipped         (Entry.bClipped)
+        ;
+        if (bRecreate && *Entry.Context)
+        { CreateInfo.setOldSwapchain(*Entry.Context); }
+
         {
             auto R = Device.Context.createSwapchainKHR(CreateInfo);
             if (!R.has_value())
