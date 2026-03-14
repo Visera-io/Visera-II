@@ -204,12 +204,23 @@ export namespace Visera::Forge
 	 		ShaderEntryPoint.get(),
 	 	};
 
+	 	Slang::ComPtr<slang::IComponentType> ComposedProgram;
 	 	if (Session->Handle->createCompositeComponentType(
 	 		ShaderComponents, 2,
-	 		Session->ShaderProgram.writeRef(),
+	 		ComposedProgram.writeRef(),
 	 		Diagnostics.writeRef()) != SLANG_OK)
 	 	{
 	 		LOG_ERROR("Failed to create the Shader({}): {}!",
+	 			      I_File, GetErrorMessage(Diagnostics));
+	 		return;
+	 	}
+
+	 	// Link resolves cross-module function bodies (e.g. imported via Visera.Shader.Core).
+	 	if (ComposedProgram->link(
+	 		Session->ShaderProgram.writeRef(),
+	 		Diagnostics.writeRef()) != SLANG_OK)
+	 	{
+	 		LOG_ERROR("Failed to link the Shader({}): {}!",
 	 			      I_File, GetErrorMessage(Diagnostics));
 	 		return;
 	 	}

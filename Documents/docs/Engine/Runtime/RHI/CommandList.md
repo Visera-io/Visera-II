@@ -8,8 +8,33 @@
 - Ensure command order and barriers: insert barriers before resource access; complete all submits before Present.
 - Typically one or more command lists per frame, one submit; multi-threaded recording may use multiple lists then merge submit (implementation-dependent).
 
+## Commands
+
+### Render pass lifecycle
+
+| Command            | Description |
+|--------------------|-------------|
+| `BeginRendering`   | Begin a dynamic render pass (Vulkan `vkCmdBeginRendering`). Specifies color/depth attachments and load/store operations. |
+| `EndRendering`     | End the current dynamic render pass (`vkCmdEndRendering`). |
+| `BindPipeline`     | Switch the graphics pipeline **within** an active render pass, without ending and restarting it. Avoids redundant `BeginRendering`/`EndRendering` when consecutive batches use different PSOs but the same attachments. |
+
+### Resource binding
+
+| Command              | Description |
+|----------------------|-------------|
+| `BindDescriptorSet`  | Bind a descriptor set at a given set index. |
+| `BindIndexBuffer`    | Bind an index buffer with a specified `ERHIIndexType` (UInt16 / UInt32) and byte offset. |
+
+### Draw
+
+| Command        | Description |
+|----------------|-------------|
+| `Draw`         | Non-indexed draw: `Draw(vertexCount, instanceCount)`. |
+| `DrawIndexed`  | Indexed draw: `DrawIndexed(indexCount, instanceCount)`. |
+
 ## See also
 - [RHI](index.md) — Parent module
+- [Common](Common.md) — ERHIIndexType, ERHICompareOp
 - [Barrier](Barrier.md) — Resource barriers
 - [Vulkan.CommandBuffer](Vulkan/CommandBuffer.md) — Vulkan implementation
 - [Graphics.RenderGraph](../Graphics/RenderGraph.md) — Render graph drives command recording

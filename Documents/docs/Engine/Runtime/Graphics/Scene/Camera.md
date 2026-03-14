@@ -29,7 +29,7 @@ Left-handed scene camera. Supports **perspective** and **orthographic** projecti
 | `GetPosition()` / `SetPosition(I_Position)` | World-space position. SetPosition marks view (and view-proj) dirty. |
 | `GetRotation()` / `SetRotation(I_Rotation)` | Orientation as quaternion. SetRotation marks view (and view-proj) dirty. |
 | `SetEulerAngles(I_Yaw, I_Pitch, I_Roll)` | Set rotation from Euler angles (Yaw–Pitch–Roll; order Y×X×Z). Marks view dirty. |
-| `GetEulerAngles()` | Returns Euler angles (X=Pitch, Y=Yaw, Z=Roll) extracted from current rotation; handles gimbal lock. |
+| `GetEulerAngles()` | Returns `TTuple<FDegree, FDegree, FDegree>` (Yaw, Pitch, Roll); handles gimbal lock. |
 
 ### Projection parameters
 

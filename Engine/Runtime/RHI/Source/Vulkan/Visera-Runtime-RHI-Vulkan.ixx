@@ -1341,7 +1341,7 @@ export namespace Visera
     FVulkanDescriptorPool FVulkanDriver::
     CreateDescriptorPool(const TArray<vk::DescriptorPoolSize>& I_PoolSizes)
     {
-        return FVulkanDescriptorPool(Device.Context, I_PoolSizes, GPU.Properties.limits.maxBoundDescriptorSets);
+        return FVulkanDescriptorPool(Device.Context, I_PoolSizes, kMaxDescriptorPoolSets);
     }
 
     FVulkanSampler FVulkanDriver::

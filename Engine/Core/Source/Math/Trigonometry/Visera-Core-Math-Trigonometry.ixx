@@ -19,7 +19,11 @@ export namespace Visera::Math
     [[nodiscard]] inline FRadian
     ATan(Float I_Value) noexcept { return FRadian{ std::atan(I_Value) }; }
     [[nodiscard]] inline FRadian
-    ATan(Double I_Value) noexcept { return ATan(static_cast<Float>(I_Value)); }
+    ATan(Double I_Value) noexcept { return FRadian{ static_cast<Float>(std::atan(I_Value)) }; }
+    [[nodiscard]] inline FRadian
+    ATan(Float I_Y, Float I_X) noexcept { return FRadian{ std::atan2(I_Y, I_X) }; }
+    [[nodiscard]] inline FRadian
+    ATan(Double I_Y, Double I_X) noexcept { return FRadian{ static_cast<Float>(std::atan2(I_Y, I_X)) }; }
     [[nodiscard]] inline Float
     Sin(FRadian I_Radian) noexcept { return std::sin(I_Radian.Value); }
     [[nodiscard]] inline Float

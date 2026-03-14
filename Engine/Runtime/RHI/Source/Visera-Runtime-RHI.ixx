@@ -287,15 +287,19 @@ export namespace Visera
             void
             ExecuteWriteBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
-            ExecuteEnterRenderPass(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+            ExecuteBeginRendering(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
-            ExecuteLeaveRenderPass(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+            ExecuteEndRendering(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+            void
+            ExecuteBindPipeline(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
             ExecuteSetViewport(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
             ExecuteSetScissor(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
             ExecuteBindVertexBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
+            void
+            ExecuteBindIndexBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
             ExecuteBindDescriptorSet(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd);
             void
@@ -1073,11 +1077,13 @@ export namespace Visera
                 case ERHICommandType::CopyBufferToImage:   ExecuteCopyBufferToImage(Frame, Command); break;
                 case ERHICommandType::CopyImageToBuffer:   ExecuteCopyImageToBuffer(Frame, Command); break;
                 case ERHICommandType::WriteBuffer:         ExecuteWriteBuffer(Frame, Command); break;
-                case ERHICommandType::EnterRenderPass:     ExecuteEnterRenderPass(Frame, Command); break;
-                case ERHICommandType::LeaveRenderPass:     ExecuteLeaveRenderPass(Frame, Command); break;
+                case ERHICommandType::BeginRendering:      ExecuteBeginRendering(Frame, Command); break;
+                case ERHICommandType::EndRendering:        ExecuteEndRendering(Frame, Command); break;
+                case ERHICommandType::BindPipeline:        ExecuteBindPipeline(Frame, Command); break;
                 case ERHICommandType::SetViewport:         ExecuteSetViewport(Frame, Command); break;
                 case ERHICommandType::SetScissor:          ExecuteSetScissor(Frame, Command); break;
                 case ERHICommandType::BindVertexBuffer:    ExecuteBindVertexBuffer(Frame, Command); break;
+                case ERHICommandType::BindIndexBuffer:     ExecuteBindIndexBuffer(Frame, Command); break;
                 case ERHICommandType::BindDescriptorSet:   ExecuteBindDescriptorSet(Frame, Command); break;
                 case ERHICommandType::PushConstants:       ExecutePushConstants(Frame, Command); break;
                 case ERHICommandType::Draw:                ExecuteDraw(Frame, Command); break;
@@ -1294,15 +1300,15 @@ export namespace Visera
     }
 
     void FRHI::FRHIThread::
-    ExecuteEnterRenderPass(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
+    ExecuteBeginRendering(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
-        const auto& Payload = DecodePayload<FRHICommandList::FEnterRenderPass>(I_Cmd);
+        const auto& Payload = DecodePayload<FRHICommandList::FBeginRendering>(I_Cmd);
         auto* RenderPass = Registry->Get(Payload.RenderPass);
         if (!RenderPass) { return; }
         auto* Pipeline = RenderPass->GetVulkanRenderPipeline();
         if (Payload.ColorTargetCount == 0)
         {
-            LOG_WARN("ExecuteEnterRenderPass: ColorTargetCount is 0, skipping.");
+            LOG_WARN("ExecuteBeginRendering: ColorTargetCount is 0, skipping.");
             return;
         }
 
@@ -1316,7 +1322,7 @@ export namespace Visera
             auto* ImageView = GetVulkanImageViewChecked(Slot.ColorTexture);
             if (!ImageView)
             {
-                LOG_WARN("ExecuteEnterRenderPass: slot {} has invalid ImageView (handle={}), skipping.",
+                LOG_WARN("ExecuteBeginRendering: slot {} has invalid ImageView (handle={}), skipping.",
                     i, Slot.ColorTexture);
                 continue;
             }
@@ -1331,7 +1337,7 @@ export namespace Visera
 
         if (ValidCount == 0)
         {
-            LOG_WARN("ExecuteEnterRenderPass: no valid color attachments after filtering, skipping render pass.");
+            LOG_WARN("ExecuteBeginRendering: no valid color attachments after filtering, skipping.");
             return;
         }
 
@@ -1361,13 +1367,13 @@ export namespace Visera
         auto* Image = GetVulkanImageChecked(Payload.ColorSlots[0].ColorTexture);
         if (!Image)
         {
-            LOG_WARN("ExecuteEnterRenderPass: could not resolve image for first color slot, skipping.");
+            LOG_WARN("ExecuteBeginRendering: could not resolve image for first color slot, skipping.");
             return;
         }
         const auto Ext = Image->GetExtent();
         if (Ext.width == 0 || Ext.height == 0)
         {
-            LOG_WARN("ExecuteEnterRenderPass: render area extent is {}x{}, skipping.", Ext.width, Ext.height);
+            LOG_WARN("ExecuteBeginRendering: render area extent is {}x{}, skipping.", Ext.width, Ext.height);
             return;
         }
         Pipeline->SetRenderArea(vk::Rect2D{}
@@ -1377,14 +1383,32 @@ export namespace Visera
     }
 
     void FRHI::FRHIThread::
-    ExecuteLeaveRenderPass(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
+    ExecuteEndRendering(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
     {
         if (!I_Frame.GraphicsCalls.IsInsideRenderPass())
         {
-            LOG_WARN("ExecuteLeaveRenderPass: not inside a render pass (prior EnterRenderPass likely skipped), skipping.");
+            LOG_WARN("ExecuteEndRendering: not inside a render pass (prior BeginRendering likely skipped), skipping.");
             return;
         }
         I_Frame.GraphicsCalls.LeaveRenderPipeline();
+    }
+
+    void FRHI::FRHIThread::
+    ExecuteBindPipeline(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
+    {
+        const auto& Payload = DecodePayload<FRHICommandList::FBindPipeline>(I_Cmd);
+        auto* Pipeline = Registry->Get(Payload.RenderPass);
+        if (!Pipeline)
+        {
+            LOG_WARN("ExecuteBindPipeline: invalid render pass handle.");
+            return;
+        }
+        if (!I_Frame.GraphicsCalls.IsInsideRenderPass())
+        {
+            LOG_WARN("ExecuteBindPipeline: not inside a render pass, skipping.");
+            return;
+        }
+        I_Frame.GraphicsCalls.BindGraphicsPipeline(Pipeline->GetVulkanRenderPipeline());
     }
 
     void FRHI::FRHIThread::
@@ -1407,6 +1431,14 @@ export namespace Visera
         const auto& Payload = DecodePayload<FRHICommandList::FBindVertexBuffer>(I_Cmd);
         auto* VulkanBuffer = GetVulkanBufferChecked(Payload.Buffer);
         I_Frame.GraphicsCalls.BindVertexBuffer(Payload.Binding, VulkanBuffer, Payload.Offset);
+    }
+
+    void FRHI::FRHIThread::
+    ExecuteBindIndexBuffer(FRHIInFlightFrame& I_Frame, const FRHICommandView& I_Cmd)
+    {
+        const auto& Payload = DecodePayload<FRHICommandList::FBindIndexBuffer>(I_Cmd);
+        auto* VulkanBuffer = GetVulkanBufferChecked(Payload.Buffer);
+        I_Frame.GraphicsCalls.BindIndexBuffer(VulkanBuffer, TypeCast(Payload.IndexType), Payload.Offset);
     }
 
     void FRHI::FRHIThread::
@@ -1597,44 +1629,27 @@ export namespace Visera
 
     FRHITextureID FRHI::FRHIThread::CreateTexture(FRHITextureCreateInfo&& I_Desc)
     {
-        const auto W = I_Desc.Width, H = I_Desc.Height, D = I_Desc.Depth;
-        const auto Fmt = I_Desc.Format;
-        auto ID = Registry->Register(std::move(I_Desc));
-        LOG_DEBUG("({}) CreateTexture: {}x{}x{} {} -> {}", Owner ? Owner->GetRuntimeName() : FString("Unknown"), W, H, D, Fmt, ID.GetHandle());
-        return ID;
+        return Registry->Register(std::move(I_Desc));
     }
 
     FRHIBufferID FRHI::FRHIThread::CreateBuffer(FRHIBufferCreateInfo&& I_Desc)
     {
-        const auto Size = I_Desc.Size;
-        auto ID = Registry->Register(std::move(I_Desc));
-        LOG_DEBUG("({}) CreateBuffer: {} bytes -> {}", Owner ? Owner->GetRuntimeName() : FString("Unknown"), Size, ID.GetHandle());
-        return ID;
+        return Registry->Register(std::move(I_Desc));
     }
 
     FRHISamplerID FRHI::FRHIThread::CreateSampler(FRHISamplerCreateInfo&& I_Desc)
     {
-        const auto Type = I_Desc.Type;
-        const auto Addr = I_Desc.AddressMode;
-        auto ID = Registry->Register(std::move(I_Desc));
-        LOG_DEBUG("({}) CreateSampler: {} {} -> {}", Owner ? Owner->GetRuntimeName() : FString("Unknown"), Type, Addr, ID.GetHandle());
-        return ID;
+        return Registry->Register(std::move(I_Desc));
     }
 
     FRHIDescriptorSetID FRHI::FRHIThread::CreateDescriptorSet(FRHIDescriptorSetCreateInfo&& I_Desc)
     {
-        const auto BindingCount = I_Desc.Bindings.GetSize();
-        auto ID = Registry->Register(std::move(I_Desc));
-        LOG_DEBUG("({}) CreateDescriptorSet: {} bindings -> {}",
-                  Owner ? Owner->GetRuntimeName() : FString("Unknown"), BindingCount, ID.GetHandle());
-        return ID;
+        return Registry->Register(std::move(I_Desc));
     }
 
     FRHIShaderID FRHI::FRHIThread::CreateShader(FRHIShaderCreateInfo&& I_Desc)
     {
-        auto ID = Registry->Register(std::move(I_Desc));
-        LOG_DEBUG("({}) CreateShader -> {}", Owner ? Owner->GetRuntimeName() : FString("Unknown"), ID.GetHandle());
-        return ID;
+        return Registry->Register(std::move(I_Desc));
     }
 
     FRHIRenderPassID FRHI::FRHIThread::CreateRenderPass(FRHIRenderPassCreateInfo&& I_Desc)

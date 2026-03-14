@@ -4,6 +4,8 @@ export module Visera.Runtime.Graphics.Scene.Camera;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 export import Visera.Core.Math.Algebra;
 export import Visera.Core.Math.Trigonometry;
+export import Visera.Core.Math.Arithmetic.Operation;
+       import Visera.Core.Types.Tuple;
 
 /** Scene camera (left-handed). Provides view/projection and View/Projection matrices for viewport rendering. */
 export namespace Visera
@@ -48,8 +50,8 @@ export namespace Visera
         /** Set rotation from Euler angles (Yaw-Pitch-Roll). Marks view dirty. */
         void
         SetEulerAngles(FDegree I_Yaw, FDegree I_Pitch, FDegree I_Roll) noexcept;
-        /** Returns Euler angles (X=Pitch, Y=Yaw, Z=Roll) extracted from current rotation. */
-        [[nodiscard]] FVector3F
+        /** Returns Euler angles as TTuple<FDegree, FDegree, FDegree> = (Yaw, Pitch, Roll). */
+        [[nodiscard]] TTuple<FDegree, FDegree, FDegree>
         GetEulerAngles() const noexcept;
         /** Current projection type (perspective or orthographic). */
         [[nodiscard]] constexpr EProjectionType
@@ -304,30 +306,29 @@ export namespace Visera
         MarkViewDirty();
     }
 
-    /** Extracts Euler angles (radians) from the rotation quaternion via its 3x3 matrix.
-     *  Pitch = asin(-R(1,2)); gimbal lock handled when |sin(pitch)| approaches 1. 
-     *  Returns: X=Yaw, Y=Pitch, Z=Roll. */
-    FVector3F FCamera::
+    /** Extracts Euler angles from the rotation quaternion via its 3x3 matrix.
+     *  Pitch = asin(-R(1,2)); gimbal lock handled when |sin(pitch)| approaches 1.
+     *  Returns (Yaw, Pitch, Roll) in degrees. */
+    TTuple<FDegree, FDegree, FDegree> FCamera::
     GetEulerAngles() const noexcept
     {
         const FMatrix3x3F R = Rotation.ToMatrix3x3();
         const Float SP = -R(1, 2);
         const Float ClampedSP = Math::Clamp(SP, -1.0f, 1.0f);
-        const Float Pitch = std::asin(ClampedSP);
-
-        FVector3F Euler;
+        
+        FRadian Pitch = Math::ASin(ClampedSP);
+        FRadian Yaw, Roll;
         if (Math::Abs(ClampedSP) < 0.9999f)
         {
-            Euler.X = std::atan2(R(0, 2), R(2, 2));   // Yaw
-            Euler.Z = std::atan2(R(1, 0), R(1, 1));   // Roll
+            Yaw  = Math::ATan(R(0, 2), R(2, 2));
+            Roll = Math::ATan(R(1, 0), R(1, 1));
         }
         else
         {   // Gimbal lock: pitch ~ +/-90deg, yaw and roll become coupled
-            Euler.X = std::atan2(-R(2, 0), R(0, 0));
-            Euler.Z = 0.0f;
+            Yaw  = Math::ATan(-R(2, 0), R(0, 0));
+            Roll = FRadian{0.0f};
         }
-        Euler.Y = Pitch;
-        return Euler;
+        return MakeTuple(Math::Degree(Yaw), Math::Degree(Pitch), Math::Degree(Roll));
     }
 
     const FMatrix4x4F&

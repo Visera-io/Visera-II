@@ -97,6 +97,9 @@ namespace Visera::Forge
         const TArray<FStringView> EntryPoints = {"VertMain", "FragMain"};
         const FPath ShaderDirectory = *I_SourcePath.GetParent();
         FShaderCompiler Compiler;
+#if defined(VISERA_ENGINE_SHADERS_DIR)
+        Compiler.AddSearchPath(FPath(VISERA_ENGINE_SHADERS_DIR));
+#endif
 
         UInt32 SuccessCount = 0;
         for (const auto& EntryPoint : EntryPoints)

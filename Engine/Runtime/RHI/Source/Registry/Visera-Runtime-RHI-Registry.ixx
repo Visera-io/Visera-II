@@ -39,6 +39,8 @@ export namespace Visera
         IsNull() const { return Block? (Block->Handle == RHIHandle{}) : (False); }
         [[nodiscard]] RHIHandle
         GetHandle() const { return Block ? Block->Handle : RHIHandle{}; }
+        [[nodiscard]] UInt32
+        GetRefCount() const { return Block ? Block->RefCount.Load(EMemoryOrder::Relaxed) : 0; }
 
         TRHIRegistryEntry() = default;
         TRHIRegistryEntry(TWeakPtr<FRHIRegistry> I_Registry, RHIHandle I_Handle);
@@ -774,6 +776,12 @@ export namespace Visera
             .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
             .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
             .setAlphaBlendOp(vk::BlendOp::eAdd);
+        Settings.DepthStencilState
+            .setDepthTestEnable(I_Info.PSO.DepthStencil.bEnableDepthTest ? vk::True : vk::False)
+            .setDepthWriteEnable(I_Info.PSO.DepthStencil.bEnableDepthWrite ? vk::True : vk::False)
+            .setDepthCompareOp(TypeCast(I_Info.PSO.DepthStencil.DepthCompareOp))
+            .setDepthBoundsTestEnable(vk::False)
+            .setStencilTestEnable(I_Info.PSO.DepthStencil.bEnableStencilTest ? vk::True : vk::False);
         FVulkanRenderPipeline Pipeline = Driver->CreateRenderPipeline(
             &PipelineLayout,
             &VertShaderModule,
@@ -1236,3 +1244,53 @@ export namespace Visera
         RecycleBinDescriptorSets.Clear();
     }
 }
+
+VISERA_MAKE_FORMATTER(Visera::FRHITextureID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());
+VISERA_MAKE_FORMATTER(Visera::FRHISamplerID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());
+VISERA_MAKE_FORMATTER(Visera::FRHIBufferID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());
+VISERA_MAKE_FORMATTER(Visera::FRHIDescriptorSetID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());
+VISERA_MAKE_FORMATTER(Visera::FRHIShaderID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());
+VISERA_MAKE_FORMATTER(Visera::FRHIRenderPassID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());
+VISERA_MAKE_FORMATTER(Visera::FRHIComputePassID, {},
+    "Type:{}, Writable:{}, Gen:{}, Idx:{}, RefCount:{}",
+    I_Formatee.GetHandle().GetType(),
+    I_Formatee.GetHandle().IsWritable(),
+    I_Formatee.GetHandle().GetGeneration(),
+    I_Formatee.GetHandle().GetIndex(),
+    I_Formatee.GetRefCount());

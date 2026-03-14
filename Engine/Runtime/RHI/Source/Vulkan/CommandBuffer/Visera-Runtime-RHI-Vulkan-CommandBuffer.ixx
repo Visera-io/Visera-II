@@ -221,9 +221,14 @@ export namespace Visera
         void SetViewport(const vk::Viewport& I_Viewport);
         void SetScissor(const vk::Rect2D& I_Scissor);
         void EnterRenderPipeline(FVulkanRenderPipeline* I_RenderPipeline);
+        /** Bind a different graphics pipeline within an active render pass (no vkCmdBeginRendering). */
+        void BindGraphicsPipeline(FVulkanRenderPipeline* I_RenderPipeline);
         void BindVertexBuffer(UInt32         I_Binding,
                              FVulkanBuffer* I_VertexBuffer,
                              UInt64         I_BufferOffset);
+        void BindIndexBuffer(FVulkanBuffer* I_IndexBuffer,
+                            vk::IndexType   I_IndexType,
+                            UInt64          I_Offset);
         void PushConstants(const void* I_Data,
                           UInt32      I_Offset,
                           UInt32      I_Size);
@@ -597,6 +602,16 @@ export namespace Visera
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    BindGraphicsPipeline(FVulkanRenderPipeline* I_RenderPipeline)
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+        VISERA_ASSERT(I_RenderPipeline != nullptr);
+        CurrentRenderPipeline = I_RenderPipeline;
+        Handle.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                            CurrentRenderPipeline->GetHandle());
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
     PushConstants(const void* I_Data,
                   UInt32      I_Offset,
                   UInt32      I_Size)
@@ -629,6 +644,16 @@ export namespace Visera
             I_Binding,
             {I_VertexBuffer->GetHandle()},
             {I_BufferOffset});
+    }
+
+    void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::
+    BindIndexBuffer(FVulkanBuffer* I_IndexBuffer,
+                    vk::IndexType  I_IndexType,
+                    UInt64         I_Offset)
+    {
+        VISERA_ASSERT(IsInsideRenderPass());
+        VISERA_ASSERT(I_IndexBuffer != nullptr);
+        Handle.bindIndexBuffer(I_IndexBuffer->GetHandle(), I_Offset, I_IndexType);
     }
 
     void FVulkanCommandBuffer<EVulkanQueueFamily::Graphics>::

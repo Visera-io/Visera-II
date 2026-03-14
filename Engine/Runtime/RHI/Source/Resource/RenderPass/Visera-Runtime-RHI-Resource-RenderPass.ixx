@@ -102,6 +102,15 @@ export namespace Visera
             ERHIBlendOp Mode { ERHIBlendOp::Add }; // None == Disable
         }AlphaBlend;
 
+        /** Depth/stencil test configuration for the pipeline. Disabled by default. */
+        struct
+        {
+            Bool          bEnableDepthTest   {False};
+            Bool          bEnableDepthWrite  {False};
+            ERHICompareOp DepthCompareOp     {ERHICompareOp::LessOrEqual};
+            Bool          bEnableStencilTest {False};
+        }DepthStencil;
+
         /** Color attachment formats; length must match render pass ColorAttachments. For MRT (e.g. color RGBA8 + normal R16F). */
         TInlineArray<ERHIFormat, kMaxColorAttachments> ColorFormats;
         /** Depth/stencil format when using a depth attachment; Undefined if no depth. */
@@ -123,6 +132,10 @@ export namespace Visera
                    Sampling.Rate == I_Other.Sampling.Rate &&
                    ColorBlend.Mode == I_Other.ColorBlend.Mode &&
                    AlphaBlend.Mode == I_Other.AlphaBlend.Mode &&
+                   DepthStencil.bEnableDepthTest == I_Other.DepthStencil.bEnableDepthTest &&
+                   DepthStencil.bEnableDepthWrite == I_Other.DepthStencil.bEnableDepthWrite &&
+                   DepthStencil.DepthCompareOp == I_Other.DepthStencil.DepthCompareOp &&
+                   DepthStencil.bEnableStencilTest == I_Other.DepthStencil.bEnableStencilTest &&
                    ColorFormats == I_Other.ColorFormats &&
                    DepthStencilFormat == I_Other.DepthStencilFormat;
         }

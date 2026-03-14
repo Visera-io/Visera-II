@@ -26,13 +26,18 @@ Per-frame work item sent from the main thread to the Graphics thread via `TSPSCC
 
 ### FRenderBatch
 
-Single batch for draw calls: shared pipeline and descriptor set, plus per-instance viewports.
+Single batch for instanced draw calls. All instances in a batch share the same pipeline, material and mesh.
 
-| Member       | Type                | Description |
-|--------------|---------------------|-------------|
-| `Pipeline`     | `FRHIRenderPassID`    | PSO (from pipeline cache). |
-| `DescriptorSet` | `FRHIDescriptorSetID` | Material descriptor set. |
-| `Viewports`     | `TArray<FRHIViewport>` | One viewport per instance (e.g. per renderable). |
+| Member                 | Type                      | Description |
+|------------------------|---------------------------|-------------|
+| `Pipeline`             | `FRHIRenderPassID`        | PSO (from pipeline cache). |
+| `MaterialDescriptorSet`| `FRHIDescriptorSetID`     | Descriptor set 0: material textures/samplers. |
+| `Mesh`                 | `TSharedPtr<FMesh>`       | Mesh geometry; `nullptr` → built-in sprite quad path. |
+| `Instances`            | `TArray<FInstanceData>`   | CPU-side per-instance data (transform, color, custom). |
+| `InstanceBuffer`       | `FRHIBufferID`            | GPU storage buffer holding `FInstanceData[]`. Populated by `UploadInstanceBuffers`. |
+| `InstanceDescriptorSet`| `FRHIDescriptorSetID`     | Descriptor set 1: binds `InstanceBuffer` at binding 0. Populated by `UploadInstanceBuffers`. |
+
+**Batch key**: `Pipeline + Material + Mesh`. Renderables sharing the same material and mesh are merged into one batch; a single `Draw(6, N)` or `DrawIndexed(IndexCount, N)` call renders all instances.
 
 ### FRenderList
 
@@ -46,11 +51,12 @@ Sorted list of render batches per surface type. Filled by `ExtractAndSortDrawLis
 
 ### FRenderContext
 
-Per-frame context passed to registered pass factories. **Draw passes** use `RenderList` only (batched by material/PSO). **Setup passes** use `RenderWidth` / `RenderHeight`. Built on the Graphics thread after extracting the draw list from `FRenderTask.Data`.
+Per-frame context passed to registered pass factories. **Draw passes** use `RenderList` only (batched by material/PSO/mesh). **Setup passes** use `RenderWidth` / `RenderHeight`. Built on the Graphics thread after extracting and uploading the draw list from `FRenderTask.Data`.
 
 | Member         | Type                | Description |
 |----------------|---------------------|-------------|
 | `RenderList`   | `const FRenderList*` | Sorted batches (opaque/transparent); required for draw passes. |
+| `RenderView`   | `const FRenderView*` | View/projection data for the current frame. |
 | `RHI`          | `FRHI*`             | RHI instance. |
 | `SwapChainID`  | `FRHISwapChainID`   | Current swap chain. |
 | `BackBuffer`   | `FRHITextureID`     | Current back buffer. |
@@ -74,7 +80,11 @@ Both overloads require an explicit `FRenderArea` at the call site for the unifie
 
 ## Draw list extraction (main module)
 
-**`ExtractAndSortDrawList(I_Data, O_List, I_PipelineCache, I_RHI, I_ColorFormats, I_DepthFormat)`** (in `Visera.Runtime.Graphics`) fills `O_List` by iterating `I_Data` renderables, batching by (Material, PSO). Routes by surface: opaque vs transparent. `WireframeBatches` is cleared but not filled. The Graphics thread calls this once per frame before building `FRenderContext` and running passes.
+**`ExtractAndSortDrawList(I_Data, O_List, I_PipelineCache, I_RHI, I_ColorFormats, I_DepthFormat)`** (in `Visera.Runtime.Graphics`) fills `O_List` by iterating `I_Data` renderables, batching by **(Material, Mesh, PSO)**. The batch key is computed from `Material*` and `Mesh*` via `Math::GoldenRatioHashCombine`. Routes by surface: opaque vs transparent. `WireframeBatches` is cleared but not filled. The Graphics thread calls this once per frame before uploading instance buffers and building `FRenderContext`.
+
+## Instance buffer upload
+
+**`UploadInstanceBuffers(IO_List, I_RHI)`** — called once per frame after `ExtractAndSortDrawList` and before `FRenderContext` construction. For each batch with instances, creates a storage buffer (`FInstanceData[]`), uploads it, creates a descriptor set (set 1, binding 0 = StorageBuffer) and writes the buffer binding. Buffer lifetime is tied to `FRHIBufferID` RAII — destroyed when `FRenderList` goes out of scope at end of frame.
 
 ## RegisterPass and concurrency
 
@@ -90,3 +100,4 @@ Both overloads require an explicit `FRenderArea` at the call site for the unifie
 - [Graphics](index.md) — parent module
 - [RHI](../RHI/index.md) — RHI backend
 - [Scene](Scene/index.md) — scene management
+- [Renderable](Scene/Renderable.md) — FInstanceData and FMesh

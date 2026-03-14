@@ -109,6 +109,7 @@ nav:
                   - Box: Engine/Core/Math/Geometry/Box.md
                   - Point: Engine/Core/Math/Geometry/Point.md
                   - Rotation: Engine/Core/Math/Geometry/Rotation.md
+                  - Transform: Engine/Core/Math/Geometry/Transform.md
               - Hash:
                   - Overview: Engine/Core/Math/Hash/index.md
                   - CityHash: Engine/Core/Math/Hash/CityHash.md

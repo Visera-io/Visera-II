@@ -21,11 +21,13 @@ import Visera.Core.Containers.Array;
     RHI_COMMAND(ClearColorImage) \
     RHI_COMMAND(BlitImage) \
     RHI_COMMAND(CopyImage) \
-    RHI_COMMAND(EnterRenderPass) \
+    RHI_COMMAND(BeginRendering) \
     RHI_COMMAND(SetViewport) \
     RHI_COMMAND(SetScissor) \
-    RHI_COMMAND(LeaveRenderPass) \
+    RHI_COMMAND(EndRendering) \
+    RHI_COMMAND(BindPipeline) \
     RHI_COMMAND(BindVertexBuffer) \
+    RHI_COMMAND(BindIndexBuffer) \
     RHI_COMMAND(BindDescriptorSet) \
     RHI_COMMAND(PushConstants) \
     RHI_COMMAND(Draw) \
@@ -87,7 +89,7 @@ export namespace Visera
         void inline
         WriteBuffer(const FRHIBufferID& I_TargetBuffer, const FRHIBufferID& I_StagingBuffer);
 
-        struct alignas(8) FEnterRenderPass
+        struct alignas(8) FBeginRendering
         {
             FRHIRenderPassHandle      RenderPass;
             UInt8                     ColorTargetCount { 0 };
@@ -112,14 +114,24 @@ export namespace Visera
             FDepthStencilSlot DepthStencilSlot;
         };
         void inline
-        EnterRenderPass(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments);
+        BeginRendering(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments);
 
-        struct alignas(8) FLeaveRenderPass
+        struct alignas(8) FEndRendering
         {
             UInt8 _ {0};  // Minimal payload for RecordCommand
         };
         void inline
-        LeaveRenderPass();
+        EndRendering();
+
+        /** Switch graphics pipeline within an active rendering scope.
+         *  BeginRendering already binds the first pipeline; use BindPipeline
+         *  to switch to a different one without ending/restarting the render pass. */
+        struct alignas(8) FBindPipeline
+        {
+            FRHIRenderPassHandle RenderPass;
+        };
+        void inline
+        BindPipeline(const FRHIRenderPassID& I_RenderPass);
 
         struct alignas(8) FBindVertexBuffer
         {
@@ -129,6 +141,15 @@ export namespace Visera
         };
         void inline
         BindVertexBuffer(const FRHIBufferID& I_Buffer, UInt8 I_Binding = 0, UInt64 I_Offset = 0);
+
+        struct alignas(8) FBindIndexBuffer
+        {
+            FRHIBufferHandle Buffer;
+            ERHIIndexType    IndexType {ERHIIndexType::UInt16};
+            UInt64           Offset    {0};
+        };
+        void inline
+        BindIndexBuffer(const FRHIBufferID& I_Buffer, ERHIIndexType I_IndexType = ERHIIndexType::UInt16, UInt64 I_Offset = 0);
 
         struct alignas(8) FBindDescriptorSet
         {
@@ -475,12 +496,12 @@ export namespace Visera
     {
         if(I_TargetBuffer.IsNull())
         {
-            LOG_ERROR("WriteBuffer: TargetBuffer is null");
+            LOG_ERROR("WriteBuffer: {} is null!", I_TargetBuffer);
             return;
         }
         if(I_StagingBuffer.IsNull())
         {
-            LOG_ERROR("WriteBuffer: StagingBuffer is null");
+            LOG_ERROR("WriteBuffer: {} is null!", I_StagingBuffer);
             return;
         }
         const auto TargetBufferHandle  = I_TargetBuffer.GetHandle();
@@ -497,7 +518,7 @@ export namespace Visera
     {
         if(I_Barrier.Image.IsNull())
         {
-            LOG_ERROR("TransitionTexture: Image is null");
+            LOG_ERROR("TransitionTexture: {} is null!", I_Barrier.Image);
             return;
         }
         const auto Handle = I_Barrier.Image.GetHandle();
@@ -530,7 +551,7 @@ export namespace Visera
     {
         if(I_Barrier.Buffer.IsNull())
         {
-            LOG_ERROR("BufferBarrier: Buffer is null");
+            LOG_ERROR("BufferBarrier: {} is null!", I_Barrier.Buffer);
             return;
         }
         const auto Handle = I_Barrier.Buffer.GetHandle();
@@ -552,12 +573,12 @@ export namespace Visera
     {
         if(I_Buffer.IsNull())
         {
-            LOG_ERROR("CopyBufferToImage: Buffer is null");
+            LOG_ERROR("CopyBufferToImage: {} is null!", I_Buffer);
             return;
         }
         if(I_Texture.IsNull())
         {
-            LOG_ERROR("CopyBufferToImage: Texture is null");
+            LOG_ERROR("CopyBufferToImage: {} is null!", I_Texture);
             return;
         }
         const auto BufferHandle = I_Buffer.GetHandle();
@@ -578,12 +599,12 @@ export namespace Visera
     {
         if(I_SourceTexture.IsNull())
         {
-            LOG_ERROR("CopyImageToBuffer: SourceTexture is null");
+            LOG_ERROR("CopyImageToBuffer: {} is null!", I_SourceTexture);
             return;
         }
         if(I_DestBuffer.IsNull())
         {
-            LOG_ERROR("CopyImageToBuffer: DestBuffer is null");
+            LOG_ERROR("CopyImageToBuffer: {} is null!", I_DestBuffer);
             return;
         }
         const auto SourceHandle = I_SourceTexture.GetHandle();
@@ -622,7 +643,7 @@ export namespace Visera
     {
         if(I_Texture.IsNull())
         {
-            LOG_ERROR("ClearColorImage: Texture is null");
+            LOG_ERROR("ClearColorImage: {} is null!", I_Texture);
             return;
         }
         const auto Handle = I_Texture.GetHandle();
@@ -640,12 +661,12 @@ export namespace Visera
     {
         if(I_SrcTexture.IsNull())
         {
-            LOG_ERROR("BlitImage: SrcTexture is null");
+            LOG_ERROR("BlitImage: {} is null!", I_SrcTexture);
             return;
         }
         if(I_DstTexture.IsNull())
         {
-            LOG_ERROR("BlitImage: DstTexture is null");
+            LOG_ERROR("BlitImage: {} is null!", I_DstTexture);
             return;
         }
         const auto SrcHandle = I_SrcTexture.GetHandle();
@@ -666,12 +687,12 @@ export namespace Visera
     {
         if(I_SrcTexture.IsNull())
         {
-            LOG_ERROR("CopyImage: SrcTexture is null");
+            LOG_ERROR("CopyImage: {} is null!", I_SrcTexture);
             return;
         }
         if(I_DstTexture.IsNull())
         {
-            LOG_ERROR("CopyImage: DstTexture is null");
+            LOG_ERROR("CopyImage: {} is null!", I_DstTexture);
             return;
         }
         const auto SrcHandle = I_SrcTexture.GetHandle();
@@ -686,20 +707,20 @@ export namespace Visera
     }
 
     void FRHICommandList::
-    EnterRenderPass(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments)
+    BeginRendering(const FRHIRenderPassID& I_RenderPass, const FRHIRenderPassAttachments& I_Attachments)
     {
         if(I_RenderPass.IsNull())
         {
-            LOG_ERROR("EnterRenderPass: RenderPass is null");
+            LOG_ERROR("BeginRendering: {} is null!", I_RenderPass);
             return;
         }
         const auto Handle = I_RenderPass.GetHandle();
-        FEnterRenderPass Payload{};
+        FBeginRendering Payload{};
         Payload.RenderPass        = Handle;
         Payload.ColorTargetCount  = static_cast<UInt8>(I_Attachments.ColorAttachments.GetSize());
         if (Payload.ColorTargetCount > kMaxColorAttachments)
         {
-            LOG_ERROR("EnterRenderPass: ColorTargetCount {} exceeds kMaxColorAttachments ({}), clamping.",
+            LOG_ERROR("BeginRendering: ColorTargetCount {} exceeds kMaxColorAttachments ({}), clamping.",
                       Payload.ColorTargetCount, kMaxColorAttachments);
             Payload.ColorTargetCount = static_cast<UInt8>(kMaxColorAttachments);
         }
@@ -720,13 +741,27 @@ export namespace Visera
         Payload.DepthStencilSlot.StencilLoadOp        = Ds.StencilLoadOp;
         Payload.DepthStencilSlot.StencilStoreOp       = Ds.StencilStoreOp;
         Payload.DepthStencilSlot.StencilClearValue    = Ds.StencilClearValue;
-        RecordCommand(ERHICommandType::EnterRenderPass, Payload);
+        RecordCommand(ERHICommandType::BeginRendering, Payload);
     }
 
     void FRHICommandList::
-    LeaveRenderPass()
+    EndRendering()
     {
-        RecordCommand(ERHICommandType::LeaveRenderPass, FLeaveRenderPass{});
+        RecordCommand(ERHICommandType::EndRendering, FEndRendering{});
+    }
+
+    void FRHICommandList::
+    BindPipeline(const FRHIRenderPassID& I_RenderPass)
+    {
+        if(I_RenderPass.IsNull())
+        {
+            LOG_ERROR("BindPipeline: null render pass handle.");
+            return;
+        }
+        RecordCommand(ERHICommandType::BindPipeline, FBindPipeline
+        {
+            .RenderPass = I_RenderPass.GetHandle(),
+        });
     }
 
     void FRHICommandList::
@@ -734,7 +769,7 @@ export namespace Visera
     {
         if(I_Buffer.IsNull())
         {
-            LOG_ERROR("BindVertexBuffer: Buffer is null");
+            LOG_ERROR("BindVertexBuffer: {} is null!", I_Buffer);
             return;
         }
         const auto Handle = I_Buffer.GetHandle();
@@ -747,11 +782,28 @@ export namespace Visera
     }
 
     void FRHICommandList::
+    BindIndexBuffer(const FRHIBufferID& I_Buffer, ERHIIndexType I_IndexType, UInt64 I_Offset)
+    {
+        if(I_Buffer.IsNull())
+        {
+            LOG_ERROR("BindIndexBuffer: {} is null!", I_Buffer);
+            return;
+        }
+        const auto Handle = I_Buffer.GetHandle();
+        RecordCommand(ERHICommandType::BindIndexBuffer, FBindIndexBuffer
+        {
+            .Buffer    = Handle,
+            .IndexType = I_IndexType,
+            .Offset    = I_Offset,
+        });
+    }
+
+    void FRHICommandList::
     BindDescriptorSet(const FRHIDescriptorSetID& I_DescriptorSet, UInt32 I_SetIndex)
     {
         if(I_DescriptorSet.IsNull())
         {
-            LOG_ERROR("BindDescriptorSet: DescriptorSet is null");
+            LOG_ERROR("BindDescriptorSet: {} is null!", I_DescriptorSet);
             return;
         }
         const auto Handle = I_DescriptorSet.GetHandle();
@@ -810,7 +862,7 @@ export namespace Visera
     {
         if(I_ComputePass.IsNull())
         {
-            LOG_ERROR("EnterComputePass: ComputePass is null");
+            LOG_ERROR("EnterComputePass: {} is null!", I_ComputePass);
             return;
         }
         const auto Handle = I_ComputePass.GetHandle();

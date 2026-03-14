@@ -13,6 +13,7 @@ export import Visera.Runtime.Graphics.RenderGraph;
        import Visera.Runtime.Window;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Map;
+       import Visera.Core.Math.Hash.GoldenRatio;
        import Visera.Core.Concurrency.Channel.SPSC;
        import Visera.Core.OS.Thread;
        import Visera.Core.OS.Time;
@@ -40,7 +41,16 @@ export namespace Visera
       TFunction<void(FRenderGraph&, const FRenderContext&)> Execute;
    };
 
-   /** Fills O_List by iterating I_Data, batching by (Material, PSO). Routes by surface (Opaque/Transparent). WireframeBatches is cleared but not filled. */
+   /** Hash (Material*, Mesh*) pair into a single UInt64 for batch-key dedup. */
+   [[nodiscard]] inline UInt64
+   MakeBatchKey(const FMaterial* I_Mat, const FMesh* I_Mesh) noexcept
+   {
+      return Math::GoldenRatioHashCombine(
+         reinterpret_cast<UInt64>(I_Mat),
+         reinterpret_cast<UInt64>(I_Mesh));
+   }
+
+   /** Fills O_List by iterating I_Data, batching by (Material, PSO, Mesh). Routes by surface (Opaque/Transparent). */
    inline void
    ExtractAndSortDrawList(const FRenderData&        I_Data,
                           FRenderList&              O_List,
@@ -52,33 +62,74 @@ export namespace Visera
       O_List.OpaqueBatches.Clear();
       O_List.TransparentBatches.Clear();
       O_List.WireframeBatches.Clear();
-      // Material pointer -> batch index, one map per surface type.
-      // Renderables sharing the same material collapse into one batch with multiple viewports.
-      TMap<const FMaterial*, UInt32> OpaqueMap;
-      TMap<const FMaterial*, UInt32> TransparentMap;
+      // Batch key hash(Material + Mesh) -> batch index, one map per surface type.
+      TMap<UInt64, UInt32> OpaqueMap;
+      TMap<UInt64, UInt32> TransparentMap;
       const auto& Renderables = I_Data.GetRenderables();
       for (const auto& R : Renderables)
       {
          const FMaterial* Mat = R->GetMaterial().Get();
          if (!Mat || !Mat->IsValid()) { continue; }
-         const FRHIViewport Viewport = R->GetViewport();
+         const FInstanceData InstanceData = R->GetInstanceData();
+         auto MeshPtr = R->GetMesh();
+         const UInt64 Key = MakeBatchKey(Mat, MeshPtr.Get());
          const ESurfaceType Surface = Mat->GetSurface();
          const Bool bTransparent = (Surface == ESurfaceType::Transparent);
          TArray<FRenderBatch>& FillBatches = bTransparent ? O_List.TransparentBatches : O_List.OpaqueBatches;
-         TMap<const FMaterial*, UInt32>& FillMap = bTransparent ? TransparentMap : OpaqueMap;
-         auto FillIt = FillMap.Find(Mat);
+         TMap<UInt64, UInt32>& FillMap = bTransparent ? TransparentMap : OpaqueMap;
+         auto FillIt = FillMap.Find(Key);
          if (FillIt == FillMap.end())
          {
             FRHIRenderPassID Pipeline = I_PipelineCache->GetOrCreate(I_RHI, Mat, I_ColorFormats, I_DepthFormat);
-            FRenderBatch Batch { .Pipeline = Pipeline, .DescriptorSet = Mat->GetDescriptorSet(), .Viewports = {} };
-            Batch.Viewports.PushBack(Viewport);
+            FRenderBatch Batch {
+               .Pipeline = Pipeline,
+               .MaterialDescriptorSet = Mat->GetDescriptorSet(),
+               .Mesh = MeshPtr,
+               .Instances = {},
+            };
+            Batch.Instances.PushBack(InstanceData);
             const UInt32 Idx = FillBatches.GetSize();
             FillBatches.PushBack(std::move(Batch));
-            FillMap.Insert(Mat, Idx);
+            FillMap.Insert(Key, Idx);
          }
          else
-         { FillBatches[FillIt->second].Viewports.PushBack(Viewport); }
+         { FillBatches[FillIt->second].Instances.PushBack(InstanceData); }
       }
+   }
+
+   /** Creates per-batch SSBO + descriptor set for FInstanceData[].
+    *  Called once per frame after ExtractAndSortDrawList, before RDG execution.
+    *  Buffer lifetime is tied to FRHIBufferID RAII -- destroyed when FRenderList goes out of scope. */
+   inline void
+   UploadInstanceBuffers(FRenderList& IO_List, FRHI* I_RHI)
+   {
+      auto UploadBatches = [I_RHI](TArray<FRenderBatch>& Batches)
+      {
+         for (auto& Batch : Batches)
+         {
+            if (Batch.Instances.IsEmpty()) { continue; }
+            const UInt64 Size = Batch.Instances.GetSize() * sizeof(FInstanceData);
+            Batch.InstanceBuffer = I_RHI->CreateBuffer(FRHIBufferCreateInfo{
+               .Size   = Size,
+               .Usages = ERHIBufferUsage::StorageBuffer | ERHIBufferUsage::TransferDst,
+            });
+            I_RHI->UploadBuffer(Batch.InstanceBuffer,
+               reinterpret_cast<const FByte*>(Batch.Instances.Data()), Size, 0);
+
+            Batch.InstanceDescriptorSet = I_RHI->CreateDescriptorSet(FRHIDescriptorSetCreateInfo{
+               .Bindings = {{
+                  .Binding = 0,
+                  .Type    = ERHIDescriptorType::StorageBuffer,
+                  .Count   = 1,
+                  .Stages  = ERHIShaderStage::Vertex | ERHIShaderStage::Fragment,
+               }},
+            });
+            I_RHI->WriteDescriptorStorageBuffer(
+               Batch.InstanceDescriptorSet, 0, Batch.InstanceBuffer);
+         }
+      };
+      UploadBatches(IO_List.OpaqueBatches);
+      UploadBatches(IO_List.TransparentBatches);
    }
 
    class VISERA_RUNTIME_API FGraphics : public IRuntimeService
@@ -411,9 +462,11 @@ export namespace Visera
          static constexpr ERHIFormat kSceneColorFormat = ERHIFormat::R8G8B8A8_UNorm;
          ExtractAndSortDrawList(RenderTask.Data, FrameRenderList, &SCContext.PipelineCache, RHI,
                                TArray<ERHIFormat>{kSceneColorFormat}, ERHIFormat::Undefined);
+         UploadInstanceBuffers(FrameRenderList, RHI);
          FRenderContext RenderContext
          {
             .RenderList     = &FrameRenderList,
+            .RenderView     = &RenderTask.RenderView,
             .RHI            = RHI,
             .SwapChainID    = SwapChainID,
             .BackBuffer     = BackBuffer,

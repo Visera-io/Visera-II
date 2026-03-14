@@ -61,6 +61,8 @@ namespace Visera
             DepthRTFormat    {vk::Format::eUndefined};
             vk::Format
             StencilRTFormat  {vk::Format::eUndefined};
+            vk::PipelineDepthStencilStateCreateInfo
+            DepthStencilState;
         }Settings;
 
     private:
@@ -192,6 +194,7 @@ namespace Visera
                 .setPViewportState      (&Settings.ViewportState)
                 .setPRasterizationState (&Settings.Rasterizer)
                 .setPMultisampleState   (&Settings.Multisampling)
+                .setPDepthStencilState  (&Settings.DepthStencilState)
                 .setPColorBlendState    (&ColorBlending)
                 .setPDynamicState       (&DynamicStateCreateInfo)
                 .setLayout              (Layout.GetHandle())

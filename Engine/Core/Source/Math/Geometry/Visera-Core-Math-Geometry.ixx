@@ -6,6 +6,7 @@ export import Visera.Core.Math.Geometry.Box;
 export import Visera.Core.Math.Geometry.Point;
 export import Visera.Core.Math.Geometry.Circle;
 export import Visera.Core.Math.Geometry.Rotation;
+export import Visera.Core.Math.Geometry.Transform;
 export import Visera.Core.Math.Geometry.Intersection;
 
 export namespace Visera

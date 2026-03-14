@@ -5,6 +5,8 @@ export module Visera.Runtime.Graphics.Framework;
 import Visera.Runtime.RHI;
 import Visera.Runtime.Graphics.Scene;
 import Visera.Runtime.Graphics.PipelineCache;
+import Visera.Core.Containers.Array;
+import Visera.Core.Types.Pointer;
 
 export namespace Visera
 {
@@ -24,12 +26,16 @@ export namespace Visera
 
    struct VISERA_RUNTIME_API FRenderBatch
    {
-      // Shared Data
-      FRHIRenderPassID     Pipeline;
-      FRHIDescriptorSetID  DescriptorSet;
-      
-      // Data per Instance
-      TArray<FRHIViewport> Viewports;
+      // Batch key: Pipeline + Material + Mesh
+      FRHIRenderPassID      Pipeline;
+      FRHIDescriptorSetID   MaterialDescriptorSet;   // Set 0: material textures/samplers
+      TSharedPtr<FMesh>     Mesh;                    // nullptr = sprite quad path
+
+      TArray<FInstanceData>  Instances;               // CPU-side per-instance data
+
+      // GPU resources populated by UploadInstanceBuffers (before draw submission)
+      FRHIBufferID          InstanceBuffer;           // Storage buffer holding FInstanceData[]
+      FRHIDescriptorSetID   InstanceDescriptorSet;    // Set 1: binds InstanceBuffer
    };
 
    /** List of render batches for each pass type (Sorted). */
@@ -44,6 +50,7 @@ export namespace Visera
    struct VISERA_RUNTIME_API FRenderContext
    {
       const FRenderList*    RenderList     {nullptr};
+      const FRenderView*    RenderView     {nullptr};
       FRHI*                 RHI            {nullptr};
       FRHISwapChainID       SwapChainID    {kInvalidSwapChainID};
       FRHITextureID         BackBuffer;

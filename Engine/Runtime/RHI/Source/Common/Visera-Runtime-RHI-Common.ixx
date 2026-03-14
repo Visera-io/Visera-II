@@ -205,6 +205,21 @@ export namespace Visera
     [[nodiscard]] constexpr vk::BlendOp
     TypeCast(ERHIBlendOp I_BlendOp) { return static_cast<vk::BlendOp>(I_BlendOp); }
 
+    /** Comparison function for depth/stencil tests. */
+    enum class ERHICompareOp : UInt8
+    {
+        Never          = static_cast<UInt8>(vk::CompareOp::eNever),
+        Less           = static_cast<UInt8>(vk::CompareOp::eLess),
+        Equal          = static_cast<UInt8>(vk::CompareOp::eEqual),
+        LessOrEqual    = static_cast<UInt8>(vk::CompareOp::eLessOrEqual),
+        Greater        = static_cast<UInt8>(vk::CompareOp::eGreater),
+        NotEqual       = static_cast<UInt8>(vk::CompareOp::eNotEqual),
+        GreaterOrEqual = static_cast<UInt8>(vk::CompareOp::eGreaterOrEqual),
+        Always         = static_cast<UInt8>(vk::CompareOp::eAlways),
+    };
+    [[nodiscard]] constexpr vk::CompareOp
+    TypeCast(ERHICompareOp I_CompareOp) { return static_cast<vk::CompareOp>(I_CompareOp); }
+
     enum class ERHIImageType : UInt8
     {
         Image1D = static_cast<UInt8>(vk::ImageType::e1D),
@@ -293,6 +308,15 @@ export namespace Visera
     VISERA_MAKE_FLAGS(ERHIAccessFlag);
     [[nodiscard]] constexpr vk::AccessFlags2
     TypeCast(ERHIAccessFlag I_Access) { return static_cast<vk::AccessFlagBits2>(static_cast<UInt64>(I_Access)); }
+
+    /** Index element type for BindIndexBuffer / DrawIndexed. */
+    enum class ERHIIndexType : UInt8
+    {
+        UInt16 = static_cast<UInt8>(vk::IndexType::eUint16),
+        UInt32 = static_cast<UInt8>(vk::IndexType::eUint32),
+    };
+    [[nodiscard]] constexpr vk::IndexType
+    TypeCast(ERHIIndexType I_IndexType) { return static_cast<vk::IndexType>(I_IndexType); }
 
     enum class ERHIBufferUsage : UInt32
     {

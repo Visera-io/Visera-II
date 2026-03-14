@@ -27,6 +27,10 @@ macro(install_visera_forge in_target)
         PUBLIC
         FILE_SET "visera_forge_modules" TYPE CXX_MODULES
         FILES ${VISERA_FORGE_MODULES})
+
+    # Engine shader library root for Slang `import Visera.Shader.Core;`
+    target_compile_definitions(${in_target} PRIVATE
+        VISERA_ENGINE_SHADERS_DIR="${VISERA_ENGINE_DIR}/Shaders")
 endmacro()
 
 # Forge: standalone executable (engine toolchain), not linked into Visera.dll

@@ -4,6 +4,7 @@ export module Visera.Runtime.Graphics.RenderGraph;
 #define VISERA_MODULE_NAME "Runtime.Graphics"
 import Visera.Runtime.RHI;
 import Visera.Runtime.Graphics.Framework;
+import Visera.Runtime.Graphics.Scene;
 import Visera.Core.Containers.Array;
 import Visera.Core.Containers.Map;
 import Visera.Core.OS.Memory;
@@ -77,8 +78,9 @@ export namespace Visera
     // =========================================================================
     struct VISERA_RUNTIME_API FRDGPassContext
     {
-        FRHICommandList&   CommandList;
-        const FRenderList& RenderList;
+        FRHICommandList&    CommandList;
+        const FRenderList&  RenderList;
+        const FRenderView&  RenderView;
 
         [[nodiscard]] const FRHITextureID&
         GetTexture(FGraphicsID I_ID) const;
@@ -89,8 +91,9 @@ export namespace Visera
     private:
         friend class FRenderGraph;
         const FRenderGraph* Graph {nullptr};
-        FRDGPassContext(FRHICommandList& I_CmdList, const FRenderGraph& I_Graph, const FRenderList& I_RenderList)
-        : CommandList(I_CmdList), RenderList(I_RenderList), Graph(&I_Graph) {}
+        FRDGPassContext(FRHICommandList& I_CmdList, const FRenderGraph& I_Graph,
+                        const FRenderList& I_RenderList, const FRenderView& I_RenderView)
+        : CommandList(I_CmdList), RenderList(I_RenderList), RenderView(I_RenderView), Graph(&I_Graph) {}
     };
 
     // =========================================================================
@@ -731,8 +734,9 @@ export namespace Visera
     {
         if (!I_RenderContext || !I_RenderContext->RHI) { return; }
         VISERA_ASSERT(I_RenderContext->RenderList != nullptr && "Execute requires a valid RenderList.");
+        VISERA_ASSERT(I_RenderContext->RenderView != nullptr && "Execute requires a valid RenderView.");
         auto CmdList = I_RenderContext->RHI->CreateCommandList();
-        FRDGPassContext Ctx(CmdList, *this, *I_RenderContext->RenderList);
+        FRDGPassContext Ctx(CmdList, *this, *I_RenderContext->RenderList, *I_RenderContext->RenderView);
         for (UInt32 i = 0; i < Nodes.GetSize(); ++i)
         {
             if (i < PerNodeBarriers.GetSize())

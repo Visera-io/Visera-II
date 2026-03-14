@@ -20,4 +20,7 @@ namespace Visera
 
     // RHI Command List
     inline constexpr UInt64 kCommandListHighWaterMarkBytes = 64ULL * 1024; // 64KB
+
+    // RHI Descriptor Pool
+    inline constexpr UInt32 kMaxDescriptorPoolSets = 4096;
 }

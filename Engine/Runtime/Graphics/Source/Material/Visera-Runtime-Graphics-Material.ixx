@@ -43,6 +43,10 @@ export namespace Visera
         [[nodiscard]] Bool
         GetZWrite() const noexcept { return bZWrite; }
         [[nodiscard]] Bool
+        GetDepthTest() const noexcept { return bDepthTest; }
+        [[nodiscard]] ERHICompareOp
+        GetDepthCompareOp() const noexcept { return DepthCompareOp; }
+        [[nodiscard]] Bool
         IsValid() const noexcept { return bValid; }
 
         FMaterial(FRHIShaderID         I_VertexShader,
@@ -53,7 +57,9 @@ export namespace Visera
                   TArray<FRHIBufferID>  I_OwnedBuffers,
                   ESurfaceType         I_Surface,
                   ERHICullMode         I_CullMode,
-                  Bool                 I_ZWrite)
+                  Bool                 I_ZWrite,
+                  Bool                 I_DepthTest,
+                  ERHICompareOp        I_DepthCompareOp)
             : VertexShader   (std::move(I_VertexShader))
             , FragmentShader (std::move(I_FragmentShader))
             , DescriptorSet  (std::move(I_DescriptorSet))
@@ -63,6 +69,8 @@ export namespace Visera
             , Surface        (I_Surface)
             , CullMode       (I_CullMode)
             , bZWrite        (I_ZWrite)
+            , bDepthTest     (I_DepthTest)
+            , DepthCompareOp (I_DepthCompareOp)
         {}
 
     private:
@@ -72,10 +80,12 @@ export namespace Visera
         TArray<FRHISamplerID>  OwnedSamplers;
         TArray<FRHITextureID>  OwnedTextures;
         TArray<FRHIBufferID>   OwnedBuffers;
-        ESurfaceType           Surface {ESurfaceType::Opaque};
-        ERHICullMode           CullMode {ERHICullMode::Back};
-        Bool                   bZWrite {True};
-        Bool                   bValid  {True};
+        ESurfaceType           Surface        {ESurfaceType::Opaque};
+        ERHICullMode           CullMode       {ERHICullMode::Back};
+        Bool                   bZWrite        {True};
+        Bool                   bDepthTest     {False};
+        ERHICompareOp          DepthCompareOp {ERHICompareOp::LessOrEqual};
+        Bool                   bValid         {True};
 
     public:
         ~FMaterial() = default;
@@ -110,6 +120,20 @@ export namespace Visera
             if (I_Str == "Back")       { return ERHICullMode::Back; }
             if (I_Str == "TwoSided")   { return ERHICullMode::TwoSided; }
             return ERHICullMode::Back;
+        }
+
+        static ERHICompareOp
+        ParseCompareOp(const FString& I_Str)
+        {
+            if (I_Str == "Never")          { return ERHICompareOp::Never; }
+            if (I_Str == "Less")           { return ERHICompareOp::Less; }
+            if (I_Str == "Equal")          { return ERHICompareOp::Equal; }
+            if (I_Str == "LessOrEqual")    { return ERHICompareOp::LessOrEqual; }
+            if (I_Str == "Greater")        { return ERHICompareOp::Greater; }
+            if (I_Str == "NotEqual")       { return ERHICompareOp::NotEqual; }
+            if (I_Str == "GreaterOrEqual") { return ERHICompareOp::GreaterOrEqual; }
+            if (I_Str == "Always")         { return ERHICompareOp::Always; }
+            return ERHICompareOp::LessOrEqual;
         }
 
         static ERHISamplerAddressMode
@@ -255,6 +279,15 @@ export namespace Visera
         Bool ZWrite = True;
         if (auto opt = I_Description.TryGetBool(TJSONRoute<"State.ZWrite">()); opt.HasValue())
             ZWrite = opt.GetValue();
+        Bool DepthTest = False;
+        if (auto opt = I_Description.TryGetBool(TJSONRoute<"State.DepthTest">()); opt.HasValue())
+            DepthTest = opt.GetValue();
+        // DepthWrite defaults to ZWrite for backward compatibility
+        if (auto opt = I_Description.TryGetBool(TJSONRoute<"State.DepthWrite">()); opt.HasValue())
+            ZWrite = opt.GetValue();
+        FString DepthCompareStr = "LessOrEqual";
+        if (auto opt = I_Description.TryGetString(TJSONRoute<"State.DepthCompare">()); opt.HasValue())
+            DepthCompareStr = std::move(opt.GetValue());
 
         // --- Parse Textures: name -> image path (reflection defines which names exist) ---
         TMap<FString, FTextureResourceInfo> TextureNameToInfo;
@@ -301,9 +334,12 @@ export namespace Visera
 
         const auto& VertRefl = VertAsset->GetReflection();
         const auto& FragRefl = FragAsset->GetReflection();
+        // Only set 0 resources belong to the material descriptor set.
+        // Set 1+ (e.g. instance SSBO) are engine-managed and excluded here.
         TMap<UInt64, FRHIShaderLayout::FResource> MergedResources;
         auto AddResource = [&MergedResources](const FRHIShaderLayout::FResource& Res)
         {
+            if (Res.Set != 0) { return; }
             const UInt64 Key = (static_cast<UInt64>(Res.Set) << 32) | Res.Binding;
             auto It = MergedResources.Find(Key);
             if (It != MergedResources.end())
@@ -470,6 +506,8 @@ export namespace Visera
             std::move(OwnedBuffers),
             ParseSurfaceType(SurfStr),
             ParseCullMode(CullStr),
-            ZWrite);
+            ZWrite,
+            DepthTest,
+            ParseCompareOp(DepthCompareStr));
     }
 }
