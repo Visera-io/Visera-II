@@ -41,6 +41,9 @@ namespace Visera
     // RHI Descriptor Pool
     inline constexpr UInt32 kMaxDescriptorPoolSets = 4096;
 
+    // RHI Staging Ring
+    inline constexpr UInt64 kRHIStagingRingSize = 64ULL * 1024 * 1024; // 64MB
+
     // Graphics – Instance Data Pages
     inline constexpr UInt64 kInstanceDataPageSize          = 32ULL * 1024 * 1024; // 32MB
     inline constexpr UInt32 kInstanceDataPageCount         = 1u;

@@ -582,7 +582,7 @@ export namespace Visera
         Driver->CreatePipelineCache();
 
         Registry    = MakeShared<FRHIRegistry>(Driver.Get());
-        StagingRing = MakeUnique<FRHIStagingRingBuffer>(Driver.Get(), 16_MB);
+        StagingRing = MakeUnique<FRHIStagingRingBuffer>(Driver.Get(), kRHIStagingRingSize);
         GraphicsCommandPool = Driver->CreateCommandPool<EVulkanQueueFamily::Graphics>(False);
 
         UtilityFrame.Emplace();

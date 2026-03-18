@@ -117,7 +117,10 @@ export namespace Visera
     void FRHIStagingRingBuffer::
     AdvanceFence(UInt64 I_CompletedOffset)
     {
-        FenceOffset = I_CompletedOffset;
+        // Never decrease: after wrap-around, multiple regions can complete out of order;
+        // we must retain the furthest completed offset so all freed space remains reusable.
+        if (I_CompletedOffset > FenceOffset)
+            FenceOffset = I_CompletedOffset;
     }
 
     UInt64 FRHIStagingRingBuffer::
