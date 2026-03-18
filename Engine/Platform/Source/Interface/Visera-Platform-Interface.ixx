@@ -9,7 +9,6 @@ export import Visera.Platform.Interface.Device;
 export import Visera.Platform.Interface.EventLoop;
 export import Visera.Platform.Interface.FileSystem;
 export import Visera.Core.Types.Pointer.Unique;
-export import Visera.Core.Types.Text;
 export import Visera.Core.Types.String;
        import Visera.Core.Types.Optional;
 
@@ -21,7 +20,7 @@ export namespace Visera
         /** Platform identifier for branching (e.g. FPlatform::IsPlatform). */
         [[nodiscard]] virtual FStringView GetPlatformName() const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformWindow>
-        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const = 0;
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const = 0;
         [[nodiscard]] virtual TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformPath>
@@ -30,15 +29,18 @@ export namespace Visera
         GetResourceDirectory() const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const = 0;
+        /** Logs directory per platform convention (e.g. Windows: LocalAppData/AppName/Logs, macOS: ~/Library/Logs/BundleId). */
+        [[nodiscard]] virtual FPath
+        GetLogsDirectory() const = 0;
         [[nodiscard]] virtual Bool
-        SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const = 0;
+        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const = 0;
         /** Returns the value if the variable is set; nullopt if unset. */
-        [[nodiscard]] virtual TOptional<FText>
-        GetEnvironmentVariable(const FText& I_Variable) const = 0;
+        [[nodiscard]] virtual TOptional<FString>
+        GetEnvironmentVariable(FStringView I_Variable) const = 0;
         [[nodiscard]] virtual FUUID
         GenerateUUID() const = 0;
         virtual void
-        SetCurrentThreadName(const FText& I_Name) const = 0;
+        SetCurrentThreadName(FStringView I_Name) const = 0;
         /** May be nullptr if platform has no file system (e.g. Null). */
         [[nodiscard]] virtual IPlatformFileSystem*
         GetFileSystem() const = 0;

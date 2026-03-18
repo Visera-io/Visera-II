@@ -16,7 +16,6 @@ import Visera.Platform.Interface.Window;
 import Visera.Core.OS.Thread;
 import Visera.Core.Log;
 import Visera.Core.Containers.Array;
-import Visera.Core.Types.Text;
 
 export namespace Visera
 {
@@ -36,7 +35,7 @@ export namespace Visera
         void
         SetPosition(Int32 I_X, Int32 I_Y) const override { VISERA_ASSERT(FThread::IsMainThread()); glfwSetWindowPos(Handle, I_X, I_Y); }
         void
-        SetTitle(const FText& I_Title) override { VISERA_ASSERT(FThread::IsMainThread()); Title = I_Title; glfwSetWindowTitle(Handle, I_Title.GetData()); }
+        SetTitle(FStringView I_Title) override { VISERA_ASSERT(FThread::IsMainThread()); Title = I_Title; glfwSetWindowTitle(Handle, Title.GetNative().c_str()); }
         void
         SetIcon(const FIconSet& I_IconSet) override;
 
@@ -55,7 +54,7 @@ export namespace Visera
         [[nodiscard]] static TArray<const char*>
         GetVulkanRequiredInstanceExtensions();
 
-        FGLFWWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height);
+        FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height);
         ~FGLFWWindow() override;
 
     private:
@@ -65,7 +64,7 @@ export namespace Visera
     };
 
     FGLFWWindow::
-    FGLFWWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height)
+    FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
     : IPlatformWindow(I_Title, I_Width, I_Height)
     {
         (void)ContextCount.FetchAdd(1, EMemoryOrder::AcqRel);
@@ -78,7 +77,7 @@ export namespace Visera
         //Create Window
         Handle = glfwCreateWindow(
             Width, Height, //[TODO] read from config (save the last scale).
-            Title.GetData(), // The App name is used as the Editor's main window.
+            Title.GetNative().c_str(), // The App name is used as the Editor's main window.
             nullptr,
             nullptr);
         if (!Handle)

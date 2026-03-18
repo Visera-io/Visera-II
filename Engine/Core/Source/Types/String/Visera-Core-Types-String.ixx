@@ -1047,6 +1047,17 @@ export namespace Visera
         return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) == I_Rhs.GetNative();
     }
 
+    /** Disambiguate (std::string_view, string literal) vs std::operator== and FStringView conversions. */
+    [[nodiscard]] inline Bool operator==(std::string_view I_Lhs, const char* I_Rhs) noexcept
+    {
+        return I_Lhs == (I_Rhs ? std::string_view(I_Rhs) : std::string_view());
+    }
+
+    [[nodiscard]] inline Bool operator==(const char* I_Lhs, std::string_view I_Rhs) noexcept
+    {
+        return (I_Lhs ? std::string_view(I_Lhs) : std::string_view()) == I_Rhs;
+    }
+
     [[nodiscard]] inline Bool operator!=(FStringView I_Lhs, FStringView I_Rhs) noexcept
     {
         return !(I_Lhs == I_Rhs);
@@ -1058,6 +1069,16 @@ export namespace Visera
     }
 
     [[nodiscard]] inline Bool operator!=(const char* I_Lhs, FStringView I_Rhs) noexcept
+    {
+        return !(I_Lhs == I_Rhs);
+    }
+
+    [[nodiscard]] inline Bool operator!=(std::string_view I_Lhs, const char* I_Rhs) noexcept
+    {
+        return !(I_Lhs == I_Rhs);
+    }
+
+    [[nodiscard]] inline Bool operator!=(const char* I_Lhs, std::string_view I_Rhs) noexcept
     {
         return !(I_Lhs == I_Rhs);
     }

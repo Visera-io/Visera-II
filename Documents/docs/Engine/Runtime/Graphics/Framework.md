@@ -13,6 +13,25 @@ Render extent (width × height). Used by `FRenderTask` and the Render API.
 | `Width`  | `UInt32` | Internal render width; **0** → use SwapChain size. |
 | `Height` | `UInt32` | Internal render height; **0** → use SwapChain size. |
 
+### FRenderData
+
+Per-frame payload of draw commands and lights. Built by `FGraphics::Render(FWindow*)` from accumulated `DrawCommands` and `FrameLights`; read-only on the Graphics thread.
+
+| Member        | Type                      | Description |
+|---------------|---------------------------|-------------|
+| `DrawCommands`| `TArray<FRenderableMeta>` | Draw commands (instance data + material + mesh); filled from `Draw()` calls. |
+| `Lights`      | `TArray<FLight>`          | Lights for the frame. |
+
+### FRenderableMeta
+
+Extracted draw-command data (no virtual calls across threads). Used by `Draw(const FRenderableMeta&)` and produced by `IRenderable::ToRenderableMeta()`.
+
+| Member        | Type                   | Description |
+|---------------|------------------------|-------------|
+| `InstanceData`| `FInstanceData`        | Transform, color, custom data. |
+| `Material`    | `TSharedPtr<FMaterial>` | Material; required. |
+| `Mesh`        | `TSharedPtr<FMesh>`     | Mesh geometry; `nullptr` = sprite quad path. |
+
 ### FRenderTask
 
 Per-frame work item sent from the main thread to the Graphics thread via `TSPSCChannel<FRenderTask>`.
@@ -20,8 +39,8 @@ Per-frame work item sent from the main thread to the Graphics thread via `TSPSCC
 | Member      | Type           | Description |
 |-------------|----------------|-------------|
 | `SwapChainID` | `FRHISwapChainID` | Target swap chain. **`kInvalidSwapChainID`** is also used as the **channel poison pill** (stop the Graphics thread). |
-| `Data`        | `FRenderData`    | Scene render data. |
-| `RenderView`  | `FRenderView`    | View/projection. |
+| `Data`        | `FRenderData`    | Draw commands and lights. |
+| `RenderView`  | `FRenderView`    | View/projection (from `SetCamera`). |
 | `RenderArea`  | `FRenderArea`    | Render extent (0,0 = use SwapChain size). |
 
 ### FRenderBatch
@@ -41,7 +60,7 @@ Single batch for instanced draw calls. All instances in a batch share the same p
 
 ### FRenderList
 
-Sorted list of render batches per surface type. Filled by `ExtractAndSortDrawList` on the Graphics thread from `FRenderData`; draw passes iterate only this list (no raw scene data).
+Sorted list of render batches per surface type. Filled by `BatchAndSort` on the Graphics thread from `FRenderData::DrawCommands`; draw passes iterate only this list.
 
 | Member | Type | Description |
 |--------|------|-------------|
@@ -70,21 +89,21 @@ Priority constants for `RegisterPass`. Lower values run first. Example order: Se
 
 ## Render API (FGraphics)
 
-- **`Render(FWindow* I_Window, const FScene& I_Scene, const FRenderArea& I_RenderArea = {})`**  
-  Convenience: resolves swap chain from the window; `I_RenderArea` default `{}` means derive size from the window. Forwards to the unified overload.
+All of the following are **per-frame**; state is cleared after `Render(FWindow*)` is called (by the engine after `OnPreRender`).
 
-- **`Render(FRHISwapChainID I_SwapChainID, const FScene& I_Scene, const FRenderArea& I_RenderArea)`**  
-  Unified entry: enqueues one `FRenderTask` to the Graphics thread. Used for headless or after the window overload.
-
-Both overloads require an explicit `FRenderArea` at the call site for the unified overload; the window overload allows default `{}` (window size).
+- **`SetCamera(FCamera I_Camera)`** — Set view/projection for this frame. Cleared after `Render`.
+- **`SubmitLight(FLight I_Light)`** — Add a light for this frame. Cleared after `Render`.
+- **`Draw(const IRenderable& I_Renderable)`** — Submit a draw; data is extracted via `ToRenderableMeta()` and stored.
+- **`Draw(const FRenderableMeta& I_Meta)`** — Submit a draw from pre-built meta (e.g. scripting bindings).
+- **`Render(FWindow* I_Window)`** — Build `FRenderTask` from accumulated draws, camera and lights; send to the Graphics thread; clear per-frame state. **Called by the engine** after `OnPreRender` (single-window case). Resolves swap chain from the window and derives `FRenderArea` from window size.
 
 ## Draw list extraction (main module)
 
-**`ExtractAndSortDrawList(I_Data, O_List, I_PipelineCache, I_RHI, I_ColorFormats, I_DepthFormat)`** (in `Visera.Runtime.Graphics`) fills `O_List` by iterating `I_Data` renderables, batching by **(Material, Mesh, PSO)**. The batch key is computed from `Material*` and `Mesh*` via `Math::GoldenRatioHashCombine`. Routes by surface: opaque vs transparent. `WireframeBatches` is cleared but not filled. The Graphics thread calls this once per frame before uploading instance buffers and building `FRenderContext`.
+**`BatchAndSort(I_Data, O_List)`** (in `Visera.Runtime.Graphics`) fills `O_List` by iterating `I_Data.GetDrawCommands()` (each element is `FRenderableMeta`), batching by **(Material, Mesh)**. The batch key is computed from `Material*` and `Mesh*` via `Math::GoldenRatioHashCombine`. Routes by surface: opaque vs transparent. `WireframeBatches` is cleared but not filled. The Graphics thread calls this once per frame before uploading instance buffers and building `FRenderContext`.
 
 ## Instance buffer upload
 
-**`UploadInstanceBuffers(IO_List, I_RHI)`** — called once per frame after `ExtractAndSortDrawList` and before `FRenderContext` construction. For each batch with instances, creates a storage buffer (`FInstanceData[]`), uploads it, creates a descriptor set (set 1, binding 0 = StorageBuffer) and writes the buffer binding. Buffer lifetime is tied to `FRHIBufferID` RAII — destroyed when `FRenderList` goes out of scope at end of frame.
+**`UploadInstanceBuffers(IO_List, I_RHI)`** — called once per frame after `BatchAndSort` and before `FRenderContext` construction. For each batch with instances, creates a storage buffer (`FInstanceData[]`), uploads it, creates a descriptor set (set 1, binding 0 = StorageBuffer) and writes the buffer binding. Buffer lifetime is tied to `FRHIBufferID` RAII — destroyed when `FRenderList` goes out of scope at end of frame.
 
 ## RegisterPass and concurrency
 

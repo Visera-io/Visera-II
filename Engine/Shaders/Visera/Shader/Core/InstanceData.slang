@@ -8,8 +8,8 @@ struct InstanceData
     float4   customData;  // 16 bytes -- user-defined (UV rect, material params, etc.)
 };
 
-/// Instance buffer bound at set 1, binding 0.
-[[vk::binding(0, 1)]]
+/// Instance buffer bound at set 3, binding 0.
+[[vk::binding(0, 3)]]
 StructuredBuffer<InstanceData> _instances;
 
 /// Retrieve instance data for the current draw instance.

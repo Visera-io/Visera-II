@@ -184,7 +184,7 @@ namespace Visera::Forge
             return 0;
         }
 
-        // Create Engine with Forge mode (Tasks, AssetHub, RHI only)
+        // Create Engine with Forge mode (AssetHub only)
         auto Engine = Visera::CreateEngine(EEngineMode::Forge);
         if (!Engine)
         {

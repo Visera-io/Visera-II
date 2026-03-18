@@ -6,7 +6,6 @@ export import Visera.Platform.Interface.Device;
 export import Visera.Core.Types.String;
 export import Visera.Core.Types.Pointer.Unique;
        import Visera.Core.Delegate.Unicast;
-       import Visera.Core.Types.Text;
 
 export namespace Visera
 {
@@ -49,7 +48,7 @@ export namespace Visera
         virtual void
         SetPosition(Int32 I_X, Int32 I_Y) const = 0;
         virtual void
-        SetTitle(const FText& I_Title) = 0;
+        SetTitle(FStringView I_Title) = 0;
         virtual void
         SetIcon(const FIconSet& I_IconSet) = 0;
         /** Current key state for this window. Platform-agnostic enum; cast to platform int only in Platform layer. */
@@ -69,7 +68,7 @@ export namespace Visera
         GetNativeHandle() const = 0;
         [[nodiscard]] virtual void*
         CreateVulkanSurface(void* I_Instance) const = 0;
-        [[nodiscard]] inline const FText&
+        [[nodiscard]] inline FStringView
         GetTitle() const { return Title; }
         [[nodiscard]] inline UInt32
         GetWidth() const  { return Width; }
@@ -88,12 +87,12 @@ export namespace Visera
         IsMaximized() const { return bMaximized; };
 
         explicit IPlatformWindow() = delete;
-        explicit IPlatformWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height)
+        explicit IPlatformWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
         : Title(I_Title), Width(I_Width), Height(I_Height) {}
         virtual ~IPlatformWindow() = default;
 
     protected:
-        FText       Title;
+        FString     Title;
         UInt32      Width      {0},     Height{0};
         Float       ScaleX     {1.0f},  ScaleY{1.0f};
         Bool        bMaximized {False};

@@ -1,6 +1,7 @@
 module;
 #include <Visera-Core.hpp>
 #include <chrono>
+#include <format>
 export module Visera.Core.OS.Time.TimePoint;
 #define VISERA_MODULE_NAME "Core.OS"
 import Visera.Core.OS.Time.Common;
@@ -55,8 +56,14 @@ export namespace Visera
         using clock      = std::chrono::system_clock;
         using time_point = clock::time_point;
 
-        [[nodiscard]] FString ToString() const
-        { return std::format("UTC(+0) {:%Y-%m-%d %H:%M:%S}", Value); }
+        /** Format this time point with strftime-style format (e.g. "%Y-%m-%d_%H-%M-%S"). */
+        [[nodiscard]] FString ToString(FStringView I_Format) const
+        {
+            FString FormatString("{:");
+            FormatString.Append(I_Format);
+            FormatString.Append("}");
+            return std::vformat(FormatString.GetNative(), std::make_format_args(Value));
+        }
 
         [[nodiscard]] inline time_t
         ToSystemTimeType() const { return clock::to_time_t(Value); }

@@ -3,6 +3,7 @@ module;
 export module Visera.Core.Log;
 #define VISERA_MODULE_NAME "Core.Log"
 import Visera.Core.Log.Logger;
+import Visera.Core.Types.Path;
 
 export namespace Visera
 {
@@ -13,6 +14,10 @@ export namespace Visera
     public:
         static inline auto&
         Get() { static FLogger Logger{}; return Logger; }
+
+        /** Sets the log file sink directory (e.g. platform Logs path). No file is created until this is called. */
+        static inline void
+        SetSinkPath(const FPath& I_LogDirectory) { Get().SetSinkPath(I_LogDirectory); }
     };
 
     static_assert(ELogLevel::Trace == static_cast<ELogLevel>(VISERA_LOG_LEVEL_TRACE));

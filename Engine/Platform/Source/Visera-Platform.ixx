@@ -54,7 +54,7 @@ export namespace Visera
     {
     public:
         [[nodiscard]] static inline TUniquePtr<FPlatformWindow>
-        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) { return Cast<FPlatformWindow>(Get()->CreateWindow(I_Title, I_Width, I_Height)); }
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) { return Cast<FPlatformWindow>(Get()->CreateWindow(I_Title, I_Width, I_Height)); }
         [[nodiscard]] static inline FPlatformPath
         MakePlatformPath(const FPath& I_Path) { return FPlatformPath(I_Path); }
         [[nodiscard]] static inline TSharedPtr<FPlatformLibrary>
@@ -67,10 +67,12 @@ export namespace Visera
         GetFrameworkDirectory();
         [[nodiscard]] static const FPath&
         GetCacheDirectory();
+        [[nodiscard]] static inline FPath
+        GetLogsDirectory() { return Get()->GetLogsDirectory(); }
         [[nodiscard]] static inline Bool
-        SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) { return Get()->SetEnvironmentVariable(I_Variable, I_Value); }
-        [[nodiscard]] static inline TOptional<FText>
-        GetEnvironmentVariable(const FText& I_Variable) { return Get()->GetEnvironmentVariable(I_Variable); }
+        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) { return Get()->SetEnvironmentVariable(I_Variable, I_Value); }
+        [[nodiscard]] static inline TOptional<FString>
+        GetEnvironmentVariable(FStringView I_Variable) { return Get()->GetEnvironmentVariable(I_Variable); }
         [[nodiscard]] static inline FUUID
         GenerateUUID() { return Get()->GenerateUUID(); }
         [[nodiscard]] static inline FStringView
@@ -78,7 +80,7 @@ export namespace Visera
         [[nodiscard]] static inline Bool
         IsPlatform(EPlatform I_Type) { return Get()->GetPlatformName() == NameFor(I_Type); }
         static inline void
-        SetCurrentThreadName(const FText& I_Name) { Get()->SetCurrentThreadName(I_Name); }
+        SetCurrentThreadName(FStringView I_Name) { Get()->SetCurrentThreadName(I_Name); }
         static inline void
         PollEvents() { Get()->PollEvents(); }
         static inline void

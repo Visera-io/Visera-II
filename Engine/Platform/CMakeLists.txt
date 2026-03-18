@@ -29,4 +29,4 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 endif()
 
 #[Install]
-include("Scripts/install.cmake")
+include("CMake/install.cmake")

@@ -8,37 +8,38 @@ export import Visera.Platform;
 
 export namespace Visera
 {
-    /** Create engine from engine config only. Services enabled via Engine.<Service>.Enable (default false when missing). Apps are created separately via CreateApplication. */
+    /** Create engine from FEngineCreateInfo. Each TOptional with a value enables that service. */
     [[nodiscard]] inline TUniquePtr<FViseraEngine>
-    CreateEngine(const FJSON& I_EngineConfig)
+    CreateEngine(const FEngineCreateInfo& I_CreateInfo)
     {
-        return MakeUnique<FViseraEngine>(I_EngineConfig);
+        return MakeUnique<FViseraEngine>(I_CreateInfo);
     }
 
-    /** Create engine by mode. No Config needed. Standard = full; Forge = Task, AssetHub, RHI only (Visera-Forge). */
+    /** Create engine by mode. Standard = full features with main window; Forge = AssetHub only (no Run loop). */
     [[nodiscard]] inline TUniquePtr<FViseraEngine>
-    CreateEngine(EEngineMode I_Mode)
+    CreateEngine(EEngineMode I_Mode, FString I_WindowTitle = "Visera", UInt32 I_Width = 1024, UInt32 I_Height = 768)
     {
-        FJSON Config{};
+        FEngineCreateInfo Info;
+        Info.Name = "Visera";
+        Info.MaxFrameRate = (I_Mode == EEngineMode::Standard) ? 60u : 0u;
+
         switch (I_Mode)
         {
         case EEngineMode::Standard:
-            Config.Set(TJSONRoute<"Engine.Tasks.Enable">(),    True);
-            Config.Set(TJSONRoute<"Engine.RHI.Enable">(),      True);
-            Config.Set(TJSONRoute<"Engine.Audio.Enable">(),    True);
-            Config.Set(TJSONRoute<"Engine.Audio.Engine">(),    "Wwise");
-            Config.Set(TJSONRoute<"Engine.AssetHub.Enable">(), True);
-            Config.Set(TJSONRoute<"Engine.Graphics.Enable">(), True);
-            Config.Set(TJSONRoute<"Engine.Input.Enable">(),    True);
+            Info.MainWindow  = FWindowCreateInfo{ .Title = std::move(I_WindowTitle), .Width = I_Width, .Height = I_Height };
+            Info.RHI         = FRHICreateInfo{};
+            Info.AssetHub    = FAssetHubCreateInfo{};
+            Info.AudioEngine = FAudioCreateInfo{ .Engine = "Wwise" };
+            Info.Graphics    = FGraphicsCreateInfo{};
+            Info.Input       = FInputCreateInfo{};
+            Info.Scripting   = FScriptingCreateInfo{};
             break;
         case EEngineMode::Forge:
-            Config.Set(TJSONRoute<"Engine.Tasks.Enable">(),    True);
-            Config.Set(TJSONRoute<"Engine.RHI.Enable">(),      False);
-            Config.Set(TJSONRoute<"Engine.AssetHub.Enable">(), True);
+            Info.AssetHub = FAssetHubCreateInfo{};
             break;
         default:
             LOG_FATAL("Unknown EEngineMode: {}", static_cast<Int32>(I_Mode));
         }
-        return CreateEngine(Config);  // Config contains only Engine.* keys
+        return CreateEngine(Info);
     }
 }

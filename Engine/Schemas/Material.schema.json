@@ -57,15 +57,6 @@
         }
       }
     },
-    "Parameters": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "array",
-        "items": { "type": "number" },
-        "description": "Initial/default values for push constants or uniforms (e.g. [0,0] for Vector2F, [1,1,1,1] for Vector4F)."
-      },
-      "description": "Optional default values keyed by shader parameter name (from reflection)."
-    },
     "Textures": {
       "type": "object",
       "additionalProperties": {

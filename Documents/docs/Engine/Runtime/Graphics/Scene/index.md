@@ -1,6 +1,6 @@
 # Runtime.Graphics.Scene (Visera.Runtime.Graphics.Scene)
 
-**Runtime.Graphics.Scene** provides scene representation: camera, lights and renderables. Camera defines view and projection matrices; lights define directional, point or spot parameters; renderables associate mesh, material and draw parameters for render graph and passes to traverse and issue draw calls. Scene data is filled by editor or game logic; render layer consumes read-only.
+**Runtime.Graphics.Scene** provides the data types for rendering: camera (`FCamera`), lights (`FLight`) and renderables (`IRenderable`, `FRenderableMeta`). There is **no persistent scene container** (`FScene` was removed). Camera, lights and draws are submitted **per-frame** via `FGraphics::SetCamera`, `SubmitLight` and `Draw`; the engine calls `Render(FWindow*)` after `OnPreRender` to send the accumulated frame to the Graphics thread.
 
 ## Responsibilities
 - **Camera**: View matrix (position and orientation), projection (perspective/ortho), viewport and culling; may support multi-viewport or split screen.

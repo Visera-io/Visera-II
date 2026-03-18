@@ -17,7 +17,6 @@ export import Visera.Platform.MacOS.FileSystem;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.Path;
        import Visera.Core.Types.String;
-       import Visera.Core.Types.Text;
        import Visera.Core.Log;
 
 export namespace Visera
@@ -26,7 +25,7 @@ export namespace Visera
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const override;
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FMacOSLibrary>(I_Path); }
         [[nodiscard]] TUniquePtr<IPlatformPath>
@@ -35,14 +34,16 @@ export namespace Visera
         GetResourceDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const override;
+        [[nodiscard]] FPath
+        GetLogsDirectory() const override;
         [[nodiscard]] Bool
-        SetEnvironmentVariable(const FText& I_Variable, const FText& I_Value) const override;
-        [[nodiscard]] TOptional<FText>
-        GetEnvironmentVariable(const FText& I_Variable) const override;
+        SetEnvironmentVariable(FStringView I_Variable, FStringView I_Value) const override;
+        [[nodiscard]] TOptional<FString>
+        GetEnvironmentVariable(FStringView I_Variable) const override;
         [[nodiscard]] FUUID
         GenerateUUID() const override;
         void
-        SetCurrentThreadName(const FText& I_Name) const override;
+        SetCurrentThreadName(FStringView I_Name) const override;
         [[nodiscard]] IPlatformFileSystem*
         GetFileSystem() const override { return &FileSystem; }
         void
@@ -59,13 +60,34 @@ export namespace Visera
         ~FMacOSPlatform() override = default;
 
     private:
-        static std::string MakePlatformString(const FText& I_Text);
+        static std::string MakePlatformString(FStringView I_Text);
 
         mutable FMacOSPlatformFileSystem FileSystem;
         mutable FGLFWPlatform              GLFW;
     };
 
-    FMacOSPlatform::FMacOSPlatform() {}
+#ifndef VISERA_APP_NAME
+#define VISERA_APP_NAME "Visera"
+#endif
+
+    FMacOSPlatform::FMacOSPlatform()
+    {
+        /* Configure log file sink per platform convention: ~/Library/Logs/AppName. */
+        const FPath LogsDirectory = GetLogsDirectory();
+        if (!LogsDirectory.IsEmpty())
+        {
+            (void)GetFileSystem()->CreateDirectories(FMacOSPath(LogsDirectory));
+            FLog::SetSinkPath(LogsDirectory);
+        }
+    }
+
+    FPath FMacOSPlatform::GetLogsDirectory() const
+    {
+        const TOptional<FString> Home = GetEnvironmentVariable("HOME");
+        if (!Home.HasValue() || Home.GetValue().IsEmpty()) { return FPath(); }
+        const FPath Base(Home.GetValue());
+        return Base / FPath("Library") / FPath("Logs") / FPath(VISERA_APP_NAME);
+    }
 
     TUniquePtr<IPlatformPath> FMacOSPlatform::GetExecutableDirectory() const
     {
@@ -98,21 +120,21 @@ export namespace Visera
         return nullptr;
     }
 
-    std::string FMacOSPlatform::MakePlatformString(const FText& I_Text)
+    std::string FMacOSPlatform::MakePlatformString(FStringView I_Text)
     {
         if (I_Text.IsEmpty()) { return {}; }
-        return std::string(I_Text.GetData(), I_Text.GetSize());
+        return std::string(I_Text.Data(), I_Text.GetSize());
     }
 
     TUniquePtr<IPlatformWindow> FMacOSPlatform::
-    CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const
+    CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const
     {
         return MakeUnique<FMacOSWindow>(I_Title, I_Width, I_Height);
     }
 
     Bool FMacOSPlatform::
-    SetEnvironmentVariable(const FText& I_Variable,
-                           const FText& I_Value) const
+    SetEnvironmentVariable(FStringView I_Variable,
+                           FStringView I_Value) const
     {
         const std::string Var = MakePlatformString(I_Variable);
         const std::string Val = MakePlatformString(I_Value);
@@ -127,14 +149,14 @@ export namespace Visera
         return True;
     }
 
-    TOptional<FText> FMacOSPlatform::
-    GetEnvironmentVariable(const FText& I_Variable) const
+    TOptional<FString> FMacOSPlatform::
+    GetEnvironmentVariable(FStringView I_Variable) const
     {
         const std::string Var = MakePlatformString(I_Variable);
         if (Var.empty()) { return std::nullopt; }
         const char* Val = ::getenv(Var.c_str());
         if (!Val) { return std::nullopt; }
-        return FText(FString(Val));
+        return FString(Val);
     }
 
     /**
@@ -153,7 +175,7 @@ export namespace Visera
         return UUID;
     }
 
-    void FMacOSPlatform::SetCurrentThreadName(const FText& I_Name) const
+    void FMacOSPlatform::SetCurrentThreadName(FStringView I_Name) const
     {
         if (I_Name.IsEmpty()) { return; }
         std::string Name = MakePlatformString(I_Name);

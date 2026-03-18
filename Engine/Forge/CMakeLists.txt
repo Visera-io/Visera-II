@@ -34,4 +34,4 @@ foreach(CFG ${CMAKE_CONFIGURATION_TYPES})
 endforeach()
 
 #[Install]
-include("Scripts/install.cmake")
+include("CMake/install.cmake")

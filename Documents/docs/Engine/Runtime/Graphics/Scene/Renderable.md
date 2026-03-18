@@ -26,22 +26,34 @@ GPU mesh data stored in storage buffers. The PSO has **no vertex input state**; 
 | `IndexCount`  | `UInt32`        | Number of indices. |
 | `IndexType`   | `ERHIIndexType` | `UInt16` or `UInt32`. |
 
+## FRenderableMeta
+
+Plain struct holding extracted draw-command data. Used by `FGraphics::Draw(const FRenderableMeta&)` and by scripting bindings (no C++ virtuals). Data is captured at submit time so nothing crosses the thread boundary.
+
+| Member        | Type                   | Description |
+|---------------|------------------------|-------------|
+| `InstanceData`| `FInstanceData`        | Transform, color, custom data. |
+| `Material`    | `TSharedPtr<FMaterial>` | Material; required. |
+| `Mesh`        | `TSharedPtr<FMesh>`     | Mesh geometry; `nullptr` = sprite quad path. |
+
 ## IRenderable
 
-Abstract interface implemented by all scene objects that contribute draw calls.
+Abstract interface for C++ renderables. Implementations provide instance data, material and optional mesh. **`ToRenderableMeta()`** builds `FRenderableMeta` from the virtual getters; `FGraphics::Draw(const IRenderable&)` calls it and stores the result (no `TSharedPtr<IRenderable>` is kept).
 
-| Method             | Return                    | Description |
-|--------------------|---------------------------|-------------|
-| `GetInstanceData()`| `FInstanceData`           | **Pure virtual.** Returns the instance's transform, color and custom data. |
-| `GetMaterial()`    | `TSharedPtr<FMaterial>`   | **Pure virtual.** Returns the material used by this renderable. |
-| `GetMesh()`        | `TSharedPtr<FMesh>`       | **Virtual.** Returns mesh geometry; default `nullptr` uses the built-in sprite quad path (`Draw(6, N)`). Override to provide custom geometry (`DrawIndexed`). |
+| Method               | Return                    | Description |
+|----------------------|---------------------------|-------------|
+| `GetInstanceData()`  | `FInstanceData`           | **Pure virtual.** Returns the instance's transform, color and custom data. |
+| `GetMaterial()`      | `TSharedPtr<FMaterial>`   | **Pure virtual.** Returns the material used by this renderable. |
+| `GetMesh()`          | `TSharedPtr<FMesh>`       | **Virtual.** Returns mesh geometry; default `nullptr` uses the built-in sprite quad path (`Draw(6, N)`). Override to provide custom geometry (`DrawIndexed`). |
+| `ToRenderableMeta()` | `FRenderableMeta`         | Builds meta from the three getters; used by `Draw(const IRenderable&)`. |
 
 ## Instancing pipeline
 
-1. Game code creates `IRenderable` implementations with `FInstanceData` built from `FTransform3x4F::MakeTransform2D` / `MakeTransform3D`.
-2. `ExtractAndSortDrawList` groups renderables into `FRenderBatch` by **Pipeline + Material + Mesh**.
-3. `UploadInstanceBuffers` creates a per-batch SSBO from `FInstanceData[]` and a descriptor set at Set 1.
-4. Draw passes bind Set 0 (material) + Set 1 (instance SSBO) and issue `Draw(6, N)` or `DrawIndexed(IndexCount, N)`.
+1. Game (or script) calls `GFX->Draw(renderable)` or `GFX->Draw(FRenderableMeta)` each frame; data is captured immediately.
+2. After `OnPreRender`, the engine calls `GFX->Render(Window)` to send accumulated draws, camera and lights to the Graphics thread.
+3. Graphics thread runs `BatchAndSort` on `FRenderData::DrawCommands` → `FRenderList` (batches by Material + Mesh).
+4. `UploadInstanceBuffers` creates a per-batch SSBO and descriptor set at Set 1.
+5. Draw passes bind Set 0 (material) + Set 1 (instance SSBO) and issue `Draw(6, N)` or `DrawIndexed(IndexCount, N)`.
 
 ## See also
 

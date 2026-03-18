@@ -8,7 +8,6 @@ export module Visera.Platform.Windows.Window;
 export import Visera.Platform.GLFW.Window;
 import Visera.Platform.Interface.Device;
 import Visera.Platform.Interface.Window;
-import Visera.Core.Types.Text;
 
 export namespace Visera
 {
@@ -26,7 +25,7 @@ export namespace Visera
         void
         QueryMouseButtonState(TSpan<EPlatformMouseButtonState, kMouseButtonStateTableSize> O_Out) const override;
 
-        FWindowsWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height)
+        FWindowsWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
         : FGLFWWindow(I_Title, I_Width, I_Height)
         {}
     };

@@ -1,0 +1,46 @@
+if(NOT VISERA_RUNTIME_EXTERNAL_DIR)
+    message(FATAL_ERROR "please set VISERA_RUNTIME_EXTERNAL_DIR (e.g. from Runtime/CMakeLists.txt)")
+endif()
+
+macro(link_libpng in_target)
+    message(STATUS "\nLinking LibPNG (libpng)")
+    
+    if(NOT TARGET png)
+        # Use Zlib from Visera-Core instead of finding system Zlib
+        if(NOT TARGET ZLIB::ZLIB)
+            message(FATAL_ERROR "ZLIB::ZLIB target not found. Please ensure Visera-Core is installed before Visera-Runtime.")
+        endif()
+
+        # Mark ZLIB as found so find_package uses the existing target
+        set(ZLIB_FOUND TRUE CACHE BOOL "ZLIB found" FORCE)
+        set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "Use static ZLIB" FORCE)
+        set(ZLIB_LIBRARY ZLIB::ZLIBSTATIC CACHE STRING "Prefer static ZLIB target" FORCE)
+
+        set(PNG_SHARED OFF CACHE BOOL " " FORCE)
+        set(PNG_STATIC ON  CACHE BOOL " " FORCE)
+        set(PNG_TESTS  OFF CACHE BOOL " " FORCE)
+        set(PNG_SKIP_INSTALL_ALL TRUE)
+        set(BUILD_SHARED_LIBS OFF)
+
+        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+            set(PNG_ARM_NEON "on" CACHE STRING " " FORCE)
+        endif()
+
+        #[IMPORTANT]: original CMakeLists.txt was replaced by https://github.com/mitsuba-renderer/libpng/blob/cfcd1dc417f39929c3c540c4f945069cedeee693/CMakeLists.txt
+        add_subdirectory(${VISERA_RUNTIME_EXTERNAL_DIR}/LibPNG)
+        
+        # Ensure LibPNG can find the Zlib target from Core
+        target_link_libraries(png_static PRIVATE ZLIB::ZLIBSTATIC)
+        set_target_properties(png_static PROPERTIES FOLDER   "Visera/Runtime/External/LibPNG")
+        set_target_properties(png_genfiles PROPERTIES FOLDER "Visera/Runtime/External/LibPNG")
+    endif()
+
+#    add_custom_command(
+#        TARGET ${in_target}
+#        POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#        $<TARGET_FILE:png>
+#        $<TARGET_FILE_DIR:${in_target}>
+#    )
+    target_link_libraries(${in_target} PRIVATE "$<BUILD_INTERFACE:png_static>")
+endmacro()

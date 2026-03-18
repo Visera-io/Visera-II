@@ -37,7 +37,11 @@ endif()
 
 if(MSVC)
     add_compile_definitions (WIN32_LEAN_AND_MEAN NOMINMAX)
-    add_compile_options     (/utf-8)
+    add_compile_options     (/utf-8 /Zc:__cplusplus)
+    # Use DLL runtime (MD/MDd) so engine and dependencies (Abseil, GLFW) match; avoids LNK4098.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    set(ABSL_MSVC_STATIC_RUNTIME     OFF CACHE BOOL "Abseil: use DLL runtime" FORCE)
+    set(USE_MSVC_RUNTIME_LIBRARY_DLL ON CACHE BOOL  "GLFW: use DLL runtime" FORCE)
 endif()
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Develop;Release" CACHE STRING "" FORCE)

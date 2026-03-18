@@ -8,7 +8,6 @@ export import Visera.Platform.GLFW.Window;
 export import Visera.Platform.GLFW.Device;
        import Visera.Platform.Interface;
        import Visera.Core.Types.Pointer;
-       import Visera.Core.Types.Text;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.UUID;
        import Visera.Core.Types.String;
@@ -40,7 +39,7 @@ export namespace Visera
         }
 
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(const FText& I_Title, UInt32 I_Width, UInt32 I_Height) const override
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override
         { return MakeUnique<FGLFWWindow>(I_Title, I_Width, I_Height); }
 
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
@@ -59,12 +58,16 @@ export namespace Visera
         GetFrameworkDirectory() const override
         { LOG_ERROR("FGLFWPlatform: GetFrameworkDirectory not implemented."); return nullptr; }
 
+        [[nodiscard]] FPath
+        GetLogsDirectory() const override
+        { return FPath(); }
+
         [[nodiscard]] Bool
-        SetEnvironmentVariable(const FText&, const FText&) const override
+        SetEnvironmentVariable(FStringView, FStringView) const override
         { LOG_ERROR("FGLFWPlatform: SetEnvironmentVariable not implemented."); return False; }
 
-        [[nodiscard]] TOptional<FText>
-        GetEnvironmentVariable(const FText&) const override
+        [[nodiscard]] TOptional<FString>
+        GetEnvironmentVariable(FStringView) const override
         { LOG_ERROR("FGLFWPlatform: GetEnvironmentVariable not implemented."); return std::nullopt; }
 
         [[nodiscard]] FUUID
@@ -72,7 +75,7 @@ export namespace Visera
         { return FUUID::Generate(); }
 
         void
-        SetCurrentThreadName(const FText&) const override
+        SetCurrentThreadName(FStringView) const override
         { LOG_ERROR("FGLFWPlatform: SetCurrentThreadName not implemented."); }
 
         [[nodiscard]] IPlatformFileSystem*

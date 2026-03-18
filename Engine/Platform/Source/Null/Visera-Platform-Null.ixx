@@ -5,7 +5,6 @@ export module Visera.Platform.Null;
 export import Visera.Platform.Null.Device;
        import Visera.Platform.Interface;
        import Visera.Core.Types.Pointer;
-       import Visera.Core.Types.Text;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.String;
        import Visera.Core.Log;
@@ -20,7 +19,7 @@ export namespace Visera
         { LOG_WARN("Using Null platform; window/input and many APIs are no-op. Consider building with a supported platform (Windows/MacOS) or GLFW."); }
 
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(const FText&, UInt32, UInt32) const override
+        CreateWindow(FStringView, UInt32, UInt32) const override
         { VISERA_ASSERT(False); return nullptr; }
 
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
@@ -39,12 +38,16 @@ export namespace Visera
         GetFrameworkDirectory() const override
         { VISERA_ASSERT(False); return nullptr; }
 
+        [[nodiscard]] FPath
+        GetLogsDirectory() const override
+        { return FPath(); }
+
         [[nodiscard]] Bool
-        SetEnvironmentVariable(const FText&, const FText&) const override
+        SetEnvironmentVariable(FStringView, FStringView) const override
         { VISERA_ASSERT(False); return False; }
 
-        [[nodiscard]] TOptional<FText>
-        GetEnvironmentVariable(const FText&) const override
+        [[nodiscard]] TOptional<FString>
+        GetEnvironmentVariable(FStringView) const override
         { VISERA_ASSERT(False); return std::nullopt; }
 
         [[nodiscard]] FUUID
@@ -52,7 +55,7 @@ export namespace Visera
         { VISERA_ASSERT(False); return {}; }
 
         void
-        SetCurrentThreadName(const FText&) const override
+        SetCurrentThreadName(FStringView) const override
         { VISERA_ASSERT(False); }
 
         [[nodiscard]] IPlatformFileSystem*
