@@ -60,7 +60,6 @@ namespace Visera
     // AssetHub
     inline constexpr UInt64 kAssetHubDefaultImageMB  = 64;
     inline constexpr UInt64 kAssetHubDefaultShaderMB = 32;
-    inline constexpr UInt64 kAssetHubDefaultFontMB   = 16;
 
     // Audio
     inline constexpr UInt64 kAudioPumpInlineArenaBytes = 32ULL * 1024; // 32KB

@@ -29,6 +29,9 @@ export namespace Visera
         GetResourceDirectory() const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const = 0;
+        /** User data directory per platform convention (e.g. Windows: LocalAppData/AppName, macOS: ~/Library/Application Support/AppName). */
+        [[nodiscard]] virtual TUniquePtr<IPlatformPath>
+        GetUserDataDirectory() const = 0;
         /** Logs directory per platform convention (e.g. Windows: LocalAppData/AppName/Logs, macOS: ~/Library/Logs/BundleId). */
         [[nodiscard]] virtual FPath
         GetLogsDirectory() const = 0;

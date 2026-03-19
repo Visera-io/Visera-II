@@ -15,6 +15,7 @@ import Visera.Core.Types.Name;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Path;
 import Visera.Core.Types.Pointer.Unique;
+import Visera.Runtime.AssetHub;
 import Visera.Core.Log;
 
 export namespace Visera
@@ -25,7 +26,7 @@ export namespace Visera
     struct VISERA_RUNTIME_API FAudioCreateInfo
     {
         FString Engine = "Null";
-        FString BankBasePath = "Assets/SoundBank";
+        VPath   BankBasePath{FStringView{"@assets://soundbanks"}};
         FString BankInit = "Init.bnk";
         FString BankMain = "Main.bnk";
         UInt32  PumpCriticalMinPerTick = 64;
@@ -454,7 +455,8 @@ export namespace Visera
             { LOG_FATAL("Failed to register Main Listener"); }
             if (!Engine->SetDefaultListeners(MainID))
             { LOG_FATAL("Failed to set default listeners"); }
-            if (!Engine->InitializeBanks(FPath{FString{I_CreateInfo.BankBasePath}}, I_CreateInfo.BankInit, I_CreateInfo.BankMain))
+            const FPath ResolvedBankPath = GAssetHub ? GAssetHub->ResolvePath(I_CreateInfo.BankBasePath) : FPath{};
+            if (ResolvedBankPath.IsEmpty() || !Engine->InitializeBanks(ResolvedBankPath, I_CreateInfo.BankInit, I_CreateInfo.BankMain))
             { LOG_WARN("Failed to initialize banks. Events may fail."); }
         }
         else

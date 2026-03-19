@@ -66,6 +66,8 @@ export namespace Visera
         [[nodiscard]] static const FPath&
         GetFrameworkDirectory();
         [[nodiscard]] static const FPath&
+        GetUserDataDirectory();
+        [[nodiscard]] static const FPath&
         GetCacheDirectory();
         [[nodiscard]] static inline FPath
         GetLogsDirectory() { return Get()->GetLogsDirectory(); }
@@ -171,6 +173,26 @@ export namespace Visera
         {
             if (TUniquePtr<IPlatformPath> P = Get()->GetFrameworkDirectory(); P)
                 Cache = P->ToPath();
+            else
+                Cache = FPath("");
+        }
+        return Cache.GetValue();
+    }
+
+    const FPath& FPlatform::GetUserDataDirectory()
+    {
+        static TOptional<FPath> Cache;
+        if (!Cache.HasValue())
+        {
+            if (TUniquePtr<IPlatformPath> P = Get()->GetUserDataDirectory(); P)
+            {
+                Cache = P->ToPath();
+                if (!Get()->GetFileSystem()->ExistsDirectory(MakePlatformPath(Cache.GetValue())))
+                {
+                    const Int32 Err = Get()->GetFileSystem()->CreateDirectories(MakePlatformPath(Cache.GetValue()));
+                    VISERA_ASSERT(Err == 0);
+                }
+            }
             else
                 Cache = FPath("");
         }

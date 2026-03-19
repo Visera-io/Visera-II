@@ -58,6 +58,10 @@ export namespace Visera
         GetFrameworkDirectory() const override
         { LOG_ERROR("FGLFWPlatform: GetFrameworkDirectory not implemented."); return nullptr; }
 
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetUserDataDirectory() const override
+        { LOG_ERROR("FGLFWPlatform: GetUserDataDirectory not implemented."); return nullptr; }
+
         [[nodiscard]] FPath
         GetLogsDirectory() const override
         { return FPath(); }

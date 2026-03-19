@@ -1,7 +1,6 @@
-# V8 prebuilt for engine embedding (from visera_ext build v8).
-# Multi-arch layout: lib/win64/, lib/macos_x64/, lib/macos_arm64/ (include/ shared).
-# Multi-config layout: lib/<platform>/Release/, lib/<platform>/Debug/
-# Use: add_subdirectory(path/to/Dist/V8) then target_link_libraries(your_app PRIVATE ViseraEXT::V8)
+# V8 prebuilt for engine embedding (extract MacOS.zip / Windows.zip into MacOS/ and Windows/).
+# Layout: V8/MacOS/libv8_monolith.a (flat), V8/Windows/Release/v8_monolith.lib (optional Debug/).
+# Include: V8/include/ (shared). Use install_v8.cmake to extract zips before add_subdirectory.
 #
 # Compatible with C++23 and C++ Modules: IMPORTED target only; parent keeps CXX_STANDARD 23.
 
@@ -13,50 +12,49 @@ endif()
 set(_V8_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(_V8_INCLUDE "${_V8_ROOT}/include")
 
-# --- Platform subdir: win64, macos_x64, macos_arm64 ---
+# --- Platform subdir: MacOS, Windows (matches extracted zip layout) ---
 if(WIN32)
-  set(_V8_LIB_PLATFORM "win64")
+  set(_V8_LIB_PLATFORM "Windows")
   set(_V8_LIB_NAME "v8_monolith.lib")
 elseif(APPLE)
-  if(CMAKE_OSX_ARCHITECTURES MATCHES "arm64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-    set(_V8_LIB_PLATFORM "macos_arm64")
-  else()
-    set(_V8_LIB_PLATFORM "macos_x64")
-  endif()
+  set(_V8_LIB_PLATFORM "MacOS")
   set(_V8_LIB_NAME "libv8_monolith.a")
 else()
-  message(FATAL_ERROR "V8 Dist supports only Windows and macOS.")
+  message(FATAL_ERROR "V8 supports only Windows and macOS.")
 endif()
 
-set(_V8_LIB_DIR "${_V8_ROOT}/lib/${_V8_LIB_PLATFORM}")
+set(_V8_LIB_DIR "${_V8_ROOT}/${_V8_LIB_PLATFORM}")
 
-# --- Detect layout: multi-config (Release/Debug subdirs) vs legacy (flat) ---
+# --- Detect layout: Windows has Release/Debug; MacOS is flat ---
 set(_V8_HAS_RELEASE FALSE)
 set(_V8_HAS_DEBUG FALSE)
-set(_V8_LEGACY FALSE)
+set(_V8_HAS_FLAT FALSE)
 
-if(EXISTS "${_V8_LIB_DIR}/Release/${_V8_LIB_NAME}")
-  set(_V8_HAS_RELEASE TRUE)
-endif()
-if(EXISTS "${_V8_LIB_DIR}/Debug/${_V8_LIB_NAME}")
-  set(_V8_HAS_DEBUG TRUE)
-endif()
-
-if(NOT _V8_HAS_RELEASE AND NOT _V8_HAS_DEBUG)
+if(WIN32)
+  if(EXISTS "${_V8_LIB_DIR}/Release/${_V8_LIB_NAME}")
+    set(_V8_HAS_RELEASE TRUE)
+  endif()
+  if(EXISTS "${_V8_LIB_DIR}/Debug/${_V8_LIB_NAME}")
+    set(_V8_HAS_DEBUG TRUE)
+  endif()
+else()
   if(EXISTS "${_V8_LIB_DIR}/${_V8_LIB_NAME}")
-    set(_V8_LEGACY TRUE)
-  elseif(EXISTS "${_V8_ROOT}/lib/${_V8_LIB_NAME}")
-    set(_V8_LIB_DIR "${_V8_ROOT}/lib")
-    set(_V8_LEGACY TRUE)
+    set(_V8_HAS_FLAT TRUE)
   endif()
 endif()
 
 # --- Validation ---
 if(NOT EXISTS "${_V8_INCLUDE}/v8.h")
-  message(FATAL_ERROR "V8 include not found: ${_V8_INCLUDE}/v8.h. Run visera_ext build v8 first.")
+  message(FATAL_ERROR "V8 include not found: ${_V8_INCLUDE}/v8.h. Extract the V8 archive first.")
 endif()
-if(NOT _V8_HAS_RELEASE AND NOT _V8_HAS_DEBUG AND NOT _V8_LEGACY)
-  message(FATAL_ERROR "V8 lib not found under ${_V8_LIB_DIR}. Run visera_ext build v8 first.")
+if(WIN32)
+  if(NOT _V8_HAS_RELEASE AND NOT _V8_HAS_DEBUG)
+    message(FATAL_ERROR "V8 lib not found under ${_V8_LIB_DIR}. Extract Windows.zip first.")
+  endif()
+else()
+  if(NOT _V8_HAS_FLAT)
+    message(FATAL_ERROR "V8 lib not found: ${_V8_LIB_DIR}/${_V8_LIB_NAME}. Extract MacOS.zip first.")
+  endif()
 endif()
 
 # --- Imported target ---
@@ -65,13 +63,16 @@ set_target_properties(ViseraEXT::V8 PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_V8_INCLUDE}"
 )
 
-if(_V8_LEGACY)
+if(_V8_HAS_FLAT)
+  set(_V8_LIB_PATH "${_V8_LIB_DIR}/${_V8_LIB_NAME}")
   set_target_properties(ViseraEXT::V8 PROPERTIES
-    IMPORTED_LOCATION "${_V8_LIB_DIR}/${_V8_LIB_NAME}"
+    IMPORTED_LOCATION            "${_V8_LIB_PATH}"
+    IMPORTED_LOCATION_DEBUG      "${_V8_LIB_PATH}"
+    IMPORTED_LOCATION_RELEASE    "${_V8_LIB_PATH}"
+    IMPORTED_LOCATION_RELWITHDEBINFO "${_V8_LIB_PATH}"
+    IMPORTED_LOCATION_MINSIZEREL "${_V8_LIB_PATH}"
   )
 else()
-  # Multi-config: set per-config locations for Xcode / VS multi-config generators.
-  # IMPORTED_LOCATION (no suffix) is the fallback for single-config generators.
   if(_V8_HAS_RELEASE)
     set_target_properties(ViseraEXT::V8 PROPERTIES
       IMPORTED_LOCATION            "${_V8_LIB_DIR}/Release/${_V8_LIB_NAME}"

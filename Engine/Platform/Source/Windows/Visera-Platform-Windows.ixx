@@ -40,6 +40,8 @@ export namespace Visera
         GetResourceDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const override;
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetUserDataDirectory() const override;
         [[nodiscard]] FPath
         GetLogsDirectory() const override;
         [[nodiscard]] Bool
@@ -116,6 +118,15 @@ export namespace Visera
     TUniquePtr<IPlatformPath> FWindowsPlatform::GetFrameworkDirectory() const
     {
         return GetExecutableDirectory();
+    }
+
+    TUniquePtr<IPlatformPath> FWindowsPlatform::GetUserDataDirectory() const
+    {
+        const TOptional<FString> LocalAppData = GetEnvironmentVariable("LOCALAPPDATA");
+        if (!LocalAppData.HasValue() || LocalAppData.GetValue().IsEmpty()) { return nullptr; }
+        const FPath Base(LocalAppData.GetValue());
+        const FPath UserDataDirectory = Base / FPath(VISERA_APP_NAME);
+        return MakeUnique<FWindowsPath>(UserDataDirectory);
     }
 
     std::wstring FWindowsPlatform::MakePlatformString(FStringView I_Text)

@@ -414,7 +414,7 @@ export namespace Visera
       UnregisterPass(FName I_Name);
 
       [[nodiscard]] TSharedPtr<FMaterial>
-      LoadMaterial(const FPath& I_MaterialFile);
+      LoadMaterial(const VPath& I_MaterialPath);
 
       /** Set app-specific user data packed into FrameData (shader reads via _Frame.UserData0..UserData3). */
       void
@@ -554,8 +554,7 @@ export namespace Visera
       TArray<FLight>           FrameLights;
       TArray<FRenderableMeta>  PendingDraws;
 
-      /** Path -> material cache so LoadMaterial(path) returns the same instance; avoids repeated PSO compilation. */
-      TMap<FPath, TSharedPtr<FMaterial>> MaterialCache;
+      TMap<FName, TSharedPtr<FMaterial>> MaterialCache;
 
       TAtomic<FUserFrameData>  UserFrameData;
    };
@@ -1146,21 +1145,22 @@ export namespace Visera
    }
 
    TSharedPtr<FMaterial> FGraphics::
-   LoadMaterial(const FPath& I_MaterialFile)
+   LoadMaterial(const VPath& I_MaterialPath)
    {
-      auto It = MaterialCache.Find(I_MaterialFile);
+      const FName Key = I_MaterialPath.GetName();
+      auto It = MaterialCache.Find(Key);
       if (It != MaterialCache.end())
          return It->second;
 
-      /* Cache miss: load from disk and insert for future lookups. */
-      auto JSONOpt = FJSON::Load(I_MaterialFile);
+      const FPath ResolvedPath = AssetHub->ResolvePath(I_MaterialPath);
+      auto JSONOpt = FJSON::Load(ResolvedPath);
       if (!JSONOpt.HasValue())
-      { LOG_ERROR("LoadMaterial: failed to parse {}.", I_MaterialFile); return nullptr; }
-      auto Material = FMaterial::Create(JSONOpt.GetValue(), AssetHub, RHI, I_MaterialFile);
+      { LOG_ERROR("LoadMaterial: failed to parse {}.", I_MaterialPath); return nullptr; }
+      auto Material = FMaterial::Create(JSONOpt.GetValue(), AssetHub, RHI);
       if (!Material)
          return nullptr;
-      LOG_INFO("LoadMaterial: {} loaded successfully.", I_MaterialFile);
-      MaterialCache[I_MaterialFile] = Material;
+      LOG_INFO("LoadMaterial: {} loaded successfully.", I_MaterialPath);
+      MaterialCache[Key] = Material;
       return Material;
    }
 

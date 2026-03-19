@@ -115,7 +115,10 @@ namespace Visera
         { RHI = MakeUnique<FRHI>(I_CreateInfo.RHI.GetValue()); }
 
         if (I_CreateInfo.AssetHub.HasValue())
-        { AssetHub = MakeUnique<FAssetHub>(I_CreateInfo.AssetHub.GetValue()); }
+        {
+            AssetHub = MakeUnique<FAssetHub>(I_CreateInfo.AssetHub.GetValue());
+            GAssetHub = AssetHub.Get();
+        }
 
         if (I_CreateInfo.AudioEngine.HasValue())
         { Audio = MakeUnique<FAudio>(I_CreateInfo.AudioEngine.GetValue()); }
@@ -140,8 +143,8 @@ namespace Visera
         if (I_CreateInfo.UI.HasValue() && Window && Graphics && Input)
         { UI = MakeUnique<FUI>(I_CreateInfo.UI.GetValue()); }
 
-        if (I_CreateInfo.Scripting.HasValue() && Graphics)
-        { Scripting = MakeUnique<FScripting>(I_CreateInfo.Scripting.GetValue(), Graphics.Get()); }
+        if (I_CreateInfo.Scripting.HasValue() && Graphics && AssetHub)
+        { Scripting = MakeUnique<FScripting>(I_CreateInfo.Scripting.GetValue(), Graphics.Get(), AssetHub.Get()); }
     }
 
     void FViseraEngine::DestroyServices()
@@ -151,6 +154,7 @@ namespace Visera
         Window.Reset();
         Graphics.Reset();
         Audio.Reset();
+        GAssetHub = nullptr;
         AssetHub.Reset();
         RHI.Reset();
         Input.Reset();

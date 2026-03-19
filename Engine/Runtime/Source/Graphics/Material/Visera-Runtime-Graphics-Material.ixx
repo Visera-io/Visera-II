@@ -26,9 +26,9 @@ export namespace Visera
     class VISERA_RUNTIME_API FMaterial
     {
     public:
-        /** Paths in the JSON (Shader, Textures, etc.) are resolved relative to the material file's directory. */
+        /** Paths in the JSON (Shader, Textures) are VPath virtual paths (e.g. "@assets://shaders/..."). */
         [[nodiscard]] static TSharedPtr<FMaterial>
-        Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI, const FPath& I_MaterialFile);
+        Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI);
 
         [[nodiscard]] const FRHIShaderID&
         GetVertexShader() const noexcept { return VertexShader; }
@@ -226,13 +226,6 @@ export namespace Visera
         }
     };
 
-    inline FPath ResolveRelativeToMaterialDir(const FPath& I_MaterialFile, const FString& I_RelativePath)
-    {
-        auto Base = I_MaterialFile.GetParent();
-        if (!Base.HasValue()) { return FPath{I_RelativePath}; }
-        return FPath::Normalized(FPath::Merge(Base.GetValue(), FPath{I_RelativePath}));
-    }
-
     struct FBufferLayoutInfo
     {
         UInt64         SizeBytes = 0;
@@ -251,7 +244,7 @@ export namespace Visera
     }
 
     TSharedPtr<FMaterial> FMaterial::
-    Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI, const FPath& I_MaterialFile)
+    Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI)
     {
         if (!I_AssetHub || !I_RHI)
         { LOG_ERROR("FMaterial::Create: AssetHub or RHI is null."); return nullptr; }
@@ -324,13 +317,13 @@ export namespace Visera
         (void)I_Description.TryGetObject("Parameters");
         TMap<FString, FBufferLayoutInfo> BufferNameToLayout; // UniformBuffer not in new schema; keep empty for now
 
-        const FPath VertResolved  = ResolveRelativeToMaterialDir(I_MaterialFile, VertPath);
-        const FPath FragResolved  = ResolveRelativeToMaterialDir(I_MaterialFile, FragPath);
+        const VPath VertVPath{FStringView{VertPath}};
+        const VPath FragVPath{FStringView{FragPath}};
 
-        auto VertAsset = I_AssetHub->LoadShader(VertResolved);
-        auto FragAsset = I_AssetHub->LoadShader(FragResolved);
+        auto VertAsset = I_AssetHub->LoadShader(VertVPath);
+        auto FragAsset = I_AssetHub->LoadShader(FragVPath);
         if (!VertAsset || !FragAsset)
-        { LOG_ERROR("FMaterial::Create: failed to load shaders ({}, {}).", VertResolved, FragResolved); return nullptr; }
+        { LOG_ERROR("FMaterial::Create: failed to load shaders ({}, {}).", VertPath, FragPath); return nullptr; }
 
         const auto& VertRefl = VertAsset->GetReflection();
         const auto& FragRefl = FragAsset->GetReflection();
@@ -408,10 +401,10 @@ export namespace Visera
         {
             if (TexInfo.Type != "Texture2D")
             { LOG_ERROR("FMaterial::Create: texture '{}' has Type '{}'; only Texture2D is supported for Image binding.", Name, TexInfo.Type); return nullptr; }
-            const FPath Resolved = ResolveRelativeToMaterialDir(I_MaterialFile, TexInfo.ImagePath);
-            auto ImageAsset = I_AssetHub->LoadImage(Resolved);
+            const VPath ImageVPath{FStringView{TexInfo.ImagePath}};
+            auto ImageAsset = I_AssetHub->LoadImage(ImageVPath);
             if (!ImageAsset)
-            { LOG_ERROR("FMaterial::Create: failed to load texture '{}' at {}.", Name, Resolved); return nullptr; }
+            { LOG_ERROR("FMaterial::Create: failed to load texture '{}' at {}.", Name, TexInfo.ImagePath); return nullptr; }
             const auto& Img = ImageAsset->GetImage();
             ERHIFormat TexFormat = PixelFormatToRHIFormat(Img.GetPixelFormat());
             FRHITextureID Tex = I_RHI->CreateTexture(FRHITextureCreateInfo{

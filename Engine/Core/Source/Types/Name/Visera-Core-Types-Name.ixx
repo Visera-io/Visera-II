@@ -28,7 +28,6 @@ export namespace Visera
 
         FName() = default;
         FName(FStringView I_Name)					{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(FString(I_Name)); Handle = Handle_; Number = Number_;   }
-        FName(const char* I_Name, UInt32 I_Number)  { auto [Handle_, Number_] = FNamePool::GetInstance().NativeRegister(I_Name, I_Number); Handle = Handle_; Number = Number_;     }
         FName(const FName& I_Another)			    = default;
         FName(FName&& I_Another)					= default;
         FName& operator=(FStringView I_Name)		{ auto [Handle_, Number_] = FNamePool::GetInstance().Register(FString(I_Name)); Handle = Handle_; Number = Number_;  return *this; }

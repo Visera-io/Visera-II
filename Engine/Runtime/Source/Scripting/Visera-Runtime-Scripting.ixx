@@ -8,6 +8,7 @@ export import Visera.Runtime.Scripting.VM;
 export import Visera.Runtime.Scripting.Context;
 export import Visera.Runtime.Scripting.Binding;
        import Visera.Runtime.Graphics;
+       import Visera.Runtime.AssetHub;
        import Visera.Core.Types.String;
        import Visera.Core.Types.Optional;
        import Visera.Core.Types.Path;
@@ -17,18 +18,17 @@ export import Visera.Runtime.Scripting.Binding;
 
 export namespace Visera
 {
-    /** Create parameters for FScripting. Entry script path is relative to resource directory. */
     struct VISERA_RUNTIME_API FScriptingCreateInfo
     {
-        FPath EntryScriptPath = FPath("Assets/Script/main.js");
+        VPath EntryScriptPath{FStringView{"@assets://scripts/main.js"}};
     };
 
     /** Scripting service: owns VM and Context, loads entry script, runs OnTick(dt) from JS. */
     class VISERA_RUNTIME_API FScripting
     {
     public:
-        /** I_Graphics must outlive FScripting. */
-        FScripting(const FScriptingCreateInfo& I_CreateInfo, FGraphics* I_Graphics);
+        /** I_Graphics and I_AssetHub must outlive FScripting. */
+        FScripting(const FScriptingCreateInfo& I_CreateInfo, FGraphics* I_Graphics, FAssetHub* I_AssetHub);
         ~FScripting();
 
         FScripting(const FScripting&)            = delete;
@@ -50,7 +50,7 @@ export namespace Visera
 
     // --- Implementation ---
 
-    FScripting::FScripting(const FScriptingCreateInfo& I_CreateInfo, FGraphics* I_Graphics)
+    FScripting::FScripting(const FScriptingCreateInfo& I_CreateInfo, FGraphics* I_Graphics, FAssetHub* I_AssetHub)
         : Graphics(I_Graphics)
     {
         VM = MakeUnique<FJavaScriptVM>();
@@ -64,9 +64,9 @@ export namespace Visera
         }
         RegisterAllBindings(Graphics, *Context);
 
-        FPath EntryPath = FPlatform::GetResourceDirectory() / I_CreateInfo.EntryScriptPath;
-        if (!LoadEntryScript(EntryPath))
-            LOG_WARN("(FScripting) Entry script load/run failed: {}", EntryPath);
+        const FPath EntryPath = I_AssetHub ? I_AssetHub->ResolvePath(I_CreateInfo.EntryScriptPath) : FPath{};
+        if (EntryPath.IsEmpty() || !LoadEntryScript(EntryPath))
+            LOG_WARN("(FScripting) Entry script load/run failed: {}", I_CreateInfo.EntryScriptPath);
     }
 
     FScripting::~FScripting()

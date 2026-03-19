@@ -2,13 +2,14 @@ module;
 #include <Visera-Runtime.hpp>
 export module Visera.Runtime.AssetHub;
 #define VISERA_MODULE_NAME "Runtime.AssetHub"
-export import Visera.Core.Types.Path;
+export import Visera.Runtime.AssetHub.VPath;
 export import Visera.Runtime.AssetHub.Asset;
 export import Visera.Runtime.AssetHub.Image;
 export import Visera.Runtime.AssetHub.Shader;
 export import Visera.Runtime.AssetHub.Font;
        import Visera.Core.Log;
        import Visera.Core.Types.Name;
+       import Visera.Core.Types.Path;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Meta.Cast;
        import Visera.Core.Containers.Map;
@@ -25,12 +26,10 @@ export import Visera.Runtime.AssetHub.Font;
 
 export namespace Visera
 {
-    /** CreateInfo for FAssetHub. Presence in FEngineCreateInfo enables the service. */
     struct VISERA_RUNTIME_API FAssetHubCreateInfo
     {
         UInt64 CacheCapacityMBImage  = kAssetHubDefaultImageMB;
         UInt64 CacheCapacityMBShader = kAssetHubDefaultShaderMB;
-        UInt64 CacheCapacityMBFont   = kAssetHubDefaultFontMB;
     };
 
     class VISERA_RUNTIME_API FAssetHub
@@ -44,35 +43,29 @@ export namespace Visera
         {
             Image,
             Shader,
-            Font,
             All,
         };
-        /** Load image; returns read-only FImageAsset (IAsset). Use SaveImage(view, path) to write. */
-        [[nodiscard]] TSharedPtr<FImageAsset>
-        LoadImage(const FPath& I_Path, ELoadMode I_Mode = ELoadMode::Eager);
-        /** Save image data to file. Takes FImageView2D for explicit region; copies to FImage and exports. */
-        [[nodiscard]] Bool
-        SaveImage(const FImageView2D& I_View, const FPath& I_Path, ESaveMode I_Mode = ESaveMode::AtomicReplace);
-        /** Load .vshader from file. Returns read-only asset (IAsset). */
-        [[nodiscard]] TSharedPtr<FShaderAsset>
-        LoadShader(const FPath& I_Path, ELoadMode I_Mode = ELoadMode::Eager);
-        /** Save shader data to .vshader file (pure data FShader; use FShader::Write* for custom serialization). */
-        [[nodiscard]] Bool
-        SaveShader(const FShader& I_Shader, const FPath& I_Path, ESaveMode I_Mode = ESaveMode::AtomicReplace);
-        /** Load font face from file. Optional I_PixelSize: when > 0, size is set at load time (cached per path+face+size). Returns read-only FFontAsset (IAsset). */
-        [[nodiscard]] TSharedPtr<FFontAsset>
-        LoadFont(const FPath& I_Path, Int32 I_FaceIndex = 0, UInt32 I_PixelSize = 0, ELoadMode I_Mode = ELoadMode::Eager);
 
-        /** Get cached image by name (same name as used when loaded by path, e.g. FName(I_Path.GetString())). Returns nullptr if not found or cast fails. */
+        /** Resolve a VPath to a concrete filesystem FPath. */
+        [[nodiscard]] FPath
+        ResolvePath(const VPath& I_VirtualPath) const;
+
+        [[nodiscard]] TSharedPtr<FImageAsset>
+        LoadImage(const VPath& I_AssetPath, ELoadMode I_Mode = ELoadMode::Eager);
+        [[nodiscard]] Bool
+        SaveImage(const FImageView2D& I_View, const VPath& I_AssetPath, ESaveMode I_Mode = ESaveMode::AtomicReplace);
+        [[nodiscard]] TSharedPtr<FShaderAsset>
+        LoadShader(const VPath& I_AssetPath, ELoadMode I_Mode = ELoadMode::Eager);
+        [[nodiscard]] Bool
+        SaveShader(const FShader& I_Shader, const VPath& I_AssetPath, ESaveMode I_Mode = ESaveMode::AtomicReplace);
+        /** Load font face from file. No caching; caller owns the returned TSharedPtr. */
+        [[nodiscard]] TSharedPtr<FFontAsset>
+        LoadFont(const VPath& I_AssetPath, Int32 I_FaceIndex = 0, UInt32 I_PixelSize = 0);
+
         [[nodiscard]] TSharedPtr<FImageAsset>
         LoadImageFromCache(const FName& I_Name);
-        /** Get cached shader by name. Returns nullptr if not found or cast fails. */
         [[nodiscard]] TSharedPtr<FShaderAsset>
         LoadShaderFromCache(const FName& I_Name);
-        /** Get cached font by name (font cache name is path_faceIndex_pixelSize). Returns nullptr if not found or cast fails. */
-        [[nodiscard]] TSharedPtr<FFontAsset>
-        LoadFontFromCache(const FName& I_Name);
-        /** Manually clear AssetHub caches. Default clears all cache tiers (hot+cold). */
         void
         ClearCache(ECacheClearTarget I_Target = ECacheClearTarget::All);
 
@@ -94,7 +87,6 @@ export namespace Visera
         {
             Image,
             Shader,
-            Font,
         };
         PROFILING_ONLY_FIELD(
         struct FProfilingMetrics
@@ -105,34 +97,25 @@ export namespace Visera
 
             UInt64 LoadImageFromCacheCalls {0};
             UInt64 LoadShaderFromCacheCalls {0};
-            UInt64 LoadFontFromCacheCalls {0};
 
             UInt64 CacheHitHotImage {0};
             UInt64 CacheHitHotShader {0};
-            UInt64 CacheHitHotFont {0};
             UInt64 CachePromoteColdImage {0};
             UInt64 CachePromoteColdShader {0};
-            UInt64 CachePromoteColdFont {0};
             UInt64 CacheMissImage {0};
             UInt64 CacheMissShader {0};
-            UInt64 CacheMissFont {0};
             UInt64 CacheColdExpiredPrunedImage {0};
             UInt64 CacheColdExpiredPrunedShader {0};
-            UInt64 CacheColdExpiredPrunedFont {0};
 
             UInt64 StoreImageCalls {0};
             UInt64 StoreShaderCalls {0};
-            UInt64 StoreFontCalls {0};
 
             UInt64 PeakHotEntriesImage {0};
             UInt64 PeakHotEntriesShader {0};
-            UInt64 PeakHotEntriesFont {0};
             UInt64 PeakColdEntriesImage {0};
             UInt64 PeakColdEntriesShader {0};
-            UInt64 PeakColdEntriesFont {0};
             UInt64 PeakHotWeightBytesImage {0};
             UInt64 PeakHotWeightBytesShader {0};
-            UInt64 PeakHotWeightBytesFont {0};
 
             UInt64 SaveImageCalls {0};
             UInt64 SaveImageSuccess {0};
@@ -142,13 +125,14 @@ export namespace Visera
             UInt64 CacheClearCalls {0};
             UInt64 CacheClearImageCalls {0};
             UInt64 CacheClearShaderCalls {0};
-            UInt64 CacheClearFontCalls {0};
         } ProfilingMetrics {};
         );
 
         TUniquePtr<FCachePair> ImageCache;
         TUniquePtr<FCachePair> ShaderCache;
-        TUniquePtr<FCachePair> FontCache;
+
+        mutable TMap<FName, FPath> ResolvedPathCache;
+        mutable FRWLock            ResolvedPathLock;
 
         void UpdateCachePeaks(ECacheKind I_Kind, const FCachePair& I_Cache)
         {
@@ -168,11 +152,6 @@ export namespace Visera
                 if (ColdEntries > ProfilingMetrics.PeakColdEntriesShader) { ProfilingMetrics.PeakColdEntriesShader = ColdEntries; }
                 if (HotWeightBytes > ProfilingMetrics.PeakHotWeightBytesShader) { ProfilingMetrics.PeakHotWeightBytesShader = HotWeightBytes; }
                 break;
-            case ECacheKind::Font:
-                if (HotEntries > ProfilingMetrics.PeakHotEntriesFont) { ProfilingMetrics.PeakHotEntriesFont = HotEntries; }
-                if (ColdEntries > ProfilingMetrics.PeakColdEntriesFont) { ProfilingMetrics.PeakColdEntriesFont = ColdEntries; }
-                if (HotWeightBytes > ProfilingMetrics.PeakHotWeightBytesFont) { ProfilingMetrics.PeakHotWeightBytesFont = HotWeightBytes; }
-                break;
             default: break;
             }
             );
@@ -180,13 +159,6 @@ export namespace Visera
 
         [[nodiscard]] TWeakPtr<IAsset> FindInCache(FCachePair& I_Cache, const FName& I_Key, ECacheKind I_Kind)
         {
-            // [NOTE]:
-            // - We take a write lock here because LRU "GetAndTouch" mutates the cache
-            //   (moves the entry to MRU). A two-phase read->write approach would add
-            //   complexity (tokens/generation, re-checks) with little benefit for our
-            //   workload where cache hits are frequent and the critical section is small.
-            // - If this becomes a contention hotspot, consider a two-phase Peek+Touch or
-            //   an approximate-LRU scheme.
             FScopeWriteLock _{&I_Cache.Lock};
 
             if (TSharedPtr<IAsset>* Ptr = I_Cache.Hot.GetAndTouch(I_Key))
@@ -196,7 +168,6 @@ export namespace Visera
                 {
                 case ECacheKind::Image:  ++ProfilingMetrics.CacheHitHotImage; break;
                 case ECacheKind::Shader: ++ProfilingMetrics.CacheHitHotShader; break;
-                case ECacheKind::Font:   ++ProfilingMetrics.CacheHitHotFont; break;
                 default: break;
                 }
                 );
@@ -216,7 +187,6 @@ export namespace Visera
                     {
                     case ECacheKind::Image:  ++ProfilingMetrics.CachePromoteColdImage; break;
                     case ECacheKind::Shader: ++ProfilingMetrics.CachePromoteColdShader; break;
-                    case ECacheKind::Font:   ++ProfilingMetrics.CachePromoteColdFont; break;
                     default: break;
                     }
                     );
@@ -229,7 +199,6 @@ export namespace Visera
                 {
                 case ECacheKind::Image:  ++ProfilingMetrics.CacheColdExpiredPrunedImage; break;
                 case ECacheKind::Shader: ++ProfilingMetrics.CacheColdExpiredPrunedShader; break;
-                case ECacheKind::Font:   ++ProfilingMetrics.CacheColdExpiredPrunedFont; break;
                 default: break;
                 }
                 );
@@ -239,7 +208,6 @@ export namespace Visera
             {
             case ECacheKind::Image:  ++ProfilingMetrics.CacheMissImage; break;
             case ECacheKind::Shader: ++ProfilingMetrics.CacheMissShader; break;
-            case ECacheKind::Font:   ++ProfilingMetrics.CacheMissFont; break;
             default: break;
             }
             );
@@ -256,7 +224,6 @@ export namespace Visera
             {
             case ECacheKind::Image:  ++ProfilingMetrics.StoreImageCalls; break;
             case ECacheKind::Shader: ++ProfilingMetrics.StoreShaderCalls; break;
-            case ECacheKind::Font:   ++ProfilingMetrics.StoreFontCalls; break;
             default: break;
             }
             );
@@ -276,83 +243,110 @@ export namespace Visera
                 FHotCacheType(I_CapBytes, Policy::ByteWeighted<FByteSizeFunc>(&FAssetHub::GetAssetByteSize)),
                 {}, {}));
         }
-
     };
+    inline FAssetHub* GAssetHub = nullptr;
+
+    // ── ResolvePath ──────────────────────────────────────────────────────
+
+    FPath FAssetHub::
+    ResolvePath(const VPath& I_VirtualPath) const
+    {
+        const FName Key = I_VirtualPath.GetName();
+        {
+            FScopeReadLock _{&ResolvedPathLock};
+            auto It = ResolvedPathCache.Find(Key);
+            if (It != ResolvedPathCache.end())
+                return It->second;
+        }
+
+        const FPath Root = [&]() -> FPath
+        {
+            switch (I_VirtualPath.GetScheme())
+            {
+            case EAssetScheme::App:    return FPlatform::GetExecutableDirectory();
+            case EAssetScheme::Assets: return FPlatform::GetResourceDirectory() / FPath{"Assets"};
+            case EAssetScheme::User:   return FPlatform::GetUserDataDirectory();
+            case EAssetScheme::Cache:  return FPlatform::GetCacheDirectory();
+            }
+            return FPath{};
+        }();
+
+        const FStringView Relative = I_VirtualPath.GetRelativePath();
+        const FPath Resolved = FPath::Normalized(Root / FPath{FString{Relative}});
+        {
+            FScopeWriteLock _{&ResolvedPathLock};
+            ResolvedPathCache[Key] = Resolved;
+        }
+        return Resolved;
+    }
+
+    // ── Constructor / Destructor ─────────────────────────────────────────
 
     FAssetHub::FAssetHub(const FAssetHubCreateInfo& I_CreateInfo)
     {
         UInt64 CapImage  = (I_CreateInfo.CacheCapacityMBImage  > 0) ? I_CreateInfo.CacheCapacityMBImage  * 1024 * 1024 : kAssetHubDefaultImageMB  * 1024 * 1024;
         UInt64 CapShader = (I_CreateInfo.CacheCapacityMBShader > 0) ? I_CreateInfo.CacheCapacityMBShader * 1024 * 1024 : kAssetHubDefaultShaderMB * 1024 * 1024;
-        UInt64 CapFont   = (I_CreateInfo.CacheCapacityMBFont   > 0) ? I_CreateInfo.CacheCapacityMBFont   * 1024 * 1024 : kAssetHubDefaultFontMB   * 1024 * 1024;
         ImageCache  = MakeCache(CapImage);
         ShaderCache = MakeCache(CapShader);
-        FontCache   = MakeCache(CapFont);
     }
 
     FAssetHub::~FAssetHub()
     {
         PROFILING_ONLY_FIELD(
-        LOG_INFO("[Profiling] AssetHub loads: image={}, shader={}, font={}; cache_loads: image={}, shader={}, font={}.",
+        LOG_INFO("[Profiling] AssetHub loads: image={}, shader={}, font={}; cache_loads: image={}, shader={}.",
             ProfilingMetrics.LoadImageCalls,
             ProfilingMetrics.LoadShaderCalls,
             ProfilingMetrics.LoadFontCalls,
             ProfilingMetrics.LoadImageFromCacheCalls,
-            ProfilingMetrics.LoadShaderFromCacheCalls,
-            ProfilingMetrics.LoadFontFromCacheCalls);
-        LOG_INFO("[Profiling] AssetHub cache hits: hot(I={},S={},F={}) promote(I={},S={},F={}) miss(I={},S={},F={}) pruned(I={},S={},F={}).",
+            ProfilingMetrics.LoadShaderFromCacheCalls);
+        LOG_INFO("[Profiling] AssetHub cache hits: hot(I={},S={}) promote(I={},S={}) miss(I={},S={}) pruned(I={},S={}).",
             ProfilingMetrics.CacheHitHotImage,
             ProfilingMetrics.CacheHitHotShader,
-            ProfilingMetrics.CacheHitHotFont,
             ProfilingMetrics.CachePromoteColdImage,
             ProfilingMetrics.CachePromoteColdShader,
-            ProfilingMetrics.CachePromoteColdFont,
             ProfilingMetrics.CacheMissImage,
             ProfilingMetrics.CacheMissShader,
-            ProfilingMetrics.CacheMissFont,
             ProfilingMetrics.CacheColdExpiredPrunedImage,
-            ProfilingMetrics.CacheColdExpiredPrunedShader,
-            ProfilingMetrics.CacheColdExpiredPrunedFont);
-        LOG_INFO("[Profiling] AssetHub cache peaks: hot_entries(I={},S={},F={}) cold_entries(I={},S={},F={}) hot_weight_MB(I={:.2f},S={:.2f},F={:.2f}).",
+            ProfilingMetrics.CacheColdExpiredPrunedShader);
+        LOG_INFO("[Profiling] AssetHub cache peaks: hot_entries(I={},S={}) cold_entries(I={},S={}) hot_weight_MB(I={:.2f},S={:.2f}).",
             ProfilingMetrics.PeakHotEntriesImage,
             ProfilingMetrics.PeakHotEntriesShader,
-            ProfilingMetrics.PeakHotEntriesFont,
             ProfilingMetrics.PeakColdEntriesImage,
             ProfilingMetrics.PeakColdEntriesShader,
-            ProfilingMetrics.PeakColdEntriesFont,
             ProfilingMetrics.PeakHotWeightBytesImage / (1024.0 * 1024.0),
-            ProfilingMetrics.PeakHotWeightBytesShader / (1024.0 * 1024.0),
-            ProfilingMetrics.PeakHotWeightBytesFont / (1024.0 * 1024.0));
-        LOG_INFO("[Profiling] AssetHub stores: image={}, shader={}, font={}; saves: image {}/{} shader {}/{}.",
+            ProfilingMetrics.PeakHotWeightBytesShader / (1024.0 * 1024.0));
+        LOG_INFO("[Profiling] AssetHub stores: image={}, shader={}; saves: image {}/{} shader {}/{}.",
             ProfilingMetrics.StoreImageCalls,
             ProfilingMetrics.StoreShaderCalls,
-            ProfilingMetrics.StoreFontCalls,
             ProfilingMetrics.SaveImageSuccess,
             ProfilingMetrics.SaveImageCalls,
             ProfilingMetrics.SaveShaderSuccess,
             ProfilingMetrics.SaveShaderCalls);
-        LOG_INFO("[Profiling] AssetHub cache clears: all_calls={}, image_calls={}, shader_calls={}, font_calls={}.",
+        LOG_INFO("[Profiling] AssetHub cache clears: all_calls={}, image_calls={}, shader_calls={}.",
             ProfilingMetrics.CacheClearCalls,
             ProfilingMetrics.CacheClearImageCalls,
-            ProfilingMetrics.CacheClearShaderCalls,
-            ProfilingMetrics.CacheClearFontCalls);
+            ProfilingMetrics.CacheClearShaderCalls);
         );
     }
 
+    // ── LoadImage ────────────────────────────────────────────────────────
+
     TSharedPtr<FImageAsset> FAssetHub::
-    LoadImage(const FPath& I_Path, ELoadMode I_Mode)
+    LoadImage(const VPath& I_AssetPath, ELoadMode I_Mode)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.LoadImageCalls;);
-        const FName PathName{I_Path.GetString()};
+        const FName PathName = I_AssetPath.GetName();
         if (auto W = FindInCache(*ImageCache, PathName, ECacheKind::Image); !W.IsExpired())
         {
-            LOG_DEBUG("LoadImage: {} (from cache).", I_Path);
+            LOG_DEBUG("LoadImage: {} (from cache).", I_AssetPath);
             return Cast<FImageAsset>(W.Lock());
         }
 
-        const EImageFormat Format = DetectImageFormat(I_Path);
+        const FPath Resolved = ResolvePath(I_AssetPath);
+        const EImageFormat Format = DetectImageFormat(Resolved);
         if (Format == EImageFormat::Invalid)
         {
-            LOG_ERROR("Failed to detect image format for: {}", I_Path);
+            LOG_ERROR("Failed to detect image format for: {}", I_AssetPath);
             return nullptr;
         }
 
@@ -362,40 +356,44 @@ export namespace Visera
         case EImageFormat::PNG:  Wrapper = MakeUnique<FPNGImageWrapper>(); break;
         case EImageFormat::EXR:  Wrapper = MakeUnique<FEXRImageWrapper>(); break;
         default:
-            LOG_ERROR("Unsupported image format for: {}", I_Path);
+            LOG_ERROR("Unsupported image format for: {}", I_AssetPath);
             return nullptr;
         }
 
-        FImage NewImage = Wrapper->Import(I_Path);
+        FImage NewImage = Wrapper->Import(Resolved);
         if (NewImage.GetWidth() == 0) return nullptr;
 
         auto NewAsset = MakeShared<FImageAsset>(std::move(NewImage));
         StoreInCache(*ImageCache, PathName, Cast<IAsset>(NewAsset), ECacheKind::Image);
-        LOG_DEBUG("LoadImage: {}.", I_Path);
+        LOG_DEBUG("LoadImage: {}.", I_AssetPath);
         return NewAsset;
     }
 
+    // ── SaveImage ────────────────────────────────────────────────────────
+
     Bool FAssetHub::
-    SaveImage(const FImageView2D& I_View, const FPath& I_Path, ESaveMode I_Mode)
+    SaveImage(const FImageView2D& I_View, const VPath& I_AssetPath, ESaveMode I_Mode)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.SaveImageCalls;);
+        const FPath I_Path = ResolvePath(I_AssetPath);
+
         const FImage ToSave{I_View, Memory::GetDefaultResource()};
         if (ToSave.GetWidth() == 0 || ToSave.GetHeight() == 0)
         {
             LOG_ERROR("Image view has invalid dimensions ({}x{}) for saving: {}",
-                     ToSave.GetWidth(), ToSave.GetHeight(), I_Path);
+                     ToSave.GetWidth(), ToSave.GetHeight(), I_AssetPath);
             return False;
         }
         if (ToSave.GetPixelFormat() == EPixelFormat::Invalid)
         {
-            LOG_ERROR("Image has invalid pixel format for saving: {}", I_Path);
+            LOG_ERROR("Image has invalid pixel format for saving: {}", I_AssetPath);
             return False;
         }
 
         const EImageFormat TargetFormat = DetectImageFormat(I_Path);
         if (TargetFormat == EImageFormat::Invalid)
         {
-            LOG_ERROR("Failed to detect image format from file extension for: {}", I_Path);
+            LOG_ERROR("Failed to detect image format from file extension for: {}", I_AssetPath);
             return False;
         }
 
@@ -405,7 +403,7 @@ export namespace Visera
         case EImageFormat::PNG:  Wrapper = MakeUnique<FPNGImageWrapper>(); break;
         case EImageFormat::EXR:  Wrapper = MakeUnique<FEXRImageWrapper>(); break;
         default:
-            LOG_ERROR("Unsupported image format for saving: {}", I_Path);
+            LOG_ERROR("Unsupported image format for saving: {}", I_AssetPath);
             return False;
         }
 
@@ -416,14 +414,14 @@ export namespace Visera
             auto [TempFile, TempPathPtr] = FPlatform::CreateTempFileNear(Dir);
             if (!TempPathPtr)
             {
-                LOG_ERROR("Failed to create temp file for atomic save: {}", I_Path);
+                LOG_ERROR("Failed to create temp file for atomic save: {}", I_AssetPath);
                 return False;
             }
             const FPath TempPath = TempPathPtr->ToPath();
             TempFile.Reset();
             if (!Wrapper->Export(ToSave, TempPath))
             {
-                LOG_ERROR("Failed to export image to temp: {}", I_Path);
+                LOG_ERROR("Failed to export image to temp: {}", I_AssetPath);
                 (void)FPlatform::DeleteFile(TempPath);
                 return False;
             }
@@ -439,27 +437,30 @@ export namespace Visera
         if (bSuccess)
         {
             PROFILING_ONLY_FIELD(++ProfilingMetrics.SaveImageSuccess;);
-            LOG_DEBUG("Successfully saved image to: {}", I_Path);
+            LOG_DEBUG("Successfully saved image to: {}", I_AssetPath);
         }
         else
-        { LOG_ERROR("Failed to save image to: {}", I_Path); }
+        { LOG_ERROR("Failed to save image to: {}", I_AssetPath); }
         return bSuccess;
     }
 
+    // ── LoadShader ───────────────────────────────────────────────────────
+
     TSharedPtr<FShaderAsset> FAssetHub::
-    LoadShader(const FPath& I_Path, ELoadMode I_Mode)
+    LoadShader(const VPath& I_AssetPath, ELoadMode I_Mode)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.LoadShaderCalls;);
-        const FName PathName{I_Path.GetString()};
+        const FName PathName = I_AssetPath.GetName();
         if (auto W = FindInCache(*ShaderCache, PathName, ECacheKind::Shader); !W.IsExpired())
         {
-            LOG_DEBUG("LoadShader: {} (from cache).", I_Path);
+            LOG_DEBUG("LoadShader: {} (from cache).", I_AssetPath);
             return Cast<FShaderAsset>(W.Lock());
         }
 
+        const FPath Resolved = ResolvePath(I_AssetPath);
         TArray<FByte> SPIRVChunk, ReflectionChunk;
         UInt32 Version = 0;
-        if (!ReadShaderChunks(I_Path, Version, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
+        if (!ReadShaderChunks(Resolved, Version, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
         { return nullptr; }
         FShader::FLayout Refl;
         if (ReflectionChunk.IsEmpty() || !DeserializeShaderReflection(Version, FStringView(reinterpret_cast<const char*>(ReflectionChunk.Data()), ReflectionChunk.GetSize()), Refl))
@@ -468,36 +469,34 @@ export namespace Visera
         { return nullptr; }
         auto NewShader = MakeShared<FShaderAsset>(FShader{std::move(SPIRVChunk), std::move(Refl)});
         StoreInCache(*ShaderCache, PathName, Cast<IAsset>(NewShader), ECacheKind::Shader);
-        LOG_DEBUG("LoadShader: {}.", I_Path);
+        LOG_DEBUG("LoadShader: {}.", I_AssetPath);
         return NewShader;
     }
 
+    // ── SaveShader ───────────────────────────────────────────────────────
+
     Bool FAssetHub::
-    SaveShader(const FShader& I_Shader, const FPath& I_Path, ESaveMode I_Mode)
+    SaveShader(const FShader& I_Shader, const VPath& I_AssetPath, ESaveMode I_Mode)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.SaveShaderCalls;);
-        const Bool Saved = WriteShaderToFile(I_Shader, I_Path, I_Mode);
+        const FPath Resolved = ResolvePath(I_AssetPath);
+        const Bool Saved = WriteShaderToFile(I_Shader, Resolved, I_Mode);
         PROFILING_ONLY_FIELD(if (Saved) { ++ProfilingMetrics.SaveShaderSuccess; });
         return Saved;
     }
 
+    // ── LoadFont (no cache) ──────────────────────────────────────────────
+
     TSharedPtr<FFontAsset> FAssetHub::
-    LoadFont(const FPath& I_Path, Int32 I_FaceIndex, UInt32 I_PixelSize, ELoadMode I_Mode)
+    LoadFont(const VPath& I_AssetPath, Int32 I_FaceIndex, UInt32 I_PixelSize)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.LoadFontCalls;);
-        const FString CacheKeyStr = FString::Format("{}_{}_{}", I_Path.GetString(), I_FaceIndex, I_PixelSize);
-        const FName CacheKey{CacheKeyStr};
+        const FPath Resolved = ResolvePath(I_AssetPath);
 
-        if (auto W = FindInCache(*FontCache, CacheKey, ECacheKind::Font); !W.IsExpired())
-        {
-            LOG_DEBUG("LoadFont: {} (face {}, size {}, from cache).", I_Path, I_FaceIndex, I_PixelSize);
-            return Cast<FFontAsset>(W.Lock());
-        }
-
-        auto FileBytesOpt = FPlatform::ReadFile(I_Path);
+        auto FileBytesOpt = FPlatform::ReadFile(Resolved);
         if (!FileBytesOpt.HasValue() || FileBytesOpt->IsEmpty())
         {
-            LOG_ERROR("Failed to read font file or empty: {}", I_Path);
+            LOG_ERROR("Failed to read font file or empty: {}", I_AssetPath);
             return nullptr;
         }
 
@@ -506,21 +505,22 @@ export namespace Visera
         const auto InfoOpt = FFreeType::Load(FileBytesOpt.GetValue(), I_FaceIndex, Face, FontData);
         if (!InfoOpt.HasValue() || Face == nullptr)
         {
-            LOG_ERROR("Failed to load font from: {}", I_Path);
+            LOG_ERROR("Failed to load font from: {}", I_AssetPath);
             return nullptr;
         }
         if (I_PixelSize > 0 && !FFreeType::SetPixelSizes(Face, I_PixelSize))
         {
             FFreeType::DoneFace(Face);
-            LOG_ERROR("Failed to set font pixel size {} for: {}", I_PixelSize, I_Path);
+            LOG_ERROR("Failed to set font pixel size {} for: {}", I_PixelSize, I_AssetPath);
             return nullptr;
         }
         FFont Font(std::move(FontData), InfoOpt.GetValue());
         auto NewFace = MakeShared<FFontAsset>(std::move(Font), Face);
-        StoreInCache(*FontCache, CacheKey, Cast<IAsset>(NewFace), ECacheKind::Font);
-        LOG_DEBUG("LoadFont: {} (face {}, size {}).", I_Path, I_FaceIndex, I_PixelSize);
+        LOG_DEBUG("LoadFont: {} (face {}, size {}).", I_AssetPath, I_FaceIndex, I_PixelSize);
         return NewFace;
     }
+
+    // ── Cache-only loads ─────────────────────────────────────────────────
 
     TSharedPtr<FImageAsset> FAssetHub::
     LoadImageFromCache(const FName& I_Name)
@@ -546,17 +546,7 @@ export namespace Visera
         return Cast<FShaderAsset>(S);
     }
 
-    TSharedPtr<FFontAsset> FAssetHub::
-    LoadFontFromCache(const FName& I_Name)
-    {
-        PROFILING_ONLY_FIELD(++ProfilingMetrics.LoadFontFromCacheCalls;);
-        auto W = FindInCache(*FontCache, I_Name, ECacheKind::Font);
-        if (W.IsExpired()) return nullptr;
-        auto S = W.Lock();
-        if (!S) return nullptr;
-        LOG_DEBUG("LoadFontFromCache: {}.", I_Name.GetNameString());
-        return Cast<FFontAsset>(S);
-    }
+    // ── ClearCache ───────────────────────────────────────────────────────
 
     void FAssetHub::
     ClearCache(ECacheClearTarget I_Target)
@@ -574,20 +564,13 @@ export namespace Visera
             PROFILING_ONLY_FIELD(++ProfilingMetrics.CacheClearShaderCalls;);
             LOG_INFO("[Profiling] AssetHub cache cleared: Shader.");
             break;
-        case ECacheClearTarget::Font:
-            ClearCachePair(*FontCache);
-            PROFILING_ONLY_FIELD(++ProfilingMetrics.CacheClearFontCalls;);
-            LOG_INFO("[Profiling] AssetHub cache cleared: Font.");
-            break;
         case ECacheClearTarget::All:
         default:
             ClearCachePair(*ImageCache);
             ClearCachePair(*ShaderCache);
-            ClearCachePair(*FontCache);
             PROFILING_ONLY_FIELD(
             ++ProfilingMetrics.CacheClearImageCalls;
             ++ProfilingMetrics.CacheClearShaderCalls;
-            ++ProfilingMetrics.CacheClearFontCalls;
             );
             LOG_INFO("[Profiling] AssetHub cache cleared: All.");
             break;

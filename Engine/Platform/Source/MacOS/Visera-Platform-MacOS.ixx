@@ -34,6 +34,8 @@ export namespace Visera
         GetResourceDirectory() const override;
         [[nodiscard]] TUniquePtr<IPlatformPath>
         GetFrameworkDirectory() const override;
+        [[nodiscard]] TUniquePtr<IPlatformPath>
+        GetUserDataDirectory() const override;
         [[nodiscard]] FPath
         GetLogsDirectory() const override;
         [[nodiscard]] Bool
@@ -118,6 +120,15 @@ export namespace Visera
             return MakeUnique<FMacOSPath>((AppBundleDir / FPath{"Frameworks"}).GetString().GetNative());
         }
         return nullptr;
+    }
+
+    TUniquePtr<IPlatformPath> FMacOSPlatform::GetUserDataDirectory() const
+    {
+        const TOptional<FString> Home = GetEnvironmentVariable("HOME");
+        if (!Home.HasValue() || Home.GetValue().IsEmpty()) { return nullptr; }
+        const FPath Base(Home.GetValue());
+        const FPath UserDataDirectory = Base / FPath("Library") / FPath("Application Support") / FPath(VISERA_APP_NAME);
+        return MakeUnique<FMacOSPath>(UserDataDirectory.GetString().GetNative());
     }
 
     std::string FMacOSPlatform::MakePlatformString(FStringView I_Text)

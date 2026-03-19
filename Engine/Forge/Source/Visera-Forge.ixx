@@ -94,7 +94,15 @@ namespace Visera::Forge
         auto AssetHub = I_Engine->GetAssetHub();
         if (!AssetHub) { LOG_ERROR("AssetHub service is not available."); return False; }
 
-        const TArray<FStringView> EntryPoints = {"VertMain", "FragMain"};
+        struct FEntryPointDescriptor
+        {
+            FStringView EntryPoint;
+            FStringView FileSuffix; // lowercase stage abbreviation for the output filename
+        };
+        const TArray<FEntryPointDescriptor> EntryPoints = {
+            { "VertMain", "vert" },
+            { "FragMain", "frag" },
+        };
         const FPath ShaderDirectory = *I_SourcePath.GetParent();
         FShaderCompiler Compiler;
 #if defined(VISERA_ENGINE_SHADERS_DIR)
@@ -102,14 +110,13 @@ namespace Visera::Forge
 #endif
 
         UInt32 SuccessCount = 0;
-        for (const auto& EntryPoint : EntryPoints)
+        for (const auto& Descriptor : EntryPoints)
         {
-            auto SPIRV = Compiler.Compile(I_SourcePath, EntryPoint, ShaderDirectory);
+            auto SPIRV = Compiler.Compile(I_SourcePath, Descriptor.EntryPoint, ShaderDirectory);
             if (SPIRV.IsEmpty()) continue;
-            auto ReflSlang = Compiler.ExtractReflection(I_SourcePath, EntryPoint, ShaderDirectory);
+            auto ReflSlang = Compiler.ExtractReflection(I_SourcePath, Descriptor.EntryPoint, ShaderDirectory);
             if (ReflSlang.EntryPoints.IsEmpty()) continue;
 
-            // Build runtime reflection (Visera::FRHIShaderLayout) for .vshader; RHI enums, not strings
             Visera::FRHIShaderLayout Refl;
             Refl.EntryPoints.Reserve(ReflSlang.EntryPoints.GetSize());
             for (const auto& EP : ReflSlang.EntryPoints)
@@ -130,7 +137,6 @@ namespace Visera::Forge
                     StagesMask
                 });
             }
-            // Runtime FRHIShaderLayout::FPushConstant has no Name; Material validates PushConstants.Data by total size only.
             Refl.PushConstants.Reserve(ReflSlang.PushConstants.GetSize());
             for (const auto& PC : ReflSlang.PushConstants)
             {
@@ -140,24 +146,25 @@ namespace Visera::Forge
                 Refl.PushConstants.PushBack({ PC.Offset, PC.Size, StagesMask });
             }
 
-            FPath OutputPath = I_SourcePath;
-            FString OutputName(*OutputPath.GetFileName());
-            const auto DotPos = OutputName.FindLast(".");
+            // Build lowercase output name: <stem>.<stage>.vshader
+            FString Stem(*I_SourcePath.GetFileName());
+            const auto DotPos = Stem.FindLast(".");
             if (DotPos != FString::NPos)
-            { OutputName = OutputName.SubString(0, DotPos); }
-            // Emit one .vshader per entry point (Vulkan has stage-specific SPIR-V).
-            OutputName.Append(".");
-            OutputName.Append(EntryPoint);
-            OutputName.Append(".vshader");
-            OutputPath = *OutputPath.GetParent() / FPath(OutputName);
+            { Stem = Stem.SubString(0, DotPos); }
+            for (auto& Ch : Stem) { Ch = (Ch >= 'A' && Ch <= 'Z') ? static_cast<char>(Ch + ('a' - 'A')) : Ch; }
+
+            FString OutputName = FString::Format("{}.{}.vshader", Stem, Descriptor.FileSuffix);
+            FPath   OutputPath = *I_SourcePath.GetParent() / FPath(OutputName);
 
             WriteReflectionMeta(OutputPath, Refl);
-            if (!AssetHub->SaveShader({std::move(SPIRV), std::move(Refl)}, OutputPath))
+            const FString OutputVPathStr = FString::Format("@assets://shaders/{}", OutputName);
+            const VPath OutputVPath{FStringView{OutputVPathStr}};
+            if (!AssetHub->SaveShader({std::move(SPIRV), std::move(Refl)}, OutputVPath))
             {
-                LOG_ERROR("Failed to save shader: {}", OutputPath);
+                LOG_ERROR("Failed to save shader: {}", OutputVPathStr);
                 return False;
             }
-            LOG_INFO("Successfully compiled and saved: {}", OutputPath);
+            LOG_INFO("Successfully compiled and saved: {}", OutputVPathStr);
             ++SuccessCount;
         }
 
