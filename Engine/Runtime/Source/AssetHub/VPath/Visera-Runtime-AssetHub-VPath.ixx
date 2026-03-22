@@ -5,7 +5,11 @@ export module Visera.Runtime.AssetHub.VPath;
 import Visera.Core.Types.Name;
 import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
+import Visera.Core.Types.Path;
+import Visera.Core.Containers.Map;
+import Visera.Core.OS.Thread.Sync;
 import Visera.Core.Log;
+import Visera.Platform;
 
 export namespace Visera
 {
@@ -20,19 +24,10 @@ export namespace Visera
     class VISERA_RUNTIME_API VPath
     {
     public:
-        /** Compile-time validated construction from string literal via _vpath UDL. */
-        consteval VPath(const char* I_Literal, size_t I_Length)
-            : Literal{I_Literal}, LiteralLength{I_Length}
-        {
-            if (I_Length == 0 || I_Literal[0] != '@')
-                throw "VPath must start with '@'";
-            if (!HasValidScheme(I_Literal, I_Length))
-                throw "VPath has unrecognised scheme (expected @app://, @assets://, @user://, or @cache://)";
-        }
-
         /** Runtime construction from string. Asserts '@' prefix and valid scheme. */
         explicit VPath(FStringView I_Path)
             : Name{I_Path}
+            , Scheme{ParseScheme(I_Path)}
         {
             VISERA_ASSERT(!I_Path.IsEmpty() && I_Path[0] == '@');
         }
@@ -40,31 +35,63 @@ export namespace Visera
         /** Runtime construction from pre-registered FName. Asserts '@' prefix. */
         explicit VPath(FName I_Name)
             : Name{I_Name}
+            , Scheme{ParseScheme(I_Name.GetNameString())}
         {
             VISERA_ASSERT(!I_Name.IsNone() && I_Name.GetNameString()[0] == '@');
         }
 
         [[nodiscard]] FName GetName() const
         {
-            EnsureName();
             return Name;
         }
 
         [[nodiscard]] FStringView GetNameString() const
         {
-            EnsureName();
             return Name.GetNameString();
         }
 
         [[nodiscard]] EAssetScheme GetScheme() const
         {
-            const FStringView String = GetNameString();
-            if (String.StartsWith("@app://"))    return EAssetScheme::App;
-            if (String.StartsWith("@assets://")) return EAssetScheme::Assets;
-            if (String.StartsWith("@user://"))   return EAssetScheme::User;
-            if (String.StartsWith("@cache://"))  return EAssetScheme::Cache;
-            VISERA_ASSERT(False && "VPath: unrecognised scheme");
-            return EAssetScheme::Assets;
+            return Scheme;
+        }
+
+        /** Resolve to a concrete filesystem path (cached per virtual path name). */
+        [[nodiscard]] FPath GetRealPath() const
+        {
+            struct FResolvedPathState
+            {
+                TMap<FName, FPath> Map;
+                FRWLock            Lock;
+            };
+            static FResolvedPathState State;
+
+            const FName Key = GetName();
+            {
+                FScopeReadLock _{&State.Lock};
+                auto It = State.Map.Find(Key);
+                if (It != State.Map.end())
+                    return It->second;
+            }
+
+            const FPath Root = [&]() -> FPath
+            {
+                switch (Scheme)
+                {
+                case EAssetScheme::App:    return FPlatform::GetExecutableDirectory();
+                case EAssetScheme::Assets: return FPlatform::GetResourceDirectory() / FPath{"Assets"};
+                case EAssetScheme::User:   return FPlatform::GetUserDataDirectory();
+                case EAssetScheme::Cache:  return FPlatform::GetCacheDirectory();
+                }
+                return FPath{};
+            }();
+
+            const FStringView Relative = GetRelativePath();
+            const FPath Resolved = Root / FPath{FString{Relative}};
+            {
+                FScopeWriteLock _{&State.Lock};
+                State.Map[Key] = Resolved;
+            }
+            return Resolved;
         }
 
         /** Returns the portion after the scheme (e.g. "images/sky.png" from "@assets://images/sky.png"). */
@@ -92,47 +119,27 @@ export namespace Visera
 
         Bool operator==(const VPath& I_Other) const
         {
-            EnsureName();
-            I_Other.EnsureName();
             return Name == I_Other.Name;
         }
 
     private:
-        const char* Literal       = nullptr;
-        size_t      LiteralLength = 0;
-        mutable FName Name;
+        FName        Name;
+        EAssetScheme Scheme;
 
-        void EnsureName() const
+        static EAssetScheme ParseScheme(FStringView String)
         {
-            if (Literal && Name.IsNone())
-                Name = FName{FStringView{Literal, LiteralLength}};
-        }
-
-        /** constexpr-friendly scheme check for the consteval constructor. */
-        static consteval Bool HasValidScheme(const char* I_String, size_t I_Length)
-        {
-            auto Starts = [](const char* Haystack, size_t HaystackLength, const char* Needle) consteval -> Bool
-            {
-                for (size_t Index = 0; Needle[Index] != '\0'; ++Index)
-                {
-                    if (Index >= HaystackLength) return false;
-                    char LoweredHaystack = (Haystack[Index] >= 'A' && Haystack[Index] <= 'Z')
-                                         ? static_cast<char>(Haystack[Index] + ('a' - 'A'))
-                                         : Haystack[Index];
-                    if (LoweredHaystack != Needle[Index]) return false;
-                }
-                return true;
-            };
-            return Starts(I_String, I_Length, "@app://")
-                || Starts(I_String, I_Length, "@assets://")
-                || Starts(I_String, I_Length, "@user://")
-                || Starts(I_String, I_Length, "@cache://");
+            if (String.StartsWith("@app://"))    return EAssetScheme::App;
+            if (String.StartsWith("@assets://")) return EAssetScheme::Assets;
+            if (String.StartsWith("@user://"))   return EAssetScheme::User;
+            if (String.StartsWith("@cache://"))  return EAssetScheme::Cache;
+            VISERA_ASSERT(False && "VPath: unrecognised scheme");
+            return EAssetScheme::Assets;
         }
     };
 
-    consteval VPath operator""_vpath(const char* I_String, size_t I_Length)
+    inline VPath operator""_vpath(const char* I_String, size_t I_Length)
     {
-        return VPath{I_String, I_Length};
+        return VPath{FStringView{I_String, I_Length}};
     }
 }
 VISERA_MAKE_HASH(Visera::VPath, return static_cast<size_t>(I_Object.GetName().GetIdentifier()); )

@@ -29,7 +29,7 @@ export namespace Visera
     {
     public:
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const override;
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable, Bool I_Center, Bool I_Fullscreen) const override;
         [[nodiscard]] TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const override { return MakeShared<FWindowsLibrary>(I_Path); }
         [[nodiscard]] IPlatformFileSystem*
@@ -141,9 +141,9 @@ export namespace Visera
 
     /** Create window: FWindowsWindow (inherits FGLFWWindow) so Query*State use GetKeyboardState+VK mapping in this module. */
     TUniquePtr<IPlatformWindow> FWindowsPlatform::
-    CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const
+    CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable, Bool I_Center, Bool I_Fullscreen) const
     {
-        return MakeUnique<FWindowsWindow>(I_Title, I_Width, I_Height);
+        return MakeUnique<FWindowsWindow>(I_Title, I_Width, I_Height, I_Resizable, I_Center, I_Fullscreen);
     }
 
     Bool FWindowsPlatform::

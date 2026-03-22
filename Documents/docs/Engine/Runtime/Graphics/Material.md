@@ -1,6 +1,6 @@
 # Runtime.Graphics.Material (Visera.Runtime.Graphics.Material)
 
-Material system: loads `.vmaterial` JSON definitions, creates descriptor sets for textures/samplers, and exposes render state for PSO creation.
+Material system: loads `.vmat` JSON definitions, creates descriptor sets for textures/samplers, and exposes render state for PSO creation.
 
 ## FMaterial
 
@@ -22,7 +22,7 @@ Depth state is forwarded to `FPipelineCache::GetOrCreate` and baked into the PSO
 
 The material's descriptor set is created from **shader set 0 resources only**. During reflection merge, resources belonging to set 1+ (e.g. the engine-managed instance SSBO) are filtered out by the `AddResource` lambda (`if (Res.Set != 0) { return; }`). This prevents binding collisions between material textures (set 0, binding 0 = `SampledImage`) and the instance buffer (set 1, binding 0 = `StorageBuffer`).
 
-### JSON format (`.vmaterial`)
+### JSON format (`.vmat`)
 
 ```json
 {

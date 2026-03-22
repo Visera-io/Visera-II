@@ -19,7 +19,7 @@ export namespace Visera
         { LOG_WARN("Using Null platform; window/input and many APIs are no-op. Consider building with a supported platform (Windows/MacOS) or GLFW."); }
 
         [[nodiscard]] TUniquePtr<IPlatformWindow>
-        CreateWindow(FStringView, UInt32, UInt32) const override
+        CreateWindow(FStringView, UInt32, UInt32, Bool, Bool, Bool) const override
         { VISERA_ASSERT(False); return nullptr; }
 
         [[nodiscard]] TSharedPtr<IPlatformLibrary>

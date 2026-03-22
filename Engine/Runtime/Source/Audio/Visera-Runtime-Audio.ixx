@@ -26,9 +26,8 @@ export namespace Visera
     struct VISERA_RUNTIME_API FAudioCreateInfo
     {
         FString Engine = "Null";
+        /** Resolved via asset hub; Wwise init.bnk and script loads use this root. */
         VPath   BankBasePath{FStringView{"@assets://soundbanks"}};
-        FString BankInit = "Init.bnk";
-        FString BankMain = "Main.bnk";
         UInt32  PumpCriticalMinPerTick = 64;
         UInt32  PumpNormalMaxPerTick   = 256;
         UInt32  PumpSpamMaxPerTick     = 128;
@@ -198,6 +197,14 @@ export namespace Visera
             if (!Engine) { return; }
             Pump();
             Engine->RenderAudio();
+        }
+
+        /** Load an additional .bnk under BankBasePath (relative name, e.g. fire_meow.bnk). init.bnk is loaded automatically in the Wwise constructor path. */
+        [[nodiscard]] inline Bool
+        LoadSoundBank(FName I_RelativeBankFile)
+        {
+            if (!Engine || I_RelativeBankFile.IsNone()) { return False; }
+            return Engine->LoadSoundBankFile(FName::FetchNameString(I_RelativeBankFile));
         }
 
     private:
@@ -455,9 +462,11 @@ export namespace Visera
             { LOG_FATAL("Failed to register Main Listener"); }
             if (!Engine->SetDefaultListeners(MainID))
             { LOG_FATAL("Failed to set default listeners"); }
-            const FPath ResolvedBankPath = GAssetHub ? GAssetHub->ResolvePath(I_CreateInfo.BankBasePath) : FPath{};
-            if (ResolvedBankPath.IsEmpty() || !Engine->InitializeBanks(ResolvedBankPath, I_CreateInfo.BankInit, I_CreateInfo.BankMain))
-            { LOG_WARN("Failed to initialize banks. Events may fail."); }
+            const FPath ResolvedBankPath = I_CreateInfo.BankBasePath.GetRealPath();
+            if (ResolvedBankPath.IsEmpty() || !Engine->MountSoundBankBase(ResolvedBankPath))
+            { LOG_WARN("Failed to mount sound bank base path. Banks may not load."); }
+            else if (!Engine->LoadSoundBankFile(FStringView{"init.bnk"}))
+            { LOG_WARN("Failed to load init.bnk. Wwise events may fail."); }
         }
         else
         { Engine = MakeUnique<FNullAudioEngine>(); }

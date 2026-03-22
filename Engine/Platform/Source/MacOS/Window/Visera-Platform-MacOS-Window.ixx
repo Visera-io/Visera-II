@@ -13,10 +13,8 @@ export namespace Visera
         SetIcon(const FIconSet& I_IconSet) override
         { /* MacOS regular windows do not have icons */ }
 
-        FMacOSWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
-        : FGLFWWindow(I_Title, I_Width, I_Height)
-        {
-
-        }
+        FMacOSWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable, Bool I_Center, Bool I_Fullscreen)
+        : FGLFWWindow(I_Title, I_Width, I_Height, I_Resizable, I_Center, I_Fullscreen)
+        {}
     };
 }

@@ -20,7 +20,7 @@ export namespace Visera
         /** Platform identifier for branching (e.g. FPlatform::IsPlatform). */
         [[nodiscard]] virtual FStringView GetPlatformName() const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformWindow>
-        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) const = 0;
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable, Bool I_Center, Bool I_Fullscreen) const = 0;
         [[nodiscard]] virtual TSharedPtr<IPlatformLibrary>
         LoadLibrary(const IPlatformPath& I_Path) const = 0;
         [[nodiscard]] virtual TUniquePtr<IPlatformPath>

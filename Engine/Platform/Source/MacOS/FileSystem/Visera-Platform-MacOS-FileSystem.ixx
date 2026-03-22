@@ -211,7 +211,13 @@ export namespace Visera
         TUniquePtr<IPlatformPath> Parent = I_Path.GetParent();
         if (!Parent) return 3; // Other
 
-        static const FMacOSPath DefaultPrefix(".VTemp-");
+        if (!Parent->IsEmpty() && !ExistsDirectory(*Parent))
+        {
+            const Int32 MkErr = CreateDirectories(*Parent);
+            if (MkErr != 0) { return MkErr; }
+        }
+
+        static const FMacOSPath DefaultPrefix(".vtemp-");
         auto [TempFile, TempPath] = CreateTempFileNear(*Parent, DefaultPrefix);
         if (!TempFile || !TempPath) return 3; // Other
 
@@ -244,7 +250,7 @@ export namespace Visera
         TPair<TUniquePtr<FFile>, TUniquePtr<IPlatformPath>> Result;
         if (I_Directory.IsEmpty()) return Result;
 
-        static const FMacOSPath DefaultPrefix(".VTemp-");
+        static const FMacOSPath DefaultPrefix(".vtemp-");
         const IPlatformPath& EffectivePrefix = I_Prefix.IsEmpty() ? static_cast<const IPlatformPath&>(DefaultPrefix) : I_Prefix;
         TUniquePtr<IPlatformPath> Base = I_Directory.Concat(EffectivePrefix);
         if (!Base) return Result;

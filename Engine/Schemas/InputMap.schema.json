@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "visera://schemas/InputMap.schema.json",
   "title": "Visera Input Map",
-  "description": "Data-driven input mapping. See Documents/docs/Fundamentals/InputMap.md for how to add new actions.",
+  "description": "Data-driven input mapping (.vimap). See Documents/docs/Fundamentals/InputMap.md for how to add new actions.",
   "type": "object",
   "additionalProperties": false,
   "required": ["Version", "Mappings"],

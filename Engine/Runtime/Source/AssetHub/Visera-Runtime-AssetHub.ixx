@@ -46,10 +46,6 @@ export namespace Visera
             All,
         };
 
-        /** Resolve a VPath to a concrete filesystem FPath. */
-        [[nodiscard]] FPath
-        ResolvePath(const VPath& I_VirtualPath) const;
-
         [[nodiscard]] TSharedPtr<FImageAsset>
         LoadImage(const VPath& I_AssetPath, ELoadMode I_Mode = ELoadMode::Eager);
         [[nodiscard]] Bool
@@ -130,9 +126,6 @@ export namespace Visera
 
         TUniquePtr<FCachePair> ImageCache;
         TUniquePtr<FCachePair> ShaderCache;
-
-        mutable TMap<FName, FPath> ResolvedPathCache;
-        mutable FRWLock            ResolvedPathLock;
 
         void UpdateCachePeaks(ECacheKind I_Kind, const FCachePair& I_Cache)
         {
@@ -246,40 +239,6 @@ export namespace Visera
     };
     inline FAssetHub* GAssetHub = nullptr;
 
-    // ── ResolvePath ──────────────────────────────────────────────────────
-
-    FPath FAssetHub::
-    ResolvePath(const VPath& I_VirtualPath) const
-    {
-        const FName Key = I_VirtualPath.GetName();
-        {
-            FScopeReadLock _{&ResolvedPathLock};
-            auto It = ResolvedPathCache.Find(Key);
-            if (It != ResolvedPathCache.end())
-                return It->second;
-        }
-
-        const FPath Root = [&]() -> FPath
-        {
-            switch (I_VirtualPath.GetScheme())
-            {
-            case EAssetScheme::App:    return FPlatform::GetExecutableDirectory();
-            case EAssetScheme::Assets: return FPlatform::GetResourceDirectory() / FPath{"Assets"};
-            case EAssetScheme::User:   return FPlatform::GetUserDataDirectory();
-            case EAssetScheme::Cache:  return FPlatform::GetCacheDirectory();
-            }
-            return FPath{};
-        }();
-
-        const FStringView Relative = I_VirtualPath.GetRelativePath();
-        const FPath Resolved = FPath::Normalized(Root / FPath{FString{Relative}});
-        {
-            FScopeWriteLock _{&ResolvedPathLock};
-            ResolvedPathCache[Key] = Resolved;
-        }
-        return Resolved;
-    }
-
     // ── Constructor / Destructor ─────────────────────────────────────────
 
     FAssetHub::FAssetHub(const FAssetHubCreateInfo& I_CreateInfo)
@@ -342,7 +301,7 @@ export namespace Visera
             return Cast<FImageAsset>(W.Lock());
         }
 
-        const FPath Resolved = ResolvePath(I_AssetPath);
+        const FPath Resolved = I_AssetPath.GetRealPath();
         const EImageFormat Format = DetectImageFormat(Resolved);
         if (Format == EImageFormat::Invalid)
         {
@@ -375,7 +334,7 @@ export namespace Visera
     SaveImage(const FImageView2D& I_View, const VPath& I_AssetPath, ESaveMode I_Mode)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.SaveImageCalls;);
-        const FPath I_Path = ResolvePath(I_AssetPath);
+        const FPath I_Path = I_AssetPath.GetRealPath();
 
         const FImage ToSave{I_View, Memory::GetDefaultResource()};
         if (ToSave.GetWidth() == 0 || ToSave.GetHeight() == 0)
@@ -457,7 +416,7 @@ export namespace Visera
             return Cast<FShaderAsset>(W.Lock());
         }
 
-        const FPath Resolved = ResolvePath(I_AssetPath);
+        const FPath Resolved = I_AssetPath.GetRealPath();
         TArray<FByte> SPIRVChunk, ReflectionChunk;
         UInt32 Version = 0;
         if (!ReadShaderChunks(Resolved, Version, SPIRVChunk, ReflectionChunk) || SPIRVChunk.IsEmpty())
@@ -479,7 +438,7 @@ export namespace Visera
     SaveShader(const FShader& I_Shader, const VPath& I_AssetPath, ESaveMode I_Mode)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.SaveShaderCalls;);
-        const FPath Resolved = ResolvePath(I_AssetPath);
+        const FPath Resolved = I_AssetPath.GetRealPath();
         const Bool Saved = WriteShaderToFile(I_Shader, Resolved, I_Mode);
         PROFILING_ONLY_FIELD(if (Saved) { ++ProfilingMetrics.SaveShaderSuccess; });
         return Saved;
@@ -491,7 +450,7 @@ export namespace Visera
     LoadFont(const VPath& I_AssetPath, Int32 I_FaceIndex, UInt32 I_PixelSize)
     {
         PROFILING_ONLY_FIELD(++ProfilingMetrics.LoadFontCalls;);
-        const FPath Resolved = ResolvePath(I_AssetPath);
+        const FPath Resolved = I_AssetPath.GetRealPath();
 
         auto FileBytesOpt = FPlatform::ReadFile(Resolved);
         if (!FileBytesOpt.HasValue() || FileBytesOpt->IsEmpty())

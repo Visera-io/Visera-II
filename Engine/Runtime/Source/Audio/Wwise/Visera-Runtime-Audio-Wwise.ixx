@@ -42,7 +42,9 @@ namespace Visera
         Bool
         SetDefaultListeners(FObjectID I_ListenerID) override;
         Bool
-        InitializeBanks(const FPath& I_BasePath, FStringView I_InitBankName, FStringView I_MainBankName) override;
+        MountSoundBankBase(const FPath& I_ResolvedBasePath) override;
+        Bool
+        LoadSoundBankFile(FStringView I_RelativeFileName) override;
         [[nodiscard]] FEventID
         GetEventID(FStringView I_EventName) override;
         [[nodiscard]] FRTPCID
@@ -56,6 +58,7 @@ namespace Visera
         UInt32     CommandQueueSize {1024 * 1024};
         TMap<FString, FEventID> EventIDCache {};
         TMap<FString, FRTPCID>  RTPCIDCache {};
+        Bool                    BankRootMounted {false};
 
     public:
         explicit FWwiseAudioEngine(UInt32 I_CommandQueueSize = 1024 * 1024)
@@ -248,23 +251,30 @@ namespace Visera
     }
 
     Bool FWwiseAudioEngine::
-    InitializeBanks(const FPath& I_BasePath, FStringView I_InitBankName, FStringView I_MainBankName)
+    MountSoundBankBase(const FPath& I_ResolvedBasePath)
     {
-        const FPlatformPath BasePlatformPath = FPlatform::MakePlatformPath(I_BasePath);
-        if (!BasePlatformPath.IsEmpty() && IO.AddBasePath(BasePlatformPath.GetPathString()) != AK_Success)
-        { LOG_WARN("Failed to add bank base path: {}", I_BasePath); }
+        if (BankRootMounted)
+        { return True; }
+        const FPlatformPath BasePlatformPath = FPlatform::MakePlatformPath(I_ResolvedBasePath);
+        if (BasePlatformPath.IsEmpty() || IO.AddBasePath(BasePlatformPath.GetPathString()) != AK_Success)
+        {
+            LOG_WARN("Failed to add bank base path: {}", I_ResolvedBasePath);
+            return False;
+        }
+        BankRootMounted = True;
+        return True;
+    }
 
-        AkBankID InitBankID = AK_INVALID_BANK_ID;
-        AkBankID MainBankID = AK_INVALID_BANK_ID;
-
-        const FPlatformPath InitBankPlatformPath = FPlatform::MakePlatformPath(FPath{I_InitBankName});
-        if (InitBankPlatformPath.IsEmpty() || AK::SoundEngine::LoadBank(InitBankPlatformPath.GetPathString(), InitBankID) != AK_Success)
-        { LOG_WARN("Failed to load Init bank ({}). Events may fail.", I_InitBankName); return False; }
-
-        const FPlatformPath MainBankPlatformPath = FPlatform::MakePlatformPath(FPath{I_MainBankName});
-        if (MainBankPlatformPath.IsEmpty() || AK::SoundEngine::LoadBank(MainBankPlatformPath.GetPathString(), MainBankID) != AK_Success)
-        { LOG_ERROR("Failed to load Main bank ({}). BGM and SFX will not play.", I_MainBankName); return False; }
-
+    Bool FWwiseAudioEngine::
+    LoadSoundBankFile(FStringView I_RelativeFileName)
+    {
+        AkBankID BankID = AK_INVALID_BANK_ID;
+        const FPlatformPath BankPlatformPath = FPlatform::MakePlatformPath(FPath{I_RelativeFileName});
+        if (BankPlatformPath.IsEmpty() || AK::SoundEngine::LoadBank(BankPlatformPath.GetPathString(), BankID) != AK_Success)
+        {
+            LOG_WARN("Failed to load sound bank ({}).", I_RelativeFileName);
+            return False;
+        }
         return True;
     }
 

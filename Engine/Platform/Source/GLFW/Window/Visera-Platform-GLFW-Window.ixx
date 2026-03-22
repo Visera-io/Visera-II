@@ -54,7 +54,7 @@ export namespace Visera
         [[nodiscard]] static TArray<const char*>
         GetVulkanRequiredInstanceExtensions();
 
-        FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height);
+        FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable, Bool I_Center, Bool I_Fullscreen);
         ~FGLFWWindow() override;
 
     private:
@@ -64,7 +64,7 @@ export namespace Visera
     };
 
     FGLFWWindow::
-    FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height)
+    FGLFWWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable, Bool I_Center, Bool I_Fullscreen)
     : IPlatformWindow(I_Title, I_Width, I_Height)
     {
         (void)ContextCount.FetchAdd(1, EMemoryOrder::AcqRel);
@@ -72,26 +72,62 @@ export namespace Visera
         { LOG_ERROR("Failed to initialize GLFW!"); return; }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE,	GLFW_TRUE);
+        glfwWindowHint(GLFW_RESIZABLE, I_Resizable ? GLFW_TRUE : GLFW_FALSE);
 
-        //Create Window
+        GLFWmonitor* MonitorArg = nullptr;
+        Int32        CreateW    = static_cast<Int32>(Width);
+        Int32        CreateH    = static_cast<Int32>(Height);
+
+        if (I_Fullscreen && (MonitorArg = glfwGetPrimaryMonitor()))
+        {
+            if (const GLFWvidmode* Mode = glfwGetVideoMode(MonitorArg))
+            {
+                CreateW = Mode->width;
+                CreateH = Mode->height;
+            }
+            else
+            { MonitorArg = nullptr; }
+        }
+
         Handle = glfwCreateWindow(
-            Width, Height, //[TODO] read from config (save the last scale).
-            Title.GetNative().c_str(), // The App name is used as the Editor's main window.
-            nullptr,
+            CreateW,
+            CreateH,
+            Title.GetNative().c_str(),
+            MonitorArg,
             nullptr);
         if (!Handle)
         { LOG_ERROR("Failed to create the GLFW Window!"); return; }
 
         glfwGetWindowContentScale(Handle, &ScaleX, &ScaleY);
 
-        if (bMaximized)
+        if (MonitorArg)
+        {
+            Int32 FBW = 0, FBH = 0;
+            glfwGetFramebufferSize(Handle, &FBW, &FBH);
+            Width  = static_cast<UInt32>(FBW);
+            Height = static_cast<UInt32>(FBH);
+        }
+        else if (bMaximized)
         {
             glfwMaximizeWindow(Handle);
         }
         else
         {
-            glfwSetWindowSize(Handle, Width  / ScaleX, Height / ScaleY);
+            glfwSetWindowSize(Handle, Width / ScaleX, Height / ScaleY);
+        }
+
+        if (I_Center && Handle && !MonitorArg)
+        {
+            Int32 WinW = 0, WinH = 0;
+            glfwGetWindowSize(Handle, &WinW, &WinH);
+            if (GLFWmonitor* Monitor = glfwGetPrimaryMonitor())
+            {
+                Int32 Wx = 0, Wy = 0, Ww = 0, Wh = 0;
+                glfwGetMonitorWorkarea(Monitor, &Wx, &Wy, &Ww, &Wh);
+                const Int32 Px = Wx + (Ww > WinW ? (Ww - WinW) / 2 : 0);
+                const Int32 Py = Wy + (Wh > WinH ? (Wh - WinH) / 2 : 0);
+                glfwSetWindowPos(Handle, Px, Py);
+            }
         }
 
         // Make static callbacks able to reach this instance.

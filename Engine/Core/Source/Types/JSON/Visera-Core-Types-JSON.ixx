@@ -6,6 +6,7 @@ import Visera.Core.Types.String;
 import Visera.Core.Types.Optional;
 import Visera.Core.Containers.Array;
 import Visera.Core.OS.FileSystem;
+import Visera.Core.Log;
 import charted.core;
 import charted.json;
 
@@ -42,13 +43,27 @@ export namespace Visera
         [[nodiscard]] static TOptional<FJSON>
         Load(const FPath& I_JSONFile)
         {
-            if (auto Stream = FFileSystem::OpenIStream(I_JSONFile); Stream)
+            auto File = FFileSystem::OpenFile(I_JSONFile, EFileMode::Read | EFileMode::Binary);
+            if (!File)
             {
-                if (auto Parsed = Json::Parse(*Stream); Parsed.has_value())
-                {
-                    return TOptional<FJSON>(FJSON(std::move(Parsed.value())));
-                }
+                LOG_ERROR(
+                    "FJSON::Load: cannot open '{}'. (Missing file, resolved path mismatch, or permission denied.)",
+                    I_JSONFile);
+                return NullOpt;
             }
+            TArray<FByte> Bytes = File->ReadAll();
+            if (File->GetError() != 0)
+            {
+                LOG_ERROR("FJSON::Load: read error while loading '{}'.", I_JSONFile);
+                return NullOpt;
+            }
+            const FString NativeText{Bytes};
+            auto Parsed = Parse(FStringView{NativeText});
+            if (Parsed.HasValue())
+            {
+                return Parsed;
+            }
+            LOG_ERROR("FJSON::Load: file is not valid JSON: '{}'.", I_JSONFile);
             return NullOpt;
         }
 

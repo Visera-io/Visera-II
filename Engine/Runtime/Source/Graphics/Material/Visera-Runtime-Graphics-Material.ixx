@@ -26,7 +26,7 @@ export namespace Visera
     class VISERA_RUNTIME_API FMaterial
     {
     public:
-        /** Paths in the JSON (Shader, Textures) are VPath virtual paths (e.g. "@assets://shaders/..."). */
+        /** Paths in the JSON (Shader, Textures) are VPath values (e.g. "@assets://shaders/..."). */
         [[nodiscard]] static TSharedPtr<FMaterial>
         Create(const FJSON& I_Description, FAssetHub* I_AssetHub, FRHI* I_RHI);
 
@@ -317,8 +317,8 @@ export namespace Visera
         (void)I_Description.TryGetObject("Parameters");
         TMap<FString, FBufferLayoutInfo> BufferNameToLayout; // UniformBuffer not in new schema; keep empty for now
 
-        const VPath VertVPath{FStringView{VertPath}};
-        const VPath FragVPath{FStringView{FragPath}};
+        const VPath VertVPath{VertPath};
+        const VPath FragVPath{FragPath};
 
         auto VertAsset = I_AssetHub->LoadShader(VertVPath);
         auto FragAsset = I_AssetHub->LoadShader(FragVPath);
@@ -401,7 +401,7 @@ export namespace Visera
         {
             if (TexInfo.Type != "Texture2D")
             { LOG_ERROR("FMaterial::Create: texture '{}' has Type '{}'; only Texture2D is supported for Image binding.", Name, TexInfo.Type); return nullptr; }
-            const VPath ImageVPath{FStringView{TexInfo.ImagePath}};
+            const VPath ImageVPath{TexInfo.ImagePath};
             auto ImageAsset = I_AssetHub->LoadImage(ImageVPath);
             if (!ImageAsset)
             { LOG_ERROR("FMaterial::Create: failed to load texture '{}' at {}.", Name, TexInfo.ImagePath); return nullptr; }

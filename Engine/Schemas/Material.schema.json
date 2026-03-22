@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "visera://schemas/Material.schema.json",
   "title": "Visera Material",
+  "description": "Material asset (.vmat): shaders, pipeline state, textures, and samplers.",
   "type": "object",
   "additionalProperties": false,
   "required": ["Version", "Shader"],

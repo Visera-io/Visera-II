@@ -1336,7 +1336,7 @@ export namespace Visera
         FString UUIDString;
         for (size_t i = 0; i < vk::UuidSize; ++i)
         { UUIDString += FString::Format("{:02x}", static_cast<UInt32>(GPU.Properties.pipelineCacheUUID[i])); }
-        const FPath CachePath = FPlatform::GetCacheDirectory() / FPath{FString::Format("RHIPipelines.{}.cache", UUIDString)};
+        const FPath CachePath = FPlatform::GetCacheDirectory() / FPath{FString::Format("rhi-pipelines-{}.cache", UUIDString)};
         PipelineCache = new FVulkanPipelineCache(GPU.Context, Device.Context, CachePath);
     }
 

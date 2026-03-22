@@ -1152,10 +1152,18 @@ export namespace Visera
       if (It != MaterialCache.end())
          return It->second;
 
-      const FPath ResolvedPath = AssetHub->ResolvePath(I_MaterialPath);
+      const FPath ResolvedPath = I_MaterialPath.GetRealPath();
       auto JSONOpt = FJSON::Load(ResolvedPath);
       if (!JSONOpt.HasValue())
-      { LOG_ERROR("LoadMaterial: failed to parse {}.", I_MaterialPath); return nullptr; }
+      {
+         LOG_ERROR(
+            "LoadMaterial: could not load material {} (resolved: {}). For @assets:// paths, keep the "
+            "'assets' directory next to the executable (ship the full build output or installer layout; "
+            "do not run from inside an archive without extracting).",
+            I_MaterialPath,
+            ResolvedPath);
+         return nullptr;
+      }
       auto Material = FMaterial::Create(JSONOpt.GetValue(), AssetHub, RHI);
       if (!Material)
          return nullptr;

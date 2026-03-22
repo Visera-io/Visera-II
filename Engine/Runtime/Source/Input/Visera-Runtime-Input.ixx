@@ -11,7 +11,6 @@ export import Visera.Runtime.Input.Mapping;
        import Visera.Core.Log;
        import Visera.Core.Types.Name;
        import Visera.Core.Types.Path;
-       import Visera.Core.Types.JSON;
        import Visera.Core.Types.Pointer;
        import Visera.Core.Containers.Array;
        import Visera.Core.Containers.Map;
@@ -26,7 +25,7 @@ export namespace Visera
     };
 
     /**
-     * Global input service: one keyboard (global state), per-window mouse state in Mice, and action/mapping (e.g. .vinputmap).
+     * Global input service: one keyboard (global state), per-window mouse state in Mice, and action/mapping.
      * Uses only Interface.Device enums (EPlatformKeyboardKey, EPlatformKeyboardKeyState, etc.); platform-specific
      * handling and casts are confined to the Platform layer so FInput stays platform-agnostic.
      * Call PollAndSync() on the main thread each frame; GetMouse() returns the mouse for the current focused window (or dummy).
@@ -58,25 +57,21 @@ export namespace Visera
         [[nodiscard]] inline FMouse*
         GetMouse() { return Mice[CurrentFocusedWindow].Get(); }
 
-        /** Get or create an input action by name (UE5: UInputAction). */
+        /** Return the input action for I_ActionName; creates it if it does not exist (UE5: UInputAction). */
         [[nodiscard]] FInputAction*
-        GetOrAddAction(FName I_ActionName);
+        AddAction(FName I_ActionName);
 
         /** Get action by name. Returns nullptr if not found. */
         [[nodiscard]] FInputAction*
         GetAction(FName I_ActionName) const;
 
-        /** Add a mapping. Action must exist (call GetOrAddAction first). */
+        /** Add a mapping. Ensures the action exists (see AddAction). */
         void
         AddMapping(const FInputMapping& I_Mapping);
 
         /** Remove all mappings for the given action. */
         void
         RemoveMappings(FName I_ActionName);
-
-        /** Load mappings from .vinputmap JSON file. Creates actions as needed. Returns False on parse/file error. */
-        [[nodiscard]] Bool
-        LoadInputMap(const FPath& I_Path);
 
         /** True if any mapping for I_ActionName is active this frame (e.g. Hold = key down, Press = just pressed). Call after PollAndSync(). Keyboard only for now. */
         [[nodiscard]] Bool
@@ -224,7 +219,7 @@ export namespace Visera
     }
 
     FInputAction*
-    FInput::GetOrAddAction(FName I_ActionName)
+    FInput::AddAction(FName I_ActionName)
     {
         auto Iterator = Actions.Find(I_ActionName);
         if (Iterator != Actions.end())
@@ -244,27 +239,9 @@ export namespace Visera
     void
     FInput::AddMapping(const FInputMapping& I_Mapping)
     {
+        (void)AddAction(I_Mapping.ActionName);
         Mappings.PushBack(I_Mapping);
         bReverseIndexDirty = True;
-    }
-
-    Bool
-    FInput::LoadInputMap(const FPath& I_Path)
-    {
-        auto JsonOpt = FJSON::Load(I_Path);
-        if (!JsonOpt.HasValue())
-        { LOG_ERROR("Failed to load input map: {}", I_Path.GetString()); return False; }
-        auto MappingsOpt = ParseInputMap(JsonOpt.GetValue());
-        if (!MappingsOpt.HasValue())
-        { LOG_ERROR("Failed to parse input map: {}", I_Path.GetString()); return False; }
-        for (const auto& ParsedMapping : MappingsOpt.GetValue())
-        {
-            (void)GetOrAddAction(ParsedMapping.ActionName);
-            AddMapping(ParsedMapping);
-        }
-        bReverseIndexDirty = True;
-        LOG_DEBUG("Loaded input map: {} ({} mappings).", I_Path.GetString(), MappingsOpt.GetValue().GetSize());
-        return True;
     }
 
     /** Rebuild ReverseIndex from current Mappings (sorted by SourceType, SourceValue). Clears bReverseIndexDirty. */
@@ -338,7 +315,7 @@ export namespace Visera
         for (const auto& Entry : EqualRange)
         {
             const UInt64 MappingIndex = Entry.second;
-            const FInputMapping& Mapping = Mappings[static_cast<std::size_t>(MappingIndex)];
+            const FInputMapping& Mapping = Mappings[MappingIndex];
             Bool IsMatch = False;
             if (I_SourceType == EInputSource::KeyboardKey)
             { IsMatch = Mapping.MatchesKey(I_SourceValue, I_Action, I_Mods); }

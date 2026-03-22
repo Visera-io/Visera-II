@@ -215,7 +215,14 @@ export namespace Visera
         TUniquePtr<IPlatformPath> Parent = I_Path.GetParent();
         if (!Parent) return 3; // Other
 
-        static const FWindowsPath DefaultPrefix(L".VTemp-");
+        // GetTempFileNameW requires an existing directory; create parent chain if needed (e.g. first write to assets/shaders/).
+        if (!Parent->IsEmpty() && !ExistsDirectory(*Parent))
+        {
+            const Int32 MkErr = CreateDirectories(*Parent);
+            if (MkErr != 0) { return MkErr; }
+        }
+
+        static const FWindowsPath DefaultPrefix(L".vtemp-");
         auto [TempFile, TempPath] = CreateTempFileNear(*Parent, DefaultPrefix);
         if (!TempFile || !TempPath) return 3; // Other
 

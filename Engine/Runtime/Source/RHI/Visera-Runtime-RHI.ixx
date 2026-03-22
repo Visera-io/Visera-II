@@ -463,11 +463,13 @@ export namespace Visera
         {
             Bool bExecuted = False;
 
-            do
+            while (True)
             {
+                Bool bDidWork = False;
+
                 if (auto R = CommandListQueue.Dequeue(); R.HasValue())
                 {
-                    bExecuted = True;
+                    bDidWork = True;
                     auto Entry = std::move(R).GetValue();
                     Bool bSkipExecute = (Entry.SwapChainID < SwapChains.GetSize()
                         && SwapChains[Entry.SwapChainID].bDestroyed.Load(EMemoryOrder::Relaxed));
@@ -491,19 +493,17 @@ export namespace Visera
                     Entry.Cmd.ShrinkTo(CommandListHighWaterMark);
                     FreeCommandListQueue.Enqueue(std::move(Entry.Cmd));
                 }
-                else break;
-            } while (True);
 
-            do
-            {
                 if (auto T = ImmediateCommandQueue.Dequeue(); T.HasValue())
                 {
-                    bExecuted = True;
+                    bDidWork = True;
                     auto Task = std::move(T).GetValue();
                     if (Task) { Task(); }
                 }
-                else break;
-            } while (True);
+
+                if (bDidWork) { bExecuted = True; }
+                else          { break; }
+            }
 
             if (!bExecuted) { WakeEvent.Wait(); }
         }

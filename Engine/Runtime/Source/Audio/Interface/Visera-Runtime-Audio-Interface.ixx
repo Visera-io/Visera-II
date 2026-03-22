@@ -45,8 +45,12 @@ namespace Visera
         SetPosition(FObjectID I_GameObjectID, Float I_X, Float I_Y, Float I_Z) = 0;
         virtual Bool
         SetDefaultListeners(FObjectID I_ListenerID) = 0;
+        /** Add Wwise file resolver base path once (resolved OS path). */
         virtual Bool
-        InitializeBanks(const FPath& I_BasePath, FStringView I_InitBankName, FStringView I_MainBankName) = 0;
+        MountSoundBankBase(const FPath& I_ResolvedBasePath) = 0;
+        /** Load one .bnk under the mounted base (relative file name, e.g. init.bnk). */
+        virtual Bool
+        LoadSoundBankFile(FStringView I_RelativeFileName) = 0;
         [[nodiscard]] virtual FEventID
         GetEventID(FStringView I_EventName) = 0;
         [[nodiscard]] virtual FRTPCID

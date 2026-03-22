@@ -15,9 +15,9 @@ export namespace Visera
         return MakeUnique<FViseraEngine>(I_CreateInfo);
     }
 
-    /** Create engine by mode. Standard = full features with main window; Forge = AssetHub only (no Run loop). */
+    /** Create engine by mode. Standard = full stack (headless until script OnInit calls setMainWindow or you set FEngineCreateInfo.MainWindow). Forge = AssetHub only (no Run loop). */
     [[nodiscard]] inline TUniquePtr<FViseraEngine>
-    CreateEngine(EEngineMode I_Mode, FString I_WindowTitle = "Visera", UInt32 I_Width = 1024, UInt32 I_Height = 768)
+    CreateEngine(EEngineMode I_Mode)
     {
         FEngineCreateInfo Info;
         Info.Name = "Visera";
@@ -26,10 +26,12 @@ export namespace Visera
         switch (I_Mode)
         {
         case EEngineMode::Standard:
-            Info.MainWindow  = FWindowCreateInfo{ .Title = std::move(I_WindowTitle), .Width = I_Width, .Height = I_Height };
             Info.RHI         = FRHICreateInfo{};
             Info.AssetHub    = FAssetHubCreateInfo{};
-            Info.AudioEngine = FAudioCreateInfo{ .Engine = "Wwise" };
+            Info.AudioEngine = FAudioCreateInfo{
+                .Engine       = "Wwise",
+                .BankBasePath = VPath{FStringView{"@assets://soundbanks"}},
+            };
             Info.Graphics    = FGraphicsCreateInfo{};
             Info.Input       = FInputCreateInfo{};
             Info.Scripting   = FScriptingCreateInfo{};

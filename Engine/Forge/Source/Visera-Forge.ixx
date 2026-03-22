@@ -106,7 +106,7 @@ namespace Visera::Forge
         const FPath ShaderDirectory = *I_SourcePath.GetParent();
         FShaderCompiler Compiler;
 #if defined(VISERA_ENGINE_SHADERS_DIR)
-        Compiler.AddSearchPath(FPath(VISERA_ENGINE_SHADERS_DIR));
+        (void)Compiler.AddSearchPath(FPath(VISERA_ENGINE_SHADERS_DIR));
 #endif
 
         UInt32 SuccessCount = 0;

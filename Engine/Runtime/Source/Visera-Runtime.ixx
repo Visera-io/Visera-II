@@ -140,11 +140,20 @@ namespace Visera
             Window = MakeUnique<FWindow>(I_CreateInfo.MainWindow.GetValue(), InputPtr);
         }
 
+        if (I_CreateInfo.Scripting.HasValue() && Graphics && AssetHub)
+        {
+            const Bool bScriptOwnsMainWindow = !I_CreateInfo.MainWindow.HasValue();
+            Scripting = MakeUnique<FScripting>(I_CreateInfo.Scripting.GetValue(), Graphics.Get(), AssetHub.Get(), Audio.Get(), Input.Get(), bScriptOwnsMainWindow);
+        }
+
+        if (!Window && Scripting)
+        {
+            if (TOptional<FWindowCreateInfo> WinOpt = Scripting->ResolveMainWindow(); WinOpt.HasValue())
+            { Window = MakeUnique<FWindow>(WinOpt.GetValue(), Input.Get()); }
+        }
+
         if (I_CreateInfo.UI.HasValue() && Window && Graphics && Input)
         { UI = MakeUnique<FUI>(I_CreateInfo.UI.GetValue()); }
-
-        if (I_CreateInfo.Scripting.HasValue() && Graphics && AssetHub)
-        { Scripting = MakeUnique<FScripting>(I_CreateInfo.Scripting.GetValue(), Graphics.Get(), AssetHub.Get()); }
     }
 
     void FViseraEngine::DestroyServices()
@@ -184,8 +193,12 @@ namespace Visera
             Double Dt = FrameClock.Tick().Seconds();
 
             OnTick.Broadcast(Dt);
+            
             if (Scripting)
             { Scripting->Tick(Dt); }
+
+            if (Audio)
+            { Audio->Tick(); }
 
             OnPreRender.Broadcast();
             

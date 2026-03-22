@@ -54,7 +54,10 @@ export namespace Visera
     {
     public:
         [[nodiscard]] static inline TUniquePtr<FPlatformWindow>
-        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height) { return Cast<FPlatformWindow>(Get()->CreateWindow(I_Title, I_Width, I_Height)); }
+        CreateWindow(FStringView I_Title, UInt32 I_Width, UInt32 I_Height, Bool I_Resizable = True, Bool I_Center = False, Bool I_Fullscreen = False)
+        {
+            return Cast<FPlatformWindow>(Get()->CreateWindow(I_Title, I_Width, I_Height, I_Resizable, I_Center, I_Fullscreen));
+        }
         [[nodiscard]] static inline FPlatformPath
         MakePlatformPath(const FPath& I_Path) { return FPlatformPath(I_Path); }
         [[nodiscard]] static inline TSharedPtr<FPlatformLibrary>
@@ -106,7 +109,7 @@ export namespace Visera
         [[nodiscard]] static inline EPlatformIOStatus
         AtomicWriteFile(const FPath& I_Path, const void* I_Data, UInt64 I_Size) { return static_cast<EPlatformIOStatus>(static_cast<UInt8>(Get()->GetFileSystem()->AtomicWriteFile(MakePlatformPath(I_Path), I_Data, I_Size))); }
         [[nodiscard]] static inline auto
-        CreateTempFileNear(const FPath& I_Directory, const FPath& I_Prefix = FPath(".VTemp-")) { return Get()->GetFileSystem()->CreateTempFileNear(MakePlatformPath(I_Directory), MakePlatformPath(I_Prefix)); }
+        CreateTempFileNear(const FPath& I_Directory, const FPath& I_Prefix = FPath(".vtemp-")) { return Get()->GetFileSystem()->CreateTempFileNear(MakePlatformPath(I_Directory), MakePlatformPath(I_Prefix)); }
         /** Currently focused platform window for input. May be nullptr. */
         [[nodiscard]] static inline IPlatformWindow*
         GetFocusedWindow() { return Get()->GetFocusedWindow(); }

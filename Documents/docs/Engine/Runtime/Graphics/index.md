@@ -4,7 +4,7 @@
 
 ## Responsibilities
 - **Framework**: Graphics subsystem init; `FRenderTask` / `FRenderContext`; **draw list** from `FRenderData::DrawCommands` (`BatchAndSort` → `FRenderList` by material/mesh); **instance buffer upload** (`UploadInstanceBuffers` → per-batch SSBO + descriptor set); pass registration with read/write lock for concurrency.
-- **Material**: Material type, render state (cull mode, depth test/write/compare), descriptor set 0 (textures/samplers); JSON `.vmaterial` driven.
+- **Material**: Material type, render state (cull mode, depth test/write/compare), descriptor set 0 (textures/samplers); JSON `.vmat` driven.
 - **PipelineCache**: Get-or-create PSO by material shaders, formats and render state; **hash-based O(1)** lookup (GoldenRatio); key includes depth/stencil and cull configuration.
 - **RenderGraph**: Declarative passes; **Execute(FRenderContext)** (creates command list, runs passes with `RenderList`, submits); pass names as `FName`; **CullDeadPasses** O(N+E) reverse BFS.
 - **Scene**: Camera (`FCamera`), lights (`FLight`), renderables (`IRenderable` / `FRenderableMeta` → `FInstanceData` + Material + optional `FMesh`). All submitted per-frame via `FGraphics`; no persistent scene container (`FScene` removed).

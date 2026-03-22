@@ -39,7 +39,7 @@ export namespace Visera
         void
         RegisterFunction(FStringView I_Name, FV8FunctionCallback I_Callback);
 
-        /** Execute script source in this context. Uses VM::ExecuteScript; returns error message or NullOpt on success. */
+        /** Execute script source in this context. NullOpt on success; otherwise an error message. */
         [[nodiscard]] TOptional<FString>
         ExecuteScript(FStringView I_Source, FStringView I_FileName = "script");
 
@@ -107,9 +107,6 @@ export namespace Visera
         v8::Local<v8::Context> Context = GetContext();
         if (Context.IsEmpty())
             return TOptional<FString>(FString("(no context)"));
-        TOptional<FString> Result = Visera::ExecuteScript(Isolate, Context, I_Source, I_FileName);
-        if (!Result.HasValue())
-            return TOptional<FString>(FString("(script error)"));
-        return NullOpt;
+        return Visera::ExecuteScript(Isolate, Context, I_Source, I_FileName);
     }
 }

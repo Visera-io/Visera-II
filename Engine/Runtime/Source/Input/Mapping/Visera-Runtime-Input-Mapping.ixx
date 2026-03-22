@@ -1,5 +1,6 @@
 module;
 #include <Visera-Runtime.hpp>
+#include <cctype>
 export module Visera.Runtime.Input.Mapping;
 #define VISERA_MODULE_NAME "Runtime.Input"
 import Visera.Core.Delegate.Multicast;
@@ -8,6 +9,7 @@ import Visera.Core.Types.JSON;
 import Visera.Core.Types.Optional;
 import Visera.Core.Types.String;
 import Visera.Core.Containers.Array;
+import Visera.Core.Containers.Map;
 import Visera.Core.Log;
 import Visera.Platform;
 
@@ -61,247 +63,256 @@ export namespace Visera
 
     namespace Detail
     {
+        [[nodiscard]] inline Bool
+        AsciiEqualsIgnoreCase(FStringView I_A, FStringView I_B)
+        {
+            if (I_A.GetSize() != I_B.GetSize())
+            { return False; }
+            const char* Pa = I_A.Data();
+            const char* Pb = I_B.Data();
+            for (FString::SizeType i = 0; i < I_A.GetSize(); ++i)
+            {
+                const unsigned char Ca = static_cast<unsigned char>(Pa[i]);
+                const unsigned char Cb = static_cast<unsigned char>(Pb[i]);
+                if (std::tolower(Ca) != std::tolower(Cb))
+                { return False; }
+            }
+            return True;
+        }
+
         inline TOptional<Int32> ParseKeyName(FStringView I_Name)
         {
-            static constinit struct { const char* Name; Int32 Value; } const KeyTable[]{
-                    {"Unknown", static_cast<Int32>(EPlatformKeyboardKey::Unknown)},
-                    {"Space", static_cast<Int32>(EPlatformKeyboardKey::Space)},
-                    {"Apostrophe", static_cast<Int32>(EPlatformKeyboardKey::Apostrophe)},
-                    {"Comma", static_cast<Int32>(EPlatformKeyboardKey::Comma)},
-                    {"Minus", static_cast<Int32>(EPlatformKeyboardKey::Minus)},
-                    {"Period", static_cast<Int32>(EPlatformKeyboardKey::Period)},
-                    {"Slash", static_cast<Int32>(EPlatformKeyboardKey::Slash)},
-                    {"Num0", static_cast<Int32>(EPlatformKeyboardKey::Num0)},
-                    {"Num1", static_cast<Int32>(EPlatformKeyboardKey::Num1)},
-                    {"Num2", static_cast<Int32>(EPlatformKeyboardKey::Num2)},
-                    {"Num3", static_cast<Int32>(EPlatformKeyboardKey::Num3)},
-                    {"Num4", static_cast<Int32>(EPlatformKeyboardKey::Num4)},
-                    {"Num5", static_cast<Int32>(EPlatformKeyboardKey::Num5)},
-                    {"Num6", static_cast<Int32>(EPlatformKeyboardKey::Num6)},
-                    {"Num7", static_cast<Int32>(EPlatformKeyboardKey::Num7)},
-                    {"Num8", static_cast<Int32>(EPlatformKeyboardKey::Num8)},
-                    {"Num9", static_cast<Int32>(EPlatformKeyboardKey::Num9)},
-                    {"Semicolon", static_cast<Int32>(EPlatformKeyboardKey::Semicolon)},
-                    {"Equal", static_cast<Int32>(EPlatformKeyboardKey::Equal)},
-                    {"A", static_cast<Int32>(EPlatformKeyboardKey::A)},
-                    {"B", static_cast<Int32>(EPlatformKeyboardKey::B)},
-                    {"C", static_cast<Int32>(EPlatformKeyboardKey::C)},
-                    {"D", static_cast<Int32>(EPlatformKeyboardKey::D)},
-                    {"E", static_cast<Int32>(EPlatformKeyboardKey::E)},
-                    {"F", static_cast<Int32>(EPlatformKeyboardKey::F)},
-                    {"G", static_cast<Int32>(EPlatformKeyboardKey::G)},
-                    {"H", static_cast<Int32>(EPlatformKeyboardKey::H)},
-                    {"I", static_cast<Int32>(EPlatformKeyboardKey::I)},
-                    {"J", static_cast<Int32>(EPlatformKeyboardKey::J)},
-                    {"K", static_cast<Int32>(EPlatformKeyboardKey::K)},
-                    {"L", static_cast<Int32>(EPlatformKeyboardKey::L)},
-                    {"M", static_cast<Int32>(EPlatformKeyboardKey::M)},
-                    {"N", static_cast<Int32>(EPlatformKeyboardKey::N)},
-                    {"O", static_cast<Int32>(EPlatformKeyboardKey::O)},
-                    {"P", static_cast<Int32>(EPlatformKeyboardKey::P)},
-                    {"Q", static_cast<Int32>(EPlatformKeyboardKey::Q)},
-                    {"R", static_cast<Int32>(EPlatformKeyboardKey::R)},
-                    {"S", static_cast<Int32>(EPlatformKeyboardKey::S)},
-                    {"T", static_cast<Int32>(EPlatformKeyboardKey::T)},
-                    {"U", static_cast<Int32>(EPlatformKeyboardKey::U)},
-                    {"V", static_cast<Int32>(EPlatformKeyboardKey::V)},
-                    {"W", static_cast<Int32>(EPlatformKeyboardKey::W)},
-                    {"X", static_cast<Int32>(EPlatformKeyboardKey::X)},
-                    {"Y", static_cast<Int32>(EPlatformKeyboardKey::Y)},
-                    {"Z", static_cast<Int32>(EPlatformKeyboardKey::Z)},
-                    {"LeftBracket", static_cast<Int32>(EPlatformKeyboardKey::LeftBracket)},
-                    {"Backslash", static_cast<Int32>(EPlatformKeyboardKey::Backslash)},
-                    {"RightBracket", static_cast<Int32>(EPlatformKeyboardKey::RightBracket)},
-                    {"GraveAccent", static_cast<Int32>(EPlatformKeyboardKey::GraveAccent)},
-                    {"World1", static_cast<Int32>(EPlatformKeyboardKey::World1)},
-                    {"World2", static_cast<Int32>(EPlatformKeyboardKey::World2)},
-                    {"Escape", static_cast<Int32>(EPlatformKeyboardKey::Escape)},
-                    {"Enter", static_cast<Int32>(EPlatformKeyboardKey::Enter)},
-                    {"Tab", static_cast<Int32>(EPlatformKeyboardKey::Tab)},
-                    {"Backspace", static_cast<Int32>(EPlatformKeyboardKey::Backspace)},
-                    {"Insert", static_cast<Int32>(EPlatformKeyboardKey::Insert)},
-                    {"Delete", static_cast<Int32>(EPlatformKeyboardKey::Delete)},
-                    {"Right", static_cast<Int32>(EPlatformKeyboardKey::Right)},
-                    {"Left", static_cast<Int32>(EPlatformKeyboardKey::Left)},
-                    {"Down", static_cast<Int32>(EPlatformKeyboardKey::Down)},
-                    {"Up", static_cast<Int32>(EPlatformKeyboardKey::Up)},
-                    {"PageUp", static_cast<Int32>(EPlatformKeyboardKey::PageUp)},
-                    {"PageDown", static_cast<Int32>(EPlatformKeyboardKey::PageDown)},
-                    {"Home", static_cast<Int32>(EPlatformKeyboardKey::Home)},
-                    {"End", static_cast<Int32>(EPlatformKeyboardKey::End)},
-                    {"CapsLock", static_cast<Int32>(EPlatformKeyboardKey::CapsLock)},
-                    {"ScrollLock", static_cast<Int32>(EPlatformKeyboardKey::ScrollLock)},
-                    {"NumLock", static_cast<Int32>(EPlatformKeyboardKey::NumLock)},
-                    {"PrintScreen", static_cast<Int32>(EPlatformKeyboardKey::PrintScreen)},
-                    {"Pause", static_cast<Int32>(EPlatformKeyboardKey::Pause)},
-                    {"F1", static_cast<Int32>(EPlatformKeyboardKey::F1)},
-                    {"F2", static_cast<Int32>(EPlatformKeyboardKey::F2)},
-                    {"F3", static_cast<Int32>(EPlatformKeyboardKey::F3)},
-                    {"F4", static_cast<Int32>(EPlatformKeyboardKey::F4)},
-                    {"F5", static_cast<Int32>(EPlatformKeyboardKey::F5)},
-                    {"F6", static_cast<Int32>(EPlatformKeyboardKey::F6)},
-                    {"F7", static_cast<Int32>(EPlatformKeyboardKey::F7)},
-                    {"F8", static_cast<Int32>(EPlatformKeyboardKey::F8)},
-                    {"F9", static_cast<Int32>(EPlatformKeyboardKey::F9)},
-                    {"F10", static_cast<Int32>(EPlatformKeyboardKey::F10)},
-                    {"F11", static_cast<Int32>(EPlatformKeyboardKey::F11)},
-                    {"F12", static_cast<Int32>(EPlatformKeyboardKey::F12)},
-                    {"F13", static_cast<Int32>(EPlatformKeyboardKey::F13)},
-                    {"F14", static_cast<Int32>(EPlatformKeyboardKey::F14)},
-                    {"F15", static_cast<Int32>(EPlatformKeyboardKey::F15)},
-                    {"F16", static_cast<Int32>(EPlatformKeyboardKey::F16)},
-                    {"F17", static_cast<Int32>(EPlatformKeyboardKey::F17)},
-                    {"F18", static_cast<Int32>(EPlatformKeyboardKey::F18)},
-                    {"F19", static_cast<Int32>(EPlatformKeyboardKey::F19)},
-                    {"F20", static_cast<Int32>(EPlatformKeyboardKey::F20)},
-                    {"F21", static_cast<Int32>(EPlatformKeyboardKey::F21)},
-                    {"F22", static_cast<Int32>(EPlatformKeyboardKey::F22)},
-                    {"F23", static_cast<Int32>(EPlatformKeyboardKey::F23)},
-                    {"F24", static_cast<Int32>(EPlatformKeyboardKey::F24)},
-                    {"F25", static_cast<Int32>(EPlatformKeyboardKey::F25)},
-                    {"KP0", static_cast<Int32>(EPlatformKeyboardKey::KP0)},
-                    {"KP1", static_cast<Int32>(EPlatformKeyboardKey::KP1)},
-                    {"KP2", static_cast<Int32>(EPlatformKeyboardKey::KP2)},
-                    {"KP3", static_cast<Int32>(EPlatformKeyboardKey::KP3)},
-                    {"KP4", static_cast<Int32>(EPlatformKeyboardKey::KP4)},
-                    {"KP5", static_cast<Int32>(EPlatformKeyboardKey::KP5)},
-                    {"KP6", static_cast<Int32>(EPlatformKeyboardKey::KP6)},
-                    {"KP7", static_cast<Int32>(EPlatformKeyboardKey::KP7)},
-                    {"KP8", static_cast<Int32>(EPlatformKeyboardKey::KP8)},
-                    {"KP9", static_cast<Int32>(EPlatformKeyboardKey::KP9)},
-                    {"KPDecimal", static_cast<Int32>(EPlatformKeyboardKey::KPDecimal)},
-                    {"KPDivide", static_cast<Int32>(EPlatformKeyboardKey::KPDivide)},
-                    {"KPMultiply", static_cast<Int32>(EPlatformKeyboardKey::KPMultiply)},
-                    {"KPSubtract", static_cast<Int32>(EPlatformKeyboardKey::KPSubtract)},
-                    {"KPAdd", static_cast<Int32>(EPlatformKeyboardKey::KPAdd)},
-                    {"KPEnter", static_cast<Int32>(EPlatformKeyboardKey::KPEnter)},
-                    {"KPEqual", static_cast<Int32>(EPlatformKeyboardKey::KPEqual)},
-                    {"LeftShift", static_cast<Int32>(EPlatformKeyboardKey::LeftShift)},
-                    {"LeftControl", static_cast<Int32>(EPlatformKeyboardKey::LeftControl)},
-                    {"LeftAlt", static_cast<Int32>(EPlatformKeyboardKey::LeftAlt)},
-                    {"LeftSuper", static_cast<Int32>(EPlatformKeyboardKey::LeftSuper)},
-                    {"RightShift", static_cast<Int32>(EPlatformKeyboardKey::RightShift)},
-                    {"RightControl", static_cast<Int32>(EPlatformKeyboardKey::RightControl)},
-                    {"RightAlt", static_cast<Int32>(EPlatformKeyboardKey::RightAlt)},
-                    {"RightSuper", static_cast<Int32>(EPlatformKeyboardKey::RightSuper)},
-                    {"Menu", static_cast<Int32>(EPlatformKeyboardKey::Menu)},
-                };
-                const FStringView Sv = I_Name;
-                for (const auto& E : KeyTable)
-                {
-                    if (Sv == FStringView(E.Name)) { return TOptional<Int32>(E.Value); }
-                }
-                return NullOpt;
+            // FName normalizes ASCII identifiers; lookup is case-insensitive for those names.
+            static const TMap<FName, Int32> KeyNameToScanCode{
+                {FName("Unknown"), static_cast<Int32>(EPlatformKeyboardKey::Unknown)},
+                {FName("Space"), static_cast<Int32>(EPlatformKeyboardKey::Space)},
+                {FName("Apostrophe"), static_cast<Int32>(EPlatformKeyboardKey::Apostrophe)},
+                {FName("Comma"), static_cast<Int32>(EPlatformKeyboardKey::Comma)},
+                {FName("Minus"), static_cast<Int32>(EPlatformKeyboardKey::Minus)},
+                {FName("Period"), static_cast<Int32>(EPlatformKeyboardKey::Period)},
+                {FName("Slash"), static_cast<Int32>(EPlatformKeyboardKey::Slash)},
+                {FName("Num0"), static_cast<Int32>(EPlatformKeyboardKey::Num0)},
+                {FName("Num1"), static_cast<Int32>(EPlatformKeyboardKey::Num1)},
+                {FName("Num2"), static_cast<Int32>(EPlatformKeyboardKey::Num2)},
+                {FName("Num3"), static_cast<Int32>(EPlatformKeyboardKey::Num3)},
+                {FName("Num4"), static_cast<Int32>(EPlatformKeyboardKey::Num4)},
+                {FName("Num5"), static_cast<Int32>(EPlatformKeyboardKey::Num5)},
+                {FName("Num6"), static_cast<Int32>(EPlatformKeyboardKey::Num6)},
+                {FName("Num7"), static_cast<Int32>(EPlatformKeyboardKey::Num7)},
+                {FName("Num8"), static_cast<Int32>(EPlatformKeyboardKey::Num8)},
+                {FName("Num9"), static_cast<Int32>(EPlatformKeyboardKey::Num9)},
+                {FName("Semicolon"), static_cast<Int32>(EPlatformKeyboardKey::Semicolon)},
+                {FName("Equal"), static_cast<Int32>(EPlatformKeyboardKey::Equal)},
+                {FName("A"), static_cast<Int32>(EPlatformKeyboardKey::A)},
+                {FName("B"), static_cast<Int32>(EPlatformKeyboardKey::B)},
+                {FName("C"), static_cast<Int32>(EPlatformKeyboardKey::C)},
+                {FName("D"), static_cast<Int32>(EPlatformKeyboardKey::D)},
+                {FName("E"), static_cast<Int32>(EPlatformKeyboardKey::E)},
+                {FName("F"), static_cast<Int32>(EPlatformKeyboardKey::F)},
+                {FName("G"), static_cast<Int32>(EPlatformKeyboardKey::G)},
+                {FName("H"), static_cast<Int32>(EPlatformKeyboardKey::H)},
+                {FName("I"), static_cast<Int32>(EPlatformKeyboardKey::I)},
+                {FName("J"), static_cast<Int32>(EPlatformKeyboardKey::J)},
+                {FName("K"), static_cast<Int32>(EPlatformKeyboardKey::K)},
+                {FName("L"), static_cast<Int32>(EPlatformKeyboardKey::L)},
+                {FName("M"), static_cast<Int32>(EPlatformKeyboardKey::M)},
+                {FName("N"), static_cast<Int32>(EPlatformKeyboardKey::N)},
+                {FName("O"), static_cast<Int32>(EPlatformKeyboardKey::O)},
+                {FName("P"), static_cast<Int32>(EPlatformKeyboardKey::P)},
+                {FName("Q"), static_cast<Int32>(EPlatformKeyboardKey::Q)},
+                {FName("R"), static_cast<Int32>(EPlatformKeyboardKey::R)},
+                {FName("S"), static_cast<Int32>(EPlatformKeyboardKey::S)},
+                {FName("T"), static_cast<Int32>(EPlatformKeyboardKey::T)},
+                {FName("U"), static_cast<Int32>(EPlatformKeyboardKey::U)},
+                {FName("V"), static_cast<Int32>(EPlatformKeyboardKey::V)},
+                {FName("W"), static_cast<Int32>(EPlatformKeyboardKey::W)},
+                {FName("X"), static_cast<Int32>(EPlatformKeyboardKey::X)},
+                {FName("Y"), static_cast<Int32>(EPlatformKeyboardKey::Y)},
+                {FName("Z"), static_cast<Int32>(EPlatformKeyboardKey::Z)},
+                {FName("LeftBracket"), static_cast<Int32>(EPlatformKeyboardKey::LeftBracket)},
+                {FName("Backslash"), static_cast<Int32>(EPlatformKeyboardKey::Backslash)},
+                {FName("RightBracket"), static_cast<Int32>(EPlatformKeyboardKey::RightBracket)},
+                {FName("GraveAccent"), static_cast<Int32>(EPlatformKeyboardKey::GraveAccent)},
+                {FName("World1"), static_cast<Int32>(EPlatformKeyboardKey::World1)},
+                {FName("World2"), static_cast<Int32>(EPlatformKeyboardKey::World2)},
+                {FName("Escape"), static_cast<Int32>(EPlatformKeyboardKey::Escape)},
+                {FName("Enter"), static_cast<Int32>(EPlatformKeyboardKey::Enter)},
+                {FName("Tab"), static_cast<Int32>(EPlatformKeyboardKey::Tab)},
+                {FName("Backspace"), static_cast<Int32>(EPlatformKeyboardKey::Backspace)},
+                {FName("Insert"), static_cast<Int32>(EPlatformKeyboardKey::Insert)},
+                {FName("Delete"), static_cast<Int32>(EPlatformKeyboardKey::Delete)},
+                {FName("Right"), static_cast<Int32>(EPlatformKeyboardKey::Right)},
+                {FName("Left"), static_cast<Int32>(EPlatformKeyboardKey::Left)},
+                {FName("Down"), static_cast<Int32>(EPlatformKeyboardKey::Down)},
+                {FName("Up"), static_cast<Int32>(EPlatformKeyboardKey::Up)},
+                {FName("PageUp"), static_cast<Int32>(EPlatformKeyboardKey::PageUp)},
+                {FName("PageDown"), static_cast<Int32>(EPlatformKeyboardKey::PageDown)},
+                {FName("Home"), static_cast<Int32>(EPlatformKeyboardKey::Home)},
+                {FName("End"), static_cast<Int32>(EPlatformKeyboardKey::End)},
+                {FName("CapsLock"), static_cast<Int32>(EPlatformKeyboardKey::CapsLock)},
+                {FName("ScrollLock"), static_cast<Int32>(EPlatformKeyboardKey::ScrollLock)},
+                {FName("NumLock"), static_cast<Int32>(EPlatformKeyboardKey::NumLock)},
+                {FName("PrintScreen"), static_cast<Int32>(EPlatformKeyboardKey::PrintScreen)},
+                {FName("Pause"), static_cast<Int32>(EPlatformKeyboardKey::Pause)},
+                {FName("F1"), static_cast<Int32>(EPlatformKeyboardKey::F1)},
+                {FName("F2"), static_cast<Int32>(EPlatformKeyboardKey::F2)},
+                {FName("F3"), static_cast<Int32>(EPlatformKeyboardKey::F3)},
+                {FName("F4"), static_cast<Int32>(EPlatformKeyboardKey::F4)},
+                {FName("F5"), static_cast<Int32>(EPlatformKeyboardKey::F5)},
+                {FName("F6"), static_cast<Int32>(EPlatformKeyboardKey::F6)},
+                {FName("F7"), static_cast<Int32>(EPlatformKeyboardKey::F7)},
+                {FName("F8"), static_cast<Int32>(EPlatformKeyboardKey::F8)},
+                {FName("F9"), static_cast<Int32>(EPlatformKeyboardKey::F9)},
+                {FName("F10"), static_cast<Int32>(EPlatformKeyboardKey::F10)},
+                {FName("F11"), static_cast<Int32>(EPlatformKeyboardKey::F11)},
+                {FName("F12"), static_cast<Int32>(EPlatformKeyboardKey::F12)},
+                {FName("F13"), static_cast<Int32>(EPlatformKeyboardKey::F13)},
+                {FName("F14"), static_cast<Int32>(EPlatformKeyboardKey::F14)},
+                {FName("F15"), static_cast<Int32>(EPlatformKeyboardKey::F15)},
+                {FName("F16"), static_cast<Int32>(EPlatformKeyboardKey::F16)},
+                {FName("F17"), static_cast<Int32>(EPlatformKeyboardKey::F17)},
+                {FName("F18"), static_cast<Int32>(EPlatformKeyboardKey::F18)},
+                {FName("F19"), static_cast<Int32>(EPlatformKeyboardKey::F19)},
+                {FName("F20"), static_cast<Int32>(EPlatformKeyboardKey::F20)},
+                {FName("F21"), static_cast<Int32>(EPlatformKeyboardKey::F21)},
+                {FName("F22"), static_cast<Int32>(EPlatformKeyboardKey::F22)},
+                {FName("F23"), static_cast<Int32>(EPlatformKeyboardKey::F23)},
+                {FName("F24"), static_cast<Int32>(EPlatformKeyboardKey::F24)},
+                {FName("F25"), static_cast<Int32>(EPlatformKeyboardKey::F25)},
+                {FName("KP0"), static_cast<Int32>(EPlatformKeyboardKey::KP0)},
+                {FName("KP1"), static_cast<Int32>(EPlatformKeyboardKey::KP1)},
+                {FName("KP2"), static_cast<Int32>(EPlatformKeyboardKey::KP2)},
+                {FName("KP3"), static_cast<Int32>(EPlatformKeyboardKey::KP3)},
+                {FName("KP4"), static_cast<Int32>(EPlatformKeyboardKey::KP4)},
+                {FName("KP5"), static_cast<Int32>(EPlatformKeyboardKey::KP5)},
+                {FName("KP6"), static_cast<Int32>(EPlatformKeyboardKey::KP6)},
+                {FName("KP7"), static_cast<Int32>(EPlatformKeyboardKey::KP7)},
+                {FName("KP8"), static_cast<Int32>(EPlatformKeyboardKey::KP8)},
+                {FName("KP9"), static_cast<Int32>(EPlatformKeyboardKey::KP9)},
+                {FName("KPDecimal"), static_cast<Int32>(EPlatformKeyboardKey::KPDecimal)},
+                {FName("KPDivide"), static_cast<Int32>(EPlatformKeyboardKey::KPDivide)},
+                {FName("KPMultiply"), static_cast<Int32>(EPlatformKeyboardKey::KPMultiply)},
+                {FName("KPSubtract"), static_cast<Int32>(EPlatformKeyboardKey::KPSubtract)},
+                {FName("KPAdd"), static_cast<Int32>(EPlatformKeyboardKey::KPAdd)},
+                {FName("KPEnter"), static_cast<Int32>(EPlatformKeyboardKey::KPEnter)},
+                {FName("KPEqual"), static_cast<Int32>(EPlatformKeyboardKey::KPEqual)},
+                {FName("LeftShift"), static_cast<Int32>(EPlatformKeyboardKey::LeftShift)},
+                {FName("LeftControl"), static_cast<Int32>(EPlatformKeyboardKey::LeftControl)},
+                {FName("LeftAlt"), static_cast<Int32>(EPlatformKeyboardKey::LeftAlt)},
+                {FName("LeftSuper"), static_cast<Int32>(EPlatformKeyboardKey::LeftSuper)},
+                {FName("RightShift"), static_cast<Int32>(EPlatformKeyboardKey::RightShift)},
+                {FName("RightControl"), static_cast<Int32>(EPlatformKeyboardKey::RightControl)},
+                {FName("RightAlt"), static_cast<Int32>(EPlatformKeyboardKey::RightAlt)},
+                {FName("RightSuper"), static_cast<Int32>(EPlatformKeyboardKey::RightSuper)},
+                {FName("Menu"), static_cast<Int32>(EPlatformKeyboardKey::Menu)},
+            };
+            const auto Iterator = KeyNameToScanCode.Find(FName(I_Name));
+            if (Iterator == KeyNameToScanCode.end())
+            { return NullOpt; }
+            return TOptional<Int32>(Iterator->second);
         }
 
         inline TOptional<Int32> ParseButtonName(FStringView I_Name)
-            {
-                static constinit struct { const char* Name; Int32 Value; } const BtnTable[]{
-                    {"Left", static_cast<Int32>(EPlatformMouseButton::Left)},
-                    {"Right", static_cast<Int32>(EPlatformMouseButton::Right)},
-                    {"Middle", static_cast<Int32>(EPlatformMouseButton::Middle)},
-                    {"Button4", static_cast<Int32>(EPlatformMouseButton::Button4)},
-                    {"Button5", static_cast<Int32>(EPlatformMouseButton::Button5)},
-                    {"Button6", static_cast<Int32>(EPlatformMouseButton::Button6)},
-                    {"Button7", static_cast<Int32>(EPlatformMouseButton::Button7)},
-                    {"Button8", static_cast<Int32>(EPlatformMouseButton::Button8)},
-                };
-                const FStringView Sv = I_Name;
-                for (const auto& E : BtnTable)
-                {
-                    if (Sv == FStringView(E.Name)) { return TOptional<Int32>(E.Value); }
-                }
-                return NullOpt;
+        {
+            static const TMap<FName, Int32> ButtonNameToIndex{
+                {FName("Left"), static_cast<Int32>(EPlatformMouseButton::Left)},
+                {FName("Right"), static_cast<Int32>(EPlatformMouseButton::Right)},
+                {FName("Middle"), static_cast<Int32>(EPlatformMouseButton::Middle)},
+                {FName("Button4"), static_cast<Int32>(EPlatformMouseButton::Button4)},
+                {FName("Button5"), static_cast<Int32>(EPlatformMouseButton::Button5)},
+                {FName("Button6"), static_cast<Int32>(EPlatformMouseButton::Button6)},
+                {FName("Button7"), static_cast<Int32>(EPlatformMouseButton::Button7)},
+                {FName("Button8"), static_cast<Int32>(EPlatformMouseButton::Button8)},
+            };
+            const auto Iterator = ButtonNameToIndex.Find(FName(I_Name));
+            if (Iterator == ButtonNameToIndex.end())
+            { return NullOpt; }
+            return TOptional<Int32>(Iterator->second);
+        }
+
+        [[nodiscard]] inline TOptional<FString>
+        TryGetStringPascalOrCamel(const FJSON& I_Obj, FStringView I_PascalKey, FStringView I_CamelKey)
+        {
+            if (auto V = I_Obj.TryGetString(I_PascalKey); V.HasValue() && !V.GetValue().IsEmpty())
+            { return V; }
+            return I_Obj.TryGetString(I_CamelKey);
         }
 
         inline EKeyboardModifier ParseModifiers(const FJSON& I_Obj)
         {
             EKeyboardModifier Out = EKeyboardModifier::None;
-            auto ArrOpt = I_Obj.TryGetArray<FString>("Modifiers");
+            TOptional<TArray<FString>> ArrOpt = I_Obj.TryGetArray<FString>("Modifiers");
+            if (!ArrOpt.HasValue())
+            { ArrOpt = I_Obj.TryGetArray<FString>("modifiers"); }
             if (!ArrOpt.HasValue()) { return Out; }
             for (const auto& S : ArrOpt.GetValue())
             {
                 const FStringView Sv(S);
-                if (Sv == FStringView("Shift")) { Out = Out | EKeyboardModifier::Shift; }
-                else if (Sv == FStringView("Control")) { Out = Out | EKeyboardModifier::Control; }
-                else if (Sv == FStringView("Alt")) { Out = Out | EKeyboardModifier::Alt; }
-                else if (Sv == FStringView("Super")) { Out = Out | EKeyboardModifier::Super; }
-                else if (Sv == FStringView("CapsLock")) { Out = Out | EKeyboardModifier::CapsLock; }
-                else if (Sv == FStringView("NumLock")) { Out = Out | EKeyboardModifier::NumLock; }
+                if (Detail::AsciiEqualsIgnoreCase(Sv, FStringView("Shift"))) { Out = Out | EKeyboardModifier::Shift; }
+                else if (Detail::AsciiEqualsIgnoreCase(Sv, FStringView("Control"))) { Out = Out | EKeyboardModifier::Control; }
+                else if (Detail::AsciiEqualsIgnoreCase(Sv, FStringView("Alt"))) { Out = Out | EKeyboardModifier::Alt; }
+                else if (Detail::AsciiEqualsIgnoreCase(Sv, FStringView("Super"))) { Out = Out | EKeyboardModifier::Super; }
+                else if (Detail::AsciiEqualsIgnoreCase(Sv, FStringView("CapsLock"))) { Out = Out | EKeyboardModifier::CapsLock; }
+                else if (Detail::AsciiEqualsIgnoreCase(Sv, FStringView("NumLock"))) { Out = Out | EKeyboardModifier::NumLock; }
             }
             return Out;
         }
     }
 
     /**
-     * Parse .vinputmap JSON into FInputMapping array.
-     * Returns NullOpt on parse error (invalid format, unknown key/button, missing fields).
-     * See Engine/Schemas/InputMap.schema.json for format.
+     * Parse one mapping descriptor object (script or JSON). Accepts PascalCase or camelCase keys;
+     * source: keyboard | keyboardkey | mouse | mousebutton (case-insensitive); trigger and key/button names are case-insensitive.
      */
-    [[nodiscard]] inline TOptional<TArray<FInputMapping>>
-    ParseInputMap(const FJSON& I_JSON)
+    [[nodiscard]] inline TOptional<FInputMapping>
+    ParseInputMappingDescriptor(const FJSON& I_Item)
     {
-        if (!I_JSON.Contains("Mappings")) { return NullOpt; }
-        TArray<FInputMapping> Out;
-        for (UInt64 i = 0; ; ++i)
+        auto ActionOpt = Detail::TryGetStringPascalOrCamel(I_Item, FStringView("Action"), FStringView("action"));
+        if (!ActionOpt.HasValue() || ActionOpt.GetValue().IsEmpty()) { return NullOpt; }
+        auto SourceOpt = Detail::TryGetStringPascalOrCamel(I_Item, FStringView("Source"), FStringView("source"));
+        if (!SourceOpt.HasValue()) { return NullOpt; }
+        auto TriggerOpt = Detail::TryGetStringPascalOrCamel(I_Item, FStringView("Trigger"), FStringView("trigger"));
+        if (!TriggerOpt.HasValue()) { return NullOpt; }
+
+        EInputSource SourceType;
+        Int32        SourceValue;
+        const FStringView SourceSv(SourceOpt.GetValue().GetNative());
+        if (Detail::AsciiEqualsIgnoreCase(SourceSv, FStringView("keyboard")) ||
+            Detail::AsciiEqualsIgnoreCase(SourceSv, FStringView("keyboardkey")))
         {
-            const FString Route = FString::Format("Mappings[{}]", i);
-            auto ItemOpt = I_JSON.TryGetObject(FJSONRoute(Route.GetNative()));
-            if (!ItemOpt.HasValue() || ItemOpt.GetValue().IsNull()) { break; }
-            const FJSON& Item = ItemOpt.GetValue();
-
-            auto Action = Item.TryGetString("Action");
-            if (!Action.HasValue() || Action->IsEmpty()) { return NullOpt; }
-            auto Source = Item.TryGetString("Source");
-            if (!Source.HasValue()) { return NullOpt; }
-            auto Trigger = Item.TryGetString("Trigger");
-            if (!Trigger.HasValue()) { return NullOpt; }
-
-            EInputSource SourceType;
-            Int32 SourceValue;
-            const FStringView SourceSv(Source->GetNative());
-            if (SourceSv == FStringView("KeyboardKey"))
-            {
-                SourceType = EInputSource::KeyboardKey;
-                auto Key = Item.TryGetString("Key");
-                if (!Key.HasValue() || Key->IsEmpty()) { return NullOpt; }
-                auto Val = Detail::ParseKeyName(FStringView(Key->GetNative()));
-                if (!Val.HasValue()) { return NullOpt; }
-                SourceValue = Val.GetValue();
-            }
-            else if (SourceSv == FStringView("MouseButton"))
-            {
-                SourceType = EInputSource::MouseButton;
-                auto Btn = Item.TryGetString("Button");
-                if (!Btn.HasValue() || Btn->IsEmpty()) { return NullOpt; }
-                auto Val = Detail::ParseButtonName(FStringView(Btn->GetNative()));
-                if (!Val.HasValue()) { return NullOpt; }
-                SourceValue = Val.GetValue();
-            }
-            else { return NullOpt; }
-
-            EInputTrigger TriggerType;
-            const FStringView TriggerSv(Trigger->GetNative());
-            if (TriggerSv == FStringView("Press")) { TriggerType = EInputTrigger::Press; }
-            else if (TriggerSv == FStringView("Release")) { TriggerType = EInputTrigger::Release; }
-            else if (TriggerSv == FStringView("Hold")) { TriggerType = EInputTrigger::Hold; }
-            else { return NullOpt; }
-
-            EKeyboardModifier Mods = Detail::ParseModifiers(Item);
-
-            Out.PushBack(FInputMapping{
-                .ActionName = FName(Action->GetNative()),
-                .SourceType = SourceType,
-                .SourceValue = SourceValue,
-                .Trigger = TriggerType,
-                .Modifiers = Mods,
-            });
-#if defined(VISERA_DEBUG_MODE)
-            const auto& An = Out.Back().ActionName;
-            LOG_DEBUG("ParseInputMap: Action='{}' -> Handle={}, GetNameString='{}'",
-                      Action->GetNative(), An.GetHandle(), An.GetNameString());
-#endif
+            SourceType = EInputSource::KeyboardKey;
+            auto KeyOpt = Detail::TryGetStringPascalOrCamel(I_Item, FStringView("Key"), FStringView("key"));
+            if (!KeyOpt.HasValue() || KeyOpt.GetValue().IsEmpty()) { return NullOpt; }
+            auto Val = Detail::ParseKeyName(FStringView(KeyOpt.GetValue().GetNative()));
+            if (!Val.HasValue()) { return NullOpt; }
+            SourceValue = Val.GetValue();
         }
-        return TOptional<TArray<FInputMapping>>(std::move(Out));
+        else if (Detail::AsciiEqualsIgnoreCase(SourceSv, FStringView("mouse")) ||
+                 Detail::AsciiEqualsIgnoreCase(SourceSv, FStringView("mousebutton")))
+        {
+            SourceType = EInputSource::MouseButton;
+            auto BtnOpt = Detail::TryGetStringPascalOrCamel(I_Item, FStringView("Button"), FStringView("button"));
+            if (!BtnOpt.HasValue() || BtnOpt.GetValue().IsEmpty()) { return NullOpt; }
+            auto Val = Detail::ParseButtonName(FStringView(BtnOpt.GetValue().GetNative()));
+            if (!Val.HasValue()) { return NullOpt; }
+            SourceValue = Val.GetValue();
+        }
+        else { return NullOpt; }
+
+        EInputTrigger TriggerType;
+        const FStringView TriggerSv(TriggerOpt.GetValue().GetNative());
+        if (Detail::AsciiEqualsIgnoreCase(TriggerSv, FStringView("Press"))) { TriggerType = EInputTrigger::Press; }
+        else if (Detail::AsciiEqualsIgnoreCase(TriggerSv, FStringView("Release"))) { TriggerType = EInputTrigger::Release; }
+        else if (Detail::AsciiEqualsIgnoreCase(TriggerSv, FStringView("Hold"))) { TriggerType = EInputTrigger::Hold; }
+        else { return NullOpt; }
+
+        const EKeyboardModifier Mods = Detail::ParseModifiers(I_Item);
+
+        return FInputMapping{
+            .ActionName = FName(ActionOpt.GetValue().GetNative()),
+            .SourceType = SourceType,
+            .SourceValue = SourceValue,
+            .Trigger = TriggerType,
+            .Modifiers = Mods,
+        };
     }
 }

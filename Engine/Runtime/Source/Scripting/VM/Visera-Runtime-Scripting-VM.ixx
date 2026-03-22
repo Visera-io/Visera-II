@@ -36,7 +36,7 @@ export namespace Visera
         v8::ArrayBuffer::Allocator* ArrayBufferAllocator { nullptr };
     };
 
-    /** Execute script in the given context. On exception, logs stack trace and returns NullOpt. */
+    /** Execute script in the given context. Returns NullOpt on success; on failure logs and returns an error message. */
     [[nodiscard]] TOptional<FString>
     ExecuteScript(v8::Isolate* I_Isolate, v8::Local<v8::Context> I_Context, FStringView I_Source, FStringView I_FileName = "script");
 
@@ -98,8 +98,10 @@ export namespace Visera
 
     TOptional<FString> ExecuteScript(v8::Isolate* I_Isolate, v8::Local<v8::Context> I_Context, FStringView I_Source, FStringView I_FileName)
     {
-        if (!I_Isolate || I_Context.IsEmpty() || I_Source.IsEmpty())
-            return NullOpt;
+        if (!I_Isolate || I_Context.IsEmpty())
+            return TOptional<FString>(FString("(invalid isolate or context)"));
+        if (I_Source.IsEmpty())
+            return TOptional<FString>(FString("(empty script)"));
         v8::Isolate::Scope IsolateScope(I_Isolate);
         v8::HandleScope HandleScope(I_Isolate);
         v8::Context::Scope ContextScope(I_Context);
@@ -107,7 +109,7 @@ export namespace Visera
         v8::TryCatch TryCatch(I_Isolate);
         v8::MaybeLocal<v8::String> SourceResult = ToV8String(I_Isolate, I_Source);
         if (SourceResult.IsEmpty())
-            return NullOpt;
+            return TOptional<FString>(FString("(invalid script encoding)"));
         v8::Local<v8::String> Source = SourceResult.ToLocalChecked();
 
         v8::MaybeLocal<v8::String> NameResult = ToV8String(I_Isolate, I_FileName);
@@ -117,10 +119,11 @@ export namespace Visera
         v8::MaybeLocal<v8::Script> ScriptResult = v8::Script::Compile(I_Context, Source, &Origin);
         if (ScriptResult.IsEmpty())
         {
+            FString Msg = FString("(compile error)");
             if (TryCatch.HasCaught() && !TryCatch.Message().IsEmpty())
             {
                 v8::Local<v8::Message> Message = TryCatch.Message();
-                FString Msg = FromV8String(I_Isolate, Message->Get()).Get(FString("(compile error)"));
+                Msg = FromV8String(I_Isolate, Message->Get()).Get(FString("(compile error)"));
                 LOG_ERROR("(Script) Compile error: {}", Msg);
                 v8::Local<v8::Value> Stack = TryCatch.StackTrace(I_Context).FromMaybe(v8::Local<v8::Value>());
                 if (!Stack.IsEmpty() && Stack->IsString())
@@ -130,17 +133,18 @@ export namespace Visera
                         LOG_ERROR("(Script) Stack: {}", StackStr.GetValue());
                 }
             }
-            return NullOpt;
+            return TOptional<FString>(std::move(Msg));
         }
 
         v8::Local<v8::Script> Script = ScriptResult.ToLocalChecked();
         v8::MaybeLocal<v8::Value> RunResult = Script->Run(I_Context);
         if (RunResult.IsEmpty())
         {
+            FString Msg = FString("(runtime error)");
             if (TryCatch.HasCaught() && !TryCatch.Message().IsEmpty())
             {
                 v8::Local<v8::Message> Message = TryCatch.Message();
-                FString Msg = FromV8String(I_Isolate, Message->Get()).Get(FString("(runtime error)"));
+                Msg = FromV8String(I_Isolate, Message->Get()).Get(FString("(runtime error)"));
                 LOG_ERROR("(Script) Runtime error: {}", Msg);
                 v8::Local<v8::Value> Stack = TryCatch.StackTrace(I_Context).FromMaybe(v8::Local<v8::Value>());
                 if (!Stack.IsEmpty() && Stack->IsString())
@@ -150,12 +154,10 @@ export namespace Visera
                         LOG_ERROR("(Script) Stack: {}", StackStr.GetValue());
                 }
             }
-            return NullOpt;
+            return TOptional<FString>(std::move(Msg));
         }
 
-        v8::Local<v8::Value> Result = RunResult.ToLocalChecked();
-        if (Result->IsString())
-            return FromV8String(I_Isolate, Result);
+        (void)RunResult.ToLocalChecked();
         return NullOpt;
     }
 }

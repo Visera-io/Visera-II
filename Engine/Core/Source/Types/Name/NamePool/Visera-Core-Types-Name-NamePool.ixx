@@ -113,6 +113,7 @@ export namespace Visera
         {
             UInt32 FirstDigitCursor = I_Length - Digits;
 
+            // Only `prefix_123` is a numeric suffix; trailing digits without '_' stay part of the name (Num0, F1, …).
             if (/*Valid Digit Length*/      (Digits < I_Length) &&
                 /*Valid Naming Convention*/ (I_Name[FirstDigitCursor - 1] == '_') &&
                 /*Valid Digit Count*/       (Digits <= MaxNameDigitCount))
@@ -124,10 +125,10 @@ export namespace Visera
                     if (Number < MaxNameNumber)
                     { return { Number + 1, I_Length - Digits - 1 }; }
                 }
+                return { -1, I_Length }; // Malformed suffix (e.g. foo_01).
             }
-            return { -1, I_Length }; //Invalid Name
         }
-        else return { 0, I_Length }; //No Numbers
+        return { 0, I_Length };
     }
 
 } 

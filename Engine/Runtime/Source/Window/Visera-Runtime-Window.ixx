@@ -17,6 +17,11 @@ export namespace Visera
         FString Title  = "Visera";
         UInt32  Width  = 512;
         UInt32  Height = 512;
+        Bool    Resizable = True;
+        /** If true, position the window on the primary monitor work area after creation. */
+        Bool    Center   = False;
+        /** Exclusive fullscreen on the primary monitor (GLFW: current video mode resolution). */
+        Bool    Fullscreen = False;
     };
 
     class VISERA_RUNTIME_API FWindow
@@ -76,7 +81,7 @@ export namespace Visera
     FWindow::FWindow(const FWindowCreateInfo& I_CreateInfo, FInput* I_Input)
         : Input(I_Input)
     {
-        PlatformWindow = FPlatform::CreateWindow(I_CreateInfo.Title, I_CreateInfo.Width, I_CreateInfo.Height);
+        PlatformWindow = FPlatform::CreateWindow(I_CreateInfo.Title, I_CreateInfo.Width, I_CreateInfo.Height, I_CreateInfo.Resizable, I_CreateInfo.Center, I_CreateInfo.Fullscreen);
         if (!PlatformWindow)
         { LOG_FATAL("Failed to create platform window!"); return; }
 

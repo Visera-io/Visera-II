@@ -36,7 +36,10 @@ namespace Visera
         SetDefaultListeners(FObjectID I_ListenerID) override
         { return True; }
         Bool
-        InitializeBanks(const FPath& I_BasePath, FStringView I_InitBankName, FStringView I_MainBankName) override
+        MountSoundBankBase(const FPath& I_ResolvedBasePath) override
+        { return True; }
+        Bool
+        LoadSoundBankFile(FStringView I_RelativeFileName) override
         { return True; }
         [[nodiscard]] FEventID
         GetEventID(FStringView I_EventName) override

@@ -1,24 +1,42 @@
-# Runtime.Input (Visera.Runtime.Input)
+# Runtime.Input and scripting
 
-**Runtime.Input** provides input subsystem: maps raw device input (keyboard, mouse) to logical actions and axes for game and UI. Supports multiple devices, action press/release/hold state, and mapping config to bind keys/buttons to named actions for cross-platform, configurable input.
+**FInput** owns keyboard state, per-window mouse state, **actions** (`FInputAction`), and **mappings** (`FInputMapping`). Window callbacks notify mappings (`OnTriggered`); `PollAndSync` updates key/button state for `IsActionActive` and device delegates.
 
-## Responsibilities
-- **Action**: Define logical actions (e.g. Jump, MoveX); boolean (press/release) and scalar (axis); game code depends on action name, not physical key.
-- **Device**: Abstract input device; keyboard and mouse key/button and motion state.
-- **Mapping**: Map physical input (key code, button, axis) to actions; multiple mapping sets or runtime switch.
+## C++
 
-- **PollAndSync**: Call each frame on the main thread. Polls platform events and sets the current focused window from `FPlatform::GetFocusedWindow()`. If the platform reports no focus yet (e.g. window just opened), a fallback uses the single registered window when exactly one non-dummy window exists, so keyboard and mouse state are available immediately after opening the window.
+- **`FInput::AddAction(FName)`** — returns the action, creating it if needed.
+- **`FInput::AddMapping(FInputMapping)`** — ensures the action exists, then appends the mapping.
+- **`FInput::RemoveMappings(FName)`** — removes all mappings for that action.
+- **`FInput::GetAction` / `IsActionActive`** — query; no implicit creation.
 
-Relation to [Platform.GLFW](../../Platform/GLFW/index.md): GLFW provides low-level window and input events; Runtime.Input consumes them and turns them into actions and device state for upper layers. Cursor positions delivered to Input are already in **framebuffer (pixel) space** on high-DPI platforms (e.g. macOS Retina), where the platform layer multiplies by window content scale.
+C++ gameplay can subscribe with **`FInputAction::OnTriggered.Subscribe(...)`**. Script callbacks use a separate engine bridge (see below) and **coexist** with C++ subscribers.
 
-## Submodules
-| Module | Description |
-|------|------|
-| [Action](Action.md) | Input action type and state. |
-| [Device](Device/index.md) | [Keyboard](Device/Keyboard.md), [Mouse](Device/Mouse.md). |
-| [Mapping](Mapping.md) | Input mapping config and parsing. |
+## Descriptor shape (`ParseInputMappingDescriptor`)
+
+Single JSON object (also used after `JSON.stringify` from JS):
+
+| Field | Notes |
+|------|--------|
+| `action` / `Action` | Action name (`FName`; pool is case-insensitive for letters). |
+| `source` / `Source` | `keyboard` or `keyboardkey` → keyboard; `mouse` or `mousebutton` → mouse. Case-insensitive. |
+| `key` / `Key` | Required for keyboard; key name (case-insensitive). |
+| `button` / `Button` | Required for mouse; e.g. `Left`, `left`. |
+| `trigger` / `Trigger` | `press`, `release`, `hold` (case-insensitive). |
+| `modifiers` / `Modifiers` | Optional array: `shift`, `control`, etc. (case-insensitive). |
+
+## JavaScript (`visera.input`)
+
+Available when the engine runs with **Input + Scripting** enabled. `addAction` registers **one** JS function per action; calling `addAction` again **replaces** that function. The engine subscribes once per action to `OnTriggered` and forwards to the current JS callback with a single argument `{ name: string }`.
+
+- **`visera.input.addMapping(descriptor)`** — object fields as in the table above.
+- **`visera.input.addAction(name, fn)`**
+- **`visera.input.removeMappings(name)`**
+- **`visera.input.isActionActive(name)`** — boolean; meaningful after `PollAndSync`.
+- **`visera.input.mouse.cursor.position`** / **`.offset`** — getters returning `{ x, y }` from `FMouse::GetCursor()` (snapshot per read).
+
+TypeScript declarations: [Visera.d.ts](../../../../../Engine/APIs/Visera.d.ts).
 
 ## See also
-- [Runtime](../index.md) — Parent module
-- [Platform.GLFW](../../Platform/GLFW/index.md) — GLFW window and input
-- [UI](../UI/index.md) — UI may consume input
+
+- [Runtime](../index.md)
+- [InputMap.schema.json](../../../../../Engine/Schemas/InputMap.schema.json) (reference; runtime does not load `.vimap` files in this flow)
