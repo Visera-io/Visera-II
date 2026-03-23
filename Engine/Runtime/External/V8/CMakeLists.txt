@@ -1,5 +1,7 @@
 # V8 prebuilt for engine embedding (extract MacOS.zip / Windows.zip into MacOS/ and Windows/).
-# Layout: V8/MacOS/libv8_monolith.a (flat), V8/Windows/Release/v8_monolith.lib (optional Debug/).
+# Layout: V8/MacOS/libv8_monolith.a (flat) or V8/MacOS/Release/libv8_monolith.a (zip layout);
+#         legacy extract to V8/Release/libv8_monolith.a is also accepted.
+#         V8/Windows/Release/v8_monolith.lib (optional Debug/).
 # Include: V8/include/ (shared). Use install_v8.cmake to extract zips before add_subdirectory.
 #
 # Compatible with C++23 and C++ Modules: IMPORTED target only; parent keeps CXX_STANDARD 23.
@@ -40,6 +42,12 @@ if(WIN32)
 else()
   if(EXISTS "${_V8_LIB_DIR}/${_V8_LIB_NAME}")
     set(_V8_HAS_FLAT TRUE)
+  elseif(EXISTS "${_V8_LIB_DIR}/Release/${_V8_LIB_NAME}")
+    set(_V8_HAS_RELEASE TRUE)
+  elseif(EXISTS "${_V8_ROOT}/Release/${_V8_LIB_NAME}")
+    # Older installs extracted MacOS.zip to the V8 root (Release/ at top level).
+    set(_V8_LIB_DIR "${_V8_ROOT}/Release")
+    set(_V8_HAS_FLAT TRUE)
   endif()
 endif()
 
@@ -52,8 +60,8 @@ if(WIN32)
     message(FATAL_ERROR "V8 lib not found under ${_V8_LIB_DIR}. Extract Windows.zip first.")
   endif()
 else()
-  if(NOT _V8_HAS_FLAT)
-    message(FATAL_ERROR "V8 lib not found: ${_V8_LIB_DIR}/${_V8_LIB_NAME}. Extract MacOS.zip first.")
+  if(NOT _V8_HAS_FLAT AND NOT _V8_HAS_RELEASE)
+    message(FATAL_ERROR "V8 lib not found under ${_V8_ROOT}/MacOS (flat or Release/) or ${_V8_ROOT}/Release. Extract MacOS.zip first.")
   endif()
 endif()
 

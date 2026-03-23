@@ -12,14 +12,6 @@
   #define VISERA_CORE_API __attribute__((visibility("default")))
 #endif
 
-//[WARN] MacOS is debugging on release
-#if defined(VISERA_ON_APPLE_SYSTEM)
-#if defined(VISERA_RELEASE_MODE)
-#undef VISERA_RELEASE_MODE
-#define VISERA_DEVELOP_MODE
-#endif
-#endif
-
 #if (defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__amd64__) || defined(__x86_64__)) && !defined(_M_ARM64EC)
 #define VISERA_ON_X86_CPU
 #endif

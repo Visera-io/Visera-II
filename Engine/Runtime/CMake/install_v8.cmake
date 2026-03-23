@@ -10,12 +10,16 @@ macro(link_v8 in_target)
         set(V8_EXTRACT_DIR "${V8_BASE_DIR}")
         if(APPLE)
             set(V8_ARCHIVE "${V8_BASE_DIR}/MacOS.zip")
-            if(NOT EXISTS "${V8_EXTRACT_DIR}/MacOS/libv8_monolith.a")
+            # Zip layout is Release/libv8_monolith.a; extract under MacOS/ so it matches Windows-style MacOS/Release/...
+            set(V8_MACOS_DIR "${V8_EXTRACT_DIR}/MacOS")
+            if(NOT EXISTS "${V8_MACOS_DIR}/libv8_monolith.a"
+               AND NOT EXISTS "${V8_MACOS_DIR}/Release/libv8_monolith.a"
+               AND NOT EXISTS "${V8_EXTRACT_DIR}/Release/libv8_monolith.a")
                 if(EXISTS "${V8_ARCHIVE}")
                     message(STATUS "Extracting ${V8_ARCHIVE}")
                     file(ARCHIVE_EXTRACT
                         INPUT       "${V8_ARCHIVE}"
-                        DESTINATION "${V8_EXTRACT_DIR}"
+                        DESTINATION "${V8_MACOS_DIR}"
                     )
                 else()
                     message(FATAL_ERROR "V8 archive not found: ${V8_ARCHIVE}")

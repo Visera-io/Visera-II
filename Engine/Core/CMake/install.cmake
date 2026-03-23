@@ -29,9 +29,6 @@ macro(install_visera_core in_target)
     include(install_stb)
     link_stb(${in_target})
 
-    include(install_simdutf)
-    link_simdutf(${in_target})
-
     include(install_ankerl)
     link_ankerl(${in_target})
 

@@ -1,6 +1,5 @@
 module;
 #include <Visera-Core.hpp>
-#include <simdutf.h>
 #include <double-conversion/double-conversion.h>
 export module Visera.Core.Types.Text;
 #define VISERA_MODULE_NAME "Core.Types"
@@ -8,14 +7,122 @@ import Visera.Core.Containers.Array;
 import Visera.Core.Types.String;
 import Visera.Core.Algorithm.Ranges;
 
+namespace Visera
+{
+    Bool ValidateUTF8Impl(const char* Data, size_t Size)
+    {
+        size_t Index = 0;
+        while (Index < Size)
+        {
+            const unsigned char Lead = static_cast<unsigned char>(Data[Index]);
+            if (Lead < 0x80) { ++Index; continue; }
+            if (Lead < 0xC2) return false;
+            if (Lead < 0xE0)
+            {
+                if (Index + 2 > Size) return false;
+                if ((static_cast<unsigned char>(Data[Index + 1]) & 0xC0) != 0x80) return false;
+                Index += 2; continue;
+            }
+            if (Lead < 0xF0)
+            {
+                if (Index + 3 > Size) return false;
+                if ((static_cast<unsigned char>(Data[Index + 1]) & 0xC0) != 0x80 ||
+                    (static_cast<unsigned char>(Data[Index + 2]) & 0xC0) != 0x80) return false;
+                if (Lead == 0xE0 && static_cast<unsigned char>(Data[Index + 1]) < 0xA0) return false;
+                Index += 3; continue;
+            }
+            if (Lead <= 0xF4)
+            {
+                if (Index + 4 > Size) return false;
+                if ((static_cast<unsigned char>(Data[Index + 1]) & 0xC0) != 0x80 ||
+                    (static_cast<unsigned char>(Data[Index + 2]) & 0xC0) != 0x80 ||
+                    (static_cast<unsigned char>(Data[Index + 3]) & 0xC0) != 0x80) return false;
+                if (Lead == 0xF0 && static_cast<unsigned char>(Data[Index + 1]) < 0x90) return false;
+                if (Lead == 0xF4 && static_cast<unsigned char>(Data[Index + 1]) > 0x8F) return false;
+                Index += 4; continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    size_t CountUTF8Codepoints(const char* Data, size_t Size)
+    {
+        size_t Count = 0;
+        size_t Index = 0;
+        while (Index < Size)
+        {
+            const unsigned char Lead = static_cast<unsigned char>(Data[Index]);
+            if (Lead < 0x80) { ++Index; ++Count; continue; }
+            if (Lead < 0xE0) { Index += 2; ++Count; continue; }
+            if (Lead < 0xF0) { Index += 3; ++Count; continue; }
+            if (Lead <= 0xF4) { Index += 4; ++Count; continue; }
+            return 0;
+        }
+        return Count;
+    }
+
+    UInt32 DecodeUTF8Lead(const unsigned char Lead, size_t* OutLength)
+    {
+        if (Lead < 0x80) { *OutLength = 1; return Lead; }
+        if (Lead < 0xE0) { *OutLength = 2; return static_cast<UInt32>(Lead & 0x1F); }
+        if (Lead < 0xF0) { *OutLength = 3; return static_cast<UInt32>(Lead & 0x0F); }
+        *OutLength = 4; return static_cast<UInt32>(Lead & 0x07);
+    }
+
+    void UTF8ToUTF32Impl(const char* Data, size_t Size, UInt32* Out, size_t* OutCount)
+    {
+        size_t Index = 0;
+        size_t WriteIndex = 0;
+        while (Index < Size)
+        {
+            const unsigned char Lead = static_cast<unsigned char>(Data[Index]);
+            size_t SeqLength = 0;
+            UInt32 CodePoint = DecodeUTF8Lead(Lead, &SeqLength);
+            if (Index + SeqLength > Size) break;
+            for (size_t I = 1; I < SeqLength; ++I)
+                CodePoint = (CodePoint << 6) | (static_cast<unsigned char>(Data[Index + I]) & 0x3F);
+            Index += SeqLength;
+            Out[WriteIndex++] = CodePoint;
+        }
+        *OutCount = WriteIndex;
+    }
+
+    size_t UTF32ToUTF16Length(const UInt32* CodePoints, size_t Count)
+    {
+        size_t Length = 0;
+        for (size_t I = 0; I < Count; ++I)
+            Length += (CodePoints[I] >= 0x10000) ? 2u : 1u;
+        return Length;
+    }
+
+    void UTF32ToUTF16Impl(const UInt32* CodePoints, size_t Count, UInt16* Out, size_t* OutLength)
+    {
+        size_t WriteIndex = 0;
+        for (size_t I = 0; I < Count; ++I)
+        {
+            const UInt32 Cp = CodePoints[I];
+            if (Cp < 0x10000)
+                Out[WriteIndex++] = static_cast<UInt16>(Cp);
+            else
+            {
+                const UInt32 Surrogate = Cp - 0x10000;
+                Out[WriteIndex++] = static_cast<UInt16>(0xD800u + (Surrogate >> 10));
+                Out[WriteIndex++] = static_cast<UInt16>(0xDC00u + (Surrogate & 0x3FFu));
+            }
+        }
+        *OutLength = WriteIndex;
+    }
+}
+
 export namespace Visera
 {
     /* UTF8 Encoded String */
     class VISERA_CORE_API FText
     {
     public:
-        [[nodiscard]] static constexpr Bool
-        ValidateUTF8(FStringView I_String) { return simdutf::validate_utf8(I_String.GetNative()); }
+        [[nodiscard]] static Bool
+        ValidateUTF8(FStringView I_String) { return ValidateUTF8Impl(I_String.Data(), I_String.GetSize()); }
 
         /** Decode to UTF-32 code points (FText is valid UTF-8 at construction). */
         [[nodiscard]] TArray<UInt32>
@@ -74,7 +181,7 @@ export namespace Visera
         operator+=(const FText& I_Other) { String.Append(I_Other.String); CachedCodepointCount = ~0U; return *this; }
 
         FText() = default;
-        FText(FStringView I_String) : String{I_String} { VISERA_ASSERT(simdutf::validate_utf8(String.Data(), String.GetSize())); }
+        FText(FStringView I_String) : String{I_String} { VISERA_ASSERT(ValidateUTF8Impl(String.Data(), String.GetSize())); }
         template <size_t N> constexpr
         FText(const char (&I_Literal)[N])
         {
@@ -161,7 +268,7 @@ export namespace Visera
     GetCodepointCount() const noexcept
     {
         if (CachedCodepointCount != ~0U) { return CachedCodepointCount; }
-        const UInt64 N = simdutf::count_utf8(String.Data(), static_cast<size_t>(String.GetSize()));
+        const UInt64 N = CountUTF8Codepoints(String.Data(), static_cast<size_t>(String.GetSize()));
         CachedCodepointCount = (N <= 0xFFFFFFFFu) ? static_cast<UInt32>(N) : ~0U;
         return N;
     }
@@ -175,9 +282,8 @@ export namespace Visera
         const char* Data = GetData();
         const size_t Size = GetSize();
         Out.Resize(Count);
-        const size_t Written = simdutf::convert_valid_utf8_to_utf32(
-            Data, Size, reinterpret_cast<char32_t*>(Out.Data()));
-        if (Written == 0) return TArray<UInt32>{};
+        size_t Written = 0;
+        UTF8ToUTF32Impl(Data, Size, Out.Data(), &Written);
         Out.Resize(static_cast<UInt64>(Written));
         return Out;
     }
@@ -185,16 +291,13 @@ export namespace Visera
     TArray<UInt16> FText::
     ToUTF16() const
     {
+        TArray<UInt32> UTF32 = ToUTF32();
+        if (UTF32.IsEmpty()) return TArray<UInt16>{};
+        const size_t MaxUnits = UTF32ToUTF16Length(UTF32.Data(), UTF32.GetSize());
         TArray<UInt16> Out;
-        const char* Data = GetData();
-        const size_t Size = GetSize();
-        if (Size == 0) return Out;
-        const size_t MaxUnits = simdutf::utf16_length_from_utf8(Data, Size);
-        if (MaxUnits == 0) return Out;
         Out.Resize(static_cast<UInt64>(MaxUnits));
-        const size_t Written = simdutf::convert_valid_utf8_to_utf16(
-            Data, Size, reinterpret_cast<char16_t*>(Out.Data()));
-        if (Written == 0) return TArray<UInt16>{};
+        size_t Written = 0;
+        UTF32ToUTF16Impl(UTF32.Data(), UTF32.GetSize(), Out.Data(), &Written);
         Out.Resize(static_cast<UInt64>(Written));
         return Out;
     }
