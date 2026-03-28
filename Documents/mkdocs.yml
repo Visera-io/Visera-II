@@ -38,6 +38,10 @@ theme:
 nav:
   - Home: index.md
   - Engine:
+      - Architecture: Engine/Architecture.md
+      - Repository layout: Engine/Repository-Layout.md
+      - Forge:
+          - Overview: Engine/Forge/index.md
       - Core:
           - Overview: Engine/Core/index.md
           - Algorithm:
@@ -233,10 +237,6 @@ nav:
               - Null: Engine/Runtime/Audio/Null.md
               - Wwise: Engine/Runtime/Audio/Wwise.md
               - Wwise-IO: Engine/Runtime/Audio/Wwise-IO.md
-          - Global:
-              - Overview: Engine/Runtime/Global/index.md
-              - Configuration: Engine/Runtime/Global/Configuration.md
-              - Service: Engine/Runtime/Global/Service.md
           - Graphics:
               - Overview: Engine/Runtime/Graphics/index.md
               - Framework: Engine/Runtime/Graphics/Framework.md
@@ -256,10 +256,16 @@ nav:
                   - Keyboard: Engine/Runtime/Input/Device/Keyboard.md
                   - Mouse: Engine/Runtime/Input/Device/Mouse.md
               - Mapping: Engine/Runtime/Input/Mapping.md
-          - Physics2D:
-              - Overview: Engine/Runtime/Physics2D/index.md
-              - Common: Engine/Runtime/Physics2D/Common.md
-              - RigidBody: Engine/Runtime/Physics2D/RigidBody.md
+          - Scripting:
+              - Overview: Engine/Runtime/Scripting/index.md
+              - VM: Engine/Runtime/Scripting/VM.md
+              - Context: Engine/Runtime/Scripting/Context.md
+              - Binding:
+                  - Overview: Engine/Runtime/Scripting/Binding.md
+                  - Graphics: Engine/Runtime/Scripting/Binding/Graphics.md
+                  - Input: Engine/Runtime/Scripting/Binding/Input.md
+                  - Audio: Engine/Runtime/Scripting/Binding/Audio.md
+              - Utils: Engine/Runtime/Scripting/Utils.md
           - RHI:
               - Overview: Engine/Runtime/RHI/index.md
               - Barrier: Engine/Runtime/RHI/Barrier.md
@@ -308,10 +314,6 @@ nav:
                       - Overview: Engine/Runtime/RHI/Vulkan/Sync/index.md
                       - Fence: Engine/Runtime/RHI/Vulkan/Sync/Fence.md
                       - Semaphore: Engine/Runtime/RHI/Vulkan/Sync/Semaphore.md
-          - Tasks:
-              - Overview: Engine/Runtime/Tasks/index.md
-              - Interface: Engine/Runtime/Tasks/Interface.md
-              - Scheduler: Engine/Runtime/Tasks/Scheduler.md
           - UI:
               - Overview: Engine/Runtime/UI/index.md
               - Context: Engine/Runtime/UI/Context.md

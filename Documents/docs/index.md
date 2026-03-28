@@ -2,25 +2,29 @@
 
 ![Visera Logo](assets/images/Visera.png)
 
-**Visera** is a cross-platform engine for modern games and real-time applications. It uses a C++20 modular design and provides a full runtime stack from platform abstraction to rendering, audio, input, and asset pipelines.
+**Visera** is a cross-platform engine for modern games and real-time applications. It uses **C++23** with C++ modules (`.ixx`) and provides a full runtime stack from platform abstraction to rendering, audio, input, scripting, and asset pipelines.
 
 ## Introduction
 
 Visera uses a layered architecture:
 
 - **Core** — Foundation: math, containers, type system, concurrency, OS abstraction (file, memory, thread, time), logging, compression, and more.
-- **Platform** — Platform layer: window, path, file system, and dynamic library loading; supports Windows, macOS, and GLFW-based cross-platform or Null stub implementations.
-- **Runtime** — Runtime: RHI (Vulkan), graphics (scene, material, render graph), AssetHub, audio, input, task system, UI (ImGui), and 2D physics.
+- **Platform** — Window, path, file system, and dynamic library loading: Windows and macOS native backends, plus **GLFW** and **Null** implementations compiled alongside them. The CMake configuration for this tree targets **Windows and Apple** hosts only.
+- **Runtime** — RHI (Vulkan), graphics (scene, material, render graph), AssetHub, audio, input, UI (ImGui), window, and **JavaScript scripting** (V8).
+- **Forge** (optional) — Separate **`Visera-Forge`** toolchain executable for shaders and batch utilities, controlled by **`VISERA_BUILD_FORGE`**.
 
-The **Engine** section in the sidebar follows the same structure as the source: **Core**, **Platform**, and **Runtime**, with one page per module for easy lookup of APIs and concepts.
+The **Engine** section in the sidebar matches the source layout: **Architecture**, **Repository layout**, **Forge**, **Core**, **Platform**, and **Runtime**, with pages keyed by module names.
 
 ## Quick links
 
 | Section | Description |
 |--------|-------------|
+| [Engine → Architecture](Engine/Architecture.md) | Layer diagram, `Visera` module, `FViseraEngine`, Standard vs Forge mode, service dependencies |
+| [Engine → Repository layout](Engine/Repository-Layout.md) | `Core`, `Platform`, `Runtime`, `Forge`, `APIs`, `Schemas`, `Shaders` directories |
+| [Engine → Forge](Engine/Forge/index.md) | Optional `Visera-Forge` executable and `Visera.Forge` modules |
 | [Engine → Core](Engine/Core/index.md) | Core library: algorithm, compression, concurrency, containers, delegate, font, image, log, math, meta, OS, traits, types |
 | [Engine → Platform](Engine/Platform/index.md) | Platform: interface, GLFW, Null, Windows, MacOS |
-| [Engine → Runtime](Engine/Runtime/index.md) | Runtime: AssetHub, Audio, Global, Graphics, Input, Physics2D, RHI, Tasks, UI, Window |
+| [Engine → Runtime](Engine/Runtime/index.md) | Runtime: AssetHub, Audio, Graphics, Input, Scripting, RHI, UI, Window |
 
 ## Recent changes
 

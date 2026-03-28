@@ -7,7 +7,7 @@
 - **Module**: `Visera.Platform`
 - **Source path**: `Engine/Platform/Source/`
 - **Dependencies**: Depends on [Core](../Core/index.md) (Path, Text, Optional, Containers, Meta); does not depend on Runtime.
-- **Build**: Macros (e.g. `VISERA_ON_WINDOWS_SYSTEM`, `VISERA_ON_APPLE_SYSTEM`) select Windows or MacOS at compile time; GLFW and Null are built alongside and can be used for cross-platform or headless builds.
+- **Build**: **`Engine/Platform/CMake/install.cmake`** configures the Platform target for **Windows** or **Apple** only; other host OS values fail configuration. On those hosts, **GLFW** and **Null** module sources are still globbed in and linked so you can choose GLFW- or Null-based windowing and devices at runtime or via your app’s platform selection, alongside the native Windows/macOS implementations.
 
 Platform exposes unified type names (e.g. `FPlatformWindow`, `FPlatformPath`, `FPlatformFileSystem`) that map to Windows/MacOS concrete types so that upper layers (e.g. [Runtime.Window](../Runtime/Window/index.md)) only need to depend on the Platform interface for cross-platform builds.
 

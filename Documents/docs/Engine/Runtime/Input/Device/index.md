@@ -12,5 +12,5 @@ Input device abstraction. Re-exports keyboard and mouse device implementations.
 ## See also
 
 - [Input](../index.md) — parent module
-- [Platform.Cross.GLFW](../../../Platform/Cross/GLFW/index.md) — GLFW input
+- [Platform.GLFW](../../../Platform/GLFW/index.md) — GLFW window and device input
 - [Mapping](../Mapping.md) — input mapping

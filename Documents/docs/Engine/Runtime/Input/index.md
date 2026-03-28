@@ -34,9 +34,9 @@ Available when the engine runs with **Input + Scripting** enabled. `addAction` r
 - **`visera.input.isActionActive(name)`** — boolean; meaningful after `PollAndSync`.
 - **`visera.input.mouse.cursor.position`** / **`.offset`** — getters returning `{ x, y }` from `FMouse::GetCursor()` (snapshot per read).
 
-TypeScript declarations: [Visera.d.ts](../../../../../Engine/APIs/Visera.d.ts).
+TypeScript declarations live in the engine tree: `Engine/APIs/Visera.d.ts`.
 
 ## See also
 
 - [Runtime](../index.md)
-- [InputMap.schema.json](../../../../../Engine/Schemas/InputMap.schema.json) (reference; runtime does not load `.vimap` files in this flow)
+- JSON shape reference: `Engine/Schemas/InputMap.schema.json` (runtime does not load `.vimap` files in this flow)

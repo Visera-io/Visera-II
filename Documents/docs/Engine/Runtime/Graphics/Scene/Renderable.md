@@ -61,5 +61,5 @@ Abstract interface for C++ renderables. Implementations provide instance data, m
 - [Camera](Camera.md) — camera
 - [Framework](../Framework.md) — FRenderBatch and FRenderList
 - [Material](../Material.md) — material system
-- [Transform](../../../../Core/Math/Geometry/Transform.md) — FTransform3x4F
+- [Transform](../../../Core/Math/Geometry/Transform.md) — FTransform3x4F
 - [RHI.CommandList](../../RHI/CommandList.md) — command recording

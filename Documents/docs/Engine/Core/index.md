@@ -9,7 +9,7 @@
 - **Dependencies**: Standard library and third-party headers (e.g. Eigen, spdlog, zlib in `Engine/Core/External/`); no other Visera layers.
 - **Build**: Built as a static library or module units and linked by Engine and Forge.
 
-Core is organized as C++20 modules (`.ixx`). The root module `Visera.Core` aggregates and re-exports the submodules listed below; types and functions are defined in each submodule. The docs follow the same structure as the source.
+Core is organized as **C++ modules** (`.ixx`); the Visera CMake project uses **C++23**. The root module `Visera.Core` aggregates and re-exports the submodules listed below; types and functions are defined in each submodule. The docs follow the same structure as the source.
 
 ## Submodules overview
 

@@ -5,4 +5,4 @@ Window abstraction: create, destroy, and manage native window handles. Implement
 ## See also
 
 - [Interface](index.md) — parent module
-- [Cross.GLFW.Window](../Cross/GLFW/Window.md) — GLFW window
+- [GLFW.Window](../GLFW/Window.md) — GLFW window

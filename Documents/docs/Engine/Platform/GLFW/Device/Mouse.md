@@ -6,4 +6,4 @@ GLFW mouse input handling.
 
 - [GLFW](../index.md) — parent module
 - [Device.Keyboard](Keyboard.md) — keyboard input
-- [Runtime.Input](../../../../Runtime/Input/index.md) — runtime input
+- [Runtime.Input](../../../Runtime/Input/index.md) — runtime input

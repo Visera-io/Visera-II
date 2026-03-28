@@ -48,4 +48,4 @@ Filter.Erase(42);  // only if 42 was actually inserted
 ## See also
 
 - [Indexing](index.md) — Indexing overview
-- [Math.Hash](../../Math/Hash/index.md) — GoldenRatio, CityHash used by default hasher
+- [Math.Hash](../Math/Hash/index.md) — GoldenRatio, CityHash used by default hasher

@@ -17,6 +17,7 @@
 | [Library](Library.md) | Dynamic library abstraction. |
 
 ## See also
+
 - [Platform](../index.md) — Parent module
-- [Cross](../Cross/index.md) — GLFW / Null implementation
-- [Windows](../Windows/index.md), [MacOS](../MacOS/index.md) — Platform implementation
+- [GLFW](../GLFW/index.md), [Null](../Null/index.md) — Cross-platform window and headless stubs
+- [Windows](../Windows/index.md), [MacOS](../MacOS/index.md) — Native implementations

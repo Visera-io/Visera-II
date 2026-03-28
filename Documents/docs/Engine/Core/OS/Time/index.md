@@ -19,4 +19,4 @@
 ## See also
 - [OS](../index.md) — Parent module
 - [Math.Arithmetic.Interval](../../Math/Arithmetic/Interval.md) — Interval and time window
-- [Runtime.Global](../../../Runtime/Global/index.md) — Frame time etc. may use Time
+- [Runtime](../../../Runtime/index.md) — Frame pacing and `FViseraEngine` use [Clock](Clock.md) / OS time types; see [Architecture](../../../Architecture.md)
