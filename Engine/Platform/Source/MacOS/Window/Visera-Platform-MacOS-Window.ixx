@@ -3,6 +3,7 @@ module;
 export module Visera.Platform.MacOS.Window;
 #define VISERA_MODULE_NAME "Platform.MacOS"
 import Visera.Platform.GLFW.Window;
+import Visera.Core.Types.String;
 
 export namespace Visera
 {

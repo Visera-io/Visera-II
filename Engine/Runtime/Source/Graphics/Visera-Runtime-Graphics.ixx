@@ -1158,7 +1158,7 @@ export namespace Visera
       {
          LOG_ERROR(
             "LoadMaterial: could not load material {} (resolved: {}). For @assets:// paths, keep the "
-            "'assets' directory next to the executable (ship the full build output or installer layout; "
+            "'Assets' directory next to the executable (ship the full build output or installer layout; "
             "do not run from inside an archive without extracting).",
             I_MaterialPath,
             ResolvedPath);
