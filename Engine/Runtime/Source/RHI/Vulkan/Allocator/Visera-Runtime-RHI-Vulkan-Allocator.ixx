@@ -1,7 +1,5 @@
 module;
 #include <Visera-Runtime.hpp>
-#include <chrono>
-#include <fstream>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 export module Visera.Runtime.RHI.Vulkan.Allocator;
@@ -330,20 +328,6 @@ export namespace Visera
     void IVulkanResource::
     MapMemory(void** I_UnmappedMemory)
     {
-        // #region agent log
-        {
-            VmaAllocationInfo AllocationInfo{};
-            vmaGetAllocationInfo(Allocator->GetHandle(), Allocation, &AllocationInfo);
-            const auto TimestampMs = static_cast<Int64>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()).count());
-            std::ofstream LogFile(R"(d:\Programs\Verdandi\Verdandi-Loom-of-Fate\debug-3521b0.log)", std::ios::app);
-            if (LogFile)
-            {
-                LogFile << "{\"sessionId\":\"3521b0\",\"hypothesisId\":\"A\",\"location\":\"IVulkanResource.MapMemory\",\"message\":\"before_vmaMapMemory\",\"data\":{\"memoryType\":"
-                    << static_cast<Int32>(AllocationInfo.memoryType) << "},\"timestamp\":" << TimestampMs << "}\n";
-            }
-        }
-        // #endregion
         vmaMapMemory(Allocator->GetHandle(), Allocation, I_UnmappedMemory);
     }
 
