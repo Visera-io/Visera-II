@@ -1,5 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
+#include <chrono>
+#include <fstream>
 export module Visera.Runtime.RHI.Vulkan.Buffer;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 import Visera.Runtime.RHI.Vulkan.Common;
@@ -82,6 +84,19 @@ namespace Visera
 
         if (!MappedMemory)
         {
+            // #region agent log
+            {
+                const auto TimestampMs = static_cast<Int64>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count());
+                std::ofstream LogFile(R"(d:\Programs\Verdandi\Verdandi-Loom-of-Fate\debug-3521b0.log)", std::ios::app);
+                if (LogFile)
+                {
+                    LogFile << "{\"sessionId\":\"3521b0\",\"hypothesisId\":\"A\",\"location\":\"FVulkanBuffer.Write\",\"message\":\"map_fallback\",\"data\":{\"hostWritable\":"
+                        << (IsHostWritable() ? 1 : 0) << ",\"sequentialWritable\":" << (IsSequentialWritable() ? 1 : 0)
+                        << ",\"writeSize\":" << static_cast<Int64>(I_Size) << "},\"timestamp\":" << TimestampMs << "}\n";
+                }
+            }
+            // #endregion
             MapMemory(&MappedMemory);
             VISERA_ASSERT(IsSequentialWritable());
             Memory::Memcpy(MappedMemory, I_Data, I_Size);

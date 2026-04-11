@@ -1,5 +1,7 @@
 module;
 #include <Visera-Runtime.hpp>
+#include <chrono>
+#include <fstream>
 export module Visera.Runtime.RHI;
 #define VISERA_MODULE_NAME "Runtime.RHI"
 export import Visera.Runtime.RHI.Common;
@@ -1755,6 +1757,20 @@ export namespace Visera
 
         auto* VulkanBuffer = Buffer->GetVulkanBuffer();
         void* MappedPointer = VulkanBuffer->GetMappedPtr();
+        // #region agent log
+        {
+            const auto TimestampMs = static_cast<Int64>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
+            std::ofstream LogFile(R"(d:\Programs\Verdandi\Verdandi-Loom-of-Fate\debug-3521b0.log)", std::ios::app);
+            if (LogFile)
+            {
+                LogFile << "{\"sessionId\":\"3521b0\",\"hypothesisId\":\"A\",\"location\":\"FRHI.WriteBufferDirect\",\"message\":\"entry\",\"data\":{\"bHostWritable\":"
+                    << (Buffer->GetInfo().bHostWritable ? 1 : 0) << ",\"mapped\":" << (MappedPointer ? 1 : 0)
+                    << ",\"byteSize\":" << static_cast<Int64>(I_ByteSize) << ",\"offset\":" << static_cast<Int64>(I_Offset)
+                    << "},\"timestamp\":" << TimestampMs << "}\n";
+            }
+        }
+        // #endregion
         if (MappedPointer)
         {
             // Fast path: persistently mapped -- direct memcpy at the requested offset.
@@ -1762,9 +1778,10 @@ export namespace Visera
         }
         else
         {
-            // Fallback: VMA chose device-local memory (no persistent mapping).
-            // Use the map-write-unmap path provided by FVulkanBuffer.
-            VulkanBuffer->Write(I_Data, I_ByteSize);
+            // VMA can still place bHostWritable buffers in device-local memory when
+            // HostAccessAllowTransferInstead is set (see FRHIRegistry::Register). In that
+            // case there is no persistent map and vmaMapMemory is invalid — use staging.
+            UploadBuffer(I_Buffer, I_Data, I_ByteSize, I_Offset);
         }
     }
 

@@ -28,9 +28,10 @@ export namespace Visera
         case EEngineMode::Standard:
             Info.RHI         = FRHICreateInfo{};
             Info.AssetHub    = FAssetHubCreateInfo{};
-            Info.AudioEngine = FAudioCreateInfo{
+            Info.AudioEngine = FAudioCreateInfo
+            {
                 .Engine       = "Wwise",
-                .BankBasePath = VPath{FStringView{"@assets://soundbanks"}},
+                .BankBasePath = VPath{"@assets://soundbanks"},
             };
             Info.Graphics    = FGraphicsCreateInfo{};
             Info.Input       = FInputCreateInfo{};
