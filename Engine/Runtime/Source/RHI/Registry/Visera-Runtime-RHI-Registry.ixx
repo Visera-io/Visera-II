@@ -530,8 +530,14 @@ export namespace Visera
     Register(FRHIBufferCreateInfo&& I_BufferDesc)
     {
         FScopeWriteLock WriteLock(&RegistryLock);
-        const UInt64 Key = Hash(I_BufferDesc);
-        UInt64 const Size = I_BufferDesc.Size;
+        // Host-writable buffers may be placed in device-local memory (VMA HostAccessAllowTransferInstead);
+        // FRHI::WriteBufferDirect then falls back to UploadBuffer (vkCmdCopyBuffer), which requires
+        // VK_BUFFER_USAGE_TRANSFER_DST_BIT on the destination.
+        FRHIBufferCreateInfo BufferDesc = std::move(I_BufferDesc);
+        if (BufferDesc.bHostWritable)
+        { BufferDesc.Usages |= ERHIBufferUsage::TransferDst; }
+
+        const UInt64 Key = Hash(BufferDesc);
 
         auto RecycleBinIter = RecycleBinBuffers.Find(Key);
         const char* allocReason = "no_bin";
@@ -555,7 +561,7 @@ export namespace Visera
                     --Idx;
                     continue;
                 }
-                if (!Buffer->GetInfo().IsCompatibleWith(I_BufferDesc))
+                if (!Buffer->GetInfo().IsCompatibleWith(BufferDesc))
                 {
                     Handles.RemoveAtSwap(Idx);
                     --Idx;
@@ -568,12 +574,12 @@ export namespace Visera
         }
         // Create new resource
         vk::BufferCreateInfo       BufferCreateInfo = vk::BufferCreateInfo{}
-            .setSize        (I_BufferDesc.Size)
-            .setUsage       (TypeCast(I_BufferDesc.Usages))
+            .setSize        (BufferDesc.Size)
+            .setUsage       (TypeCast(BufferDesc.Usages))
             .setSharingMode (vk::SharingMode::eExclusive)
         ;
         EVulkanMemoryProperty MemoryProperties = EVulkanMemoryProperty::None;
-        if (I_BufferDesc.bHostWritable)
+        if (BufferDesc.bHostWritable)
         {
             // Persistent mapped host-visible memory for direct CPU writes (no staging).
             // HostAccessSequentialWrite prefers HOST_VISIBLE | HOST_COHERENT;
@@ -583,12 +589,12 @@ export namespace Visera
                                 EVulkanMemoryProperty::HostAccessSequentialWrite |
                                 EVulkanMemoryProperty::HostAccessAllowTransferInstead;
         }
-        else if (I_BufferDesc.Usages & ERHIBufferUsage::TransferSrc)
+        else if (BufferDesc.Usages & ERHIBufferUsage::TransferSrc)
         {
             MemoryProperties |= EVulkanMemoryProperty::HostAccessAllowTransferInstead |
                                 EVulkanMemoryProperty::HostAccessSequentialWrite;
         }
-        if ((I_BufferDesc.Usages & ERHIBufferUsage::TransferDst) && (I_BufferDesc.Usages & ~ERHIBufferUsage::TransferDst) == ERHIBufferUsage::None)
+        if ((BufferDesc.Usages & ERHIBufferUsage::TransferDst) && (BufferDesc.Usages & ~ERHIBufferUsage::TransferDst) == ERHIBufferUsage::None)
         {
             // Readback buffer: host-visible and mapped so CPU can read after GPU copy. VMA requires a host-access flag with Mapped.
             MemoryProperties |= EVulkanMemoryProperty::Mapped | EVulkanMemoryProperty::HostAccessRandom;
@@ -596,7 +602,7 @@ export namespace Visera
 
         FVulkanBuffer     Buffer = Driver->CreateBuffer(BufferCreateInfo, MemoryProperties);
         FRHIBufferHandle  Handle = Buffers.Insert(
-            FRHIBuffer{std::move(I_BufferDesc), std::move(Buffer)},
+            FRHIBuffer{std::move(BufferDesc), std::move(Buffer)},
             True);
         PROFILING_ONLY_FIELD(++ProfilingMetrics.CreatedBuffers;);
 

@@ -102,6 +102,32 @@ namespace Private
 
             const Double Frame = GetObjectNumber(Isolate, Context, Descriptor, "frame").Get(0.0);
 
+            Float ColorR = 1.f;
+            Float ColorG = 1.f;
+            Float ColorB = 1.f;
+            Float ColorA = 1.f;
+            v8::Local<v8::Object> ColorObject;
+            if (TryGetObjectChild(Isolate, Context, Descriptor, "color", ColorObject))
+            {
+                ColorR = static_cast<Float>(GetObjectNumber(Isolate, Context, ColorObject, "r").Get(1.0));
+                ColorG = static_cast<Float>(GetObjectNumber(Isolate, Context, ColorObject, "g").Get(1.0));
+                ColorB = static_cast<Float>(GetObjectNumber(Isolate, Context, ColorObject, "b").Get(1.0));
+                ColorA = static_cast<Float>(GetObjectNumber(Isolate, Context, ColorObject, "a").Get(1.0));
+            }
+
+            Float CustomDataX = static_cast<Float>(Frame);
+            Float CustomDataY = 0.f;
+            Float CustomDataZ = 1.f;
+            Float CustomDataW = 1.f;
+            v8::Local<v8::Object> CustomDataObject;
+            if (TryGetObjectChild(Isolate, Context, Descriptor, "customData", CustomDataObject))
+            {
+                CustomDataX = static_cast<Float>(GetObjectNumber(Isolate, Context, CustomDataObject, "x").Get(static_cast<Double>(CustomDataX)));
+                CustomDataY = static_cast<Float>(GetObjectNumber(Isolate, Context, CustomDataObject, "y").Get(static_cast<Double>(CustomDataY)));
+                CustomDataZ = static_cast<Float>(GetObjectNumber(Isolate, Context, CustomDataObject, "z").Get(static_cast<Double>(CustomDataZ)));
+                CustomDataW = static_cast<Float>(GetObjectNumber(Isolate, Context, CustomDataObject, "w").Get(static_cast<Double>(CustomDataW)));
+            }
+
             TOptional<FString> MaterialOpt = GetObjectString(Isolate, Context, Descriptor, "material");
             if (!MaterialOpt.HasValue())
                 MaterialOpt = GetObjectString(Isolate, Context, Descriptor, "materialPath");
@@ -125,8 +151,8 @@ namespace Private
                     {static_cast<Float>(ExtentWidth), static_cast<Float>(ExtentHeight)},
                     FDegree{static_cast<Float>(RotationDegrees)},
                     static_cast<Float>(PositionZ)),
-                .Color      = {1.f, 1.f, 1.f, 1.f},
-                .CustomData = {static_cast<Float>(Frame), 0.f, 1.f, 1.f}
+                .Color      = {ColorR, ColorG, ColorB, ColorA},
+                .CustomData = {CustomDataX, CustomDataY, CustomDataZ, CustomDataW}
             };
             FRenderableMeta Meta{
                 .InstanceData = InstanceData,
