@@ -1,13 +1,4 @@
 {
-    "Box2D" :
-    {
-        "Version": "3.1.1",
-        "Dependencies" :
-        [
-
-        ],
-        "URL": "https://github.com/erincatto/box2d"
-    },
     "FreeType" :
     {
         "Version" : "2.14.1",
