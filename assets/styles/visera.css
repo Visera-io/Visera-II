@@ -1,0 +1,242 @@
+/* =========================================================
+   Visera Docs Theme (Material for MkDocs)
+   Goals:
+   - Keep Visera gradient header, usable in dark mode
+   - Strong but tasteful interaction feedback
+   - Better focus/keyboard accessibility
+   ========================================================= */
+
+/* -----------------------------
+   0) Visera brand tokens
+   ----------------------------- */
+:root {
+  --visera-cyan:   #00cfd1;
+  --visera-mint:   #1de9b6;
+  --visera-yellow: #ffd600;
+
+  /* Layout softness */
+  --visera-radius: 10px;
+  --visera-trans: 120ms ease;
+
+  /* Focus ring */
+  --visera-ring: rgba(0, 207, 209, 0.45);
+}
+
+/* Light scheme tokens */
+[data-md-color-scheme="default"] {
+  --visera-hover-bg:  rgba(0, 207, 209, 0.10);
+  --visera-active-bg: rgba(29, 233, 182, 0.16);
+  --visera-press-bg:  rgba(0, 207, 209, 0.18);
+
+  --visera-header-fg: rgba(10, 14, 18, 0.92);
+  --visera-header-fg-soft: rgba(10, 14, 18, 0.78);
+
+  --visera-link: #00a8ad;
+  --visera-link-hover: #008a8e;
+
+  --visera-code-accent: rgba(0, 207, 209, 0.75);
+}
+
+/* Dark scheme tokens */
+[data-md-color-scheme="slate"] {
+  /* More subtle highlights for dark */
+  --visera-hover-bg:  rgba(0, 207, 209, 0.12);
+  --visera-active-bg: rgba(29, 233, 182, 0.18);
+  --visera-press-bg:  rgba(29, 233, 182, 0.22);
+
+  --visera-header-fg: rgba(240, 246, 252, 0.92);
+  --visera-header-fg-soft: rgba(240, 246, 252, 0.78);
+
+  --visera-link: #33e6dc;
+  --visera-link-hover: #6ef3ea;
+
+  --visera-code-accent: rgba(29, 233, 182, 0.70);
+
+  /* Slightly stronger ring in dark */
+  --visera-ring: rgba(29, 233, 182, 0.55);
+}
+
+/* -----------------------------
+   1) Header / Tabs gradient
+   ----------------------------- */
+
+/* Light: full brand gradient */
+[data-md-color-scheme="default"] .md-header,
+[data-md-color-scheme="default"] .md-tabs {
+  background: linear-gradient(
+    90deg,
+    var(--visera-cyan) 0%,
+    var(--visera-mint) 55%,
+    var(--visera-yellow) 100%
+  ) !important;
+}
+
+/* Dark: toned-down gradient (less glare from yellow) */
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 207, 209, 0.78) 0%,
+    rgba(29, 233, 182, 0.58) 55%,
+    rgba(255, 214, 0, 0.28) 100%
+  ) !important;
+}
+
+/* Header text/icon contrast */
+.md-header__title,
+.md-header__topic {
+  color: var(--visera-header-fg) !important;
+}
+.md-header__button {
+  color: var(--visera-header-fg-soft) !important;
+  transition: transform var(--visera-trans), color var(--visera-trans), background-color var(--visera-trans);
+  border-radius: var(--visera-radius);
+}
+.md-header__button:hover {
+  color: var(--visera-header-fg) !important;
+  background-color: rgba(255,255,255,0.14);
+}
+[data-md-color-scheme="default"] .md-header__button:hover {
+  background-color: rgba(0,0,0,0.08);
+}
+.md-header__button:active {
+  transform: translateY(1px);
+}
+
+/* Tabs hover/active feedback */
+.md-tabs__link {
+  border-radius: 8px;
+  transition: background-color var(--visera-trans), color var(--visera-trans);
+}
+.md-tabs__link:hover {
+  background-color: rgba(255,255,255,0.14);
+}
+[data-md-color-scheme="default"] .md-tabs__link:hover {
+  background-color: rgba(0,0,0,0.08);
+}
+.md-tabs__link--active {
+  background-color: rgba(255,255,255,0.20);
+}
+[data-md-color-scheme="default"] .md-tabs__link--active {
+  background-color: rgba(0,0,0,0.12);
+}
+
+/* -----------------------------
+   2) Global focus ring (big UX win)
+   ----------------------------- */
+.md-nav__link:focus-visible,
+.md-header__button:focus-visible,
+.md-search__input:focus-visible,
+.md-top:focus-visible,
+.md-content a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--visera-ring) !important;
+  outline-offset: 2px;
+  border-radius: calc(var(--visera-radius) + 2px);
+}
+
+/* -----------------------------
+   3) Sidebar navigation interaction
+   ----------------------------- */
+
+/* Make sidebar links feel clickable */
+.md-nav__link {
+  border-radius: var(--visera-radius);
+  padding: 0.35rem 0.55rem;
+  transition: background-color var(--visera-trans), color var(--visera-trans);
+}
+
+/* Hover */
+.md-nav__link:hover {
+  background-color: var(--visera-hover-bg) !important;
+}
+
+/* Active page */
+.md-nav__link--active {
+  background-color: var(--visera-active-bg) !important;
+  font-weight: 650;
+}
+
+/* Pressed */
+.md-nav__link:active {
+  background-color: var(--visera-press-bg) !important;
+}
+
+/* Section headers (expandable) should also highlight */
+.md-nav__item--section > .md-nav__link:hover,
+.md-nav__item--nested  > .md-nav__link:hover {
+  background-color: var(--visera-hover-bg) !important;
+}
+
+/* Expand/collapse caret should be more visible on hover */
+.md-nav__link:hover .md-nav__icon {
+  opacity: 0.95;
+}
+
+/* Little active dot indicator (tasteful) */
+.md-nav__link--active::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-right: 8px;
+  background: var(--visera-cyan);
+  vertical-align: middle;
+}
+
+/* -----------------------------
+   4) Links & content interaction
+   ----------------------------- */
+.md-typeset a {
+  color: var(--visera-link);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+  transition: color var(--visera-trans), background-color var(--visera-trans);
+}
+.md-typeset a:hover {
+  color: var(--visera-link-hover);
+}
+
+/* -----------------------------
+   5) Search bar interaction
+   ----------------------------- */
+.md-search__input {
+  border-radius: var(--visera-radius);
+}
+.md-search__input:hover {
+  box-shadow: 0 0 0 3px rgba(0, 207, 209, 0.10);
+}
+[data-md-color-scheme="slate"] .md-search__input:hover {
+  box-shadow: 0 0 0 3px rgba(29, 233, 182, 0.12);
+}
+
+/* -----------------------------
+   6) Code blocks (keep your stripe, better dark)
+   ----------------------------- */
+.md-typeset pre {
+  border-left: 4px solid var(--visera-code-accent);
+  border-radius: var(--visera-radius);
+}
+
+/* Inline code subtle polish */
+.md-typeset code {
+  border-radius: 6px;
+}
+
+/* -----------------------------
+   7) Optional: nicer admonitions (AI-friendly docs)
+   ----------------------------- */
+/* Note/Tip style aligning with Visera */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--visera-radius);
+}
+[data-md-color-scheme="default"] .md-typeset .admonition.note,
+[data-md-color-scheme="default"] .md-typeset .admonition.tip {
+  border-left: 4px solid rgba(0, 207, 209, 0.65);
+}
+[data-md-color-scheme="slate"] .md-typeset .admonition.note,
+[data-md-color-scheme="slate"] .md-typeset .admonition.tip {
+  border-left: 4px solid rgba(29, 233, 182, 0.60);
+}
